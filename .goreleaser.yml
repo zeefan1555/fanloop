@@ -1,0 +1,26 @@
+version: 2
+
+builds:
+  - id: fanloop
+    binary: bin/fanloop
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/zeefan1555/fanloop/internal/buildinfo.ReleaseVersion={{ .Version }} -X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion={{ .Version }} -X github.com/zeefan1555/fanloop/internal/buildinfo.Commit={{ .Env.FANLOOP_BUILD_COMMIT }}
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: fanloop
+    builds: [fanloop]
+    name_template: "fanloop-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    format: tar
+    files:
+      - "skills/**/*"
+      - "workflows/**/*"
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ .Env.FANLOOP_RELEASE_VERSION }}"

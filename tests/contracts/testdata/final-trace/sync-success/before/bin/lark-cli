@@ -1,0 +1,24 @@
+#!/bin/sh
+printf '%s\n' "$*" >> "$FAKE_LARK_LOG"
+case "$1 $2" in
+  "docs +update")
+    cat > "$FAKE_TRACE_CONTENT"
+    printf '%s\n' '{"ok":true}'
+    ;;
+  "whoami --as")
+    printf '%s\n' '{"identity":"user","available":true,"tokenStatus":"ready","onBehalfOf":{"openId":"ou_contract"}}'
+    ;;
+  "base +record-list")
+    printf '%s\n' '{"ok":true,"data":{"items":[]}}'
+    ;;
+  "base +record-upsert")
+    printf '%s\n' '{"ok":true,"data":{"record":{"record_id":"rec_contract"}}}'
+    ;;
+  "base +record-get")
+    printf '%s\n' '{"ok":true,"data":{"record":{"record_id":"rec_contract","fields":{"trace_key":"docx:TraceDocument"}}}}'
+    ;;
+  *)
+    printf '%s\n' "unexpected command: $*" >&2
+    exit 2
+    ;;
+esac

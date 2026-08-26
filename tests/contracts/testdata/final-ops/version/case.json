@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "final-ops-version",
+  "commands": [
+    {"args": ["version"]},
+    {"args": ["--version"]}
+  ]
+}

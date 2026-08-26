@@ -1,0 +1,54 @@
+schema_version: 1
+
+prompts:
+  clarify_requirements_flow:
+    prompt: |
+      把用户材料完成 INTAKE、EVENTS、FEATURES 和 CLARIFY 的双向切片与 Frontier 澄清；事实自行查明，决策由用户确认。Frontier 清空并形成共同理解后写入 require_points.md，再上报 requirements_ready。不得生成最终方案。
+    skills:
+      - {id: promotion-design, prompt: 使用该 Skill 完成 Promotion 需求澄清、切片、连续性和陌生评委理解门禁。, optional: false}
+  confirm_requirements_flow:
+    prompt: |
+      人只审核 require_points.md。明确通过时上报 requirements_approved；拒绝或要求修改时上报 requirements_rejected 并回到需求澄清。Evidence 记录本轮完整审核回复。
+    skills: []
+  write_promotion_design_flow:
+    prompt: |
+      只基于已批准的 require_points.md 和证据生成七段方案.md。发现需求语义变化时上报 requirements_changed；成功写入并回读后上报 promotion_design_written。
+    skills:
+      - {id: promotion-design, prompt: 使用该 Skill 的方案写作规则生成七段 Promotion 文档。, optional: false}
+  review_promotion_design_flow:
+    prompt: |
+      对 require_points.md 和方案.md 执行语义连续性门禁与陌生评委冷读，将发现写入 .promotion/review.md。需求语义变化时上报 requirements_changed；发现可在方案层修复的问题时上报 design_review_failed 与 design_review_written；零阻塞发现时上报 design_review_passed 与 design_review_written。
+    skills:
+      - {id: promotion-design, prompt: 使用该 Skill 完成逐句归位、双向追溯和陌生评委审校。, optional: false}
+  confirm_promotion_design_flow:
+    prompt: |
+      人只审核当前 require_points.md、方案.md 和 .promotion/review.md。明确通过时上报 promotion_design_approved 并结束；只需修改方案时上报 promotion_design_rejected；需求含义变化时上报 requirements_changed。
+    skills: []
+
+  requirements_condition:
+    prompt: 上报 require_points.md 已准出，或仍需继续澄清。
+    skills: []
+  requirements_approval_condition:
+    prompt: 上报人的需求审核决定。
+    skills: []
+  requirements_changed_condition:
+    prompt: 上报反馈改变了已批准 Requirement 的语义。
+    skills: []
+  design_written_condition:
+    prompt: 上报基于当前已批准 Requirement 写入并回读的方案.md 路径。
+    skills: []
+  design_review_condition:
+    prompt: 上报审校通过或存在方案层阻塞发现。
+    skills: []
+  design_review_written_condition:
+    prompt: 上报 .promotion/review.md 路径。
+    skills: []
+  design_approval_condition:
+    prompt: 上报人的最终方案审核决定。
+    skills: []
+  back_to_requirements:
+    prompt: 回到需求澄清；目标 Step 及其下游 Outputs 失效。
+    skills: []
+  back_to_design:
+    prompt: 保留已批准 Requirement，回到方案写作并使下游审校与确认 Outputs 失效。
+    skills: []

@@ -1,0 +1,387 @@
+package main
+
+import (
+	"archive/tar"
+	"encoding/json"
+	"errors"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strings"
+	"testing"
+
+	"github.com/ulikunitz/xz"
+	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/workflow"
+)
+
+func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
+	if _, err := exec.LookPath("xz"); err != nil {
+		if _, statErr := os.Stat("/opt/homebrew/bin/xz"); statErr == nil {
+			t.Setenv("PATH", "/opt/homebrew/bin:"+os.Getenv("PATH"))
+		} else {
+			t.Skip("xz is required")
+		}
+	}
+	source, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dist := t.TempDir()
+	template := filepath.Join(dist, "template.tar")
+	writeTestReleaseArchive(t, source, template, []byte("test binary"))
+	archiveContent, err := os.ReadFile(template)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []struct{ os, arch string }{
+		{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"},
+	} {
+		name := "fanloop-1.2.3-" + target.os + "-" + target.arch + ".tar"
+		if err := os.WriteFile(filepath.Join(dist, name), archiveContent, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	manifest, err := build("1.2.3", source, dist)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantSkills := []string{
+		"fanloop-workflow-selector", "fanloop-workflow", "promotion-design",
+		"fanloop-dev-bootstrap", "fanloop-dev-code-review", "fanloop-dev-domain-modeling",
+		"fanloop-dev-grill-with-docs", "fanloop-dev-grilling", "fanloop-dev-implement",
+		"fanloop-dev-mr-handoff", "fanloop-dev-tdd", "fanloop-dev-to-spec",
+		"fanloop-dev-to-tickets", "fanloop-dev-verify", "fanloop-dev-workflow",
+	}
+	gotSkills := make([]string, len(manifest.Skills))
+	for index, skill := range manifest.Skills {
+		gotSkills[index] = skill.Name
+	}
+	if !equalStrings(gotSkills, wantSkills) {
+		t.Fatalf("Skills = %v, want %v", gotSkills, wantSkills)
+	}
+	gotWorkflows := make([]string, len(manifest.Workflows))
+	for index, item := range manifest.Workflows {
+		gotWorkflows[index] = item.Id
+		if item.Sha256 == "" {
+			t.Fatalf("Workflow is not pinned: %#v", item)
+		}
+	}
+	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "promotion-design"}) || len(manifest.Assets) != 4 {
+		t.Fatalf("Workflows = %v, Assets = %d", gotWorkflows, len(manifest.Assets))
+	}
+	content, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(t.TempDir(), "release.json")
+	if err := os.WriteFile(manifestPath, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	installer, err := filepath.Abs(filepath.Join("..", "..", "scripts", "install.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := `const fs = require("node:fs");
+const { assertMatchedVersion, selectedAsset } = require(process.argv[1]);
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+assertMatchedVersion(manifest, "1.2.3");
+const asset = selectedAsset(manifest);
+if (!asset.sha256.startsWith("sha256:") || !asset.binary_sha256.startsWith("sha256:")) throw new Error("incomplete platform asset");`
+	if output, err := exec.Command("node", "-e", script, installer, manifestPath).CombinedOutput(); err != nil {
+		t.Fatalf("Node installer rejected manifest: %v\n%s", err, output)
+	}
+}
+
+func TestDiscoverSkillsUsesFanloopGroups(t *testing.T) {
+	root := t.TempDir()
+	for _, relative := range []string{
+		"skills/fanloop-workflow/common/shared/SKILL.md",
+		"skills/fanloop-workflow/promotion-design/promotion-design/SKILL.md",
+		"skills/self-iteration/maintain/SKILL.md",
+	} {
+		path := filepath.Join(root, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(relative), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	skills, err := discoverSkills(root, "1.2.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := make([]string, len(skills))
+	for index, skill := range skills {
+		got[index] = skill.Name + "=" + skill.Path
+	}
+	want := []string{
+		"shared=skills/fanloop-workflow/common/shared",
+		"promotion-design=skills/fanloop-workflow/promotion-design/promotion-design",
+		"maintain=skills/self-iteration/maintain",
+	}
+	if !equalStrings(got, want) {
+		t.Fatalf("discoverSkills() = %v, want %v", got, want)
+	}
+}
+
+func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
+	manifest := release.Manifest{
+		Skills: []*release.Skill{
+			{Name: "shared", Path: "skills/fanloop-workflow/common/shared"},
+			{Name: "promotion-design", Path: "skills/fanloop-workflow/promotion-design/promotion-design"},
+			{Name: "maintain", Path: "skills/self-iteration/maintain"},
+		},
+		Workflows: []*release.Workflow{{Id: "promotion-design"}, {Id: "fanloop-maintainer"}},
+	}
+	loaded := []workflow.Loaded{
+		{Workflow: workflow.Workflow{ID: "promotion-design", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "shared"}, {ID: "promotion-design"}}}}}},
+		{Workflow: workflow.Workflow{ID: "fanloop-maintainer", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "maintain"}}}}}},
+	}
+	if err := validateWorkflowSkillBindings(manifest, loaded); err != nil {
+		t.Fatalf("valid bindings rejected: %v", err)
+	}
+	loaded[0].Workflow.Prompts["step"] = workflow.PromptDefinition{Skills: []workflow.SkillBinding{{ID: "maintain"}}}
+	if err := validateWorkflowSkillBindings(manifest, loaded); err == nil || !strings.Contains(err.Error(), "cannot use") {
+		t.Fatalf("business self-iteration binding error = %v", err)
+	}
+	loaded[0].Workflow.Prompts["step"] = workflow.PromptDefinition{Skills: []workflow.SkillBinding{{ID: "missing"}}}
+	if err := validateWorkflowSkillBindings(manifest, loaded); err == nil || !strings.Contains(err.Error(), "unknown Skill") {
+		t.Fatalf("missing binding error = %v", err)
+	}
+}
+
+func TestProductionSelectorDefaultsToPromotionDesign(t *testing.T) {
+	path, err := filepath.Abs(filepath.Join("..", "..", "skills", "fanloop-workflow", "common", "fanloop-workflow-selector", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	skill := string(content)
+	for _, value := range []string{"已有 State 时立即返回", "调用方明确提供的 Workflow", "default: promotion-design", "不得静默回退", "不写 State"} {
+		if !strings.Contains(skill, value) {
+			t.Fatalf("selector Skill does not contain %q", value)
+		}
+	}
+	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "fanloop-maintainer"}, {Id: "promotion-design"}}}
+	if err := validateSelectorSkillRoutes(path, manifest); err != nil {
+		t.Fatalf("production selector is invalid: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(path), "routes.yaml")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("selector still has routes.yaml: %v", err)
+	}
+}
+
+func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "SKILL.md")
+	content := []byte("<!-- fanloop-selector-routes:start -->\n```yaml\nschema_version: 1\ndefault: missing\nrepositories: {}\ndepartments: {}\n```\n<!-- fanloop-selector-routes:end -->\n")
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "promotion-design"}}}
+	if err := validateSelectorSkillRoutes(path, manifest); err == nil || !strings.Contains(err.Error(), `unknown Workflow "missing"`) {
+		t.Fatalf("unknown selector target error = %v", err)
+	}
+}
+
+func TestPromotionSkillUsesFanloopAsOnlyWorkflowState(t *testing.T) {
+	path, err := filepath.Abs(filepath.Join("..", "..", "skills", "fanloop-workflow", "promotion-design", "promotion-design", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	skill := string(content)
+	for _, value := range []string{".fanloop/flow/state.json", "require_points.md", "方案.md", ".promotion/review.md"} {
+		if !strings.Contains(skill, value) {
+			t.Fatalf("promotion-design Skill does not contain %q", value)
+		}
+	}
+	if !strings.Contains(skill, "不得创建 `.promotion/state.json`") {
+		t.Fatal("promotion-design Skill does not forbid its retired state file")
+	}
+}
+
+func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
+	path, err := filepath.Abs(filepath.Join("..", "..", "skills", "fanloop-workflow", "common", "fanloop-workflow", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	skill := string(content)
+	for _, value := range []string{"flow status", "fanloop-workflow-selector", "flow init", "`current.prompt`", "`available_routes`"} {
+		if !strings.Contains(skill, value) {
+			t.Fatalf("fanloop-workflow Skill does not contain %q", value)
+		}
+	}
+	if strings.Contains(skill, "fanloop update") {
+		t.Fatal("local Workflow entry still requires an online update")
+	}
+}
+
+func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
+	path := filepath.Join("..", "..", "skills", "self-iteration", "fanloop-dev-workflow", "SKILL.md")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(content), "fanloop update") {
+		t.Fatal("maintainer Workflow entry still requires an online update")
+	}
+}
+
+func TestArchiveVerificationRejectsMissingPackagedComponents(t *testing.T) {
+	archive := filepath.Join(t.TempDir(), "release.tar.xz")
+	writeTestArchive(t, archive, []byte("binary"))
+	manifest := release.Manifest{
+		Skills:    []*release.Skill{{Name: "atom", Path: "skills/fanloop-workflow/common/atom", Sha256: testDigest("1")}},
+		Workflows: []*release.Workflow{{Id: "flow", Path: "workflows/flow", Sha256: testDigest("2")}},
+	}
+	if _, err := verifyArchive(archive, manifest); err == nil || !strings.Contains(err.Error(), "skills/fanloop-workflow/common/atom") {
+		t.Fatalf("missing Skill was accepted: %v", err)
+	}
+}
+
+func TestArchiveVerificationRejectsExtraWorkflowYAML(t *testing.T) {
+	repository, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundleRoot := filepath.Join(repository, "workflows", "promotion-design")
+	loaded, err := workflow.LoadDirectory(bundleRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := map[string][]byte{}
+	for _, name := range workflow.BundleFileNames() {
+		content, err := os.ReadFile(filepath.Join(bundleRoot, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries["workflows/promotion-design/"+name] = content
+	}
+	entries["workflows/promotion-design/guard.yaml"] = []byte("schema_version: 1\n")
+	archive := filepath.Join(t.TempDir(), "release.tar.xz")
+	writeTestArchive(t, archive, []byte("binary"), entries)
+	manifest := release.Manifest{Workflows: []*release.Workflow{{
+		Id: "promotion-design", Path: "workflows/promotion-design", Sha256: loaded.Ref.Digest,
+	}}}
+	if _, err := verifyArchive(archive, manifest); err == nil || !strings.Contains(err.Error(), "guard.yaml") {
+		t.Fatalf("extra Workflow YAML was accepted: %v", err)
+	}
+}
+
+func equalStrings(got, want []string) bool { return strings.Join(got, "|") == strings.Join(want, "|") }
+
+func testDigest(value string) string { return "sha256:" + strings.Repeat(value, 64) }
+
+func writeTestArchive(t *testing.T, path string, binary []byte, extra ...map[string][]byte) {
+	t.Helper()
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	xzWriter, err := xz.NewWriter(file)
+	if err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	tarWriter := tar.NewWriter(xzWriter)
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "bin/fanloop", Mode: 0o755, Size: int64(len(binary))}); err == nil {
+		_, err = tarWriter.Write(binary)
+	}
+	if err == nil && len(extra) > 0 {
+		names := make([]string, 0, len(extra[0]))
+		for name := range extra[0] {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			content := extra[0][name]
+			if err = tarWriter.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(content))}); err != nil {
+				break
+			}
+			if _, err = tarWriter.Write(content); err != nil {
+				break
+			}
+		}
+	}
+	if closeErr := tarWriter.Close(); err == nil {
+		err = closeErr
+	}
+	if closeErr := xzWriter.Close(); err == nil {
+		err = closeErr
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func writeTestReleaseArchive(t *testing.T, source, destination string, binary []byte) {
+	t.Helper()
+	file, err := os.Create(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tarWriter := tar.NewWriter(file)
+	write := func(name string, mode int64, input io.Reader, size int64) {
+		t.Helper()
+		if err := tarWriter.WriteHeader(&tar.Header{Name: filepath.ToSlash(name), Mode: mode, Size: size}); err != nil {
+			t.Fatal(err)
+		}
+		if input != nil {
+			if _, err := io.Copy(tarWriter, input); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	write("bin/fanloop", 0o755, strings.NewReader(string(binary)), int64(len(binary)))
+	for _, top := range []string{"skills", "workflows"} {
+		root := filepath.Join(source, top)
+		if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+			if walkErr != nil || entry.IsDir() {
+				return walkErr
+			}
+			info, err := entry.Info()
+			if err != nil || !info.Mode().IsRegular() {
+				return err
+			}
+			input, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer input.Close()
+			relative, err := filepath.Rel(source, path)
+			if err != nil {
+				return err
+			}
+			write(relative, int64(info.Mode().Perm()), input, info.Size())
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if closeErr := tarWriter.Close(); err == nil {
+		err = closeErr
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}

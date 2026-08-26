@@ -1,0 +1,45 @@
+schema_version: 2
+
+conditions:
+  requirements_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_condition}
+    output: {key: require_points_path, type: path}
+    exclusive_group: requirements_progress
+  requirements_rework_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_condition}
+    output: {key: requirements_status, type: enum_value, values: [rework]}
+    exclusive_group: requirements_progress
+  requirements_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_approval_condition}
+    output: {key: requirements_decision, type: enum_value, values: [approved]}
+    exclusive_group: requirements_approval
+  requirements_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_approval_condition}
+    output: {key: requirements_decision, type: enum_value, values: [rejected]}
+    exclusive_group: requirements_approval
+  requirements_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_changed_condition}
+    output: {key: requirements_status, type: enum_value, values: [changed]}
+
+  promotion_design_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: design_written_condition}
+    output: {key: promotion_design_path, type: path}
+  design_review_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: design_review_condition}
+    output: {key: design_review_result, type: enum_value, values: [passed]}
+    exclusive_group: design_review
+  design_review_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: design_review_condition}
+    output: {key: design_review_result, type: enum_value, values: [failed]}
+    exclusive_group: design_review
+  design_review_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: design_review_written_condition}
+    output: {key: design_review_path, type: path}
+  promotion_design_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: design_approval_condition}
+    output: {key: promotion_design_decision, type: enum_value, values: [approved]}
+    exclusive_group: design_approval
+  promotion_design_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: design_approval_condition}
+    output: {key: promotion_design_decision, type: enum_value, values: [rejected]}
+    exclusive_group: design_approval

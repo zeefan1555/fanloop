@@ -1,0 +1,106 @@
+schema_version: 2
+
+conditions:
+  repository_workspace_prepared:
+    prompt_ref: {file: prompt.yaml, prompt_id: workspace_condition}
+    output: {key: issue_workspace_path, type: path}
+    exclusive_group: workspace_outcome
+  repository_scope_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: workspace_condition}
+    output: {key: repository_scope_status, type: enum_value, values: [changed]}
+    exclusive_group: workspace_outcome
+
+  requirements_grilled:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_document_condition}
+    output: {key: requirements_path, type: path}
+  requirements_document_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_document_published_condition}
+    output: {key: requirement_document_url, type: url}
+  implementation_required:
+    prompt_ref: {file: prompt.yaml, prompt_id: implementation_requirement_condition}
+    output: {key: implementation_required, type: boolean}
+    exclusive_group: implementation_requirement_outcome
+  implementation_not_required:
+    prompt_ref: {file: prompt.yaml, prompt_id: implementation_requirement_condition}
+    output: {key: implementation_not_required, type: boolean}
+    exclusive_group: implementation_requirement_outcome
+  requirements_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_decision_condition}
+    output: {key: requirements_decision, type: enum_value, values: [approved]}
+    exclusive_group: requirements_review_outcome
+  requirements_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_decision_condition}
+    output: {key: requirements_decision, type: enum_value, values: [rejected]}
+    exclusive_group: requirements_review_outcome
+  requirements_approval_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_approval_record_condition}
+    output: {key: requirements_approval_message_id, type: string}
+  requirements_evidence_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_evidence_condition}
+    output: {key: requirements_evidence_path, type: path}
+  requirements_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_changed_condition}
+    output: {key: requirements_status, type: enum_value, values: [changed]}
+
+  spec_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: spec_condition}
+    output: {key: spec_path, type: path}
+  tickets_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: tickets_condition}
+    output: {key: tickets_path, type: path}
+  technical_solution_document_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: technical_solution_document_published_condition}
+    output: {key: technical_design_document_url, type: url}
+
+  implementation_completed:
+    prompt_ref: {file: prompt.yaml, prompt_id: implementation_condition}
+    output: {key: implementation_result, type: enum_value, values: [completed]}
+    exclusive_group: implementation_outcome
+  implementation_changes_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: implementation_condition}
+    output: {key: implementation_result, type: enum_value, values: [changes_requested]}
+    exclusive_group: implementation_outcome
+
+  validation_profile_selected:
+    prompt_ref: {file: prompt.yaml, prompt_id: validation_profile_condition}
+    output: {key: validation_profile, type: enum_value, values: [targeted, e2e]}
+  targeted_validation_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_validation_condition}
+    output: {key: targeted_validation_result, type: enum_value, values: [passed]}
+  e2e_entrypoint_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_validation_condition}
+    output: {key: e2e_entrypoint_result, type: enum_value, values: [passed]}
+  local_validation_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_validation_condition}
+    output: {key: local_validation_result, type: enum_value, values: [failed]}
+    exclusive_group: local_validation_outcome
+  local_test_report_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_test_report_condition}
+    output: {key: local_test_report_path, type: path}
+
+  review_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: review_condition}
+    output: {key: review_result, type: enum_value, values: [passed]}
+    exclusive_group: review_outcome
+  review_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: review_condition}
+    output: {key: review_result, type: enum_value, values: [failed]}
+    exclusive_group: review_outcome
+  review_report_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: review_report_condition}
+    output: {key: review_report_path, type: path}
+
+  merge_request_created:
+    prompt_ref: {file: prompt.yaml, prompt_id: merge_request_condition}
+    output: {key: merge_request_urls, type: url_list, min_items: 1}
+  merge_request_handed_off:
+    prompt_ref: {file: prompt.yaml, prompt_id: handoff_condition}
+    output: {key: merge_request_handoff_result, type: enum_value, values: [passed]}
+    exclusive_group: merge_request_handoff_outcome
+  merge_request_handoff_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: handoff_condition}
+    output: {key: merge_request_handoff_result, type: enum_value, values: [failed]}
+    exclusive_group: merge_request_handoff_outcome
+  handoff_record_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: handoff_record_condition}
+    output: {key: handoff_record_path, type: path}

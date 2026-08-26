@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "final-trace-sync-success",
+  "environment": {
+    "PATH": "{{ROOT}}/bin:{{PATH}}",
+    "FAKE_LARK_LOG": "{{ROOT}}/lark-calls.log",
+    "FAKE_TRACE_CONTENT": "{{ROOT}}/remote-trace.md"
+  },
+  "commands": [
+    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "promotion-design", "--title", "Trace sync success"]},
+    {"args": ["trace", "bind", "--root", "{{ROOT}}", "--document-url", "https://bytedance.larkoffice.com/docx/TraceDocument"]},
+    {"args": ["trace", "render", "--root", "{{ROOT}}", "--dry-run"]},
+    {"args": ["trace", "sync", "--root", "{{ROOT}}", "--dry-run"]},
+    {"args": ["trace", "sync", "--root", "{{ROOT}}"]},
+    {"args": ["trace", "status", "--root", "{{ROOT}}"]}
+  ]
+}

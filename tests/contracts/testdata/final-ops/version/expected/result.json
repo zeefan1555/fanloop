@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "final-ops-version",
+  "commands": [
+    {
+      "exit_code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"data\": {\n    \"release_version\": \"dev\",\n    \"commit_sha\": \"unknown\",\n    \"state_schema\": {\n      \"read_versions\": [\n        12\n      ],\n      \"write_version\": 12\n    },\n    \"skills\": [],\n    \"workflows\": [\n      {\n        \"id\": \"fanloop-maintainer\",\n        \"digest\": \"sha256:518a03e0b424bf4784b8b299286021c880a48b03e2f969fa9d46ee1ef6648336\"\n      },\n      {\n        \"id\": \"promotion-design\",\n        \"digest\": \"sha256:f90188127caf860c2e28d6f5cf3ec4baafa0e1c1bc50a205aa597353c371b6e7\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"command\": \"version\"\n  },\n  \"_notice\": {}\n}\n",
+      "stderr": ""
+    },
+    {
+      "exit_code": 0,
+      "stdout": "dev\n",
+      "stderr": ""
+    }
+  ],
+  "files": {}
+}

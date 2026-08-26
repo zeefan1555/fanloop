@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "id": "final-card-corrupt-projection",
+  "commands": [
+    {"args": ["card", "render", "--root", "{{ROOT}}", "--dry-run", "--view", "current", "--format", "markdown"]}
+  ]
+}

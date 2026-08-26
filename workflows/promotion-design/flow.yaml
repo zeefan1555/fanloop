@@ -1,0 +1,27 @@
+schema_version: 4
+
+flow:
+  clarify_requirements:
+    - prompt_ref: {file: prompt.yaml, prompt_id: clarify_requirements_flow}
+      when: {any_of: [[requirements_ready]]}
+      next_step_id: confirm_requirements
+
+  confirm_requirements:
+    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_requirements_flow}
+      when: {any_of: [[requirements_approved]]}
+      next_step_id: write_promotion_design
+
+  write_promotion_design:
+    - prompt_ref: {file: prompt.yaml, prompt_id: write_promotion_design_flow}
+      when: {any_of: [[promotion_design_written]]}
+      next_step_id: review_promotion_design
+
+  review_promotion_design:
+    - prompt_ref: {file: prompt.yaml, prompt_id: review_promotion_design_flow}
+      when: {any_of: [[design_review_passed, design_review_written]]}
+      next_step_id: confirm_promotion_design
+
+  confirm_promotion_design:
+    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_promotion_design_flow}
+      when: {any_of: [[promotion_design_approved]]}
+      terminal: true

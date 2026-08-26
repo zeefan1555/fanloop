@@ -1,0 +1,3 @@
+# CLI、Skills 和 Fanloop Workflow 使用同一配套版本发布
+
+正式使用者在字节内网通过 `NPM_CONFIG_REGISTRY=https://bnpm.byted.org npx --yes --package=fanloop-cli@latest -- fanloop install` 获得匹配版本的 Fanloop CLI、官方 Skills 和 Fanloop Workflow。内部 npm 包直接携带 macOS/Linux 的 amd64/arm64 四个平台归档，避免再依赖公网 GitHub Release 或额外的二进制仓库；单一 `release.json` 同时固定 CLI、Skills、Workflow、State Schema 和文件摘要。同一 Workflow 的历史版本可以并存，但 `workflows/defaults.json` 必须为每个 ID 选择唯一默认版本。新版本发布前必须与上一正式版 Manifest 比较，禁止删除或改写已发布的 Workflow `id@version`。安装和 `fanloop update` 校验 npm integrity 与平台归档 SHA-256，下载到新版本目录并运行 `doctor`，通过后才切换，失败时继续使用原版本。普通业务命令只用 `_notice` 提示更新或版本漂移，不自动修改安装。正式发布只走 Codebase `luban/action`，不手工执行 `npm publish` 或 `bnpm publish`。
