@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "legacy_test_count": 140,
+  "capabilities": [
+    {
+      "id": "flow.action-driver-contract",
+      "domain": "flow",
+      "description": "Historical action-driver behavior tied to the removed default development workflow",
+      "legacy_tests": [
+        "test_action_driver.ActionDriverTest.test_aime_cr_blocking_without_summary_emits_soft_warning",
+        "test_action_driver.ActionDriverTest.test_code_review_failed_records_aime_cr_invalidated_artifacts",
+        "test_action_driver.ActionDriverTest.test_compact_status_and_full_status_are_separate",
+        "test_action_driver.ActionDriverTest.test_completion_template_failure_falls_back_to_structured_route",
+        "test_action_driver.ActionDriverTest.test_environment_gate_requires_checks_and_human_approval",
+        "test_action_driver.ActionDriverTest.test_failed_remote_checks_auto_loop_to_coding",
+        "test_action_driver.ActionDriverTest.test_feedback_without_state_change_requires_panorama_card",
+        "test_action_driver.ActionDriverTest.test_implement_actions_run_automatically_until_human_review",
+        "test_action_driver.ActionDriverTest.test_local_trace_failure_keeps_state_unchanged",
+        "test_action_driver.ActionDriverTest.test_optional_action_requires_explicit_skip_reason",
+        "test_action_driver.ActionDriverTest.test_pass_moves_to_next_action_and_wrong_skill_is_atomic",
+        "test_action_driver.ActionDriverTest.test_requirement_clarification_requires_local_artifact_and_url_review",
+        "test_action_driver.ActionDriverTest.test_state_write_failure_rolls_back_local_trace",
+        "test_action_driver.ActionDriverTest.test_step_completion_uses_snapshot_json_without_requirement_override",
+        "test_action_driver.ActionDriverTest.test_successful_state_mutations_require_panorama_card",
+        "test_action_driver.ActionDriverTest.test_techdesign_url_rejects_report_base_but_mr_url_unaffected",
+        "test_action_driver.ActionDriverTest.test_trace_list_is_alias_of_trace_status",
+        "test_action_driver.ActionDriverTest.test_unknown_feedback_does_not_move_and_design_feedback_does",
+        "test_action_driver.ActionDriverTest.test_valid_feishu_doc_url_accepts_docs_rejects_report_base"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "flow.aime-cr-classification",
+      "domain": "flow",
+      "description": "Aime CR check and comment classification at the Flow boundary",
+      "legacy_tests": [
+        "test_aime_cr_collector.AimeCrCollectorTest.test_comment_report_url_can_supply_missing_description_report",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_completed_checkrun_without_report_url_is_blocked",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_failed_checkrun_without_description_json_falls_back_to_mr_commits",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_invalid_description_json_is_blocked_even_when_checkrun_succeeded",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_missing_checkrun_is_blocked_until_aime_cr_is_triggered",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_open_p0_comment_blocks_even_when_checkrun_succeeded",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_outdated_and_resolved_blocking_comments_do_not_block_running_checkrun",
+        "test_aime_cr_collector.AimeCrCollectorTest.test_summary_uses_mr_description_json_and_no_comments"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0028"
+    },
+    {
+      "id": "card.check-exemption-rendering",
+      "domain": "card",
+      "description": "Card rendering of effective and unmatched check exemptions",
+      "legacy_tests": [
+        "test_card.CardExemptionRenderTest.test_card_shows_devflow_exemption_line",
+        "test_card.CardExemptionRenderTest.test_card_shows_rule_notice_without_matched_checks"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0020"
+    },
+    {
+      "id": "flow.state-machine-and-loop",
+      "domain": "flow",
+      "description": "Historical Stage-Job-Step behavior tied to the removed default development workflow",
+      "legacy_tests": [
+        "test_driver.DriverTest.test_atomic_skill_is_recorded_for_each_substate",
+        "test_driver.DriverTest.test_auto_loop_is_inferred_and_same_stage_count_is_not_incremented",
+        "test_driver.DriverTest.test_blocked_can_resume_without_loop",
+        "test_driver.DriverTest.test_code_review_block_auto_loops_to_coding",
+        "test_driver.DriverTest.test_cross_stage_loop_invalidates_later_artifacts_and_counts",
+        "test_driver.DriverTest.test_done_requires_test_human_review_and_approval",
+        "test_driver.DriverTest.test_environment_readiness_requires_non_blocking_gate_checks",
+        "test_driver.DriverTest.test_flat_driver_artifact_conflict_does_not_overwrite",
+        "test_driver.DriverTest.test_flat_driver_artifacts_migrate_to_domain_directories",
+        "test_driver.DriverTest.test_flow_orchestrates_trace_without_owning_lark_or_rendering",
+        "test_driver.DriverTest.test_human_review_requires_evidence_and_artifacts",
+        "test_driver.DriverTest.test_identical_flat_driver_artifact_is_removed",
+        "test_driver.DriverTest.test_implement_review_requires_mr_and_code_review_document",
+        "test_driver.DriverTest.test_implement_review_requires_non_blocking_aime_cr_result",
+        "test_driver.DriverTest.test_init_writes_domain_state_and_local_trace",
+        "test_driver.DriverTest.test_legacy_flat_state_gets_missing_step_and_code_review_field",
+        "test_driver.DriverTest.test_load_migrates_legacy_psm_scope_artifact",
+        "test_driver.DriverTest.test_loop_dry_run_does_not_mutate_state",
+        "test_driver.DriverTest.test_manual_loop_requires_human_evidence",
+        "test_driver.DriverTest.test_non_contract_fix_stays_in_current_state",
+        "test_driver.DriverTest.test_psm_change_can_loop_to_repo_scope_without_cross_stage_count",
+        "test_driver.DriverTest.test_stage_advance_requires_current_human_review",
+        "test_driver.DriverTest.test_stage_advance_requires_explicit_user_approval",
+        "test_driver.DriverTest.test_state_timestamps_use_beijing_timezone",
+        "test_driver.DriverTest.test_substates_cannot_be_skipped",
+        "test_driver.DriverTest.test_test_loop_to_implement_preserves_implement_artifacts",
+        "test_driver.DriverTest.test_test_loop_to_solution_design_invalidates_implementation_and_test",
+        "test_driver.DriverTest.test_update_rejects_backward_transition_and_points_to_loop"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "cross-cutting.trace-card-cli",
+      "domain": "cross_cutting",
+      "description": "Historical default-workflow CLI, Trace, Card, and state integration behavior",
+      "legacy_tests": [
+        "test_driver_v2.TraceAndCardTest.test_backflow_card_does_not_request_duplicate_confirmation",
+        "test_driver_v2.TraceAndCardTest.test_blocked_and_choice_cards_keep_distinct_actions",
+        "test_driver_v2.TraceAndCardTest.test_code_review_url_is_visible_in_card_and_trace",
+        "test_driver_v2.TraceAndCardTest.test_done_card_is_green_and_panorama_uses_checkmark",
+        "test_driver_v2.TraceAndCardTest.test_each_lark_card_render_keeps_an_immutable_json_history",
+        "test_driver_v2.TraceAndCardTest.test_lark_card_preserves_layout_and_gate_evidence",
+        "test_driver_v2.TraceAndCardTest.test_lark_card_shows_trace_doc_link_or_unbound",
+        "test_driver_v2.TraceAndCardTest.test_legacy_state_history_migrates_to_jsonl_without_duplicates",
+        "test_driver_v2.TraceAndCardTest.test_loop_is_recorded_once_and_card_uses_loop_definition",
+        "test_driver_v2.TraceAndCardTest.test_markdown_card_keeps_layout_and_confirmation",
+        "test_driver_v2.TraceAndCardTest.test_panorama_is_still_available_without_mutating_trace",
+        "test_driver_v2.TraceAndCardTest.test_progress_card_command_is_retired",
+        "test_driver_v2.TraceAndCardTest.test_progress_is_derived_from_stage_and_substate",
+        "test_driver_v2.TraceAndCardTest.test_record_is_idempotent_and_uses_append_only_jsonl",
+        "test_driver_v2.TraceAndCardTest.test_requirement_point_url_is_visible_in_techdesign_artifacts",
+        "test_driver_v2.TraceAndCardTest.test_requirement_snapshot_driver_rejects_a_different_absolute_root",
+        "test_driver_v2.TraceAndCardTest.test_trace_binding_is_separate_from_state",
+        "test_driver_v2.TraceAndCardTest.test_trace_converts_legacy_utc_timestamp_to_beijing",
+        "test_driver_v2.TraceAndCardTest.test_trace_is_time_first_and_records_atomic_skill_and_snapshot",
+        "test_driver_v2.TraceAndCardTest.test_trace_records_requirement_root_and_development_branches",
+        "test_driver_v2.TraceAndCardTest.test_trace_top_and_event_table_preserve_previous_fields",
+        "test_driver_v2.TraceAndCardTest.test_unified_cli_corrects_old_or_misordered_status_syntax",
+        "test_driver_v2.TraceAndCardTest.test_unified_cli_has_lark_style_domains",
+        "test_driver_v2.TraceAndCardTest.test_unified_cli_rejects_relative_or_missing_requirement_root"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "cross-cutting.agent-code-review-lifecycle",
+      "domain": "cross_cutting",
+      "description": "End-to-end agent code review verdict, blocking, Trace, Card, and Test routing",
+      "legacy_tests": [
+        "test_end_to_end_validation.EndToEndValidationTest.test_aime_cr_artifacts_trace_card_and_test_route_contract",
+        "test_end_to_end_validation.EndToEndValidationTest.test_aime_cr_progress_stays_then_passed_advances_with_card_and_trace",
+        "test_end_to_end_validation.EndToEndValidationTest.test_blocking_aime_cr_auto_loops_to_coding_and_keeps_style"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "flow.route-contract",
+      "domain": "flow",
+      "description": "Historical route behavior tied to the removed default development workflow",
+      "legacy_tests": [
+        "test_flow_routes.FlowRouteContractTest.test_every_execution_route_accepts_its_skills_and_rejects_others_atomically",
+        "test_flow_routes.FlowRouteContractTest.test_flow_response_does_not_own_message_policy",
+        "test_flow_routes.FlowRouteContractTest.test_flow_status_requires_panorama_card",
+        "test_flow_routes.FlowRouteContractTest.test_flow_update_returns_target_route_actions",
+        "test_flow_routes.FlowRouteContractTest.test_human_gate_approval_does_not_forge_a_skill",
+        "test_flow_routes.FlowRouteContractTest.test_implement_coding_returns_explicit_auto_next_skill",
+        "test_flow_routes.FlowRouteContractTest.test_route_fixture_exactly_covers_every_secondary_state",
+        "test_flow_routes.FlowRouteContractTest.test_status_returns_current_and_next_routes_for_every_step",
+        "test_flow_routes.FlowRouteContractTest.test_test_execution_transition_requires_explicit_approval"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "flow.check-exemptions",
+      "domain": "flow",
+      "description": "Stable check exemption classification for known and unknown Nodes",
+      "legacy_tests": [
+        "test_gate_exemptions.GateExemptionsTest.test_devflow_check_lands_in_exempted_for_automated_checks",
+        "test_gate_exemptions.GateExemptionsTest.test_list_exemptions_returns_isolated_copy",
+        "test_gate_exemptions.GateExemptionsTest.test_missing_fields_do_not_raise",
+        "test_gate_exemptions.GateExemptionsTest.test_node_exemptions_covers_all_driver_nodes",
+        "test_gate_exemptions.GateExemptionsTest.test_nodes_without_rules_return_empty_for_any_input",
+        "test_gate_exemptions.GateExemptionsTest.test_unknown_node_returns_empty_lists_without_raising"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "cross-cutting.condition-output-invariants",
+      "domain": "cross_cutting",
+      "description": "Historical cross-cutting invariants tied to the removed default development workflow",
+      "legacy_tests": [
+        "test_output_guard.OutputGuardTest.test_driver_flow_status_runs_output_guard_by_default",
+        "test_output_guard.OutputGuardTest.test_driver_loop_feedback_runs_output_guard_by_default",
+        "test_output_guard.OutputGuardTest.test_guard_all_checks_pass_with_response_and_card_files",
+        "test_output_guard.OutputGuardTest.test_guard_fails_human_review_artifacts",
+        "test_output_guard.OutputGuardTest.test_guard_fails_invalid_lark_card_payload",
+        "test_output_guard.OutputGuardTest.test_guard_fails_response_contract_when_card_delivery_is_untyped",
+        "test_output_guard.OutputGuardTest.test_guard_fails_stale_card_snapshot_against_current_state",
+        "test_output_guard.OutputGuardTest.test_guard_fails_when_exempted_check_matches_unknown_rule",
+        "test_output_guard.OutputGuardTest.test_guard_fails_when_raw_state_is_normalized_by_driver",
+        "test_output_guard.OutputGuardTest.test_guard_fails_when_rules_in_effect_diverge_from_table",
+        "test_output_guard.OutputGuardTest.test_guard_passes_end_to_end_devflow_exemption",
+        "test_output_guard.OutputGuardTest.test_guard_passes_when_response_lacks_exemptions_block",
+        "test_output_guard.OutputGuardTest.test_guard_warns_on_sync_error_and_fails_on_stale_trace",
+        "test_output_guard.OutputGuardTest.test_help_and_driver_remain_separate"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0077"
+    },
+    {
+      "id": "trace.registry-projection",
+      "domain": "trace",
+      "description": "Trace document and Registry projection, conflict handling, timeout, and compatibility",
+      "legacy_tests": [
+        "test_trace_index.TraceIndexTest.test_find_record_reads_lark_cli_matrix_response",
+        "test_trace_index.TraceIndexTest.test_record_cli_always_syncs_after_local_write",
+        "test_trace_index.TraceIndexTest.test_record_sync_flag_remains_accepted_for_compatibility",
+        "test_trace_index.TraceIndexTest.test_requirement_trace_and_registry_sync_are_independent",
+        "test_trace_index.TraceIndexTest.test_requirement_trace_document_writes_local_projection",
+        "test_trace_index.TraceIndexTest.test_state_fields_reject_reused_product_document",
+        "test_trace_index.TraceIndexTest.test_state_fields_use_trace_key_and_beijing_time",
+        "test_trace_index.TraceIndexTest.test_sync_creates_one_base_record",
+        "test_trace_index.TraceIndexTest.test_sync_does_not_overwrite_newer_remote_record",
+        "test_trace_index.TraceIndexTest.test_sync_updates_existing_record",
+        "test_trace_index.TraceIndexTest.test_trace_binding_rejects_prd_and_techdesign_documents",
+        "test_trace_index.TraceIndexTest.test_trace_index_parent_timeout_allows_internal_retry_budget",
+        "test_trace_index.TraceIndexTest.test_trace_key_prefers_feishu_document_token"
+      ],
+      "disposition": "contract",
+      "contract_cases": ["final-trace/sync-success"]
+    },
+    {
+      "id": "trace.registry-migration",
+      "domain": "trace",
+      "description": "Legacy Trace Registry parsing, rejection, and latest-record selection",
+      "legacy_tests": [
+        "test_trace_registry_migration.TraceRegistryMigrationTest.test_invalid_candidates_are_rejected",
+        "test_trace_registry_migration.TraceRegistryMigrationTest.test_latest_timestamp_then_revision_wins",
+        "test_trace_registry_migration.TraceRegistryMigrationTest.test_parse_revision_recovers_native_table_rows"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0028"
+    },
+    {
+      "id": "workflow.skill-contract",
+      "domain": "workflow",
+      "description": "Skill bundle shape, role, ownership, stage wrappers, and delegated execution boundaries",
+      "legacy_tests": [
+        "test_workflow_contract.WorkflowContractTest.test_bundle_is_flat_and_complete",
+        "test_workflow_contract.WorkflowContractTest.test_driver_trace_and_card_have_explicit_ownership",
+        "test_workflow_contract.WorkflowContractTest.test_environment_check_owns_requirement_skill_refresh",
+        "test_workflow_contract.WorkflowContractTest.test_implement_skills_defer_execution_to_remote_tdd",
+        "test_workflow_contract.WorkflowContractTest.test_local_design_notes_are_ignored",
+        "test_workflow_contract.WorkflowContractTest.test_openspec_changes_are_local_only",
+        "test_workflow_contract.WorkflowContractTest.test_openspec_workflow_does_not_require_cli",
+        "test_workflow_contract.WorkflowContractTest.test_psm_selection_still_forces_techdesign_clarification",
+        "test_workflow_contract.WorkflowContractTest.test_role_is_small_and_delegates_path_setup",
+        "test_workflow_contract.WorkflowContractTest.test_stage_wrappers_use_update",
+        "test_workflow_contract.WorkflowContractTest.test_thrift_idl_codegen_is_scoped_and_uses_overpass"
+      ],
+      "disposition": "retired",
+      "adr": "ADR-0028"
+    }
+  ]
+}

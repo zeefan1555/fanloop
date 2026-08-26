@@ -1,0 +1,60 @@
+schema_version: 4
+
+loop:
+  bootstrap_techdesign:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_repository_scope}
+      when: {any_of: [[repository_scope_changed]]}
+      back_step_id: bootstrap_techdesign
+
+  clarify_requirements:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_repository_scope}
+      when: {any_of: [[repository_scope_changed]]}
+      back_step_id: bootstrap_techdesign
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed]]}
+      back_step_id: clarify_requirements
+
+  confirm_requirements:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when:
+        any_of:
+          - [requirements_changed]
+          - [requirements_rejected, requirements_approval_recorded]
+      back_step_id: clarify_requirements
+
+  design_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed]]}
+      back_step_id: clarify_requirements
+
+  implement_code:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed]]}
+      back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
+      when: {any_of: [[implementation_changes_requested]]}
+      back_step_id: implement_code
+
+  execute_test_cases:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed]]}
+      back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
+      when: {any_of: [[local_validation_failed]]}
+      back_step_id: implement_code
+
+  review_code:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed]]}
+      back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
+      when: {any_of: [[review_failed]]}
+      back_step_id: implement_code
+
+  handoff_merge_request:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed]]}
+      back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_handoff}
+      when: {any_of: [[merge_request_handoff_failed]]}
+      back_step_id: handoff_merge_request

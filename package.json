@@ -1,0 +1,34 @@
+{
+  "name": "fanloop-cli",
+  "version": "0.1.0",
+  "description": "Fanloop local workflow runtime and matched Agent Skills",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zeefan1555/fanloop.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "bin": {
+    "fanloop": "scripts/run.js"
+  },
+  "scripts": {
+    "build": "scripts/build-release.sh",
+    "install:local": "scripts/install-local.sh",
+    "test": "node --test scripts/*.test.js",
+    "package:release": "node scripts/package-release.js"
+  },
+  "os": ["darwin", "linux"],
+  "cpu": ["x64", "arm64"],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "README.md",
+    "scripts/install.js",
+    "scripts/run.js",
+    "release.json",
+    "releases"
+  ],
+  "license": "UNLICENSED"
+}

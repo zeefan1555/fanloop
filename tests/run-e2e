@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+runs_root="$repo_root/tests/requirement_e2e/runs"
+mkdir -p "$runs_root"
+run_root="$(mktemp -d "$runs_root/$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
+binary="$run_root/fanloop"
+fake_bin="$run_root/bin"
+process_logs="$run_root/process-logs"
+mkdir -p "$fake_bin" "$process_logs"
+cp "$repo_root/tests/requirement_e2e/testdata/lark-cli" "$fake_bin/lark-cli"
+chmod 755 "$fake_bin/lark-cli"
+
+source_commit="$(git rev-parse HEAD)"
+source_status_before="$(git status --short)"
+printf '%s\n' "$source_commit" > "$run_root/source-commit.txt"
+printf '%s\n' "$source_status_before" > "$run_root/source-status-before.txt"
+
+declare -a shard_names=()
+declare -a shard_pids=()
+declare -a shard_logs=()
+declare -a shard_reports=()
+
+finish() {
+  exit_code="$?"
+  trap - EXIT
+  printf '\nRun Root: %s\nBinary SHA-256: %s\nProcess logs: %s\nShard reports:\n' \
+    "$run_root" "$(cat "$run_root/binary-sha256.txt" 2>/dev/null || printf unavailable)" "$process_logs"
+  for ((index = 0; index < ${#shard_names[@]}; index++)); do
+    printf '  %s: %s\n' "${shard_names[$index]}" "${shard_reports[$index]}"
+  done
+  exit "$exit_code"
+}
+trap finish EXIT
+
+go build -buildvcs=false -o "$binary" .
+python3 - "$binary" > "$run_root/binary-sha256.txt" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
+PY
+
+export PATH="$fake_bin:$PATH"
+export FANLOOP_E2E_BINARY="$binary"
+export FANLOOP_E2E_SOURCE_COMMIT="$source_commit"
+export FANLOOP_E2E_INTERACTIVE="${FANLOOP_E2E_INTERACTIVE:-0}"
+
+mkdir -p "$run_root/route-matrix-remote" "$run_root/route-matrix"
+
+run_lifecycle() {
+  local log="$1"
+  if [[ "$FANLOOP_E2E_INTERACTIVE" == "1" ]]; then
+    FANLOOP_E2E_RUN_ROOT="$run_root/lifecycle" \
+      go test -buildvcs=false ./tests/requirement_e2e \
+        -run '^TestRequirementWorkflowE2E$' -count=1 -v \
+        2>&1 | tee "$log"
+  else
+    FANLOOP_E2E_RUN_ROOT="$run_root/lifecycle" \
+      go test -buildvcs=false ./tests/requirement_e2e \
+        -run '^TestRequirementWorkflowE2E$' -count=1 -v \
+        >"$log" 2>&1
+  fi
+}
+
+run_route_matrix() {
+  local workflow_id="$1"
+  local log="$2"
+  FAKE_LARK_LOG="$run_root/route-matrix-remote/$workflow_id-lark-cli.log" \
+    FAKE_TRACE_CONTENT="$run_root/route-matrix-remote/$workflow_id-trace.md" \
+    FAKE_TRACE_KEY="docx:FanloopRouteMatrixE2E" \
+    python3 tests/requirement_e2e/route_matrix.py \
+      --source-root "$repo_root" \
+      --binary "$binary" \
+      --workflow "$workflow_id" \
+      --output-root "$run_root/route-matrix/$workflow_id" \
+      >"$log" 2>&1
+}
+
+start_shard() {
+  local name="$1"
+  local log="$2"
+  local report="$3"
+  shift 3
+  local index="${#shard_pids[@]}"
+  printf '[START] %s\n' "$name"
+  "$@" &
+  shard_names[$index]="$name"
+  shard_pids[$index]="$!"
+  shard_logs[$index]="$log"
+  shard_reports[$index]="$report"
+}
+
+start_shard \
+  "lifecycle" \
+  "$process_logs/lifecycle.log" \
+  "$run_root/lifecycle/E2E_REPORT.md" \
+  run_lifecycle "$process_logs/lifecycle.log"
+
+while IFS= read -r workflow_id; do
+  start_shard \
+    "route-matrix/$workflow_id" \
+    "$process_logs/route-matrix-$workflow_id.log" \
+    "$run_root/route-matrix/$workflow_id/E2E_REPORT.md" \
+    run_route_matrix "$workflow_id" "$process_logs/route-matrix-$workflow_id.log"
+done < <(find workflows -mindepth 2 -maxdepth 2 -name workflow.yaml -print | sed -E 's#^workflows/([^/]+)/workflow.yaml$#\1#' | sort)
+
+exit_code=0
+for ((index = 0; index < ${#shard_pids[@]}; index++)); do
+  if wait "${shard_pids[$index]}"; then
+    printf '[PASS] %s — %s\n' "${shard_names[$index]}" "${shard_reports[$index]}"
+  else
+    shard_exit="$?"
+    exit_code=1
+    printf '[FAIL] %s (exit %s) — %s\n' \
+      "${shard_names[$index]}" "$shard_exit" "${shard_logs[$index]}" >&2
+    printf '%s\n' "--- ${shard_names[$index]} log ---" >&2
+    cat "${shard_logs[$index]}" >&2 || true
+  fi
+done
+
+source_status_after="$(git status --short)"
+printf '%s\n' "$source_status_after" > "$run_root/source-status-after.txt"
+if [[ "$source_status_after" != "$source_status_before" ]]; then
+  diff -u "$run_root/source-status-before.txt" "$run_root/source-status-after.txt" >&2 || true
+  echo "E2E changed the source worktree" >&2
+  exit_code=1
+fi
+
+exit "$exit_code"

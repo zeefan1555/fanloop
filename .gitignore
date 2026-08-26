@@ -1,0 +1,14 @@
+.DS_Store
+/.scratch/
+/docs/research/
+/docs/specs/
+/bin/
+/dist/
+/release.json
+/releases/
+/tests/requirement_e2e/runs/
+
+/resource/*
+!/resource/.gitignore
+__pycache__/
+*.py[cod]
