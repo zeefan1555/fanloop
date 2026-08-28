@@ -14,8 +14,8 @@ Flow、Loop、Trace、Card、Release 与 Skill 机制，只使用新的 `fanloop
 - `technical-solution-design`：完成问题定义、方向推导、正式方案写作、独立审校和三级人工确认。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
 
-业务配置严格按 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应；
-`skills/common/` 只保存选择器和统一入口。
+业务配置严格按 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设例外。
+统一入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置。
 
 ## 从源码安装
 
@@ -42,7 +42,8 @@ go build -o ./bin/fanloop .
 - `technical-solution` → `technical-solution-design`
 - `fanloop-maintenance` → `fanloop-maintainer`
 
-选择器没有默认值；未选择或场景未知时停止初始化。选择技术方案场景后执行：
+`entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
+选择技术方案场景后执行：
 
 ```bash
 mkdir -p /absolute/path/to/requirement

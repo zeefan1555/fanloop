@@ -39,7 +39,7 @@ func TestPackagedNPMInstallerUsesItsMatchedReleaseManifest(t *testing.T) {
 			t.Fatalf("build %s/%s release: %v\n%s", target.os, target.arch, err, output)
 		}
 		archive := filepath.Join(dist, name)
-		writeArchive := exec.Command("tar", "-cf", archive, "-C", staging, "bin", "skills", "workflows")
+		writeArchive := exec.Command("tar", "-cf", archive, "-C", staging, "bin", "entrypoints", "skills", "workflows")
 		writeArchive.Env = append(os.Environ(), "COPYFILE_DISABLE=1")
 		if output, err := writeArchive.CombinedOutput(); err != nil {
 			t.Fatalf("archive %s/%s release: %v\n%s", target.os, target.arch, err, output)

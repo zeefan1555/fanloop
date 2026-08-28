@@ -16,6 +16,7 @@ archives:
     name_template: "fanloop-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     format: tar
     files:
+      - "entrypoints/**/*"
       - "skills/**/*"
       - "workflows/**/*"
 

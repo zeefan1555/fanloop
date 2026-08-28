@@ -43,6 +43,9 @@ func TestDecodeUsesGeneratedChildValidation(t *testing.T) {
 
 func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
 	manifest := validTestManifest()
+	manifest.Workflows = append(manifest.Workflows, &Workflow{
+		Id: "fanloop-maintainer", Path: "workflows/fanloop-maintainer", Sha256: manifest.Skills[0].Sha256,
+	})
 	manifest.Skills = append(manifest.Skills, &Skill{
 		Name: "fanloop-dev-tdd", Version: "1.2.3",
 		Path: "skills/fanloop-maintainer/fanloop-dev-tdd", Sha256: manifest.Skills[0].Sha256,
@@ -53,17 +56,18 @@ func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
 }
 
 func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
-	tests := []string{
-		"skills/ai-test",
-		"skills/common/not-ai-test",
-		"skills/fanloop-workflow/common/ai-test",
-		"skills/Common/ai-test",
+	tests := []struct{ path, want string }{
+		{"skills/ai-test", "invalid or duplicate skill"},
+		{"skills/common/ai-test", `unknown Workflow group "common"`},
+		{"skills/fanloop-workflow/common/ai-test", "invalid or duplicate skill"},
+		{"skills/Common/ai-test", "invalid or duplicate skill"},
+		{"entrypoints/ai-test", "invalid or duplicate skill"},
 	}
-	for _, path := range tests {
-		t.Run(path, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.path, func(t *testing.T) {
 			manifest := validTestManifest()
-			manifest.Skills[0].Path = path
-			if err := manifest.Validate(); err == nil || !strings.Contains(err.Error(), "invalid or duplicate skill") {
+			manifest.Skills[0].Path = test.path
+			if err := manifest.Validate(); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("Validate() error = %v", err)
 			}
 		})
@@ -90,8 +94,8 @@ func validTestManifest() Manifest {
 		Cli:            &CLIRelease{Version: "1.2.3"},
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
 		Skills: []*Skill{
-			{Name: "ai-test", Version: "1.2.3", Path: "skills/common/ai-test", Sha256: digest},
-			{Name: ExposedSkillName, Version: "1.2.3", Path: "skills/common/" + ExposedSkillName, Sha256: digest},
+			{Name: "ai-test", Version: "1.2.3", Path: "skills/technical-solution-design/ai-test", Sha256: digest},
+			{Name: ExposedSkillName, Version: "1.2.3", Path: ExposedSkillPath, Sha256: digest},
 		},
 		Workflows: []*Workflow{
 			{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest},

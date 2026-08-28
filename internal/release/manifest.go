@@ -19,6 +19,7 @@ import (
 const (
 	ArchiveXZDictionarySize = 8 * 1024 * 1024
 	ExposedSkillName        = "fanloop-workflow"
+	ExposedSkillPath        = "entrypoints/fanloop-workflow"
 )
 
 var skillGroupPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -68,22 +69,6 @@ func (value Manifest) Validate() error {
 	if value.StateSchema.WriteVersion <= 0 || !contains(value.StateSchema.ReadVersions, value.StateSchema.WriteVersion) {
 		return fmt.Errorf("writable state schema must also be readable")
 	}
-	names := map[string]bool{}
-	for _, skill := range value.Skills {
-		if skill == nil {
-			return fmt.Errorf("release contains nil skill")
-		}
-		if err := skill.IsValid(); err != nil {
-			return fmt.Errorf("invalid skill %q: %w", skill.Name, err)
-		}
-		if !ValidSkillPath(skill.Path, skill.Name) || names[skill.Name] {
-			return fmt.Errorf("invalid or duplicate skill %q", skill.Name)
-		}
-		names[skill.Name] = true
-	}
-	if !names[ExposedSkillName] {
-		return fmt.Errorf("release is missing exposed Skill %q", ExposedSkillName)
-	}
 	workflowIDs := map[string]bool{}
 	for _, item := range value.Workflows {
 		if item == nil {
@@ -96,6 +81,36 @@ func (value Manifest) Validate() error {
 			return fmt.Errorf("invalid or duplicate workflow %q", item.Id)
 		}
 		workflowIDs[item.Id] = true
+	}
+	names := map[string]bool{}
+	skillGroups := map[string]bool{}
+	for _, skill := range value.Skills {
+		if skill == nil {
+			return fmt.Errorf("release contains nil skill")
+		}
+		if err := skill.IsValid(); err != nil {
+			return fmt.Errorf("invalid skill %q: %w", skill.Name, err)
+		}
+		if !ValidSkillPath(skill.Path, skill.Name) || names[skill.Name] {
+			return fmt.Errorf("invalid or duplicate skill %q", skill.Name)
+		}
+		names[skill.Name] = true
+		if skill.Name == ExposedSkillName {
+			continue
+		}
+		group := strings.Split(skill.Path, "/")[1]
+		if !workflowIDs[group] {
+			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, group)
+		}
+		skillGroups[group] = true
+	}
+	if !names[ExposedSkillName] {
+		return fmt.Errorf("release is missing exposed Skill %q", ExposedSkillName)
+	}
+	for workflowID := range workflowIDs {
+		if !skillGroups[workflowID] {
+			return fmt.Errorf("Workflow %q is missing matching skills/%s group", workflowID, workflowID)
+		}
 	}
 	platforms := map[string]bool{}
 	for _, asset := range value.Assets {
@@ -121,6 +136,9 @@ func (value Manifest) Validate() error {
 }
 
 func ValidSkillPath(path, name string) bool {
+	if name == ExposedSkillName {
+		return path == ExposedSkillPath
+	}
 	parts := strings.Split(path, "/")
 	return len(parts) == 3 && parts[0] == "skills" && skillGroupPattern.MatchString(parts[1]) && parts[2] == name
 }

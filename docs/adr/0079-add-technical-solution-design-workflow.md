@@ -36,15 +36,16 @@ Evidence。
 ```text
 workflows/<workflow-id>/
 skills/<workflow-id>/<skill-id>/
-skills/common/<skill-id>/
+entrypoints/fanloop-workflow/{SKILL.md,routes.yaml}
 ```
 
-除 `skills/common/` 外，每个 `workflows/<workflow-id>/` 必须存在且只能引用同名
-`skills/<workflow-id>/` 组；未知 Skill 组、缺失同名组和跨 Workflow 绑定阻断 Release 构建。
-这取代 `skills/fanloop-workflow/{common,<workflow-id>}` 与 `skills/self-iteration` 两条旧路径，
-但不改变 Skill ID、Manifest 字段或安装器只全局暴露 `fanloop-workflow` 的行为。
+`workflows/` 与 `skills/` 的一级业务目录集合必须完全相同；每个 Workflow 只能引用同名
+`skills/<workflow-id>/` 组。未知 Skill 组、缺失同名组和跨 Workflow 绑定阻断 Release 构建。
+统一入口不属于任何 Workflow，独立位于 `entrypoints/`。这取代
+`skills/fanloop-workflow/{common,<workflow-id>}`、`skills/self-iteration` 和 `skills/common`
+三条旧路径，但不改变 Skill ID、Manifest 字段或安装器只全局暴露 `fanloop-workflow` 的行为。
 
-Selector 使用 `schema_version: 2` 的内联场景配置。用户必须显式选择
+`entrypoints/fanloop-workflow/routes.yaml` 使用 `schema_version: 2` 的场景配置。用户必须显式选择
 `technical-solution` 或 `fanloop-maintenance`，再分别映射到
 `technical-solution-design` 或 `fanloop-maintainer`。Selector 没有默认 Workflow；未选择、
 未知场景、缺失映射或映射目标不在配套 Release 时停止，不执行 `flow init`，不按仓库、部门或

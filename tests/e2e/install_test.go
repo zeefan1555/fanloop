@@ -49,7 +49,7 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 		t.Fatalf("repeat install changed current from %q to %q", currentBefore, currentAfter)
 	}
 
-	runtimeCache := filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow", "__pycache__", "runtime.pyc")
+	runtimeCache := filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow", "__pycache__", "runtime.pyc")
 	if err := os.MkdirAll(filepath.Dir(runtimeCache), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +260,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if err := os.Remove(pinned); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "skills", "common", "fanloop-workflow"), pinned); err != nil {
+	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "entrypoints", "fanloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
 	if diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor"); diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skill_links"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
@@ -269,7 +269,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if err := os.Remove(pinned); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow"), pinned); err != nil {
+	if err := os.Symlink(filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
 	for client, root := range map[string]string{"Trae": traeRoot, "Claude": claudeRoot} {
@@ -281,7 +281,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 		if broken.err == nil || !strings.Contains(broken.stdout, `"id": "skill_links"`) || !strings.Contains(broken.stdout, `"status": "failed"`) {
 			t.Fatalf("Doctor missed broken %s Skill link: %#v", client, broken)
 		}
-		if err := os.Symlink(filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow"), link); err != nil {
+		if err := os.Symlink(filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow"), link); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -352,7 +352,7 @@ func runInstaller(t *testing.T, repository string, fixture releaseFixture, dataR
 
 func assertSkillLink(t *testing.T, dataRoot, skillsRoot string) {
 	t.Helper()
-	want := filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow")
+	want := filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow")
 	path := filepath.Join(skillsRoot, "fanloop-workflow")
 	target, err := os.Readlink(path)
 	if err != nil || target != want {
@@ -522,7 +522,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 	}
 
 	skillItems := []map[string]any{}
-	skillSources := []string{}
+	skillSources := []string{filepath.Join(repository, "entrypoints", "fanloop-workflow", "SKILL.md")}
 	matches, err := filepath.Glob(filepath.Join(repository, "skills", "*", "*", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -556,7 +556,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 		})
 	}
 	for _, name := range additionalSkillNames {
-		relative := filepath.ToSlash(filepath.Join("skills", "common", name))
+		relative := filepath.ToSlash(filepath.Join("skills", "fanloop-maintainer", name))
 		directory := filepath.Join(staging, filepath.FromSlash(relative))
 		if err := os.MkdirAll(directory, 0o755); err != nil {
 			t.Fatal(err)
@@ -712,7 +712,7 @@ func fixtureDirectoryDigest(t *testing.T, root string) string {
 
 func writeTarXZ(t *testing.T, root, target string) {
 	t.Helper()
-	command := exec.Command("tar", "-cJf", target, "-C", root, "bin", "skills", "workflows")
+	command := exec.Command("tar", "-cJf", target, "-C", root, "bin", "entrypoints", "skills", "workflows")
 	command.Env = append(os.Environ(), "COPYFILE_DISABLE=1", "XZ_OPT=-0")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("write XZ fixture: %v\n%s", err, output)
