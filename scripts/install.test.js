@@ -83,6 +83,6 @@ describe("Fanloop npm installer", () => {
 
   it("rejects an archive path outside the staging directory", () => {
     assert.throws(() => validateArchivePath("../outside"), /unsafe archive path/);
-    assert.doesNotThrow(() => validateArchivePath("skills/fanloop-workflow/common/ai-test/SKILL.md"));
+    assert.doesNotThrow(() => validateArchivePath("skills/common/ai-test/SKILL.md"));
   });
 });

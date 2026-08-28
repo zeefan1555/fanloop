@@ -9,10 +9,13 @@ Flow、Loop、Trace、Card、Release 与 Skill 机制，只使用新的 `fanloop
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-当前只发布两套五文件 Workflow Bundle：
+当前发布两套五文件 Workflow Bundle，不设置默认 Workflow：
 
-- `promotion-design`：默认工作流，完成需求澄清、需求确认、晋升方案写作、陌生评委审校和最终确认。
+- `technical-solution-design`：完成问题定义、方向推导、正式方案写作、独立审校和三级人工确认。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
+
+业务配置严格按 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应；
+`skills/common/` 只保存选择器和统一入口。
 
 ## 从源码安装
 
@@ -34,34 +37,41 @@ go build -o ./bin/fanloop .
 
 ## 使用
 
-新建一个 Promotion Requirement：
+新 Requirement 必须先显式选择场景：
+
+- `technical-solution` → `technical-solution-design`
+- `fanloop-maintenance` → `fanloop-maintainer`
+
+选择器没有默认值；未选择或场景未知时停止初始化。选择技术方案场景后执行：
 
 ```bash
 mkdir -p /absolute/path/to/requirement
 fanloop flow init \
   --root /absolute/path/to/requirement \
-  --workflow promotion-design \
-  --title "My promotion design"
+  --workflow technical-solution-design \
+  --title "My technical solution"
 fanloop flow status --root /absolute/path/to/requirement
 ```
 
-Agent 的默认入口是 `fanloop-workflow` Skill。它按以下闭环推进：
+Agent 的统一入口是 `fanloop-workflow` Skill。它按以下闭环推进：
 
 ```text
 flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow status
 ```
 
-`promotion-design` 的领域产物写在 Requirement Root：
+`technical-solution-design` 的七个 Step 各绑定一个独立 Skill，领域产物写在 Requirement Root：
 
-- `require_points.md`
-- `方案.md`
-- `.promotion/brainstorm.md`
-- `evidence.md`
-- `.promotion/review.md`
+- `.technical-solution/problem.md`
+- `.technical-solution/proposal.md`
+- `technical-solution.md`
+- `.technical-solution/architecture.mmd`
+- `.technical-solution/review.md`
 
-流程状态只由 `.fanloop/flow/state.json` 管理；不会创建 `.promotion/state.json`。
+三个 Human Step 的结论与完整 Evidence 由 Flow Event 持久化，不额外维护重复审批文件。
 
-维护 Fanloop 自身时显式选择：
+流程状态只由 `.fanloop/flow/state.json` 管理。
+
+选择 `fanloop-maintenance` 场景后，维护 Fanloop 自身时执行：
 
 ```bash
 fanloop flow init \

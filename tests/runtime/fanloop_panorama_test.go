@@ -6,21 +6,22 @@ import (
 	"testing"
 )
 
-// TestPromotionPanoramaStagesAreFixed locks the reviewed Promotion topology.
+// TestTechnicalSolutionPanoramaStagesAreFixed locks the reviewed technical solution topology.
 // The panorama is a pure projection of the embedded workflow definition, so this
 // is a tripwire: any accidental Step added to or removed from the TechDesign
 // Stage (the "状态全景" the boss sees in Feishu) turns this test red.
-func TestPromotionPanoramaStagesAreFixed(t *testing.T) {
+func TestTechnicalSolutionPanoramaStagesAreFixed(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Panorama"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Panorama"), "flow.init")
 
 	rendered := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
 	assertSuccess(t, rendered, "card.render")
 	content := string(decodeCard(t, rendered.stdout).Data.Content)
 
 	for stage, want := range map[string][]string{
-		"需求定义": {"需求澄清", "需求人工确认"},
-		"晋升方案": {"晋升方案写作", "陌生评委审校", "方案人工确认"},
+		"问题定义": {"技术问题定义", "问题人工确认"},
+		"方案推导": {"技术方案推导", "方案方向人工确认"},
+		"方案成文": {"技术方案写作", "技术方案审校", "技术方案人工确认"},
 	} {
 		got := panoramaStageSteps(t, content, stage)
 		if len(got) != len(want) {

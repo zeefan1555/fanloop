@@ -10,7 +10,7 @@ import (
 
 func TestDoctorValidatesConditionRoutingRequirementFiles(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Doctor"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Doctor"), "flow.init")
 	healthy := run(binary, "doctor", "--root", root)
 	assertSuccess(t, healthy, "doctor")
 	for _, id := range []string{"state_schema", "workflow_binding", "outputs", "events", "trace_projection", "card_projection", "card_snapshots"} {
@@ -33,7 +33,7 @@ func TestDoctorValidatesConditionRoutingRequirementFiles(t *testing.T) {
 
 func TestDoctorChecksCardIndependentlyWhenTraceIsCorrupt(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Doctor domains"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Doctor domains"), "flow.init")
 	if err := os.WriteFile(filepath.Join(root, ".fanloop", "trace", "events.jsonl"), []byte("not-json\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

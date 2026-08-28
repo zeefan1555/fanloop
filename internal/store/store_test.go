@@ -21,7 +21,7 @@ func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestTraceConfigWritesStorageThriftSchema(t *testing.T) {
 }
 
 func TestTraceProjectionDoesNotPresentMeegoSourceAsPRD(t *testing.T) {
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestTraceProjectionDoesNotPresentMeegoSourceAsPRD(t *testing.T) {
 		CurrentStepID:     &step,
 		CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{
-			"requirement_document_url": {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/ReadablePRD"`), ProducerStepID: "clarify_requirements"},
+			"requirement_document_url": {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/ReadablePRD"`), ProducerStepID: "frame_technical_problem"},
 		},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -316,7 +316,7 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}

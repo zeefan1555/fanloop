@@ -9,7 +9,7 @@ import (
 
 func TestTraceBindIsImmutableForRequirement(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "One Trace"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "One Trace"), "flow.init")
 
 	const firstURL = "https://bytedance.larkoffice.com/docx/RequirementTraceA"
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", firstURL), "trace.bind")
@@ -67,7 +67,7 @@ func TestMaintainerTraceBindRequiresStableCLILogDocument(t *testing.T) {
 	}
 
 	ordinaryRoot := t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", ordinaryRoot, "--workflow", "promotion-design", "--title", "Ordinary Trace"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", ordinaryRoot, "--workflow", "technical-solution-design", "--title", "Ordinary Trace"), "flow.init")
 	forbidden := run(binary, "trace", "bind", "--root", ordinaryRoot, "--document-url", traceURL, "--cli-log-document-url", logURL)
 	assertError(t, forbidden, 2, "INVALID_ARGUMENT")
 

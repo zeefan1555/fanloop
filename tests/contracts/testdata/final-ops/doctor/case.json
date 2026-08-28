@@ -3,7 +3,7 @@
   "id": "final-ops-doctor",
   "commands": [
     {"args": ["doctor"]},
-    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "promotion-design", "--title", "Doctor Contract"]},
+    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "technical-solution-design", "--title", "Doctor Contract"]},
     {"args": ["--root", "{{ROOT}}", "doctor"]},
     {"args": ["card", "render", "--root", "{{ROOT}}", "--view", "current", "--format", "markdown"]},
     {"args": ["doctor", "--root", "{{ROOT}}"]}

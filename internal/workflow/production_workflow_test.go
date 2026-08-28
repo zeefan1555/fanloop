@@ -8,24 +8,26 @@ import (
 )
 
 func TestProductionBuildContainsOnlyFanloopWorkflows(t *testing.T) {
-	for _, retired := range []string{"fanloop", "douyin-game", "fanloop-dev"} {
+	for _, retired := range []string{"fanloop", "douyin-game", "fanloop-dev", "promotion-design"} {
 		if _, err := Load(retired); !errors.Is(err, fs.ErrNotExist) {
 			t.Fatalf("retired Workflow %q is loadable: %v", retired, err)
 		}
 	}
 }
 
-func TestProductionPromotionDesignWorkflow(t *testing.T) {
-	loaded, err := Load("promotion-design")
+func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
+	loaded, err := Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
 	wantSteps := []Step{
-		{ID: "clarify_requirements", Name: "需求澄清", Executor: StepExecutorAgent},
-		{ID: "confirm_requirements", Name: "需求人工确认", Executor: StepExecutorHuman},
-		{ID: "write_promotion_design", Name: "晋升方案写作", Executor: StepExecutorAgent},
-		{ID: "review_promotion_design", Name: "陌生评委审校", Executor: StepExecutorAgent},
-		{ID: "confirm_promotion_design", Name: "方案人工确认", Executor: StepExecutorHuman},
+		{ID: "frame_technical_problem", Name: "技术问题定义", Executor: StepExecutorAgent},
+		{ID: "confirm_technical_problem", Name: "问题人工确认", Executor: StepExecutorHuman},
+		{ID: "derive_technical_solution", Name: "技术方案推导", Executor: StepExecutorAgent},
+		{ID: "confirm_solution_direction", Name: "方案方向人工确认", Executor: StepExecutorHuman},
+		{ID: "write_technical_solution", Name: "技术方案写作", Executor: StepExecutorAgent},
+		{ID: "review_technical_solution", Name: "技术方案审校", Executor: StepExecutorAgent},
+		{ID: "confirm_technical_solution", Name: "技术方案人工确认", Executor: StepExecutorHuman},
 	}
 	wantIDs := make([]string, 0, len(wantSteps))
 	for _, want := range wantSteps {
@@ -38,22 +40,37 @@ func TestProductionPromotionDesignWorkflow(t *testing.T) {
 	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantIDs) {
 		t.Fatalf("Steps = %v, want %v", got, wantIDs)
 	}
-	for _, promptID := range []string{"clarify_requirements_flow", "write_promotion_design_flow", "review_promotion_design_flow"} {
+	wantSkills := map[string]string{
+		"frame_technical_problem_flow":    "technical-problem-framing",
+		"confirm_technical_problem_flow":  "technical-problem-approval",
+		"derive_technical_solution_flow":  "technical-solution-derivation",
+		"confirm_solution_direction_flow": "technical-direction-approval",
+		"write_technical_solution_flow":   "technical-solution-writing",
+		"review_technical_solution_flow":  "technical-solution-review",
+		"confirm_technical_solution_flow": "technical-solution-approval",
+	}
+	for promptID, skillID := range wantSkills {
 		skilled := loaded.Workflow.Prompts[promptID].Skills
-		if len(skilled) != 1 || skilled[0].ID != "promotion-design" || skilled[0].Optional == nil || *skilled[0].Optional {
-			t.Fatalf("Prompt %s Skills = %#v", promptID, skilled)
+		if len(skilled) != 1 || skilled[0].ID != skillID || skilled[0].Optional == nil || *skilled[0].Optional {
+			t.Fatalf("Prompt %s Skills = %#v, want required %s", promptID, skilled, skillID)
 		}
 	}
-	assertWorkflowRoute(t, loaded, "clarify_requirements", []string{"requirements_ready"}, "confirm_requirements", false)
-	assertWorkflowRoute(t, loaded, "confirm_requirements", []string{"requirements_approved"}, "write_promotion_design", false)
-	assertWorkflowRoute(t, loaded, "write_promotion_design", []string{"promotion_design_written"}, "review_promotion_design", false)
-	assertWorkflowRoute(t, loaded, "review_promotion_design", []string{"design_review_passed", "design_review_written"}, "confirm_promotion_design", false)
-	assertWorkflowRoute(t, loaded, "confirm_promotion_design", []string{"promotion_design_approved"}, "", true)
-	assertWorkflowLoop(t, loaded, "confirm_requirements", []string{"requirements_rejected"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "review_promotion_design", []string{"design_review_failed", "design_review_written"}, "write_promotion_design")
-	assertWorkflowLoop(t, loaded, "confirm_promotion_design", []string{"promotion_design_rejected"}, "write_promotion_design")
-	if got := len(loaded.Workflow.Conditions); got != 11 {
-		t.Fatalf("Condition count = %d, want 11", got)
+	assertWorkflowRoute(t, loaded, "frame_technical_problem", []string{"technical_problem_defined"}, "confirm_technical_problem", false)
+	assertWorkflowRoute(t, loaded, "confirm_technical_problem", []string{"technical_problem_approved"}, "derive_technical_solution", false)
+	assertWorkflowRoute(t, loaded, "derive_technical_solution", []string{"technical_solution_derived"}, "confirm_solution_direction", false)
+	assertWorkflowRoute(t, loaded, "confirm_solution_direction", []string{"solution_direction_approved"}, "write_technical_solution", false)
+	assertWorkflowRoute(t, loaded, "write_technical_solution", []string{"technical_solution_written", "architecture_diagram_written"}, "review_technical_solution", false)
+	assertWorkflowRoute(t, loaded, "review_technical_solution", []string{"technical_solution_review_passed", "technical_solution_review_written"}, "confirm_technical_solution", false)
+	assertWorkflowRoute(t, loaded, "confirm_technical_solution", []string{"technical_solution_approved"}, "", true)
+	assertWorkflowLoop(t, loaded, "frame_technical_problem", []string{"technical_problem_rework_requested"}, "frame_technical_problem")
+	assertWorkflowLoop(t, loaded, "confirm_technical_problem", []string{"technical_problem_rejected"}, "frame_technical_problem")
+	assertWorkflowLoop(t, loaded, "derive_technical_solution", []string{"technical_problem_changed"}, "frame_technical_problem")
+	assertWorkflowLoop(t, loaded, "confirm_solution_direction", []string{"solution_direction_rejected"}, "derive_technical_solution")
+	assertWorkflowLoop(t, loaded, "write_technical_solution", []string{"solution_direction_changed"}, "derive_technical_solution")
+	assertWorkflowLoop(t, loaded, "review_technical_solution", []string{"technical_solution_review_failed", "technical_solution_review_written"}, "write_technical_solution")
+	assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"technical_solution_rejected"}, "write_technical_solution")
+	if got := len(loaded.Workflow.Conditions); got != 16 {
+		t.Fatalf("Condition count = %d, want 16", got)
 	}
 }
 

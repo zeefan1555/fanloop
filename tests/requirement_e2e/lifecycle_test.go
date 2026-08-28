@@ -166,16 +166,26 @@ type routeEvent struct {
 }
 
 var linearLoopConditions = map[string][][]string{
-	"clarify_requirements":   {{"requirements_rework_requested"}},
-	"confirm_requirements":   {{"requirements_rejected"}},
-	"write_promotion_design": {{"requirements_changed"}},
-	"review_promotion_design": {
-		{"requirements_changed"},
-		{"design_review_failed", "design_review_written"},
+	"frame_technical_problem":   {{"technical_problem_rework_requested"}},
+	"confirm_technical_problem": {{"technical_problem_rejected"}},
+	"derive_technical_solution": {{"technical_problem_changed"}},
+	"confirm_solution_direction": {
+		{"technical_problem_changed"},
+		{"solution_direction_rejected"},
 	},
-	"confirm_promotion_design": {
-		{"requirements_changed"},
-		{"promotion_design_rejected"},
+	"write_technical_solution": {
+		{"technical_problem_changed"},
+		{"solution_direction_changed"},
+	},
+	"review_technical_solution": {
+		{"technical_problem_changed"},
+		{"solution_direction_changed"},
+		{"technical_solution_review_failed", "technical_solution_review_written"},
+	},
+	"confirm_technical_solution": {
+		{"technical_problem_changed"},
+		{"solution_direction_changed"},
+		{"technical_solution_rejected"},
 	},
 }
 
@@ -222,7 +232,7 @@ func runLinearRouteDemo(t *testing.T, binary string, demoInput *bufio.Scanner) {
 	t.Setenv("FAKE_LARK_LOG", filepath.Join(paths.RemoteRoot, "lark-cli.log"))
 	t.Setenv("FAKE_TRACE_CONTENT", filepath.Join(paths.RemoteRoot, "trace.md"))
 	t.Setenv("FAKE_TRACE_KEY", "docx:TraceE2E")
-	routeCLISuccess(t, binary, nil, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "e2e-mock Requirement lifecycle")
+	routeCLISuccess(t, binary, nil, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "e2e-mock Requirement lifecycle")
 	routeCLISuccess(t, binary, nil, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/TraceE2E")
 	routeCLISuccess(t, binary, nil, "card", "render", "--root", root, "--view", "panorama", "--format", "lark-json")
 	if _, err := os.Stat(filepath.Join(root, ".fanloop", "trace", "config.json")); err != nil {
@@ -392,7 +402,7 @@ func verifyFinalWorkflowDemo(t *testing.T, binary string, paths workflowDemoPath
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"100%", "流程已完成", "需求定义", "晋升方案"} {
+	for _, want := range []string{"100%", "流程已完成", "问题定义", "方案推导", "方案成文"} {
 		if !bytes.Contains(latest, []byte(want)) {
 			t.Fatalf("final Card omitted %q", want)
 		}

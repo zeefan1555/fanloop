@@ -82,7 +82,7 @@ func TestPayloadUpdateRequiresNPMLauncher(t *testing.T) {
 
 func TestTypedOptionalFlagsPreserveExplicitEmptyValues(t *testing.T) {
 	cases := [][]string{
-		{"flow", "init", "--root", filepath.Join(t.TempDir(), "typed"), "--workflow", "promotion-design", "--title", "test", "--source-url="},
+		{"flow", "init", "--root", filepath.Join(t.TempDir(), "typed"), "--workflow", "technical-solution-design", "--title", "test", "--source-url="},
 		{"flow", "init", "--root", filepath.Join(t.TempDir(), "json"), "--input", `{"workflow":"fanloop","requirement":{"title":"test","source_url":""}}`},
 	}
 	for _, args := range cases {
@@ -587,7 +587,7 @@ func TestExecuteRoutesFlowWithoutPython(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := Execute(
 		context.Background(),
-		[]string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Native"},
+		[]string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"},
 		strings.NewReader(""), &stdout, &stderr,
 	)
 	if code != 0 {
@@ -603,7 +603,7 @@ func TestExecuteRoutesFlowWithoutPython(t *testing.T) {
 
 func TestExecuteAppendsRequirementExecutionLog(t *testing.T) {
 	root := t.TempDir()
-	args := []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "complete transcript"}
+	args := []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "complete transcript"}
 	var stdout, stderr bytes.Buffer
 	code := Execute(
 		context.Background(),
@@ -641,11 +641,11 @@ func TestExecuteLogsDryRunReadFailureAndPartialResults(t *testing.T) {
 		stdout    string
 		stderr    string
 	}{
-		{args: []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Dry", "--dry-run"}, exitCode: 0, commandID: "flow.init", dryRun: true},
-		{args: []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Real"}, exitCode: 0, commandID: "flow.init"},
+		{args: []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Dry", "--dry-run"}, exitCode: 0, commandID: "flow.init", dryRun: true},
+		{args: []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Real"}, exitCode: 0, commandID: "flow.init"},
 		{args: []string{"flow", "status", "--root", root, "--input", "-"}, stdin: "{}\n", exitCode: 0, commandID: "flow.status"},
 		{args: []string{"flow", "status", "--root", root}, exitCode: 0, commandID: "flow.status"},
-		{args: []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Again"}, exitCode: 1, commandID: "flow.init", errorCode: "ALREADY_INITIALIZED"},
+		{args: []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Again"}, exitCode: 1, commandID: "flow.init", errorCode: "ALREADY_INITIALIZED"},
 		{args: []string{"flow", "status", "--root", root, "--unknown"}, exitCode: 2, commandID: "flow.status", errorCode: "INVALID_ARGUMENT"},
 	}
 	for index := range commands {
@@ -699,7 +699,7 @@ func TestExecuteLogsDryRunReadFailureAndPartialResults(t *testing.T) {
 
 func TestExecuteLogsInputFilePathButNotFileContentsAsStdin(t *testing.T) {
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "File input"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "File input"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	inputPath := filepath.Join(t.TempDir(), "request.json")
@@ -772,7 +772,7 @@ func TestExecuteUsesParsedLoggingControls(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		code := Execute(
 			context.Background(),
-			[]string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "--dry-run"},
+			[]string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "--dry-run"},
 			strings.NewReader(""), &stdout, &stderr,
 		)
 		if code != 0 {
@@ -851,7 +851,7 @@ func TestExecuteRejectsRemovedLoopCommand(t *testing.T) {
 func TestExecuteRoutesTraceWithoutPython(t *testing.T) {
 	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	var stdout, stderr bytes.Buffer
@@ -867,7 +867,7 @@ func TestExecuteRoutesTraceWithoutPython(t *testing.T) {
 func TestExecuteRoutesCardWithoutPython(t *testing.T) {
 	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	var stdout, stderr bytes.Buffer
@@ -882,7 +882,7 @@ func TestExecuteRoutesCardWithoutPython(t *testing.T) {
 
 func TestExecuteRejectsRetiredPublicOperations(t *testing.T) {
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Final"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Final"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	for _, args := range [][]string{

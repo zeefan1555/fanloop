@@ -45,7 +45,7 @@ test -n "$card_file"
 printf '%s\n' botmux >> "$CALL_LOG"
 `)
 
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Bootstrap panorama")
+	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Bootstrap panorama")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
 		"CALL_LOG="+callLog, "CARD_CAPTURE="+cardCapture,
@@ -142,7 +142,7 @@ func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *test
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), "#!/bin/sh\nexit 9\n")
 	writeExecutable(t, filepath.Join(fakeBin, "botmux"), "#!/bin/sh\n: > \"$BOTMUX_CALLED\"\n")
 
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Provision failure")
+	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Provision failure")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap", "BOTMUX_CALLED="+botmuxCalled,
 	)
@@ -165,7 +165,7 @@ func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *test
 
 func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Driver layout"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Driver layout"), "flow.init")
 	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	if _, err := os.Stat(projectionPath); err != nil {
 		t.Fatalf("flow init did not create Card projection: %v", err)
@@ -217,21 +217,21 @@ func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {
 
 func TestCardRenderUsesIndependentProjection(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Independent card"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Independent card"), "flow.init")
 
 	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	projection := readFile(t, projectionPath)
-	if !bytes.Contains(projection, []byte(`"current_step_id": "clarify_requirements"`)) {
+	if !bytes.Contains(projection, []byte(`"current_step_id": "frame_technical_problem"`)) {
 		t.Fatalf("initial Card projection does not contain the current Step:\n%s", projection)
 	}
 
 	reported := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "clarify_requirements",
-		"--condition-result", conditionResult("requirements_ready", "path", `"require_points.md"`),
-		"--next-step-id", "confirm_requirements", "--summary", "requirements ready")
+		"--step-id", "frame_technical_problem",
+		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
+		"--next-step-id", "confirm_technical_problem", "--summary", "technical problem defined")
 	assertSuccess(t, reported, "flow.report.result")
 	projection = readFile(t, projectionPath)
-	for _, want := range []string{`"current_step_id": "confirm_requirements"`, `"require_points_path"`} {
+	for _, want := range []string{`"current_step_id": "confirm_technical_problem"`, `"problem_definition_path"`} {
 		if !bytes.Contains(projection, []byte(want)) {
 			t.Fatalf("updated Card projection does not contain %s:\n%s", want, projection)
 		}
@@ -253,27 +253,27 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 	}
 }
 
-func TestPromotionCardHasNoInventedURLOutputs(t *testing.T) {
+func TestTechnicalSolutionCardHasNoInventedURLOutputs(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "URL artifacts"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "URL artifacts"), "flow.init")
 
 	rendered := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
 	assertSuccess(t, rendered, "card.render")
 	outputs := outputColumnContents(t, decodeCard(t, rendered.stdout).Data.Content)
 
 	if !strings.Contains(outputs, "暂未生成") {
-		t.Fatalf("Promotion path Outputs must keep the URL section empty:\n%s", outputs)
+		t.Fatalf("technical solution path Outputs must keep the URL section empty:\n%s", outputs)
 	}
 }
 
 func TestCardRenderDoesNotFallBackToNonURLOutputs(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "No URL artifacts"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "No URL artifacts"), "flow.init")
 
 	rendered := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
 	assertSuccess(t, rendered, "card.render")
 	outputs := outputColumnContents(t, decodeCard(t, rendered.stdout).Data.Content)
-	if strings.Contains(outputs, "require_points_path") {
+	if strings.Contains(outputs, "problem_definition_path") {
 		t.Fatalf("non-URL Condition Output must not be rendered as a stage output:\n%s", outputs)
 	}
 	if !strings.Contains(outputs, "暂未生成") {
@@ -316,7 +316,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 	}
 	if value.Schema != "2.0" || value.Header.Template != "default" ||
 		value.Header.Title.Content != "后端研发交付 · Driver layout" ||
-		value.Header.Subtitle.Content != "需求定义 · 需求澄清" || len(value.Header.TextTagList) != 2 {
+		value.Header.Subtitle.Content != "问题定义 · 技术问题定义" || len(value.Header.TextTagList) != 2 {
 		t.Fatalf("Driver header contract was lost: %s", content)
 	}
 	if len(value.Body.Elements) != 5 {
@@ -338,7 +338,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 			t.Fatalf("Output heading = %q", element.Content)
 		}
 	}
-	for _, want := range []string{"状态全景", "需求澄清", "晋升方案写作", "当前执行证据", "当前进行中"} {
+	for _, want := range []string{"状态全景", "技术问题定义", "技术方案写作", "当前执行证据", "当前进行中"} {
 		if !bytes.Contains(content, []byte(want)) {
 			t.Fatalf("Driver panorama does not contain %q: %s", want, content)
 		}

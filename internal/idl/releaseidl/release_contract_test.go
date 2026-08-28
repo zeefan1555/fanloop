@@ -14,8 +14,8 @@ func TestReleaseManifestGeneratedContract(t *testing.T) {
 		ReleaseVersion: "1.2.3",
 		Cli:            &CLIRelease{Version: "1.2.3"},
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
-		Skills:         []*SkillArtifact{{Name: "ai-test", Version: "1.2.3", Path: "skills/fanloop-workflow/common/ai-test", Sha256: digest}},
-		Workflows:      []*WorkflowArtifact{{Id: "promotion-design", Path: "workflows/promotion-design", Sha256: digest}},
+		Skills:         []*SkillArtifact{{Name: "ai-test", Version: "1.2.3", Path: "skills/common/ai-test", Sha256: digest}},
+		Workflows:      []*WorkflowArtifact{{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest}},
 		Assets: []*PlatformAsset{
 			{Os: "darwin", Arch: "amd64", File: "fanloop-1.2.3-darwin-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
 			{Os: "darwin", Arch: "arm64", File: "fanloop-1.2.3-darwin-arm64.tar.xz", Sha256: digest, BinarySha256: digest},

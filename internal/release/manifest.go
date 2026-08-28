@@ -122,10 +122,7 @@ func (value Manifest) Validate() error {
 
 func ValidSkillPath(path, name string) bool {
 	parts := strings.Split(path, "/")
-	if len(parts) == 4 && parts[0] == "skills" && parts[1] == "fanloop-workflow" && parts[3] == name {
-		return parts[2] == "common" || skillGroupPattern.MatchString(parts[2])
-	}
-	return len(parts) == 3 && parts[0] == "skills" && parts[1] == "self-iteration" && parts[2] == name
+	return len(parts) == 3 && parts[0] == "skills" && skillGroupPattern.MatchString(parts[1]) && parts[2] == name
 }
 
 func (value Manifest) Asset(osName, arch string) (Asset, bool) {

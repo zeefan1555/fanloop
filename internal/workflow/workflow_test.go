@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestDefaultWorkflowsAreValidFiveFileBundles(t *testing.T) {
+func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	items, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -20,7 +20,7 @@ func TestDefaultWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	for index, item := range items {
 		refs[index] = item.Ref.ID
 	}
-	wantRefs := []string{"fanloop-maintainer", "promotion-design"}
+	wantRefs := []string{"fanloop-maintainer", "technical-solution-design"}
 	if !reflect.DeepEqual(refs, wantRefs) {
 		t.Fatalf("Workflow IDs = %v", refs)
 	}
@@ -32,11 +32,11 @@ func TestDefaultWorkflowsAreValidFiveFileBundles(t *testing.T) {
 			t.Fatalf("invalid digest %q", item.Ref.Digest)
 		}
 	}
-	loaded, err := Load("promotion-design")
+	loaded, err := Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(loaded.Workflow.OrderedStepIDs()) != 5 || len(loaded.Workflow.Conditions) != 11 {
+	if len(loaded.Workflow.OrderedStepIDs()) != 7 || len(loaded.Workflow.Conditions) != 16 {
 		t.Fatalf("real Bundle shape = steps:%d conditions:%d", len(loaded.Workflow.OrderedStepIDs()), len(loaded.Workflow.Conditions))
 	}
 	pinned, err := LoadRef(loaded.Ref)
@@ -46,15 +46,15 @@ func TestDefaultWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	if pinned.Ref != loaded.Ref {
 		t.Fatalf("pinned Workflow = %#v, want %#v", pinned.Ref, loaded.Ref)
 	}
-	if _, err := LoadRef(Ref{ID: "promotion-design", Digest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); err == nil || !strings.Contains(err.Error(), "digest mismatch") {
+	if _, err := LoadRef(Ref{ID: "technical-solution-design", Digest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); err == nil || !strings.Contains(err.Error(), "digest mismatch") {
 		t.Fatalf("digest mismatch error = %v", err)
 	}
-	clarifyPrompt := loaded.Workflow.Prompts["clarify_requirements_flow"]
-	if len(clarifyPrompt.Skills) != 1 || clarifyPrompt.Skills[0].ID != "promotion-design" || clarifyPrompt.Skills[0].Optional == nil || *clarifyPrompt.Skills[0].Optional {
-		t.Fatalf("clarify Prompt Skills = %#v", clarifyPrompt.Skills)
+	problemPrompt := loaded.Workflow.Prompts["frame_technical_problem_flow"]
+	if len(problemPrompt.Skills) != 1 || problemPrompt.Skills[0].ID != "technical-problem-framing" || problemPrompt.Skills[0].Optional == nil || *problemPrompt.Skills[0].Optional {
+		t.Fatalf("problem Prompt Skills = %#v", problemPrompt.Skills)
 	}
-	if routes := loaded.Workflow.Loops["confirm_promotion_design"]; len(routes) != 2 {
-		t.Fatalf("confirm_promotion_design Loop Routes = %#v", routes)
+	if routes := loaded.Workflow.Loops["confirm_technical_solution"]; len(routes) != 3 {
+		t.Fatalf("confirm_technical_solution Loop Routes = %#v", routes)
 	}
 	if _, err := Load("fixture"); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("fixture workflow is still loadable: %v", err)

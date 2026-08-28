@@ -170,7 +170,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	t.Setenv("TRACE_REGISTRY_BASE_TOKEN", "must_not_be_read")
 	t.Setenv("TRACE_REGISTRY_TABLE_ID", "must_not_be_read")
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Auto Sync"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace", "--registry", "test"), "trace.bind")
 	configBytes := readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json"))
 	var config map[string]any
@@ -188,20 +188,20 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 			t.Fatalf("Trace config %s = %#v, want %q:\n%s", key, config[key], want, configBytes)
 		}
 	}
-	first := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "clarify_requirements", "--status", "in_progress", "--summary", "started")
+	first := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_technical_problem", "--status", "in_progress", "--summary", "started")
 	assertSuccess(t, first, "flow.report.progress")
-	assertRegistryFields(t, registryFieldsPath, "In Progress", "需求定义 / 需求定义 / 需求澄清")
+	assertRegistryFields(t, registryFieldsPath, "In Progress", "问题定义 / 问题定义 / 技术问题定义")
 
-	second := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "clarify_requirements", "--status", "blocked", "--summary", "waiting")
+	second := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_technical_problem", "--status", "blocked", "--summary", "waiting")
 	assertSuccess(t, second, "flow.report.progress")
-	assertRegistryFields(t, registryFieldsPath, "Blocked", "需求定义 / 需求定义 / 需求澄清")
+	assertRegistryFields(t, registryFieldsPath, "Blocked", "问题定义 / 问题定义 / 技术问题定义")
 
 	third := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "clarify_requirements",
-		"--condition-result", conditionResult("requirements_ready", "path", `"require_points.md"`),
-		"--next-step-id", "confirm_requirements", "--summary", "requirements ready")
+		"--step-id", "frame_technical_problem",
+		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
+		"--next-step-id", "confirm_technical_problem", "--summary", "technical problem defined")
 	assertSuccess(t, third, "flow.report.result")
-	assertRegistryFields(t, registryFieldsPath, "Human Review", "需求定义 / 需求定义 / 需求人工确认")
+	assertRegistryFields(t, registryFieldsPath, "Human Review", "问题定义 / 问题定义 / 问题人工确认")
 
 	log := string(readFile(t, logPath))
 	if got := strings.Count(log, "docs +update"); got != 3 {
@@ -222,7 +222,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 		t.Fatalf("automatic sync must resolve the stable user identity through lark-cli whoami:\n%s", log)
 	}
 	traceContent := string(readFile(t, traceContentPath))
-	for _, want := range []string{"# PRD Flow Trace", "需求定义/需求定义/需求澄清 → 需求定义/需求定义/需求人工确认", "require_points_path"} {
+	for _, want := range []string{"# PRD Flow Trace", "问题定义/问题定义/技术问题定义 → 问题定义/问题定义/问题人工确认", "problem_definition_path"} {
 		if !strings.Contains(traceContent, want) {
 			t.Fatalf("auto-synced Trace content does not contain %q:\n%s", want, traceContent)
 		}
@@ -247,9 +247,9 @@ func TestFlowReportKeepsCommittedUpdateWhenAutoSyncIsPartial(t *testing.T) {
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 	t.Setenv("FAKE_FAIL_TARGET", "registry")
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Partial Auto Sync"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Partial Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace"), "trace.bind")
-	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "clarify_requirements", "--status", "blocked", "--summary", "local fact wins")
+	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_technical_problem", "--status", "blocked", "--summary", "local fact wins")
 	assertSuccess(t, reported, "flow.report.progress")
 	if !strings.Contains(reported.stdout, `"effect": "status_updated"`) {
 		t.Fatalf("Flow update was not committed: %s", reported.stdout)
@@ -279,13 +279,13 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "No Auto Sync"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "No Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace"), "trace.bind")
-	rejected := run(binary, "flow", "report", "result", "--root", root, "--step-id", "write_promotion_design", "--condition-result", conditionResult("promotion_design_written", "path", `"方案.md"`), "--next-step-id", "review_promotion_design", "--summary", "stale report")
+	rejected := run(binary, "flow", "report", "result", "--root", root, "--step-id", "write_technical_solution", "--condition-result", conditionResult("technical_solution_written", "path", `"technical-solution.md"`), "--condition-result", conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`), "--next-step-id", "review_technical_solution", "--summary", "stale report")
 	if rejected.exitCode == 0 || !strings.Contains(rejected.stderr, `"code": "STEP_NOT_CURRENT"`) {
 		t.Fatalf("expected a rejected report:\nstdout=%s\nstderr=%s", rejected.stdout, rejected.stderr)
 	}
-	dryRun := run(binary, "flow", "report", "progress", "--root", root, "--dry-run", "--step-id", "clarify_requirements", "--status", "in_progress", "--summary", "dry run")
+	dryRun := run(binary, "flow", "report", "progress", "--root", root, "--dry-run", "--step-id", "frame_technical_problem", "--status", "in_progress", "--summary", "dry run")
 	assertSuccess(t, dryRun, "flow.report.progress")
 
 	if log, err := os.ReadFile(logPath); err == nil && len(log) > 0 {

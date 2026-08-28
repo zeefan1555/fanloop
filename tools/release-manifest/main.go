@@ -87,7 +87,7 @@ func build(version, source, dist string) (release.Manifest, error) {
 	if err := validateWorkflowSkillBindings(manifest, loadedWorkflows); err != nil {
 		return manifest, err
 	}
-	selectorPath := filepath.Join(source, "skills", "fanloop-workflow", "common", "fanloop-workflow-selector", "SKILL.md")
+	selectorPath := filepath.Join(source, "skills", "common", "fanloop-workflow-selector", "SKILL.md")
 	if err := validateSelectorSkillRoutes(selectorPath, manifest); err != nil {
 		return manifest, err
 	}
@@ -122,14 +122,31 @@ func build(version, source, dist string) (release.Manifest, error) {
 func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.Loaded) error {
 	skills := make(map[string]string, len(manifest.Skills))
 	workflowIDs := make(map[string]bool, len(manifest.Workflows))
+	workflowGroups := make(map[string]bool, len(manifest.Workflows))
 	for _, item := range manifest.Workflows {
 		workflowIDs[item.Id] = true
 	}
 	for _, skill := range manifest.Skills {
+		if _, exists := skills[skill.Name]; exists {
+			return fmt.Errorf("duplicate Skill %q", skill.Name)
+		}
 		skills[skill.Name] = skill.Path
 		parts := strings.Split(skill.Path, "/")
-		if len(parts) == 4 && parts[1] == "fanloop-workflow" && parts[2] != "common" && !workflowIDs[parts[2]] {
-			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, parts[2])
+		if len(parts) != 3 || parts[0] != "skills" {
+			return fmt.Errorf("Skill %q uses invalid group path %q", skill.Name, skill.Path)
+		}
+		group := parts[1]
+		if group == "common" {
+			continue
+		}
+		if !workflowIDs[group] {
+			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, group)
+		}
+		workflowGroups[group] = true
+	}
+	for workflowID := range workflowIDs {
+		if !workflowGroups[workflowID] {
+			return fmt.Errorf("Workflow %q is missing matching skills/%s group", workflowID, workflowID)
 		}
 	}
 	for _, item := range loaded {
@@ -139,10 +156,9 @@ func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.
 				if !ok {
 					return fmt.Errorf("Workflow %s prompt %s uses unknown Skill %q", item.Workflow.ID, promptID, binding.ID)
 				}
-				common := strings.HasPrefix(path, "skills/fanloop-workflow/common/")
-				owned := strings.HasPrefix(path, "skills/fanloop-workflow/"+item.Workflow.ID+"/")
-				maintainer := item.Workflow.ID == "fanloop-maintainer" && strings.HasPrefix(path, "skills/self-iteration/")
-				if !common && !owned && !maintainer {
+				common := strings.HasPrefix(path, "skills/common/")
+				owned := strings.HasPrefix(path, "skills/"+item.Workflow.ID+"/")
+				if !common && !owned {
 					return fmt.Errorf("Workflow %s cannot use Skill %q from %s", item.Workflow.ID, binding.ID, path)
 				}
 			}
@@ -152,13 +168,11 @@ func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.
 }
 
 type selectorRoutes struct {
-	SchemaVersion int32             `yaml:"schema_version"`
-	Default       string            `yaml:"default"`
-	Repositories  map[string]string `yaml:"repositories"`
-	Departments   map[string]struct {
-		Workflow string `yaml:"workflow"`
-		Path     string `yaml:"path"`
-	} `yaml:"departments"`
+	SchemaVersion int32 `yaml:"schema_version"`
+	Scenarios     map[string]struct {
+		Workflow    string `yaml:"workflow"`
+		Description string `yaml:"description"`
+	} `yaml:"scenarios"`
 }
 
 const (
@@ -197,46 +211,49 @@ func validateSelectorSkillRoutes(path string, manifest release.Manifest) error {
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		return fmt.Errorf("Workflow selector routes block must contain exactly one YAML document")
 	}
-	if routes.SchemaVersion != 1 || routes.Default == "" {
-		return fmt.Errorf("invalid Workflow selector schema or default")
+	if routes.SchemaVersion != 2 || len(routes.Scenarios) == 0 {
+		return fmt.Errorf("invalid Workflow selector schema or scenarios")
 	}
 	wanted := map[string]bool{}
 	for _, item := range manifest.Workflows {
 		wanted[item.Id] = true
 	}
-	targets := []string{routes.Default}
-	for repository, target := range routes.Repositories {
-		if repository == "" || target == "" {
-			return fmt.Errorf("invalid Workflow selector repository rule")
+	covered := map[string]bool{}
+	for scenario, rule := range routes.Scenarios {
+		if scenario == "" || rule.Workflow == "" || rule.Description == "" {
+			return fmt.Errorf("invalid Workflow selector scenario rule")
 		}
-		targets = append(targets, target)
-	}
-	for department, rule := range routes.Departments {
-		if department == "" || rule.Workflow == "" || rule.Path == "" {
-			return fmt.Errorf("invalid Workflow selector department rule")
+		if !wanted[rule.Workflow] {
+			return fmt.Errorf("Workflow selector uses unknown Workflow %q", rule.Workflow)
 		}
-		targets = append(targets, rule.Workflow)
+		covered[rule.Workflow] = true
 	}
-	for _, target := range targets {
-		if !wanted[target] {
-			return fmt.Errorf("Workflow selector uses unknown Workflow %q", target)
+	for workflowID := range wanted {
+		if !covered[workflowID] {
+			return fmt.Errorf("Workflow selector has no scenario for Workflow %q", workflowID)
 		}
 	}
 	return nil
 }
 
 func discoverSkills(source, version string) ([]*release.Skill, error) {
-	patterns := []string{
-		filepath.Join(source, "skills", "self-iteration", "*", "SKILL.md"),
-		filepath.Join(source, "skills", "fanloop-workflow", "*", "*", "SKILL.md"),
-	}
 	paths := []string{}
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("find Skills: %w", err)
+	err := filepath.WalkDir(filepath.Join(source, "skills"), func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil || entry.IsDir() || entry.Name() != "SKILL.md" {
+			return walkErr
 		}
-		paths = append(paths, matches...)
+		relative, err := filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
+		if parts := strings.Split(filepath.ToSlash(relative), "/"); len(parts) != 4 || parts[0] != "skills" {
+			return fmt.Errorf("Skill entry must use skills/<workflow-id>/<skill-id>/SKILL.md: %s", relative)
+		}
+		paths = append(paths, path)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("find Skills: %w", err)
 	}
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no Skills found")

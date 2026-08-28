@@ -7,7 +7,7 @@
     "FAKE_TRACE_CONTENT": "{{ROOT}}/remote-trace.md"
   },
   "commands": [
-    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "promotion-design", "--title", "Trace sync success"]},
+    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "technical-solution-design", "--title", "Trace sync success"]},
     {"args": ["trace", "bind", "--root", "{{ROOT}}", "--document-url", "https://bytedance.larkoffice.com/docx/TraceDocument"]},
     {"args": ["trace", "render", "--root", "{{ROOT}}", "--dry-run"]},
     {"args": ["trace", "sync", "--root", "{{ROOT}}", "--dry-run"]},
