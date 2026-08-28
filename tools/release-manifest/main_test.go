@@ -140,6 +140,24 @@ func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 	}
 }
 
+func TestValidateWorkflowSkillDirectoriesRequiresExactMatch(t *testing.T) {
+	root := t.TempDir()
+	for _, relative := range []string{"workflows/flow", "skills/flow"} {
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(relative)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := validateWorkflowSkillDirectories(root); err != nil {
+		t.Fatalf("matching directories rejected: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "workflows", "orphan"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateWorkflowSkillDirectories(root); err == nil || !strings.Contains(err.Error(), "orphan") {
+		t.Fatalf("mismatched directories accepted: %v", err)
+	}
+}
+
 func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
 	manifest := release.Manifest{
 		Skills: []*release.Skill{
@@ -369,15 +387,18 @@ func writeTestReleaseArchive(t *testing.T, source, destination string, binary []
 			if err != nil || !info.Mode().IsRegular() {
 				return err
 			}
+			relative, err := filepath.Rel(source, path)
+			if err != nil {
+				return err
+			}
+			if top == "workflows" && strings.Count(filepath.ToSlash(relative), "/") != 2 {
+				return nil
+			}
 			input, err := os.Open(path)
 			if err != nil {
 				return err
 			}
 			defer input.Close()
-			relative, err := filepath.Rel(source, path)
-			if err != nil {
-				return err
-			}
 			write(relative, int64(info.Mode().Perm()), input, info.Size())
 			return nil
 		}); err != nil {
