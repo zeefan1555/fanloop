@@ -406,7 +406,17 @@ func verifyArchive(archivePath string, manifest release.Manifest) (string, error
 		}
 	}
 	for name := range files {
-		if strings.HasPrefix(name, "workflows/") && strings.HasSuffix(name, "/workflow.yaml") && !wantedWorkflows[strings.TrimSuffix(name, "/workflow.yaml")] {
+		if !strings.HasPrefix(name, "workflows/") {
+			continue
+		}
+		manifested := false
+		for root := range wantedWorkflows {
+			if strings.HasPrefix(name, root+"/") {
+				manifested = true
+				break
+			}
+		}
+		if !manifested {
 			return "", fmt.Errorf("%s contains unmanifested Workflow %q", archivePath, name)
 		}
 	}
