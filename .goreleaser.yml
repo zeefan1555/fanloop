@@ -18,7 +18,7 @@ archives:
     files:
       - "entrypoints/**/*"
       - "skills/**/*"
-      - "workflows/**/*"
+      - "workflows/*/*"
 
 checksum:
   name_template: checksums.txt

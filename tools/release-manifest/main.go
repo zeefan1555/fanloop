@@ -54,6 +54,9 @@ func build(version, source, dist string) (release.Manifest, error) {
 		},
 		Skills: []*release.Skill{}, Workflows: []*release.Workflow{}, Assets: []*release.Asset{},
 	}
+	if err := validateWorkflowSkillDirectories(source); err != nil {
+		return manifest, err
+	}
 	skills, err := discoverSkills(source, version)
 	if err != nil {
 		return manifest, err
@@ -117,6 +120,35 @@ func build(version, source, dist string) (release.Manifest, error) {
 		return manifest, err
 	}
 	return manifest, nil
+}
+
+func validateWorkflowSkillDirectories(source string) error {
+	groups := func(root string) ([]string, error) {
+		entries, err := os.ReadDir(filepath.Join(source, root))
+		if err != nil {
+			return nil, err
+		}
+		result := []string{}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				result = append(result, entry.Name())
+			}
+		}
+		sort.Strings(result)
+		return result, nil
+	}
+	workflows, err := groups("workflows")
+	if err != nil {
+		return fmt.Errorf("list Workflow directories: %w", err)
+	}
+	skills, err := groups("skills")
+	if err != nil {
+		return fmt.Errorf("list Skill directories: %w", err)
+	}
+	if strings.Join(workflows, "\x00") != strings.Join(skills, "\x00") {
+		return fmt.Errorf("Workflow and Skill directories must match: workflows=%v skills=%v", workflows, skills)
+	}
+	return nil
 }
 
 func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.Loaded) error {
