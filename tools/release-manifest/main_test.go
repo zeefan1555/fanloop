@@ -281,6 +281,16 @@ func TestArchiveVerificationRejectsExtraWorkflowYAML(t *testing.T) {
 	}
 }
 
+func TestArchiveVerificationRejectsUnmanifestedWorkflowFiles(t *testing.T) {
+	archive := filepath.Join(t.TempDir(), "release.tar.xz")
+	writeTestArchive(t, archive, []byte("binary"), map[string][]byte{
+		"workflows/orphan/README.md": []byte("orphan\n"),
+	})
+	if _, err := verifyArchive(archive, release.Manifest{}); err == nil || !strings.Contains(err.Error(), "workflows/orphan/README.md") {
+		t.Fatalf("unmanifested Workflow file was accepted: %v", err)
+	}
+}
+
 func equalStrings(got, want []string) bool { return strings.Join(got, "|") == strings.Join(want, "|") }
 
 func testDigest(value string) string { return "sha256:" + strings.Repeat(value, 64) }
