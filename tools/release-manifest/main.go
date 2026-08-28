@@ -87,8 +87,8 @@ func build(version, source, dist string) (release.Manifest, error) {
 	if err := validateWorkflowSkillBindings(manifest, loadedWorkflows); err != nil {
 		return manifest, err
 	}
-	selectorPath := filepath.Join(source, "skills", "common", "fanloop-workflow-selector", "SKILL.md")
-	if err := validateSelectorSkillRoutes(selectorPath, manifest); err != nil {
+	selectorPath := filepath.Join(source, "entrypoints", release.ExposedSkillName, "routes.yaml")
+	if err := validateSelectorRoutes(selectorPath, manifest); err != nil {
 		return manifest, err
 	}
 
@@ -131,14 +131,17 @@ func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.
 			return fmt.Errorf("duplicate Skill %q", skill.Name)
 		}
 		skills[skill.Name] = skill.Path
+		if skill.Name == release.ExposedSkillName {
+			if skill.Path != release.ExposedSkillPath {
+				return fmt.Errorf("exposed Skill %q uses invalid path %q", skill.Name, skill.Path)
+			}
+			continue
+		}
 		parts := strings.Split(skill.Path, "/")
 		if len(parts) != 3 || parts[0] != "skills" {
 			return fmt.Errorf("Skill %q uses invalid group path %q", skill.Name, skill.Path)
 		}
 		group := parts[1]
-		if group == "common" {
-			continue
-		}
 		if !workflowIDs[group] {
 			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, group)
 		}
@@ -156,9 +159,8 @@ func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.
 				if !ok {
 					return fmt.Errorf("Workflow %s prompt %s uses unknown Skill %q", item.Workflow.ID, promptID, binding.ID)
 				}
-				common := strings.HasPrefix(path, "skills/common/")
 				owned := strings.HasPrefix(path, "skills/"+item.Workflow.ID+"/")
-				if !common && !owned {
+				if !owned {
 					return fmt.Errorf("Workflow %s cannot use Skill %q from %s", item.Workflow.ID, binding.ID, path)
 				}
 			}
@@ -175,41 +177,20 @@ type selectorRoutes struct {
 	} `yaml:"scenarios"`
 }
 
-const (
-	selectorRoutesStart = "<!-- fanloop-selector-routes:start -->"
-	selectorRoutesEnd   = "<!-- fanloop-selector-routes:end -->"
-)
-
-func validateSelectorSkillRoutes(path string, manifest release.Manifest) error {
+func validateSelectorRoutes(path string, manifest release.Manifest) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read Workflow selector: %w", err)
 	}
-	text := string(content)
-	if strings.Count(text, selectorRoutesStart) != 1 || strings.Count(text, selectorRoutesEnd) != 1 {
-		return fmt.Errorf("Workflow selector must contain exactly one embedded routes block")
-	}
-	start := strings.Index(text, selectorRoutesStart) + len(selectorRoutesStart)
-	end := strings.Index(text[start:], selectorRoutesEnd)
-	if end < 0 {
-		return fmt.Errorf("Workflow selector routes block is not closed")
-	}
-	block := strings.TrimSpace(text[start : start+end])
-	const fenceStart = "```yaml\n"
-	const fenceEnd = "\n```"
-	if !strings.HasPrefix(block, fenceStart) || !strings.HasSuffix(block, fenceEnd) {
-		return fmt.Errorf("Workflow selector routes block must contain one yaml fence")
-	}
-	routeYAML := strings.TrimSuffix(strings.TrimPrefix(block, fenceStart), fenceEnd)
 	var routes selectorRoutes
-	decoder := yaml.NewDecoder(strings.NewReader(routeYAML))
+	decoder := yaml.NewDecoder(strings.NewReader(string(content)))
 	decoder.KnownFields(true)
 	if err := decoder.Decode(&routes); err != nil {
 		return fmt.Errorf("decode Workflow selector: %w", err)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
-		return fmt.Errorf("Workflow selector routes block must contain exactly one YAML document")
+		return fmt.Errorf("Workflow selector must contain exactly one YAML document")
 	}
 	if routes.SchemaVersion != 2 || len(routes.Scenarios) == 0 {
 		return fmt.Errorf("invalid Workflow selector schema or scenarios")
@@ -237,8 +218,16 @@ func validateSelectorSkillRoutes(path string, manifest release.Manifest) error {
 }
 
 func discoverSkills(source, version string) ([]*release.Skill, error) {
-	paths := []string{}
-	err := filepath.WalkDir(filepath.Join(source, "skills"), func(path string, entry os.DirEntry, walkErr error) error {
+	entrypoint := filepath.Join(source, release.ExposedSkillPath, "SKILL.md")
+	info, err := os.Stat(entrypoint)
+	if err != nil {
+		return nil, fmt.Errorf("find exposed Skill: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("exposed Skill is not a regular file: %s", entrypoint)
+	}
+	paths := []string{entrypoint}
+	err = filepath.WalkDir(filepath.Join(source, "skills"), func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil || entry.IsDir() || entry.Name() != "SKILL.md" {
 			return walkErr
 		}
@@ -370,7 +359,7 @@ func verifyArchive(archivePath string, manifest release.Manifest) (string, error
 		}
 	}
 	for name := range files {
-		if !strings.HasPrefix(name, "skills/") {
+		if !strings.HasPrefix(name, "skills/") && !strings.HasPrefix(name, "entrypoints/") {
 			continue
 		}
 		manifested := false

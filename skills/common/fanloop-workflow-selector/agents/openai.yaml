@@ -1,4 +1,0 @@
-interface:
-  display_name: "Fanloop Workflow Selector"
-  short_description: "Select initial Workflow from stable request context"
-  default_prompt: "Use $fanloop-workflow-selector to select the Workflow before initializing this requirement."

@@ -18,9 +18,9 @@ description: Fanloop 研发流程统一入口。适用于收到 PRD、新研发�
 PRD、新研发需求、缺陷修复或代码变更请求默认表示用户要启动新流程；只有用户明确要求仅回答且不进入研发流程时才跳过。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。此前单独执行的 update 失败不阻止已有 Requirement 继续。
-2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)。使用 `fanloop-workflow-selector` 按用户显式选择的场景得到 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
+2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
 
-Skill、CLI、selector 或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码分析、文档生成或研发交付。
+Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码分析、文档生成或研发交付。
 
 ## 执行当前 Step
 

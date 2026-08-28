@@ -3,7 +3,6 @@ package main
 import (
 	"archive/tar"
 	"encoding/json"
-	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -49,7 +48,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantSkills := []string{
-		"fanloop-workflow-selector", "fanloop-workflow",
+		"fanloop-workflow",
 		"fanloop-dev-bootstrap", "fanloop-dev-code-review", "fanloop-dev-domain-modeling",
 		"fanloop-dev-grill-with-docs", "fanloop-dev-grilling", "fanloop-dev-implement",
 		"fanloop-dev-mr-handoff", "fanloop-dev-tdd", "fanloop-dev-to-spec",
@@ -101,7 +100,7 @@ if (!asset.sha256.startsWith("sha256:") || !asset.binary_sha256.startsWith("sha2
 func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 	root := t.TempDir()
 	for _, relative := range []string{
-		"skills/common/shared/SKILL.md",
+		"entrypoints/fanloop-workflow/SKILL.md",
 		"skills/technical-solution-design/write/SKILL.md",
 		"skills/fanloop-maintainer/maintain/SKILL.md",
 	} {
@@ -122,7 +121,7 @@ func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 		got[index] = skill.Name + "=" + skill.Path
 	}
 	want := []string{
-		"shared=skills/common/shared",
+		"fanloop-workflow=entrypoints/fanloop-workflow",
 		"maintain=skills/fanloop-maintainer/maintain",
 		"write=skills/technical-solution-design/write",
 	}
@@ -144,14 +143,14 @@ func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
 	manifest := release.Manifest{
 		Skills: []*release.Skill{
-			{Name: "shared", Path: "skills/common/shared"},
+			{Name: release.ExposedSkillName, Path: release.ExposedSkillPath},
 			{Name: "write", Path: "skills/technical-solution-design/write"},
 			{Name: "maintain", Path: "skills/fanloop-maintainer/maintain"},
 		},
 		Workflows: []*release.Workflow{{Id: "technical-solution-design"}, {Id: "fanloop-maintainer"}},
 	}
 	loaded := []workflow.Loaded{
-		{Workflow: workflow.Workflow{ID: "technical-solution-design", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "shared"}, {ID: "write"}}}}}},
+		{Workflow: workflow.Workflow{ID: "technical-solution-design", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "write"}}}}}},
 		{Workflow: workflow.Workflow{ID: "fanloop-maintainer", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "maintain"}}}}}},
 	}
 	if err := validateWorkflowSkillBindings(manifest, loaded); err != nil {
@@ -177,43 +176,41 @@ func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
 }
 
 func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
-	path, err := filepath.Abs(filepath.Join("..", "..", "skills", "common", "fanloop-workflow-selector", "SKILL.md"))
+	entrypoint, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(entrypoint)
 	if err != nil {
 		t.Fatal(err)
 	}
 	skill := string(content)
-	for _, value := range []string{"已有 State 时立即返回", "用户显式选择的场景", "不得猜测、默认选择", "technical-solution", "fanloop-maintenance", "不得静默回退", "不写 State"} {
+	for _, value := range []string{"已初始化 State", "显式选择的场景", "不得初始化默认 Workflow", "routes.yaml"} {
 		if !strings.Contains(skill, value) {
-			t.Fatalf("selector Skill does not contain %q", value)
+			t.Fatalf("Workflow entry does not contain %q", value)
 		}
 	}
+	path := filepath.Join(filepath.Dir(entrypoint), "routes.yaml")
 	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "fanloop-maintainer"}, {Id: "technical-solution-design"}}}
-	if err := validateSelectorSkillRoutes(path, manifest); err != nil {
+	if err := validateSelectorRoutes(path, manifest); err != nil {
 		t.Fatalf("production selector is invalid: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(filepath.Dir(path), "routes.yaml")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("selector still has routes.yaml: %v", err)
 	}
 }
 
 func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "SKILL.md")
-	content := []byte("<!-- fanloop-selector-routes:start -->\n```yaml\nschema_version: 2\nscenarios:\n  missing:\n    workflow: missing\n    description: missing\n```\n<!-- fanloop-selector-routes:end -->\n")
+	path := filepath.Join(t.TempDir(), "routes.yaml")
+	content := []byte("schema_version: 2\nscenarios:\n  missing:\n    workflow: missing\n    description: missing\n")
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "technical-solution-design"}}}
-	if err := validateSelectorSkillRoutes(path, manifest); err == nil || !strings.Contains(err.Error(), `unknown Workflow "missing"`) {
+	if err := validateSelectorRoutes(path, manifest); err == nil || !strings.Contains(err.Error(), `unknown Workflow "missing"`) {
 		t.Fatalf("unknown selector target error = %v", err)
 	}
 }
 
 func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
-	path, err := filepath.Abs(filepath.Join("..", "..", "skills", "common", "fanloop-workflow", "SKILL.md"))
+	path, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +219,7 @@ func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	skill := string(content)
-	for _, value := range []string{"flow status", "fanloop-workflow-selector", "flow init", "`current.prompt`", "`available_routes`"} {
+	for _, value := range []string{"flow status", "routes.yaml", "flow init", "`current.prompt`", "`available_routes`"} {
 		if !strings.Contains(skill, value) {
 			t.Fatalf("fanloop-workflow Skill does not contain %q", value)
 		}
@@ -247,10 +244,10 @@ func TestArchiveVerificationRejectsMissingPackagedComponents(t *testing.T) {
 	archive := filepath.Join(t.TempDir(), "release.tar.xz")
 	writeTestArchive(t, archive, []byte("binary"))
 	manifest := release.Manifest{
-		Skills:    []*release.Skill{{Name: "atom", Path: "skills/common/atom", Sha256: testDigest("1")}},
+		Skills:    []*release.Skill{{Name: "atom", Path: "skills/flow/atom", Sha256: testDigest("1")}},
 		Workflows: []*release.Workflow{{Id: "flow", Path: "workflows/flow", Sha256: testDigest("2")}},
 	}
-	if _, err := verifyArchive(archive, manifest); err == nil || !strings.Contains(err.Error(), "skills/common/atom") {
+	if _, err := verifyArchive(archive, manifest); err == nil || !strings.Contains(err.Error(), "skills/flow/atom") {
 		t.Fatalf("missing Skill was accepted: %v", err)
 	}
 }
@@ -352,7 +349,7 @@ func writeTestReleaseArchive(t *testing.T, source, destination string, binary []
 		}
 	}
 	write("bin/fanloop", 0o755, strings.NewReader(string(binary)), int64(len(binary)))
-	for _, top := range []string{"skills", "workflows"} {
+	for _, top := range []string{"entrypoints", "skills", "workflows"} {
 		root := filepath.Join(source, top)
 		if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil || entry.IsDir() {

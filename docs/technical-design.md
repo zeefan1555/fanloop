@@ -13,11 +13,11 @@
 - `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
 - `fanloop-maintainer`：Fanloop 自迭代的八步维护流程。
 
-生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应；
-`skills/common/` 仅承载统一入口与 Selector。Release 构建拒绝缺失同名 Skill 组、未知业务
-Skill 组和跨 Workflow SkillBinding。
+生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
+Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建拒绝缺失同名 Skill
+组、未知 Skill 组和跨 Workflow SkillBinding。
 
-Selector 的内联 `schema_version: 2` 配置把用户显式选择的场景映射到 Workflow：
+入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `technical-solution` 对应 `technical-solution-design`，`fanloop-maintenance` 对应
 `fanloop-maintainer`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
 [ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)。
@@ -59,8 +59,8 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 
 ## Release 与验证
 
-一个 Release 原子携带 `bin/fanloop`、两套 Workflow 和它们引用的 Skills。Release Manifest 固定
-版本、组件路径与 SHA-256；安装验证成功后才切换 `~/.fanloop/current`。
+一个 Release 原子携带 `bin/fanloop`、统一入口、两套 Workflow 和它们引用的 Skills。Release
+Manifest 固定版本、组件路径与 SHA-256；安装验证成功后才切换 `~/.fanloop/current`。
 
 仓库级门禁只有两个：
 
