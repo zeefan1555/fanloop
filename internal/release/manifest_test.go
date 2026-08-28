@@ -45,7 +45,7 @@ func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
 	manifest := validTestManifest()
 	manifest.Skills = append(manifest.Skills, &Skill{
 		Name: "fanloop-dev-tdd", Version: "1.2.3",
-		Path: "skills/self-iteration/fanloop-dev-tdd", Sha256: manifest.Skills[0].Sha256,
+		Path: "skills/fanloop-maintainer/fanloop-dev-tdd", Sha256: manifest.Skills[0].Sha256,
 	})
 	if err := manifest.Validate(); err != nil {
 		t.Fatalf("grouped Skill paths were rejected: %v", err)
@@ -55,9 +55,9 @@ func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
 func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
 	tests := []string{
 		"skills/ai-test",
-		"skills/fanloop-workflow/ai-test",
-		"skills/fanloop-workflow/common/not-ai-test",
-		"skills/self-iteration/group/ai-test",
+		"skills/common/not-ai-test",
+		"skills/fanloop-workflow/common/ai-test",
+		"skills/Common/ai-test",
 	}
 	for _, path := range tests {
 		t.Run(path, func(t *testing.T) {
@@ -90,11 +90,11 @@ func validTestManifest() Manifest {
 		Cli:            &CLIRelease{Version: "1.2.3"},
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
 		Skills: []*Skill{
-			{Name: "ai-test", Version: "1.2.3", Path: "skills/fanloop-workflow/common/ai-test", Sha256: digest},
-			{Name: ExposedSkillName, Version: "1.2.3", Path: "skills/fanloop-workflow/common/" + ExposedSkillName, Sha256: digest},
+			{Name: "ai-test", Version: "1.2.3", Path: "skills/common/ai-test", Sha256: digest},
+			{Name: ExposedSkillName, Version: "1.2.3", Path: "skills/common/" + ExposedSkillName, Sha256: digest},
 		},
 		Workflows: []*Workflow{
-			{Id: "promotion-design", Path: "workflows/promotion-design", Sha256: digest},
+			{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest},
 		},
 		Assets: []*Asset{
 			{Os: "darwin", Arch: "amd64", File: "fanloop-1.2.3-darwin-amd64.tar.xz", Sha256: digest, BinarySha256: digest},

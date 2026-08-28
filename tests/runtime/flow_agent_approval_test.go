@@ -5,22 +5,27 @@ import (
 	"testing"
 )
 
-func TestAgentSubmittedPromotionApprovalsAdvanceWorkflow(t *testing.T) {
+func TestAgentSubmittedTechnicalSolutionApprovalsAdvanceWorkflow(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "promotion-design", "--title", "Promotion approvals"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Technical solution approvals"), "flow.init")
 
 	for _, report := range []struct {
 		step       string
 		conditions []string
 		next       string
 	}{
-		{step: "clarify_requirements", conditions: []string{conditionResult("requirements_ready", "path", `"require_points.md"`)}, next: "confirm_requirements"},
-		{step: "confirm_requirements", conditions: []string{conditionResult("requirements_approved", "enum_value", `"approved"`)}, next: "write_promotion_design"},
-		{step: "write_promotion_design", conditions: []string{conditionResult("promotion_design_written", "path", `"方案.md"`)}, next: "review_promotion_design"},
-		{step: "review_promotion_design", conditions: []string{
-			conditionResult("design_review_passed", "enum_value", `"passed"`),
-			conditionResult("design_review_written", "path", `".promotion/review.md"`),
-		}, next: "confirm_promotion_design"},
+		{step: "frame_technical_problem", conditions: []string{conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`)}, next: "confirm_technical_problem"},
+		{step: "confirm_technical_problem", conditions: []string{conditionResult("technical_problem_approved", "enum_value", `"approved"`)}, next: "derive_technical_solution"},
+		{step: "derive_technical_solution", conditions: []string{conditionResult("technical_solution_derived", "path", `".technical-solution/proposal.md"`)}, next: "confirm_solution_direction"},
+		{step: "confirm_solution_direction", conditions: []string{conditionResult("solution_direction_approved", "enum_value", `"approved"`)}, next: "write_technical_solution"},
+		{step: "write_technical_solution", conditions: []string{
+			conditionResult("technical_solution_written", "path", `"technical-solution.md"`),
+			conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`),
+		}, next: "review_technical_solution"},
+		{step: "review_technical_solution", conditions: []string{
+			conditionResult("technical_solution_review_passed", "enum_value", `"passed"`),
+			conditionResult("technical_solution_review_written", "path", `".technical-solution/review.md"`),
+		}, next: "confirm_technical_solution"},
 	} {
 		args := []string{"flow", "report", "result", "--root", root, "--step-id", report.step, "--next-step-id", report.next, "--summary", "accepted"}
 		for _, condition := range report.conditions {
@@ -32,9 +37,9 @@ func TestAgentSubmittedPromotionApprovalsAdvanceWorkflow(t *testing.T) {
 	}
 
 	completed := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "confirm_promotion_design",
-		"--condition-result", conditionResult("promotion_design_approved", "enum_value", `"approved"`),
-		"--terminal", "--summary", "promotion design approved")
+		"--step-id", "confirm_technical_solution",
+		"--condition-result", conditionResult("technical_solution_approved", "enum_value", `"approved"`),
+		"--terminal", "--summary", "technical solution approved")
 	assertSuccess(t, completed, "flow.report.result")
 	if !strings.Contains(completed.stdout, `"effect": "completed"`) || !strings.Contains(completed.stdout, `"status": "completed"`) {
 		t.Fatalf("completion response = %s", completed.stdout)

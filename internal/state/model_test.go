@@ -9,7 +9,7 @@ import (
 )
 
 func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,21 +48,21 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 		CausedByEventID: "e1", Payload: Payload(progress),
 	})
 
-	second := "confirm_requirements"
+	second := "confirm_technical_problem"
 	flowResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "requirements_ready", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"require_points.md"`)},
+			ConditionID: "technical_problem_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`)},
 		}},
-		Summary: "requirements ready", Effect: ResultAdvanced,
+		Summary: "technical problem defined", Effect: ResultAdvanced,
 		Transition:    Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second},
-		OutputChanges: OutputChanges{Accepted: []string{"require_points_path"}},
+		OutputChanges: OutputChanges{Accepted: []string{"problem_definition_path"}},
 	}
 	current.CurrentStepID = &second
 	current.CurrentStepStatus = StepReady
 	current.CurrentStepSummary = flowResult.Summary
 	current.CurrentEvidence = nil
 	current.Outputs = map[string]RegisteredOutput{
-		"require_points_path": {Type: workflow.OutputPath, Value: json.RawMessage(`"require_points.md"`), ProducerStepID: first},
+		"problem_definition_path": {Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`), ProducerStepID: first},
 	}
 	current.LastEventID = "e3"
 	current.UpdatedAt = now.Add(2 * time.Minute)
@@ -74,14 +74,14 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 
 	loopResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "requirements_rejected",
+			ConditionID: "technical_problem_rejected",
 			Output:      OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)},
 		}},
-		Summary: "requirements rejected", Effect: ResultLooped,
+		Summary: "technical problem rejected", Effect: ResultLooped,
 		Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first},
 		OutputChanges: OutputChanges{
-			Accepted:    []string{"requirements_decision"},
-			Invalidated: []string{"require_points_path", "requirements_decision"},
+			Accepted:    []string{"problem_approval_decision"},
+			Invalidated: []string{"problem_approval_decision", "problem_definition_path"},
 		},
 	}
 	current.CurrentStepID = &first
@@ -107,7 +107,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 }
 
 func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,19 +116,19 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 	current := State{
 		SchemaVersion: CurrentStateSchemaVersion,
 		Requirement:   Requirement{Title: "State v8"}, Release: Release{Version: "dev", Workflow: WorkflowRefFrom(loaded.Ref)},
-		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "requirements rejected",
+		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "technical problem rejected",
 		Outputs: map[string]RegisteredOutput{}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
 	}
-	second := "confirm_requirements"
+	second := "confirm_technical_problem"
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: current.Release.Workflow, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{{ConditionID: "requirements_ready", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"require_points.md"`)}}},
-			Summary:          "requirements ready", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"require_points_path"}},
+			ConditionResults: []ConditionResult{{ConditionID: "technical_problem_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`)}}},
+			Summary:          "technical problem defined", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"problem_definition_path"}},
 		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{{ConditionID: "requirements_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}}},
-			Summary:          "requirements rejected", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{Accepted: []string{"requirements_decision"}, Invalidated: []string{"requirements_decision"}},
+			ConditionResults: []ConditionResult{{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}}},
+			Summary:          "technical problem rejected", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{Accepted: []string{"problem_approval_decision"}, Invalidated: []string{"problem_approval_decision"}},
 		})},
 	}
 	if err := ValidateHistory(events, current, loaded.Workflow); err == nil {

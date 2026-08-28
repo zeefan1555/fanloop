@@ -12,11 +12,11 @@ import (
 )
 
 func TestCardShowsConditionRoutesOutputsAndEvidence(t *testing.T) {
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "confirm_requirements"
+	stepID := "confirm_technical_problem"
 	current := state.State{
 		Requirement:        state.Requirement{Title: "Flow card"},
 		CurrentStepID:      &stepID,
@@ -26,17 +26,17 @@ func TestCardShowsConditionRoutesOutputsAndEvidence(t *testing.T) {
 			Source: state.EvidenceHuman, Content: "请修改方案", Ref: "om_feedback",
 		}},
 		Outputs: map[string]state.RegisteredOutput{
-			"require_points_path": {
-				Type: workflow.OutputPath, Value: json.RawMessage(`"require_points.md"`), ProducerStepID: "clarify_requirements",
+			"problem_definition_path": {
+				Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`), ProducerStepID: "frame_technical_problem",
 			},
 		},
 	}
 	markdown := renderMarkdown(cardidl.CardView_current, current, loaded.Workflow)
 	for _, want := range []string{
-		"requirements_approved",
-		"write_promotion_design",
-		"clarify_requirements",
-		"confirm_requirements",
+		"technical_problem_approved",
+		"derive_technical_solution",
+		"frame_technical_problem",
+		"confirm_technical_problem",
 	} {
 		if !strings.Contains(markdown, want) {
 			t.Fatalf("card Markdown is missing %q:\n%s", want, markdown)
@@ -49,18 +49,18 @@ func TestCardShowsConditionRoutesOutputsAndEvidence(t *testing.T) {
 }
 
 func TestCardShowsOnlyCurrentExecutionEvidence(t *testing.T) {
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "write_promotion_design"
+	stepID := "write_technical_solution"
 	current := state.State{
 		Requirement: state.Requirement{Title: "Loop card"}, CurrentStepID: &stepID, CurrentStepStatus: state.StepReady,
 		CurrentStepSummary: "正在修复代码", CurrentEvidence: []state.Evidence{{Source: state.EvidenceSystem, Content: "go test failed", Ref: "test.log"}},
 		Outputs: map[string]state.RegisteredOutput{},
 	}
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
-	for _, want := range []string{"write_promotion_design", "正在修复代码"} {
+	for _, want := range []string{"write_technical_solution", "正在修复代码"} {
 		if !strings.Contains(markdown, want) {
 			t.Fatalf("Card is missing current fact %q:\n%s", want, markdown)
 		}

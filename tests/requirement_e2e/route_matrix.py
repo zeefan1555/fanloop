@@ -694,7 +694,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--binary", required=True, help="source-built fanloop binary")
     parser.add_argument("--output-root", required=True, help="new directory for all audit files")
     parser.add_argument("--source-root", default=".", help="Git worktree used to build the binary")
-    parser.add_argument("--workflow", default="promotion-design", help="Workflow id passed to flow init")
+    parser.add_argument("--workflow", default="technical-solution-design", help="Workflow id passed to flow init")
     return parser.parse_args()
 
 

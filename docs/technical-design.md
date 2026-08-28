@@ -8,13 +8,19 @@
 - Agent 提交事实和 RouteSelection；CLI 校验结构、输出类型、互斥条件与唯一 Route，不证明业务事实。
 - Flow State 与 Output Registry 是本地事实，Trace 与 Card 是相互隔离的投影。
 
-当前只发布两套 Bundle：
+当前发布两套 Bundle：
 
-- `promotion-design`：默认入口，依次执行需求澄清、需求人工确认、晋升方案写作、陌生评委审校、方案人工确认。
+- `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
 - `fanloop-maintainer`：Fanloop 自迭代的八步维护流程。
 
-Selector 只执行“显式选择优先，否则 `promotion-design`”，不按仓库或部门分流。完整切换决策见
-[ADR-0077](./adr/0077-bootstrap-fanloop-with-promotion-design.md)。
+生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应；
+`skills/common/` 仅承载统一入口与 Selector。Release 构建拒绝缺失同名 Skill 组、未知业务
+Skill 组和跨 Workflow SkillBinding。
+
+Selector 的内联 `schema_version: 2` 配置把用户显式选择的场景映射到 Workflow：
+`technical-solution` 对应 `technical-solution-design`，`fanloop-maintenance` 对应
+`fanloop-maintainer`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
+[ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)。
 
 ## 推进模型
 
@@ -30,11 +36,17 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-## Promotion 领域边界
+## Technical Solution 领域边界
 
-`promotion-design` 的 `require_points.md`、`方案.md`、`.promotion/brainstorm.md`、
-`evidence.md` 与 `.promotion/review.md` 是领域产物。它们不决定当前 Step，也不保存流程
-状态；唯一推进状态位于 `.fanloop/flow/state.json`，不会创建 `.promotion/state.json`。
+`technical-solution-design` 先冻结 `.technical-solution/problem.md`，再通过独立人工门禁确认
+`.technical-solution/proposal.md` 的选型与总体架构方向，最后生成 `technical-solution.md`、
+`.technical-solution/architecture.mmd` 和 `.technical-solution/review.md`。七个 Step 分别绑定
+`technical-problem-framing`、`technical-problem-approval`、`technical-solution-derivation`、
+`technical-direction-approval`、`technical-solution-writing`、`technical-solution-review` 和
+`technical-solution-approval`。
+
+问题定义变化回到第一步并失效全部下游 Output；方向变化回到方案推导；写作或审校问题只回到
+方案写作。Human Step 的结论保存在 Flow Event/Evidence，不创建第二套流程状态或审批状态。
 
 ## 当前持久化版本
 
@@ -58,4 +70,4 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 ```
 
 前者覆盖格式、IDL 新鲜度、静态检查、Go/npm 测试与 Contract；后者从当前工作树构建一次 CLI，
-执行 Promotion 完整生命周期，并为两套生产 Workflow 动态遍历全部 Flow/Loop Route。
+执行技术方案完整生命周期，并为两套生产 Workflow 动态遍历全部 Flow/Loop Route。

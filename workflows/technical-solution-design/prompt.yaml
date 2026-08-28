@@ -1,0 +1,81 @@
+schema_version: 1
+
+prompts:
+  frame_technical_problem_flow:
+    prompt: |
+      只完成问题定义：调查业务背景、当前方案、量化事实、约束、核心问题、目标、非目标和验收维度，写入 .technical-solution/problem.md。不得提出候选方案或目标架构。达到准出标准时上报 technical_problem_defined；仍有可调查的事实缺口时继续工作，确需重新整理时上报 technical_problem_rework_requested。
+    skills:
+      - {id: technical-problem-framing, prompt: 使用该 Skill 完成事实调查、因果分析和技术问题定义，不进入方案设计。, optional: false}
+  confirm_technical_problem_flow:
+    prompt: |
+      人只审核自包含的问题定义材料。明确批准时上报 technical_problem_approved；拒绝或要求修改时上报 technical_problem_rejected 并回到问题定义。Evidence 保存人的完整审核回复，不把沉默视为批准。
+    skills:
+      - {id: technical-problem-approval, prompt: 使用该 Skill 组织问题定义审核包、约束人工判定口径并记录完整结论。, optional: false}
+  derive_technical_solution_flow:
+    prompt: |
+      只基于已批准的 .technical-solution/problem.md 建立选型维度，公平比较内部方案、行业方案和不改基线，推导核心模型、取舍、总体架构和问题到设计的映射，写入 .technical-solution/proposal.md。成功时上报 technical_solution_derived；发现问题定义语义变化时上报 technical_problem_changed。
+    skills:
+      - {id: technical-solution-derivation, prompt: 使用该 Skill 完成候选方案比较、核心模型选择、取舍和总体架构推导。, optional: false}
+  confirm_solution_direction_flow:
+    prompt: |
+      人审核问题定义与方案推导。明确批准方向时上报 solution_direction_approved；方向不成立时上报 solution_direction_rejected 并回到方案推导；反馈改变已批准问题时上报 technical_problem_changed。Evidence 保存人的完整审核回复。
+    skills:
+      - {id: technical-direction-approval, prompt: 使用该 Skill 组织方案方向审核包、区分问题变化与方向返工并记录人工结论。, optional: false}
+  write_technical_solution_flow:
+    prompt: |
+      只基于已批准的问题定义和方案方向生成 technical-solution.md 与 .technical-solution/architecture.mmd；正文必须解释完整总体架构和关键模块，并覆盖容量、异常、安全、迁移、验证、价值、风险与开放项。成功写入并回读后同时上报 technical_solution_written 与 architecture_diagram_written；问题变化时上报 technical_problem_changed，方向变化时上报 solution_direction_changed。
+    skills:
+      - {id: technical-solution-writing, prompt: 使用该 Skill 按结论先行、总分总和完整系统设计规则写成正式技术方案与架构图。, optional: false}
+  review_technical_solution_flow:
+    prompt: |
+      不依赖聊天上下文，对问题定义、方向方案、technical-solution.md 和架构图执行陌生评委冷读，将发现写入 .technical-solution/review.md。问题语义变化时上报 technical_problem_changed；方向变化时上报 solution_direction_changed；写作层有阻塞问题时上报 technical_solution_review_failed 与 technical_solution_review_written；零阻塞发现时上报 technical_solution_review_passed 与 technical_solution_review_written。不得直接修改正文。
+    skills:
+      - {id: technical-solution-review, prompt: 使用该 Skill 执行因果、取舍、架构完整性、量化证据和可读性审校，并对发现分层。, optional: false}
+  confirm_technical_solution_flow:
+    prompt: |
+      人审核问题定义、已批准方向、technical-solution.md、架构图和最新审校结论。明确批准时上报 technical_solution_approved 并结束；写作层拒绝时上报 technical_solution_rejected；方向变化时上报 solution_direction_changed；问题变化时上报 technical_problem_changed。Evidence 保存人的完整终审回复。
+    skills:
+      - {id: technical-solution-approval, prompt: 使用该 Skill 组织终审包、约束批准条件、分类回流并记录人工结论。, optional: false}
+
+  problem_definition_condition:
+    prompt: 上报问题定义已满足准出条件，或需要在当前 Step 重新整理。
+    skills: []
+  problem_approval_condition:
+    prompt: 上报人的问题定义审核决定。
+    skills: []
+  technical_problem_changed_condition:
+    prompt: 上报反馈或调查改变了已批准技术问题的语义。
+    skills: []
+  solution_derivation_condition:
+    prompt: 上报基于当前已批准问题写入并回读的方案推导路径。
+    skills: []
+  solution_direction_approval_condition:
+    prompt: 上报人的方案方向审核决定。
+    skills: []
+  solution_direction_changed_condition:
+    prompt: 上报反馈或写作发现改变了已批准方案方向。
+    skills: []
+  solution_written_condition:
+    prompt: 上报基于已批准问题和方向写入并回读的正式技术方案路径。
+    skills: []
+  architecture_diagram_condition:
+    prompt: 上报正式方案中已嵌入并解释的完整总体架构图源文件路径。
+    skills: []
+  solution_review_condition:
+    prompt: 上报独立审校通过或存在写作层阻塞发现。
+    skills: []
+  solution_review_written_condition:
+    prompt: 上报 .technical-solution/review.md 路径。
+    skills: []
+  solution_approval_condition:
+    prompt: 上报人的最终技术方案审核决定。
+    skills: []
+  back_to_problem_definition:
+    prompt: 回到技术问题定义；目标 Step 及其下游 Outputs 失效。
+    skills: []
+  back_to_solution_derivation:
+    prompt: 保留已批准的问题定义，回到方案推导并使其下游 Outputs 失效。
+    skills: []
+  back_to_solution_writing:
+    prompt: 保留已批准的问题定义和方案方向，回到方案写作并使其下游 Outputs 失效。
+    skills: []

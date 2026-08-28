@@ -8,7 +8,7 @@ import (
 )
 
 func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
-	loaded, err := workflow.Load("promotion-design")
+	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
 	}

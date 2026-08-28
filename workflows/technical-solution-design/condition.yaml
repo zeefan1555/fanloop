@@ -1,0 +1,63 @@
+schema_version: 2
+
+conditions:
+  technical_problem_defined:
+    prompt_ref: {file: prompt.yaml, prompt_id: problem_definition_condition}
+    output: {key: problem_definition_path, type: path}
+    exclusive_group: problem_definition_outcome
+  technical_problem_rework_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: problem_definition_condition}
+    output: {key: problem_definition_status, type: enum_value, values: [rework]}
+    exclusive_group: problem_definition_outcome
+  technical_problem_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: problem_approval_condition}
+    output: {key: problem_approval_decision, type: enum_value, values: [approved]}
+    exclusive_group: problem_approval
+  technical_problem_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: problem_approval_condition}
+    output: {key: problem_approval_decision, type: enum_value, values: [rejected]}
+    exclusive_group: problem_approval
+  technical_problem_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: technical_problem_changed_condition}
+    output: {key: problem_definition_status, type: enum_value, values: [changed]}
+
+  technical_solution_derived:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_derivation_condition}
+    output: {key: solution_proposal_path, type: path}
+  solution_direction_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_direction_approval_condition}
+    output: {key: solution_direction_decision, type: enum_value, values: [approved]}
+    exclusive_group: solution_direction_approval
+  solution_direction_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_direction_approval_condition}
+    output: {key: solution_direction_decision, type: enum_value, values: [rejected]}
+    exclusive_group: solution_direction_approval
+  solution_direction_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_direction_changed_condition}
+    output: {key: solution_direction_status, type: enum_value, values: [changed]}
+
+  technical_solution_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_written_condition}
+    output: {key: technical_solution_path, type: path}
+  architecture_diagram_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: architecture_diagram_condition}
+    output: {key: architecture_diagram_path, type: path}
+  technical_solution_review_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_review_condition}
+    output: {key: technical_solution_review_result, type: enum_value, values: [passed]}
+    exclusive_group: technical_solution_review
+  technical_solution_review_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_review_condition}
+    output: {key: technical_solution_review_result, type: enum_value, values: [failed]}
+    exclusive_group: technical_solution_review
+  technical_solution_review_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_review_written_condition}
+    output: {key: technical_solution_review_path, type: path}
+  technical_solution_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_approval_condition}
+    output: {key: technical_solution_decision, type: enum_value, values: [approved]}
+    exclusive_group: technical_solution_approval
+  technical_solution_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: solution_approval_condition}
+    output: {key: technical_solution_decision, type: enum_value, values: [rejected]}
+    exclusive_group: technical_solution_approval

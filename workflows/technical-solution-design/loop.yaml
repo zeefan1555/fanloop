@@ -1,0 +1,55 @@
+schema_version: 4
+
+loop:
+  frame_technical_problem:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_rework_requested]]}
+      back_step_id: frame_technical_problem
+
+  confirm_technical_problem:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_rejected]]}
+      back_step_id: frame_technical_problem
+
+  derive_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_changed]]}
+      back_step_id: frame_technical_problem
+
+  confirm_solution_direction:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_changed]]}
+      back_step_id: frame_technical_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
+      when: {any_of: [[solution_direction_rejected]]}
+      back_step_id: derive_technical_solution
+
+  write_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_changed]]}
+      back_step_id: frame_technical_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
+      when: {any_of: [[solution_direction_changed]]}
+      back_step_id: derive_technical_solution
+
+  review_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_changed]]}
+      back_step_id: frame_technical_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
+      when: {any_of: [[solution_direction_changed]]}
+      back_step_id: derive_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_writing}
+      when: {any_of: [[technical_solution_review_failed, technical_solution_review_written]]}
+      back_step_id: write_technical_solution
+
+  confirm_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
+      when: {any_of: [[technical_problem_changed]]}
+      back_step_id: frame_technical_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
+      when: {any_of: [[solution_direction_changed]]}
+      back_step_id: derive_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_writing}
+      when: {any_of: [[technical_solution_rejected]]}
+      back_step_id: write_technical_solution

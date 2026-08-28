@@ -1,0 +1,31 @@
+schema_version: 7
+id: technical-solution-design
+
+stages:
+  - id: problem
+    name: 问题定义
+    jobs:
+      - id: problem
+        name: 问题定义
+        steps:
+          - {id: frame_technical_problem, name: 技术问题定义, executor: agent}
+          - {id: confirm_technical_problem, name: 问题人工确认, executor: human}
+
+  - id: solution
+    name: 方案推导
+    jobs:
+      - id: solution
+        name: 方案推导
+        steps:
+          - {id: derive_technical_solution, name: 技术方案推导, executor: agent}
+          - {id: confirm_solution_direction, name: 方案方向人工确认, executor: human}
+
+  - id: document
+    name: 方案成文
+    jobs:
+      - id: document
+        name: 方案成文
+        steps:
+          - {id: write_technical_solution, name: 技术方案写作, executor: agent}
+          - {id: review_technical_solution, name: 技术方案审校, executor: agent}
+          - {id: confirm_technical_solution, name: 技术方案人工确认, executor: human}

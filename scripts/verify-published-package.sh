@@ -104,7 +104,7 @@ if [[ "$selector" == "latest" ]]; then
 fi
 requirement="$smoke_root/requirement"
 mkdir -p "$requirement"
-"$fanloop_bin" flow init --root "$requirement" --workflow promotion-design --title "Promotion design smoke" | grep 'clarify_requirements'
+"$fanloop_bin" flow init --root "$requirement" --workflow technical-solution-design --title "Technical solution smoke" | grep 'frame_technical_problem'
 
 manifest="$FANLOOP_DATA_HOME/current/release.json"
 test -f "$manifest"

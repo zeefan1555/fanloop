@@ -49,7 +49,7 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 		t.Fatalf("repeat install changed current from %q to %q", currentBefore, currentAfter)
 	}
 
-	runtimeCache := filepath.Join(dataRoot, "current", "skills", "fanloop-workflow", "common", "fanloop-workflow", "__pycache__", "runtime.pyc")
+	runtimeCache := filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow", "__pycache__", "runtime.pyc")
 	if err := os.MkdirAll(filepath.Dir(runtimeCache), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -105,8 +105,15 @@ func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(
 	if result.err != nil {
 		t.Fatalf("install with atomic Skill directories: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
-	if _, err := os.Stat(filepath.Join(dataRoot, "releases", fixture.Version, "skills", "fanloop-workflow", "promotion-design", "promotion-design", "SKILL.md")); err != nil {
-		t.Fatalf("packaged promotion-design Skill: %v", err)
+	for _, skillID := range []string{
+		"technical-problem-framing", "technical-problem-approval", "technical-solution-derivation",
+		"technical-direction-approval", "technical-solution-writing", "technical-solution-review",
+		"technical-solution-approval",
+	} {
+		path := filepath.Join(dataRoot, "releases", fixture.Version, "skills", "technical-solution-design", skillID, "SKILL.md")
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("packaged %s Skill: %v", skillID, err)
+		}
 	}
 	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
 		marker := filepath.Join(root, "techdesign", "owned-by-user")
@@ -134,7 +141,7 @@ func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(
 	}
 
 	requirementRoot := t.TempDir()
-	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "init", "--root", requirementRoot, "--workflow", "promotion-design", "--title", "Skill path E2E")
+	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "init", "--root", requirementRoot, "--workflow", "technical-solution-design", "--title", "Technical solution Skill path E2E")
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
@@ -253,7 +260,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if err := os.Remove(pinned); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "skills", "fanloop-workflow", "common", "fanloop-workflow"), pinned); err != nil {
+	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "skills", "common", "fanloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
 	if diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor"); diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skill_links"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
@@ -262,7 +269,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if err := os.Remove(pinned); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(dataRoot, "current", "skills", "fanloop-workflow", "common", "fanloop-workflow"), pinned); err != nil {
+	if err := os.Symlink(filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
 	for client, root := range map[string]string{"Trae": traeRoot, "Claude": claudeRoot} {
@@ -274,7 +281,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 		if broken.err == nil || !strings.Contains(broken.stdout, `"id": "skill_links"`) || !strings.Contains(broken.stdout, `"status": "failed"`) {
 			t.Fatalf("Doctor missed broken %s Skill link: %#v", client, broken)
 		}
-		if err := os.Symlink(filepath.Join(dataRoot, "current", "skills", "fanloop-workflow", "common", "fanloop-workflow"), link); err != nil {
+		if err := os.Symlink(filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow"), link); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -345,7 +352,7 @@ func runInstaller(t *testing.T, repository string, fixture releaseFixture, dataR
 
 func assertSkillLink(t *testing.T, dataRoot, skillsRoot string) {
 	t.Helper()
-	want := filepath.Join(dataRoot, "current", "skills", "fanloop-workflow", "common", "fanloop-workflow")
+	want := filepath.Join(dataRoot, "current", "skills", "common", "fanloop-workflow")
 	path := filepath.Join(skillsRoot, "fanloop-workflow")
 	target, err := os.Readlink(path)
 	if err != nil || target != want {
@@ -516,16 +523,11 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 
 	skillItems := []map[string]any{}
 	skillSources := []string{}
-	for _, pattern := range []string{
-		filepath.Join(repository, "skills", "self-iteration", "*", "SKILL.md"),
-		filepath.Join(repository, "skills", "fanloop-workflow", "*", "*", "SKILL.md"),
-	} {
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			t.Fatal(err)
-		}
-		skillSources = append(skillSources, matches...)
+	matches, err := filepath.Glob(filepath.Join(repository, "skills", "*", "*", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
 	}
+	skillSources = append(skillSources, matches...)
 	sort.Strings(skillSources)
 	for _, skillFile := range skillSources {
 		skillSource := filepath.Dir(skillFile)
@@ -554,7 +556,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 		})
 	}
 	for _, name := range additionalSkillNames {
-		relative := filepath.ToSlash(filepath.Join("skills", "fanloop-workflow", "common", name))
+		relative := filepath.ToSlash(filepath.Join("skills", "common", name))
 		directory := filepath.Join(staging, filepath.FromSlash(relative))
 		if err := os.MkdirAll(directory, 0o755); err != nil {
 			t.Fatal(err)
