@@ -15,7 +15,7 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	definition := loaded.Workflow
-	stepID, _ := definition.FirstStepID()
+	stepID := "confirm_technical_problem"
 	route := definition.Flows[stepID][0]
 	conditionID := route.When.AnyOf[0][0]
 	condition, _ := definition.Condition(conditionID)
@@ -36,14 +36,21 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	}
 	if len(projected.Current.Prompt.Skills) != 1 || !strings.HasSuffix(
 		projected.Current.Prompt.Skills[0].Path,
-		filepath.FromSlash("skills/technical-solution-design/technical-problem-framing/SKILL.md"),
+		filepath.FromSlash("skills/technical-solution-design/technical-problem-approval/SKILL.md"),
 	) {
 		t.Fatalf("source Skill path was not resolved from the bound Workflow group: %#v", projected.Current.Prompt.Skills)
 	}
 	for _, view := range projected.Current.Conditions {
-		if view.Id == conditionID && view.Prompt.Content == conditionPrompt.Prompt {
-			return
+		if view.Id != conditionID {
+			continue
 		}
+		if view.Prompt.Content != conditionPrompt.Prompt || len(view.Prompt.Skills) != 1 ||
+			view.Prompt.Skills[0].Id != "technical-solution-panorama" ||
+			!strings.HasSuffix(view.Prompt.Skills[0].Path,
+				filepath.FromSlash("skills/technical-solution-design/technical-solution-panorama/SKILL.md")) {
+			t.Fatalf("Condition Prompt or Skill was not resolved from the Workflow Bundle: %#v", view.Prompt)
+		}
+		return
 	}
 	t.Fatalf("Condition Prompt %q was not resolved from the Workflow Bundle", conditionID)
 }

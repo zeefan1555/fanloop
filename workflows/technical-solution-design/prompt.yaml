@@ -46,7 +46,8 @@ prompts:
   panorama_card_published_condition:
     prompt: |
       根据 workflow.yaml、当前 flow status、有效 Outputs 和审核要求，生成包含完整 Stage/Job/Step 全景、当前状态、产物和待决事项的自包含审核材料。通过当前 Agent 渠道或对应 Skill 发送并回读成功后，上报真实 messageId 或 Agent 交互事件 ID。不得复用前一 Step 或前一次进入本 Step 的回执。
-    skills: []
+    skills:
+      - {id: technical-solution-panorama, prompt: 使用该 Skill 生成、通过当前 Agent 通道展示并回读本次自包含 Panorama，返回 panorama_card_published ConditionResult。, optional: false}
   technical_problem_changed_condition:
     prompt: 上报反馈或调查改变了已批准技术问题的语义。
     skills: []

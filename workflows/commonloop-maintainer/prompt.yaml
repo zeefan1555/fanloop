@@ -55,7 +55,8 @@ prompts:
   panorama_card_published_condition:
     prompt: |
       根据 workflow.yaml、当前 flow status、有效 Outputs 和审核要求，生成包含完整 Stage/Job/Step 全景、当前状态、产物和待决事项的自包含审核材料。通过当前 Agent 渠道或对应 Skill 发送并回读成功后，上报真实 messageId 或 Agent 交互事件 ID。不得复用前一 Step 或前一次进入本 Step 的回执。
-    skills: []
+    skills:
+      - {id: commonloop-dev-panorama, prompt: 使用该 Skill 生成、通过当前 Agent 通道展示并回读本次自包含 Panorama，返回 panorama_card_published ConditionResult。, optional: false}
   implementation_requirement_condition: {prompt: 人选择 implementation_required 或 implementation_not_required；二者只能选择一个且输出 true。, skills: []}
   requirements_decision_condition: {prompt: 按真实人工结论选择 requirements_approved 或 requirements_rejected；二者只能选择一个。, skills: []}
   requirements_approval_record_condition: {prompt: requirements_approval_recorded 只输出进入 confirm_requirements 后、本轮 Panorama 审核卡发送并回读成功后收到的全新人工消息 ID；消息必须由 commonloop-dev 应用 cli_aaf6cd8160b89bda 作用域下 senderType=user、senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95 的张菲帆发送；implementation_required 时正文必须精确为“批准进入 需求实现”且不包含其他内容。, skills: []}
