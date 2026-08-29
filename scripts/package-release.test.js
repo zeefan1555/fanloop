@@ -28,7 +28,7 @@ it("packs every platform release archive into the npm package", (t) => {
   const entries = execFileSync("tar", ["-tzf", artifact], { encoding: "utf8" }).trim().split("\n");
   for (const file of assets) assert.ok(entries.includes(`package/releases/${file}`), file);
   const metadata = JSON.parse(execFileSync("tar", ["-xOf", artifact, "package/package.json"], { encoding: "utf8" }));
-  assert.equal(metadata.name, "fanloop-cli");
-  assert.equal(metadata.publishConfig.registry, "https://registry.npmjs.org");
+  assert.equal(metadata.name, "@zeefan1555/fanloop-cli");
+  assert.equal(metadata.publishConfig.registry, "https://npm.pkg.github.com");
   assert.equal(metadata.repository.url, "https://github.com/zeefan1555/fanloop.git");
 });

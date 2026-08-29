@@ -16,13 +16,12 @@ if [[ "$selector" != "$version" && "$selector" != "latest" ]]; then
   echo "invalid release selector: $selector" >&2
   exit 1
 fi
+package_name="@zeefan1555/fanloop-cli"
 
 smoke_root="$(mktemp -d)"
 test -n "$smoke_root" && test -d "$smoke_root"
 
-unset NODE_AUTH_TOKEN NPM_TOKEN
-export NPM_CONFIG_REGISTRY=https://registry.npmjs.org
-export NPM_CONFIG_USERCONFIG=/dev/null
+export NPM_CONFIG_REGISTRY=https://npm.pkg.github.com
 export NPM_CONFIG_PREFIX="$smoke_root/npm"
 export NPM_CONFIG_CACHE="$smoke_root/cache"
 export FANLOOP_DATA_HOME="$smoke_root/data"
@@ -52,7 +51,7 @@ if [[ "$selector" == "latest" ]]; then
   selector_ready=false
   attempt=0
   while [ "$attempt" -lt 12 ]; do
-    resolved="$(npm view "fanloop-cli@latest" version --prefer-online 2>/dev/null || true)"
+    resolved="$(npm view "$package_name@latest" version --prefer-online 2>/dev/null || true)"
     if [[ "$resolved" == "$version" ]]; then
       selector_ready=true
       break
@@ -67,7 +66,7 @@ mkdir -p "$smoke_root/registry-check"
 package_ready=false
 attempt=0
 while [ "$attempt" -lt 12 ]; do
-  if npm pack "fanloop-cli@$selector" --pack-destination "$smoke_root/registry-check" --json >/dev/null 2>&1; then
+  if npm pack "$package_name@$selector" --pack-destination "$smoke_root/registry-check" --json >/dev/null 2>&1; then
     package_ready=true
     break
   fi
@@ -81,7 +80,7 @@ npm --version
 npx --version
 install_output="$(
   cd "$smoke_root"
-  npx --yes --package="fanloop-cli@$selector" -- fanloop install
+  npx --yes --package="$package_name@$selector" -- fanloop install
 )"
 printf '%s\n' "$install_output"
 test "$install_output" = "Fanloop $version installed successfully"
@@ -139,4 +138,4 @@ for marker in "${external_markers[@]}"; do
 done
 
 "$fanloop_bin" version >/dev/null
-printf 'Fanloop %s anonymous release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"
+printf 'Fanloop %s authenticated release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"
