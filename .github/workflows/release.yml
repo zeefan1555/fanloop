@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: fanloop-release
+  group: commonloop-release
   cancel-in-progress: false
 
 permissions:
@@ -39,11 +39,11 @@ jobs:
         run: ./scripts/prepare-release.sh
       - name: Publish candidate, verify, and promote latest
         env:
-          FANLOOP_EXPECTED_COMMIT: ${{ github.sha }}
+          COMMONLOOP_EXPECTED_COMMIT: ${{ github.sha }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="$(node -p 'require("./package.json").version')"
-          package_name="@zeefan1555/fanloop-cli"
+          package_name="@zeefan1555/commonloop-cli"
           package_artifact="$(find "$PWD/dist" -maxdepth 1 -type f -name '*.tgz' -print -quit)"
           test -n "$package_artifact"
           old_latest="$(npm view "$package_name@latest" version --prefer-online 2>/dev/null || true)"

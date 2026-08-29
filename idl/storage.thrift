@@ -4,8 +4,8 @@ namespace go storageidl
 
 // Durable Requirement storage contract.
 //
-// This file owns every Fanloop-defined structured JSON/JSONL document under
-// .fanloop. It defines file schemas only: no public CLI methods or RPC service.
+// This file owns every Commonloop-defined structured JSON/JSONL document under
+// .commonloop. It defines file schemas only: no public CLI methods or RPC service.
 
 const i32 FLOW_STATE_SCHEMA_VERSION      = 12
 const i32 EVENT_SCHEMA_VERSION           = 12

@@ -5,19 +5,19 @@
     {
       "exit_code": 5,
       "stdout": "",
-      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"state\",\n    \"code\": \"STATE_CORRUPT\",\n    \"message\": \"unsupported Card projection schema_version 0\",\n    \"hint\": \"Repair or restore .fanloop local state.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"card.render\",\n    \"requirement_root\": \"\u003cROOT\u003e\",\n    \"dry_run\": true\n  },\n  \"_notice\": {}\n}\n"
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"state\",\n    \"code\": \"STATE_CORRUPT\",\n    \"message\": \"unsupported Card projection schema_version 0\",\n    \"hint\": \"Repair or restore .commonloop local state.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"card.render\",\n    \"requirement_root\": \"\u003cROOT\u003e\",\n    \"dry_run\": true\n  },\n  \"_notice\": {}\n}\n"
     }
   ],
   "files": {
-    ".fanloop/card/projection.json": {
+    ".commonloop/card/projection.json": {
       "mode": "0644",
       "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
       "content": "{}\n"
     },
-    ".fanloop/log/cli.jsonl": {
+    ".commonloop/log/cli.jsonl": {
       "mode": "0600",
-      "sha256": "02e1700fb2d2525fe9a7fe918562d4237c773a9542b64536be2e676fb61f5039",
-      "content": "{\"schema_version\":2,\"invocation_id\":\"\u003cINVOCATION_ID\u003e\",\"started_at\":\"\u003cTIMESTAMP\u003e\",\"duration_ms\":0,\"command_id\":\"card.render\",\"cli_version\":\"dev\",\"release_version\":\"dev\",\"commit_sha\":\"unknown\",\"dry_run\":true,\"exit_code\":5,\"error_code\":\"STATE_CORRUPT\",\"arguments\":[\"card\",\"render\",\"--root\",\"\u003cROOT\u003e\",\"--dry-run\",\"--view\",\"current\",\"--format\",\"markdown\"],\"stdin\":\"\",\"stdout\":\"\",\"stderr\":\"{\\n  \\\"ok\\\": false,\\n  \\\"error\\\": {\\n    \\\"type\\\": \\\"state\\\",\\n    \\\"code\\\": \\\"STATE_CORRUPT\\\",\\n    \\\"message\\\": \\\"unsupported Card projection schema_version 0\\\",\\n    \\\"hint\\\": \\\"Repair or restore .fanloop local state.\\\",\\n    \\\"retryable\\\": false\\n  },\\n  \\\"meta\\\": {\\n    \\\"command\\\": \\\"card.render\\\",\\n    \\\"requirement_root\\\": \\\"\u003cROOT\u003e\\\",\\n    \\\"dry_run\\\": true\\n  },\\n  \\\"_notice\\\": {}\\n}\\n\"}\n"
+      "sha256": "dfe7cb364bc2ae59035b0ba615be79c6e66124566490dd14ac189ab2993e1d5d",
+      "content": "{\"schema_version\":2,\"invocation_id\":\"\u003cINVOCATION_ID\u003e\",\"started_at\":\"\u003cTIMESTAMP\u003e\",\"duration_ms\":0,\"command_id\":\"card.render\",\"cli_version\":\"dev\",\"release_version\":\"dev\",\"commit_sha\":\"unknown\",\"dry_run\":true,\"exit_code\":5,\"error_code\":\"STATE_CORRUPT\",\"arguments\":[\"card\",\"render\",\"--root\",\"\u003cROOT\u003e\",\"--dry-run\",\"--view\",\"current\",\"--format\",\"markdown\"],\"stdin\":\"\",\"stdout\":\"\",\"stderr\":\"{\\n  \\\"ok\\\": false,\\n  \\\"error\\\": {\\n    \\\"type\\\": \\\"state\\\",\\n    \\\"code\\\": \\\"STATE_CORRUPT\\\",\\n    \\\"message\\\": \\\"unsupported Card projection schema_version 0\\\",\\n    \\\"hint\\\": \\\"Repair or restore .commonloop local state.\\\",\\n    \\\"retryable\\\": false\\n  },\\n  \\\"meta\\\": {\\n    \\\"command\\\": \\\"card.render\\\",\\n    \\\"requirement_root\\\": \\\"\u003cROOT\u003e\\\",\\n    \\\"dry_run\\\": true\\n  },\\n  \\\"_notice\\\": {}\\n}\\n\"}\n"
     }
   }
 }

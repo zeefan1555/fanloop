@@ -6,15 +6,15 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
 	"strings"
 )
 
 const (
 	// Durable Requirement storage contract.
 	//
-	// This file owns every Fanloop-defined structured JSON/JSONL document under
-	// .fanloop. It defines file schemas only: no public CLI methods or RPC service.
+	// This file owns every Commonloop-defined structured JSON/JSONL document under
+	// .commonloop. It defines file schemas only: no public CLI methods or RPC service.
 	FLOW_STATE_SCHEMA_VERSION = 12
 
 	EVENT_SCHEMA_VERSION = 12

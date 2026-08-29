@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/flowidl"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func TestEvaluateResultRoutesTechnicalReviewAndInvalidatesByProducer(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/idl"
+	"github.com/zeefan1555/commonloop/internal/idl"
 )
 
 var updateContracts = flag.Bool("update-contracts", false, "replace reviewed contract goldens")
@@ -77,11 +77,11 @@ func TestGeneratedIDLGoPackagesStayUnderInternalIDL(t *testing.T) {
 
 func TestPublicContracts(t *testing.T) {
 	repo := repositoryRoot(t)
-	binary := filepath.Join(t.TempDir(), "fanloop")
+	binary := filepath.Join(t.TempDir(), "commonloop")
 	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
 	build.Dir = repo
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build fanloop: %v\n%s", err, output)
+		t.Fatalf("build commonloop: %v\n%s", err, output)
 	}
 	paths, err := filepath.Glob(filepath.Join(repo, "tests", "contracts", "testdata", "*", "*", "case.json"))
 	if err != nil {
@@ -219,8 +219,8 @@ func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 	t.Setenv("BOTMUX_SESSION_ID", "real_session_must_not_escape")
 	root := t.TempDir()
 	environment := mergeEnvironment(root)
-	if !slices.Contains(environment, "FANLOOP_DATA_HOME="+filepath.Join(root, ".fanloop-user")) {
-		t.Fatal("contract command inherited the real Fanloop data root")
+	if !slices.Contains(environment, "COMMONLOOP_DATA_HOME="+filepath.Join(root, ".commonloop-user")) {
+		t.Fatal("contract command inherited the real Commonloop data root")
 	}
 	for _, item := range environment {
 		if strings.HasPrefix(item, "BOTMUX_CHAT_ID=") || strings.HasPrefix(item, "BOTMUX_SESSION_ID=") {
@@ -388,8 +388,8 @@ func mergeEnvironment(root string, groups ...map[string]string) []string {
 	}
 	delete(values, "BOTMUX_CHAT_ID")
 	delete(values, "BOTMUX_SESSION_ID")
-	values["FANLOOP_DATA_HOME"] = filepath.Join(root, ".fanloop-user")
-	values["FANLOOP_PYTHON"] = filepath.Join(root, "missing-python")
+	values["COMMONLOOP_DATA_HOME"] = filepath.Join(root, ".commonloop-user")
+	values["COMMONLOOP_PYTHON"] = filepath.Join(root, "missing-python")
 	for _, group := range groups {
 		for key, value := range group {
 			value = expand(value, root)

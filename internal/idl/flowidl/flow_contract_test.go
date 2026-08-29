@@ -6,7 +6,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
 )
 
 type fakeService struct{}

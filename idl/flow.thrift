@@ -292,10 +292,10 @@ struct FlowResultResponse {
 }
 
 // One method maps to one public CLI command:
-// Init     -> fanloop flow init
-// Status   -> fanloop flow status
-// Progress -> fanloop flow report progress
-// Result   -> fanloop flow report result
+// Init     -> commonloop flow init
+// Status   -> commonloop flow status
+// Progress -> commonloop flow report progress
+// Result   -> commonloop flow report result
 service FlowService {
   FlowInitResponse Init(
     1: required string          requirement_root,

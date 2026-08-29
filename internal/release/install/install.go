@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/zeefan1555/fanloop/internal/doctor"
-	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
-	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/commonloop/internal/doctor"
+	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/internal/release"
 )
 
 var skillNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -46,7 +46,7 @@ func Run(request Request) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("release manifest: %w", err)
 	}
-	sourceBinary := filepath.Join(request.Source, "bin", "fanloop")
+	sourceBinary := filepath.Join(request.Source, "bin", "commonloop")
 	if result := (doctor.Runtime{ReleaseRoot: request.Source, BinaryPath: sourceBinary}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 		return Result{}, fmt.Errorf("Doctor rejected staged release %s", manifest.ReleaseVersion)
 	}
@@ -73,7 +73,7 @@ func Run(request Request) (Result, error) {
 		}
 		existing, loadErr := release.Load(target)
 		healthy := loadErr == nil && reflect.DeepEqual(existing, manifest) &&
-			(doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop")}).Run("").Status != opsidl.DoctorStatus_unhealthy
+			(doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "commonloop")}).Run("").Status != opsidl.DoctorStatus_unhealthy
 		if !healthy {
 			if !request.ReplaceInvalid {
 				return Result{}, fmt.Errorf("refusing to replace immutable release %s", manifest.ReleaseVersion)
@@ -99,7 +99,7 @@ func Run(request Request) (Result, error) {
 		if err := copyTree(request.Source, temporary); err != nil {
 			return Result{}, err
 		}
-		if result := (doctor.Runtime{ReleaseRoot: temporary, BinaryPath: filepath.Join(temporary, "bin", "fanloop")}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
+		if result := (doctor.Runtime{ReleaseRoot: temporary, BinaryPath: filepath.Join(temporary, "bin", "commonloop")}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 			return Result{}, fmt.Errorf("Doctor rejected copied release %s", manifest.ReleaseVersion)
 		}
 		if replaceExisting {
@@ -197,7 +197,7 @@ func preflightSkillLinks(request Request, manifest release.Manifest) ([]linkPlan
 			return nil, nil, err
 		}
 		if info.Mode()&os.ModeSymlink == 0 {
-			return nil, nil, fmt.Errorf("refusing to replace non-Fanloop path %s", plan.path)
+			return nil, nil, fmt.Errorf("refusing to replace non-Commonloop path %s", plan.path)
 		}
 		target, err := os.Readlink(plan.path)
 		if err != nil {
@@ -294,7 +294,7 @@ func preflightCurrent(current, releasesRoot string) error {
 		return err
 	}
 	if info.Mode()&os.ModeSymlink == 0 {
-		return fmt.Errorf("refusing to replace non-Fanloop current path %s", current)
+		return fmt.Errorf("refusing to replace non-Commonloop current path %s", current)
 	}
 	target, err := os.Readlink(current)
 	if err != nil {

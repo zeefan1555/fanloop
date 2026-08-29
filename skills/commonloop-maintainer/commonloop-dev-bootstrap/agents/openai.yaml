@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commonloop DEV Bootstrap"
+  short_description: "准备 Commonloop CLI 诊断工作区与最新基线"
+  default_prompt: "Use $commonloop-dev-bootstrap to prepare an isolated Commonloop CLI issue workspace and main baseline."

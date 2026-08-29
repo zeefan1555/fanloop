@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
-	"github.com/zeefan1555/fanloop/internal/traceconfig"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
+	"github.com/zeefan1555/commonloop/internal/traceconfig"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func TestEveryEventPayloadRoundTripsThroughStorageThriftUnion(t *testing.T) {
 	now := time.Date(2026, 8, 18, 1, 2, 3, 4, time.UTC)
-	workflowRef := WorkflowRef{ID: "fanloop", Digest: "sha256:test"}
+	workflowRef := WorkflowRef{ID: "commonloop", Digest: "sha256:test"}
 	result := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
 			ConditionID: "repository_workspace_prepared",
@@ -67,7 +67,7 @@ func TestMaintainerTraceBindingRoundTripsCLILogDocument(t *testing.T) {
 		SchemaVersion: CurrentStateSchemaVersion,
 		Requirement:   Requirement{Title: "Maintainer"},
 		Release: Release{Version: "dev", Workflow: WorkflowRef{
-			ID: "fanloop-maintainer", Digest: "sha256:test",
+			ID: "commonloop-maintainer", Digest: "sha256:test",
 		}},
 		CurrentStepID: &step, CurrentStepStatus: StepReady,
 		Outputs: map[string]RegisteredOutput{},
@@ -113,7 +113,7 @@ func TestMaintainerTraceBindingRoundTripsCLILogDocument(t *testing.T) {
 func TestStorageEventRejectsKindPayloadMismatch(t *testing.T) {
 	event := Event{
 		SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: time.Now().UTC(),
-		Kind: EventFlowInitialized, Command: "flow.init", Workflow: WorkflowRef{ID: "fanloop", Digest: "sha256:test"},
+		Kind: EventFlowInitialized, Command: "flow.init", Workflow: WorkflowRef{ID: "commonloop", Digest: "sha256:test"},
 		Payload: Payload(FlowInitializedPayload{StepID: "bootstrap_techdesign", StepStatus: StepReady}),
 	}
 	content, err := EncodeEvent(event)

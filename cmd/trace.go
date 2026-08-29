@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/spf13/cobra"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
-	traceruntime "github.com/zeefan1555/fanloop/internal/trace"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
+	traceruntime "github.com/zeefan1555/commonloop/internal/trace"
 )
 
 func newTraceCommand(ioStreams streams, root *string) *cobra.Command {
@@ -47,7 +47,7 @@ Request JSON:
   }
 
 Typed flags:
-  fanloop trace bind --root <ABSOLUTE_REQUIREMENT_ROOT> --document-url <TRACE_DOCUMENT_URL> --registry production --cli-log-document-url <CLI_LOG_DOCUMENT_URL>
+  commonloop trace bind --root <ABSOLUTE_REQUIREMENT_ROOT> --document-url <TRACE_DOCUMENT_URL> --registry production --cli-log-document-url <CLI_LOG_DOCUMENT_URL>
 
 Constraints:
   document_url is required and must be an allowed HTTP URL. registry is optional and must be production or test.
@@ -62,8 +62,8 @@ Controls:
 
 Next step:
   Run trace status to confirm the accepted binding before rendering or syncing.`
-	command.Example = `  fanloop trace bind --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
-  fanloop trace bind --root <ABSOLUTE_REQUIREMENT_ROOT> --document-url <TRACE_DOCUMENT_URL> --registry production --cli-log-document-url <CLI_LOG_DOCUMENT_URL>`
+	command.Example = `  commonloop trace bind --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
+  commonloop trace bind --root <ABSOLUTE_REQUIREMENT_ROOT> --document-url <TRACE_DOCUMENT_URL> --registry production --cli-log-document-url <CLI_LOG_DOCUMENT_URL>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*traceidl.TraceBindRequest, *erroridl.PublicError) {
@@ -98,7 +98,7 @@ Request JSON:
   {}
 
 Typed flags:
-  fanloop trace status --root <ABSOLUTE_REQUIREMENT_ROOT>
+  commonloop trace status --root <ABSOLUTE_REQUIREMENT_ROOT>
 
 Constraints:
   The business Request is empty.
@@ -110,7 +110,7 @@ Controls:
 
 Next step:
   Use the returned binding and projection status to decide whether to bind, render, or sync.`
-	command.Example = "  fanloop trace status --root <ABSOLUTE_REQUIREMENT_ROOT>"
+	command.Example = "  commonloop trace status --root <ABSOLUTE_REQUIREMENT_ROOT>"
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*traceidl.TraceStatusRequest, *erroridl.PublicError) {
@@ -138,7 +138,7 @@ Request JSON:
   {}
 
 Typed flags:
-  fanloop trace render --root <ABSOLUTE_REQUIREMENT_ROOT>
+  commonloop trace render --root <ABSOLUTE_REQUIREMENT_ROOT>
 
 Constraints:
   The business Request is empty. Rendering uses committed local State/Event facts only.
@@ -150,8 +150,8 @@ Controls:
 
 Next step:
   Inspect the returned projection path, or run trace sync when configured remote projections must be updated.`
-	command.Example = `  fanloop trace render --root <ABSOLUTE_REQUIREMENT_ROOT> --dry-run
-  fanloop trace render --root <ABSOLUTE_REQUIREMENT_ROOT>`
+	command.Example = `  commonloop trace render --root <ABSOLUTE_REQUIREMENT_ROOT> --dry-run
+  commonloop trace render --root <ABSOLUTE_REQUIREMENT_ROOT>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*traceidl.TraceRenderRequest, *erroridl.PublicError) {
@@ -174,14 +174,14 @@ func newTraceSyncCommand(ioStreams streams, root *string) *cobra.Command {
 
 Effect:
   External write. A non-dry-run call updates the Trace document and Registry; policies with a bound CLI-log document also update
-  that document with every byte already present in .fanloop/log/cli.jsonl, without redaction or truncation.
+  that document with every byte already present in .commonloop/log/cli.jsonl, without redaction or truncation.
   The response may be partial when one target succeeds and another fails. dry-run reports skipped targets without remote writes.
 
 Request JSON:
   {}
 
 Typed flags:
-  fanloop trace sync --root <ABSOLUTE_REQUIREMENT_ROOT>
+  commonloop trace sync --root <ABSOLUTE_REQUIREMENT_ROOT>
 
 Constraints:
   The business Request is empty. A Trace binding is required for remote updates.
@@ -193,8 +193,8 @@ Controls:
 
 Next step:
   Read every target result, including partial failures, then run trace status to inspect the recorded outcome.`
-	command.Example = `  fanloop trace sync --root <ABSOLUTE_REQUIREMENT_ROOT> --dry-run
-  fanloop trace sync --root <ABSOLUTE_REQUIREMENT_ROOT>`
+	command.Example = `  commonloop trace sync --root <ABSOLUTE_REQUIREMENT_ROOT> --dry-run
+  commonloop trace sync --root <ABSOLUTE_REQUIREMENT_ROOT>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*traceidl.TraceSyncRequest, *erroridl.PublicError) { return traceidl.NewTraceSyncRequest(), nil },

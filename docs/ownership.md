@@ -1,6 +1,6 @@
 # Review ownership boundaries
 
-Fanloop changes are reviewed by maintenance responsibility, not by one shared
+Commonloop changes are reviewed by maintenance responsibility, not by one shared
 orchestration directory.
 
 | Boundary | Paths | Owns |

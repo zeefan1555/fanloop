@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
-	"github.com/zeefan1555/fanloop/internal/workflowview"
+	"github.com/zeefan1555/commonloop/internal/idl/cardidl"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/workflowview"
 )
 
 type larkCard struct {

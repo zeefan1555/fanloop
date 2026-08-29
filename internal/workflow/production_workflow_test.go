@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestProductionBuildContainsOnlyFanloopWorkflows(t *testing.T) {
-	for _, retired := range []string{"fanloop", "douyin-game", "fanloop-dev", "promotion-design"} {
+func TestProductionBuildContainsOnlyCommonloopWorkflows(t *testing.T) {
+	for _, retired := range []string{"commonloop", "douyin-game", "commonloop-dev", "promotion-design"} {
 		if _, err := Load(retired); !errors.Is(err, fs.ErrNotExist) {
 			t.Fatalf("retired Workflow %q is loadable: %v", retired, err)
 		}
@@ -75,7 +75,7 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 }
 
 func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T) {
-	loaded, err := Load("fanloop-maintainer")
+	loaded, err := Load("commonloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,10 +87,10 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 		t.Fatalf("maintainer Steps = %v, want %v", got, wantSteps)
 	}
 	for _, skillID := range []string{
-		"fanloop-dev-bootstrap", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
-		"fanloop-dev-domain-modeling", "fanloop-dev-to-spec", "fanloop-dev-to-tickets",
-		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-verify",
-		"fanloop-dev-code-review", "fanloop-dev-mr-handoff",
+		"commonloop-dev-bootstrap", "commonloop-dev-grill-with-docs", "commonloop-dev-grilling",
+		"commonloop-dev-domain-modeling", "commonloop-dev-to-spec", "commonloop-dev-to-tickets",
+		"commonloop-dev-implement", "commonloop-dev-tdd", "commonloop-dev-verify",
+		"commonloop-dev-code-review", "commonloop-dev-mr-handoff",
 	} {
 		found := false
 		for _, prompt := range loaded.Workflow.Prompts {

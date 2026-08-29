@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
-	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
-	"github.com/zeefan1555/fanloop/internal/traceconfig"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
+	"github.com/zeefan1555/commonloop/internal/traceconfig"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func Encode(value State) ([]byte, error) {

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	cardruntime "github.com/zeefan1555/fanloop/internal/card"
-	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
-	"github.com/zeefan1555/fanloop/internal/larkexec"
-	"github.com/zeefan1555/fanloop/internal/trace"
-	"github.com/zeefan1555/fanloop/internal/traceconfig"
+	cardruntime "github.com/zeefan1555/commonloop/internal/card"
+	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
+	"github.com/zeefan1555/commonloop/internal/larkexec"
+	"github.com/zeefan1555/commonloop/internal/trace"
+	"github.com/zeefan1555/commonloop/internal/traceconfig"
 )
 
 const traceDocumentTimeout = 35 * time.Second
@@ -51,11 +51,11 @@ func provisionTraceDocument(ctx context.Context, root, title string) string {
 }
 
 func createTraceDocument(ctx context.Context, title string) (string, error) {
-	return createDocument(ctx, "Trace · "+title, "Fanloop 审计投影文档，将由 trace sync 自动同步。")
+	return createDocument(ctx, "Trace · "+title, "Commonloop 审计投影文档，将由 trace sync 自动同步。")
 }
 
 func createCLILogDocument(ctx context.Context, title string) (string, error) {
-	return createDocument(ctx, "CLI 日志 · "+title, "Fanloop CLI 完整输入输出，将由 trace sync 自动同步。")
+	return createDocument(ctx, "CLI 日志 · "+title, "Commonloop CLI 完整输入输出，将由 trace sync 自动同步。")
 }
 
 func createDocument(ctx context.Context, title, description string) (string, error) {

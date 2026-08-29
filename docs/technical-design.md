@@ -1,6 +1,6 @@
-# Fanloop 当前技术设计
+# Commonloop 当前技术设计
 
-Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码只提供稳定的解释器与持久化能力。
+Commonloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码只提供稳定的解释器与持久化能力。
 
 ## 真值与边界
 
@@ -15,15 +15,15 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 当前发布两套 Bundle：
 
 - `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
-- `fanloop-maintainer`：Fanloop 自迭代的八步维护流程。
+- `commonloop-maintainer`：Commonloop 自迭代的八步维护流程。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
-Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建拒绝缺失同名 Skill
+Skill 组例外。统一入口位于 `entrypoints/commonloop-workflow/`；Release 构建拒绝缺失同名 Skill
 组、未知 Skill 组和跨 Workflow SkillBinding。
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
-`technical-solution` 对应 `technical-solution-design`，`fanloop-maintenance` 对应
-`fanloop-maintainer`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
+`technical-solution` 对应 `technical-solution-design`，`commonloop-maintenance` 对应
+`commonloop-maintainer`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
 [ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
@@ -37,8 +37,8 @@ CLI 日志要求和 Output 字段映射。完整通用化决策见
 有效 Outputs。Agent 只从该响应选择一组 Condition 与一条 Route，再调用：
 
 ```text
-fanloop flow report progress
-fanloop flow report result
+commonloop flow report progress
+commonloop flow report result
 ```
 
 `when.any_of` 外层为 OR、内层为 AND。Flow 前进到 `next_step_id` 或 terminal；Loop 回到
@@ -69,13 +69,13 @@ Human Step 的全景审核材料同样由五份 YAML 驱动。Route 用
 - Flow State / Event / Output Registry：`12 / 12 / 3`
 - Card Projection / Card Binding / Trace Config / CLI Log：`5 / 2 / 2 / 2`
 
-Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命令、文件位置和恢复提示均不
+Requirement 文件集中在 `.commonloop/{flow,output,trace,card,log}`；公开命令、文件位置和恢复提示均不
 提供旧产品身份的兼容入口。
 
 ## Release 与验证
 
-一个 Release 原子携带 `bin/fanloop`、统一入口、两套 Workflow 和它们引用的 Skills。Release
-Manifest 固定版本、组件路径与 SHA-256；安装验证成功后才切换 `~/.fanloop/current`。
+一个 Release 原子携带 `bin/commonloop`、统一入口、两套 Workflow 和它们引用的 Skills。Release
+Manifest 固定版本、组件路径与 SHA-256；安装验证成功后才切换 `~/.commonloop/current`。
 
 新增 Workflow 的发布改动只包含五份 YAML、同名 Skill 组和场景路由。配置-only 契约测试会临时
 构造第三套 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。

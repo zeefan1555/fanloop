@@ -4,9 +4,9 @@ import (
 	"errors"
 	"io/fs"
 
-	"github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func newFlowError(code erroridl.ErrorCode, message string, details map[string]string) *erroridl.PublicError {

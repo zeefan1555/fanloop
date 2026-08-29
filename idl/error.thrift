@@ -73,7 +73,7 @@ const map<ErrorCode,ErrorSpec> ERROR_SPECS = {
   ErrorCode.WORKFLOW_REQUIRED: {"code": ErrorCode.WORKFLOW_REQUIRED, "type": ErrorType.validation, "exit_code": 2, "retryable": false, "hint": "Set workflow in the Init Request."},
   ErrorCode.ALREADY_INITIALIZED: {"code": ErrorCode.ALREADY_INITIALIZED, "type": ErrorType.state, "exit_code": 1, "retryable": false, "hint": "Use flow status or choose another root."},
   ErrorCode.NOT_INITIALIZED: {"code": ErrorCode.NOT_INITIALIZED, "type": ErrorType.state, "exit_code": 1, "retryable": false, "hint": "Run flow init for this requirement root."},
-  ErrorCode.STATE_CORRUPT: {"code": ErrorCode.STATE_CORRUPT, "type": ErrorType.state, "exit_code": 5, "retryable": false, "hint": "Repair or restore .fanloop local state."},
+  ErrorCode.STATE_CORRUPT: {"code": ErrorCode.STATE_CORRUPT, "type": ErrorType.state, "exit_code": 5, "retryable": false, "hint": "Repair or restore .commonloop local state."},
   ErrorCode.STATE_SCHEMA_UNSUPPORTED: {"code": ErrorCode.STATE_SCHEMA_UNSUPPORTED, "type": ErrorType.state, "exit_code": 5, "retryable": false, "hint": "Use a CLI release that supports this State Schema."},
   ErrorCode.STATE_CONFLICT: {"code": ErrorCode.STATE_CONFLICT, "type": ErrorType.state, "exit_code": 1, "retryable": true, "hint": "Read flow status again and retry from the current Step."},
   ErrorCode.STEP_NOT_CURRENT: {"code": ErrorCode.STEP_NOT_CURRENT, "type": ErrorType.state, "exit_code": 1, "retryable": false, "hint": "Read flow status again and use its current Step ID."},

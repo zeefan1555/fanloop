@@ -16,7 +16,7 @@ if [[ "$selector" != "$version" && "$selector" != "latest" ]]; then
   echo "invalid release selector: $selector" >&2
   exit 1
 fi
-package_name="@zeefan1555/fanloop-cli"
+package_name="@zeefan1555/commonloop-cli"
 
 smoke_root="$(mktemp -d)"
 test -n "$smoke_root" && test -d "$smoke_root"
@@ -24,17 +24,17 @@ test -n "$smoke_root" && test -d "$smoke_root"
 export NPM_CONFIG_REGISTRY=https://npm.pkg.github.com
 export NPM_CONFIG_PREFIX="$smoke_root/npm"
 export NPM_CONFIG_CACHE="$smoke_root/cache"
-export FANLOOP_DATA_HOME="$smoke_root/data"
-export FANLOOP_CODEX_SKILLS_ROOT="$smoke_root/codex-skills"
-export FANLOOP_AGENT_SKILLS_ROOT="$smoke_root/agent-skills"
-export FANLOOP_TRAE_SKILLS_ROOT="$smoke_root/trae-skills"
-export FANLOOP_CLAUDE_SKILLS_ROOT="$smoke_root/claude-skills"
+export COMMONLOOP_DATA_HOME="$smoke_root/data"
+export COMMONLOOP_CODEX_SKILLS_ROOT="$smoke_root/codex-skills"
+export COMMONLOOP_AGENT_SKILLS_ROOT="$smoke_root/agent-skills"
+export COMMONLOOP_TRAE_SKILLS_ROOT="$smoke_root/trae-skills"
+export COMMONLOOP_CLAUDE_SKILLS_ROOT="$smoke_root/claude-skills"
 
 skill_roots=(
-  "$FANLOOP_CODEX_SKILLS_ROOT"
-  "$FANLOOP_AGENT_SKILLS_ROOT"
-  "$FANLOOP_TRAE_SKILLS_ROOT"
-  "$FANLOOP_CLAUDE_SKILLS_ROOT"
+  "$COMMONLOOP_CODEX_SKILLS_ROOT"
+  "$COMMONLOOP_AGENT_SKILLS_ROOT"
+  "$COMMONLOOP_TRAE_SKILLS_ROOT"
+  "$COMMONLOOP_CLAUDE_SKILLS_ROOT"
 )
 external_markers=()
 for index in "${!skill_roots[@]}"; do
@@ -43,7 +43,7 @@ for index in "${!skill_roots[@]}"; do
   marker="$external_target/preserved"
   mkdir -p "$skill_root" "$external_target"
   printf 'preserve external Skill target\n' >"$marker"
-  ln -s "$external_target" "$skill_root/fanloop-workflow"
+  ln -s "$external_target" "$skill_root/commonloop-workflow"
   external_markers+=("$marker")
 done
 
@@ -80,28 +80,28 @@ npm --version
 npx --version
 install_output="$(
   cd "$smoke_root"
-  npx --yes --package="$package_name@$selector" -- fanloop install
+  npx --yes --package="$package_name@$selector" -- commonloop install
 )"
 printf '%s\n' "$install_output"
-test "$install_output" = "Fanloop $version installed successfully"
-fanloop_bin="$NPM_CONFIG_PREFIX/bin/fanloop"
-test -x "$fanloop_bin"
+test "$install_output" = "Commonloop $version installed successfully"
+commonloop_bin="$NPM_CONFIG_PREFIX/bin/commonloop"
+test -x "$commonloop_bin"
 
-version_output="$("$fanloop_bin" version)"
+version_output="$("$commonloop_bin" version)"
 printf '%s\n' "$version_output"
 printf '%s\n' "$version_output" | grep "\"release_version\": \"$version\""
-if [ -n "${FANLOOP_EXPECTED_COMMIT:-}" ]; then
-  printf '%s\n' "$version_output" | grep "\"commit_sha\": \"$FANLOOP_EXPECTED_COMMIT\""
+if [ -n "${COMMONLOOP_EXPECTED_COMMIT:-}" ]; then
+  printf '%s\n' "$version_output" | grep "\"commit_sha\": \"$COMMONLOOP_EXPECTED_COMMIT\""
 fi
 
-"$fanloop_bin" doctor | grep '"status": "healthy"'
+"$commonloop_bin" doctor | grep '"status": "healthy"'
 if [[ "$selector" == "latest" ]]; then
-  update_output="$("$fanloop_bin" update)"
+  update_output="$("$commonloop_bin" update)"
   printf '%s\n' "$update_output"
-  test "$update_output" = "Fanloop $version installed successfully"
-  "$fanloop_bin" doctor | grep '"status": "healthy"'
+  test "$update_output" = "Commonloop $version installed successfully"
+  "$commonloop_bin" doctor | grep '"status": "healthy"'
 fi
-manifest="$FANLOOP_DATA_HOME/current/release.json"
+manifest="$COMMONLOOP_DATA_HOME/current/release.json"
 test -f "$manifest"
 workflow_ids="$(node -e 'const manifest = require(process.argv[1]); for (const workflow of manifest.workflows) console.log(workflow.id)' "$manifest")"
 workflow_count=0
@@ -110,7 +110,7 @@ while IFS= read -r workflow_id; do
   workflow_count=$((workflow_count + 1))
   requirement="$smoke_root/requirements/$workflow_id"
   mkdir -p "$requirement"
-  init_output="$("$fanloop_bin" flow init --root "$requirement" --workflow "$workflow_id" --title "Release smoke: $workflow_id")"
+  init_output="$("$commonloop_bin" flow init --root "$requirement" --workflow "$workflow_id" --title "Release smoke: $workflow_id")"
   printf '%s\n' "$init_output"
   printf '%s\n' "$init_output" | node -e '
 let content = "";
@@ -130,12 +130,12 @@ packaged_skill_count="$(node -e 'const manifest = require(process.argv[1]); proc
 test "$packaged_skill_count" -gt 0
 for skill_root in "${skill_roots[@]}"; do
   test "$(find "$skill_root" -maxdepth 1 -type l | wc -l | tr -d ' ')" = 1
-  test -L "$skill_root/fanloop-workflow"
+  test -L "$skill_root/commonloop-workflow"
 done
 for marker in "${external_markers[@]}"; do
   test -f "$marker"
   grep 'preserve external Skill target' "$marker" >/dev/null
 done
 
-"$fanloop_bin" version >/dev/null
-printf 'Fanloop %s authenticated release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"
+"$commonloop_bin" version >/dev/null
+printf 'Commonloop %s authenticated release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"

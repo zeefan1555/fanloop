@@ -14,8 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 type releaseFixture struct {
@@ -33,7 +33,7 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 	if first.err != nil {
 		t.Fatalf("clean install: %v\nstdout: %s\nstderr: %s", first.err, first.stdout, first.stderr)
 	}
-	if want := "Fanloop 1.2.3 installed successfully\n"; first.stdout != want {
+	if want := "Commonloop 1.2.3 installed successfully\n"; first.stdout != want {
 		t.Fatalf("install stdout = %q, want %q", first.stdout, want)
 	}
 	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture.Version, traeRoot, claudeRoot)
@@ -49,7 +49,7 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 		t.Fatalf("repeat install changed current from %q to %q", currentBefore, currentAfter)
 	}
 
-	runtimeCache := filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow", "__pycache__", "runtime.pyc")
+	runtimeCache := filepath.Join(dataRoot, "current", "entrypoints", "commonloop-workflow", "__pycache__", "runtime.pyc")
 	if err := os.MkdirAll(filepath.Dir(runtimeCache), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -66,9 +66,9 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture.Version, traeRoot, claudeRoot)
 
 	launcher := exec.Command("node", filepath.Join(repository, "scripts", "run.js"), "version")
-	launcher.Env = append(os.Environ(), "FANLOOP_DATA_HOME="+dataRoot)
+	launcher.Env = append(os.Environ(), "COMMONLOOP_DATA_HOME="+dataRoot)
 	output, err := launcher.CombinedOutput()
-	if err != nil || !bytes.Contains(output, []byte(`"release_version": "1.2.3"`)) || !bytes.Contains(output, []byte(`"name": "fanloop-workflow"`)) {
+	if err != nil || !bytes.Contains(output, []byte(`"release_version": "1.2.3"`)) || !bytes.Contains(output, []byte(`"name": "commonloop-workflow"`)) {
 		t.Fatalf("launcher did not use current release: %v\n%s", err, output)
 	}
 
@@ -81,7 +81,7 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 	} {
 		result := runCurrent(dataRoot, codexRoot, agentsRoot, "", args...)
 		if result.err != nil || result.stderr != "" || !strings.Contains(result.stdout, "Request JSON:") {
-			t.Fatalf("installed fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
+			t.Fatalf("installed commonloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
 		}
 	}
 }
@@ -198,7 +198,7 @@ func TestNPMInstallerKeepsCurrentOnChecksumDoctorAndNameConflicts(t *testing.T) 
 	}
 
 	conflictData, conflictCodex, conflictAgents := t.TempDir(), t.TempDir(), t.TempDir()
-	conflict := filepath.Join(conflictCodex, "fanloop-workflow")
+	conflict := filepath.Join(conflictCodex, "commonloop-workflow")
 	if err := os.WriteFile(conflict, []byte("owned by user\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestNPMInstallerAdoptsExternalSkillLinksWithoutDeletingTheirTargets(t *test
 		if err := os.WriteFile(marker, []byte("preserve me\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Symlink(externalTarget, filepath.Join(root, "fanloop-workflow")); err != nil {
+		if err := os.Symlink(externalTarget, filepath.Join(root, "commonloop-workflow")); err != nil {
 			t.Fatal(err)
 		}
 		externalTargets = append(externalTargets, marker)
@@ -256,11 +256,11 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if healthy := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor"); healthy.err != nil || !strings.Contains(healthy.stdout, `"status": "healthy"`) {
 		t.Fatalf("healthy install failed Doctor: %#v", healthy)
 	}
-	pinned := filepath.Join(codexRoot, "fanloop-workflow")
+	pinned := filepath.Join(codexRoot, "commonloop-workflow")
 	if err := os.Remove(pinned); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "entrypoints", "fanloop-workflow"), pinned); err != nil {
+	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "entrypoints", "commonloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
 	if diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor"); diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skill_links"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
@@ -269,11 +269,11 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if err := os.Remove(pinned); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow"), pinned); err != nil {
+	if err := os.Symlink(filepath.Join(dataRoot, "current", "entrypoints", "commonloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
 	for client, root := range map[string]string{"Trae": traeRoot, "Claude": claudeRoot} {
-		link := filepath.Join(root, "fanloop-workflow")
+		link := filepath.Join(root, "commonloop-workflow")
 		if err := os.Remove(link); err != nil {
 			t.Fatal(err)
 		}
@@ -281,7 +281,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 		if broken.err == nil || !strings.Contains(broken.stdout, `"id": "skill_links"`) || !strings.Contains(broken.stdout, `"status": "failed"`) {
 			t.Fatalf("Doctor missed broken %s Skill link: %#v", client, broken)
 		}
-		if err := os.Symlink(filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow"), link); err != nil {
+		if err := os.Symlink(filepath.Join(dataRoot, "current", "entrypoints", "commonloop-workflow"), link); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -303,14 +303,14 @@ func TestDoctorAcceptsManagedLinksWithSymlinkedDataRoot(t *testing.T) {
 	if result := runInstaller(t, repository, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install through symlinked data root: %v\n%s", result.err, result.stderr)
 	}
-	binary := filepath.Join(realDataRoot, "releases", fixture.Version, "bin", "fanloop")
+	binary := filepath.Join(realDataRoot, "releases", fixture.Version, "bin", "commonloop")
 	command := exec.Command(binary, "doctor")
 	command.Env = append(os.Environ(),
-		"FANLOOP_DATA_HOME="+dataRoot,
-		"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
-		"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
-		"FANLOOP_TRAE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".trae-skills"),
-		"FANLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".claude-skills"),
+		"COMMONLOOP_DATA_HOME="+dataRoot,
+		"COMMONLOOP_CODEX_SKILLS_ROOT="+codexRoot,
+		"COMMONLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
+		"COMMONLOOP_TRAE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".trae-skills"),
+		"COMMONLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".claude-skills"),
 	)
 	output, err := command.CombinedOutput()
 	if err != nil || !bytes.Contains(output, []byte(`"status": "healthy"`)) {
@@ -336,13 +336,13 @@ func runInstaller(t *testing.T, repository string, fixture releaseFixture, dataR
 	}
 	command := exec.Command("node", filepath.Join(repository, "scripts", "install.js"))
 	command.Env = append(os.Environ(),
-		"FANLOOP_RELEASE_ARCHIVE="+fixture.Archive,
-		"FANLOOP_RELEASE_MANIFEST="+fixture.Manifest,
-		"FANLOOP_DATA_HOME="+dataRoot,
-		"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
-		"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
-		"FANLOOP_TRAE_SKILLS_ROOT="+traeRoot,
-		"FANLOOP_CLAUDE_SKILLS_ROOT="+claudeRoot,
+		"COMMONLOOP_RELEASE_ARCHIVE="+fixture.Archive,
+		"COMMONLOOP_RELEASE_MANIFEST="+fixture.Manifest,
+		"COMMONLOOP_DATA_HOME="+dataRoot,
+		"COMMONLOOP_CODEX_SKILLS_ROOT="+codexRoot,
+		"COMMONLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
+		"COMMONLOOP_TRAE_SKILLS_ROOT="+traeRoot,
+		"COMMONLOOP_CLAUDE_SKILLS_ROOT="+claudeRoot,
 	)
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr
@@ -352,8 +352,8 @@ func runInstaller(t *testing.T, repository string, fixture releaseFixture, dataR
 
 func assertSkillLink(t *testing.T, dataRoot, skillsRoot string) {
 	t.Helper()
-	want := filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow")
-	path := filepath.Join(skillsRoot, "fanloop-workflow")
+	want := filepath.Join(dataRoot, "current", "entrypoints", "commonloop-workflow")
+	path := filepath.Join(skillsRoot, "commonloop-workflow")
 	target, err := os.Readlink(path)
 	if err != nil || target != want {
 		t.Fatalf("skill link %s -> %q (%v), want %q", path, target, err, want)
@@ -428,7 +428,7 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot, versi
 	t.Helper()
 	wantCurrent := filepath.Join("releases", version)
 	assertCurrent(t, dataRoot, wantCurrent)
-	if _, err := os.Stat(filepath.Join(dataRoot, "releases", version, "bin", "fanloop")); err != nil {
+	if _, err := os.Stat(filepath.Join(dataRoot, "releases", version, "bin", "commonloop")); err != nil {
 		t.Fatalf("installed binary: %v", err)
 	}
 	traeRoot := filepath.Join(agentsRoot, ".trae-skills")
@@ -459,7 +459,7 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot, versi
 		if _, err := os.Stat(filepath.Join(dataRoot, "releases", version, filepath.FromSlash(skill.Path), "SKILL.md")); err != nil {
 			t.Fatalf("packaged Skill %s: %v", skill.Name, err)
 		}
-		if skill.Name == "fanloop-workflow" {
+		if skill.Name == "commonloop-workflow" {
 			continue
 		}
 		for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
@@ -506,14 +506,14 @@ func rewriteCurrentWorkflowPaths(t *testing.T, dataRoot string, rewrite func(str
 func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersion string, additionalSkillNames ...string) releaseFixture {
 	t.Helper()
 	staging := t.TempDir()
-	binary := filepath.Join(staging, "bin", "fanloop")
+	binary := filepath.Join(staging, "bin", "commonloop")
 	if err := os.MkdirAll(filepath.Dir(binary), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	linker := strings.Join([]string{
-		"-X github.com/zeefan1555/fanloop/internal/buildinfo.ReleaseVersion=" + compiledVersion,
-		"-X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion=" + compiledVersion,
-		"-X github.com/zeefan1555/fanloop/internal/buildinfo.Commit=install-test",
+		"-X github.com/zeefan1555/commonloop/internal/buildinfo.ReleaseVersion=" + compiledVersion,
+		"-X github.com/zeefan1555/commonloop/internal/buildinfo.CLIVersion=" + compiledVersion,
+		"-X github.com/zeefan1555/commonloop/internal/buildinfo.Commit=install-test",
 	}, " ")
 	build := exec.Command("go", "build", "-buildvcs=false", "-ldflags", linker, "-o", binary, ".")
 	build.Dir = repository
@@ -522,7 +522,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 	}
 
 	skillItems := []map[string]any{}
-	skillSources := []string{filepath.Join(repository, "entrypoints", "fanloop-workflow", "SKILL.md")}
+	skillSources := []string{filepath.Join(repository, "entrypoints", "commonloop-workflow", "SKILL.md")}
 	matches, err := filepath.Glob(filepath.Join(repository, "skills", "*", "*", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -556,7 +556,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 		})
 	}
 	for _, name := range additionalSkillNames {
-		relative := filepath.ToSlash(filepath.Join("skills", "fanloop-maintainer", name))
+		relative := filepath.ToSlash(filepath.Join("skills", "commonloop-maintainer", name))
 		directory := filepath.Join(staging, filepath.FromSlash(relative))
 		if err := os.MkdirAll(directory, 0o755); err != nil {
 			t.Fatal(err)
@@ -592,7 +592,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 		})
 	}
 
-	archive := filepath.Join(t.TempDir(), fmt.Sprintf("fanloop-%s-%s-%s.tar.xz", releaseVersion, runtime.GOOS, runtime.GOARCH))
+	archive := filepath.Join(t.TempDir(), fmt.Sprintf("commonloop-%s-%s-%s.tar.xz", releaseVersion, runtime.GOOS, runtime.GOARCH))
 	writeTarXZ(t, staging, archive)
 	assets := []map[string]any{}
 	for _, target := range []struct{ os, arch string }{
@@ -604,7 +604,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 		}
 		assets = append(assets, map[string]any{
 			"os": target.os, "arch": target.arch,
-			"file":   fmt.Sprintf("fanloop-%s-%s-%s.tar.xz", releaseVersion, target.os, target.arch),
+			"file":   fmt.Sprintf("commonloop-%s-%s-%s.tar.xz", releaseVersion, target.os, target.arch),
 			"sha256": archiveDigest, "binary_sha256": binaryDigest,
 		})
 	}

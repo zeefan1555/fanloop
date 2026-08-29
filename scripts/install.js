@@ -10,8 +10,8 @@ const PLATFORM = { darwin: "darwin", linux: "linux" }[process.platform];
 const ARCH = { x64: "amd64", arm64: "arm64" }[process.arch];
 
 function dataHome(env = process.env) {
-  if (env.FANLOOP_DATA_HOME) return path.resolve(env.FANLOOP_DATA_HOME);
-  return path.join(os.homedir(), ".fanloop");
+  if (env.COMMONLOOP_DATA_HOME) return path.resolve(env.COMMONLOOP_DATA_HOME);
+  return path.join(os.homedir(), ".commonloop");
 }
 
 function stableSemver(value) {
@@ -28,10 +28,10 @@ function installedRelease(env) {
   }
 }
 
-// `fanloop update` only moves forward; direct `fanloop install` stays unconditional so the
+// `commonloop update` only moves forward; direct `commonloop install` stays unconditional so the
 // documented rollback entry keeps working. Equal versions still install to preserve local repair.
 function keepsInstalledRelease(env, candidateVersion) {
-  if (!env.FANLOOP_UPDATE_FORWARD_ONLY) return "";
+  if (!env.COMMONLOOP_UPDATE_FORWARD_ONLY) return "";
   const installed = installedRelease(env);
   const current = stableSemver(installed);
   const candidate = stableSemver(candidateVersion);
@@ -91,24 +91,24 @@ function validateArchive(archive) {
       throw new Error(`unsupported archive entry type: ${names[index]}`);
     }
   }
-  if (!names.some((name) => name.replace(/^\.\//, "").replace(/\/$/, "") === "bin/fanloop")) {
-    throw new Error("archive does not contain bin/fanloop");
+  if (!names.some((name) => name.replace(/^\.\//, "").replace(/\/$/, "") === "bin/commonloop")) {
+    throw new Error("archive does not contain bin/commonloop");
   }
 }
 
 function install(env = process.env, launcherVersion = "") {
-  const manifestPath = env.FANLOOP_RELEASE_MANIFEST || path.join(__dirname, "..", "release.json");
+  const manifestPath = env.COMMONLOOP_RELEASE_MANIFEST || path.join(__dirname, "..", "release.json");
   const manifestContent = fs.readFileSync(manifestPath);
   const manifest = JSON.parse(manifestContent);
   if (launcherVersion) assertMatchedVersion(manifest, launcherVersion);
   const kept = keepsInstalledRelease(env, manifest.release_version);
   if (kept) return { version: kept, kept: true };
   const asset = selectedAsset(manifest);
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-install-"));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-install-"));
   try {
     const archive = path.join(temporary, path.basename(asset.file));
-    if (env.FANLOOP_RELEASE_ARCHIVE) {
-      fs.copyFileSync(path.resolve(env.FANLOOP_RELEASE_ARCHIVE), archive);
+    if (env.COMMONLOOP_RELEASE_ARCHIVE) {
+      fs.copyFileSync(path.resolve(env.COMMONLOOP_RELEASE_ARCHIVE), archive);
     } else {
       if (path.basename(asset.file) !== asset.file) throw new Error(`unsafe release asset: ${asset.file}`);
       fs.copyFileSync(path.join(__dirname, "..", "releases", asset.file), archive);
@@ -123,14 +123,14 @@ function install(env = process.env, launcherVersion = "") {
     validateArchive(archive);
     execFileSync("tar", ["-xf", archive, "-C", staging], { stdio: ["ignore", "ignore", "pipe"] });
     fs.writeFileSync(path.join(staging, "release.json"), manifestContent);
-    const binary = path.join(staging, "bin", "fanloop");
+    const binary = path.join(staging, "bin", "commonloop");
     fs.chmodSync(binary, 0o755);
 
     const root = dataHome(env);
-    const codexSkills = path.resolve(env.FANLOOP_CODEX_SKILLS_ROOT || path.join(os.homedir(), ".codex", "skills"));
-    const agentSkills = path.resolve(env.FANLOOP_AGENT_SKILLS_ROOT || path.join(os.homedir(), ".agents", "skills"));
-    const traeSkills = path.resolve(env.FANLOOP_TRAE_SKILLS_ROOT || path.join(os.homedir(), ".trae", "skills"));
-    const claudeSkills = path.resolve(env.FANLOOP_CLAUDE_SKILLS_ROOT || path.join(os.homedir(), ".claude", "skills"));
+    const codexSkills = path.resolve(env.COMMONLOOP_CODEX_SKILLS_ROOT || path.join(os.homedir(), ".codex", "skills"));
+    const agentSkills = path.resolve(env.COMMONLOOP_AGENT_SKILLS_ROOT || path.join(os.homedir(), ".agents", "skills"));
+    const traeSkills = path.resolve(env.COMMONLOOP_TRAE_SKILLS_ROOT || path.join(os.homedir(), ".trae", "skills"));
+    const claudeSkills = path.resolve(env.COMMONLOOP_CLAUDE_SKILLS_ROOT || path.join(os.homedir(), ".claude", "skills"));
     const result = spawnSync(binary, [
       "__install", "--source", staging, "--data-root", root,
       "--codex-skills-root", codexSkills, "--agent-skills-root", agentSkills,
@@ -147,15 +147,15 @@ function install(env = process.env, launcherVersion = "") {
 
 function describeInstall(result) {
   return result.kept
-    ? `Fanloop ${result.version} is already up to date`
-    : `Fanloop ${result.version} installed successfully`;
+    ? `Commonloop ${result.version} is already up to date`
+    : `Commonloop ${result.version} installed successfully`;
 }
 
 if (require.main === module) {
   try {
     console.log(describeInstall(install()));
   } catch (error) {
-    console.error(`Fanloop install failed: ${error.message}`);
+    console.error(`Commonloop install failed: ${error.message}`);
     process.exit(1);
   }
 }

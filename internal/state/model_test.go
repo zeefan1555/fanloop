@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
@@ -142,7 +142,7 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 }
 
 func TestDecodeRejectsOldGuardState(t *testing.T) {
-	content := []byte(`{"schema_version":8,"requirement":{"title":"x"},"release":{"version":"dev","workflow":{"id":"fanloop","version":"7.0.0","digest":"sha256:x"}},"current_step_id":"confirm_repository_scope","current_step_status":"ready","current_guard_result":{"status":"failed"},"outputs":{},"integrations":{},"last_event_id":"e1","created_at":"2026-08-15T00:00:00Z","updated_at":"2026-08-15T00:00:00Z"}`)
+	content := []byte(`{"schema_version":8,"requirement":{"title":"x"},"release":{"version":"dev","workflow":{"id":"commonloop","version":"7.0.0","digest":"sha256:x"}},"current_step_id":"confirm_repository_scope","current_step_status":"ready","current_guard_result":{"status":"failed"},"outputs":{},"integrations":{},"last_event_id":"e1","created_at":"2026-08-15T00:00:00Z","updated_at":"2026-08-15T00:00:00Z"}`)
 	if _, err := Decode(content, map[string]RegisteredOutput{}); err == nil {
 		t.Fatal("expected retired current_guard_result to be rejected")
 	}

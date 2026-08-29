@@ -4,16 +4,16 @@ import (
 	"context"
 
 	"github.com/spf13/cobra"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
-	"github.com/zeefan1555/fanloop/internal/ops"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/internal/ops"
 )
 
 func newDoctorCommand(ioStreams streams, root *string) *cobra.Command {
 	var controls operationControls
 	command := operationCommand("doctor")
 	command.Long = `Purpose:
-  Diagnose either the Fanloop installation or one initialized Requirement.
+  Diagnose either the Commonloop installation or one initialized Requirement.
 
 Effect:
   Read only. Without --root it checks installation health; with --root it also checks that Requirement.
@@ -23,7 +23,7 @@ Request JSON:
   {}
 
 Typed flags:
-  fanloop doctor [--root <ABSOLUTE_REQUIREMENT_ROOT>]
+  commonloop doctor [--root <ABSOLUTE_REQUIREMENT_ROOT>]
 
 Constraints:
   The business Request is empty. --root is optional; when present it must name the Requirement to diagnose.
@@ -35,8 +35,8 @@ Controls:
 
 Next step:
   Follow any failed check hint, then rerun doctor to confirm the installation or Requirement is healthy.`
-	command.Example = `  fanloop doctor
-  fanloop doctor --root <ABSOLUTE_REQUIREMENT_ROOT>`
+	command.Example = `  commonloop doctor
+  commonloop doctor --root <ABSOLUTE_REQUIREMENT_ROOT>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*opsidl.DoctorRequest, *erroridl.PublicError) { return opsidl.NewDoctorRequest(), nil },

@@ -5,9 +5,9 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	clierrs "github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/output"
-	releaseinstall "github.com/zeefan1555/fanloop/internal/release/install"
+	clierrs "github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/output"
+	releaseinstall "github.com/zeefan1555/commonloop/internal/release/install"
 )
 
 func newInstallCommand(stdout, stderr io.Writer) *cobra.Command {
@@ -29,7 +29,7 @@ func newInstallCommand(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&request.Source, "source", "", "extracted release directory")
-	command.Flags().StringVar(&request.DataRoot, "data-root", "", "Fanloop user data directory")
+	command.Flags().StringVar(&request.DataRoot, "data-root", "", "Commonloop user data directory")
 	command.Flags().StringVar(&request.SkillRoots.Codex, "codex-skills-root", "", "Codex Skills directory")
 	command.Flags().StringVar(&request.SkillRoots.Agent, "agent-skills-root", "", "Agent Skills directory")
 	command.Flags().StringVar(&request.SkillRoots.Trae, "trae-skills-root", "", "Trae Skills directory")

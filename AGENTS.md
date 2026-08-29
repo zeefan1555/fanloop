@@ -1,4 +1,4 @@
-# Fanloop 变更门禁
+# Commonloop 变更门禁
 
 ## 本地材料不入库
 
@@ -43,7 +43,7 @@
 触发条件：修改 Go、Node、Python、Workflow、IDL、生成链、构建或发布脚本等会改变产品或测试行为的代码。
 
 1. 实现期间必须运行测试计划列出的聚焦测试和必要格式检查；命令、结果和当前 HEAD 写入验证记录。
-2. Fanloop maintainer Workflow 的验证事实只来自当前本地工作树，不读取或等待远端 PR checks。需要在真实 Agent 会话中复现或验证 Skill、Prompt 与 Workflow 内容时，用 `npm run install:local` 从同一工作树安装配套 Release，不拿已发布版本或旧安装当验证对象。PR 创建后 CI 可以异步运行，但不参与 Workflow Route；源码或测试资产更新后，旧本地验证与旧 AI Code Review 立即失效，必须对新 HEAD 重跑。
+2. Commonloop maintainer Workflow 的验证事实只来自当前本地工作树，不读取或等待远端 PR checks。需要在真实 Agent 会话中复现或验证 Skill、Prompt 与 Workflow 内容时，用 `npm run install:local` 从同一工作树安装配套 Release，不拿已发布版本或旧安装当验证对象。PR 创建后 CI 可以异步运行，但不参与 Workflow Route；源码或测试资产更新后，旧本地验证与旧 AI Code Review 立即失效，必须对新 HEAD 重跑。
 3. 测试计划必须选择 `targeted` 或 `e2e`。文档、自迭代 Skill、未改变 Step/Route/Condition/executor 的 Prompt/SkillBinding，以及具备完整聚焦 seam 的局部叶子行为可以选择 `targeted`；该档只执行计划命令，不在本地重复 `run-unit` 或 `run-e2e`。
 4. 修改 Step/Route/Condition 推进语义、Thrift IDL、durable state/storage/output/trace/card、发布/安装/更新/打包、测试入口，或者缺少可靠聚焦 seam、影响面不确定时必须选择 `e2e`。该档在计划命令之外，从同一工作树运行 `./tests/run-unit` 与 `./tests/run-e2e` 并记录报告路径。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制或代码审阅代替。无法确定风险时选择 `e2e`，不得伪造 `targeted` 结论。

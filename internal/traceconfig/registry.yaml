@@ -21,7 +21,7 @@ profiles:
         updated_at: 更新时间
         origin: 来源
     workflows:
-      fanloop-maintainer:
+      commonloop-maintainer:
         url: https://example.invalid/redacted
         base_token: EXAMPLEBASEID
         table_id: tblW1KFyrKtUeNF4

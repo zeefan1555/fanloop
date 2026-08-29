@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
+	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
 	"golang.org/x/sys/unix"
 )
 
@@ -22,7 +22,7 @@ func ReadAll(root string) ([]byte, error) {
 	if err != nil || !info.IsDir() {
 		return nil, fmt.Errorf("requirement root must be an existing directory")
 	}
-	directory := filepath.Join(root, ".fanloop", "log")
+	directory := filepath.Join(root, ".commonloop", "log")
 	directoryDescriptor, err := unix.Open(directory, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0)
 	if errors.Is(err, unix.ENOENT) {
 		return []byte{}, nil
@@ -78,7 +78,7 @@ func Append(root string, entry *storageidl.CLIExecutionLogEntry) error {
 	}
 	content = append(content, '\n')
 
-	directory := filepath.Join(root, ".fanloop", "log")
+	directory := filepath.Join(root, ".commonloop", "log")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create CLI execution log directory: %w", err)
 	}

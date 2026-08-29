@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/store"
-	"github.com/zeefan1555/fanloop/internal/traceconfig"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/store"
+	"github.com/zeefan1555/commonloop/internal/traceconfig"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 type Runtime struct {
@@ -145,7 +145,7 @@ func (runtime Runtime) Render(_ context.Context, root string, request *traceidl.
 	if failure != nil {
 		return nil, failure
 	}
-	return &traceidl.TraceRenderResponse{EventCount: int32(count), ProjectionPath: ".fanloop/trace/events.md"}, nil
+	return &traceidl.TraceRenderResponse{EventCount: int32(count), ProjectionPath: ".commonloop/trace/events.md"}, nil
 }
 
 func load(root string) (*store.Store, state.State, workflow.Loaded, *erroridl.PublicError) {

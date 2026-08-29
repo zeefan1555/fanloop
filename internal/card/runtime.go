@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/store"
-	"github.com/zeefan1555/fanloop/internal/workflow"
-	"github.com/zeefan1555/fanloop/internal/workflowview"
+	"github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/idl/cardidl"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/flowidl"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/store"
+	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/workflowview"
 )
 
 type Runtime struct {
@@ -218,7 +218,7 @@ func nextCardPath(root string, now time.Time) (string, error) {
 		if suffix > 0 {
 			name = fmt.Sprintf("%s-%d.json", stamp, suffix)
 		}
-		relative := filepath.ToSlash(filepath.Join(".fanloop", "card", name))
+		relative := filepath.ToSlash(filepath.Join(".commonloop", "card", name))
 		_, err := os.Stat(filepath.Join(root, filepath.FromSlash(relative)))
 		if os.IsNotExist(err) {
 			return relative, nil

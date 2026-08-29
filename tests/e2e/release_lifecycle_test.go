@@ -28,7 +28,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 		t.Helper()
 		result := runCurrent(dataRoot, codexRoot, agentsRoot, "", args...)
 		if result.err != nil || result.stderr != "" {
-			t.Fatalf("fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
+			t.Fatalf("commonloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
 		}
 		return result
 	}
@@ -78,7 +78,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 		t.Fatalf("installed requirement failed Doctor: %s", diagnosed.stdout)
 	}
 	version := run("version")
-	for _, want := range []string{`"release_version": "1.2.3"`, `"name": "fanloop-workflow"`} {
+	for _, want := range []string{`"release_version": "1.2.3"`, `"name": "commonloop-workflow"`} {
 		if !strings.Contains(version.stdout, want) {
 			t.Fatalf("matched release omitted %s: %s", want, version.stdout)
 		}

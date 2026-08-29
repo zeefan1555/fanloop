@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/zeefan1555/fanloop/internal/idl"
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
-	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
+	"github.com/zeefan1555/commonloop/internal/idl"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
 )
 
 type requestValidator interface {
@@ -30,7 +30,7 @@ func TestMain(main *testing.M) {
 }
 
 func TestProcessDoesNotInheritBotmuxBinding(t *testing.T) {
-	if os.Getenv("FANLOOP_BOTMUX_SCRUB_CHILD") == "1" {
+	if os.Getenv("COMMONLOOP_BOTMUX_SCRUB_CHILD") == "1" {
 		if os.Getenv("BOTMUX_CHAT_ID") != "" || os.Getenv("BOTMUX_SESSION_ID") != "" {
 			t.Fatal("test process inherited Botmux binding")
 		}
@@ -42,7 +42,7 @@ func TestProcessDoesNotInheritBotmuxBinding(t *testing.T) {
 	}
 	command := exec.Command(executable, "-test.run=^TestProcessDoesNotInheritBotmuxBinding$")
 	command.Env = append(os.Environ(),
-		"FANLOOP_BOTMUX_SCRUB_CHILD=1",
+		"COMMONLOOP_BOTMUX_SCRUB_CHILD=1",
 		"BOTMUX_CHAT_ID=oc_real_chat_must_not_escape",
 		"BOTMUX_SESSION_ID=real_session_must_not_escape",
 	)
@@ -83,7 +83,7 @@ func TestPayloadUpdateRequiresNPMLauncher(t *testing.T) {
 func TestTypedOptionalFlagsPreserveExplicitEmptyValues(t *testing.T) {
 	cases := [][]string{
 		{"flow", "init", "--root", filepath.Join(t.TempDir(), "typed"), "--workflow", "technical-solution-design", "--title", "test", "--source-url="},
-		{"flow", "init", "--root", filepath.Join(t.TempDir(), "json"), "--input", `{"workflow":"fanloop","requirement":{"title":"test","source_url":""}}`},
+		{"flow", "init", "--root", filepath.Join(t.TempDir(), "json"), "--input", `{"workflow":"commonloop","requirement":{"title":"test","source_url":""}}`},
 	}
 	for _, args := range cases {
 		var stdout, stderr bytes.Buffer
@@ -226,15 +226,15 @@ func TestAgentHelpProgressivelyDisclosesWorkflow(t *testing.T) {
 			args: []string{"--help"},
 			want: []string{
 				"Agent workflow",
-				"fanloop-workflow Skill",
-				"fanloop flow status",
+				"commonloop-workflow Skill",
+				"commonloop flow status",
 				"current.prompt and its required Skills",
 				"target leaf command --help",
 				"Report progress or a Condition result",
 				"read flow status again",
 				"NOT_INITIALIZED",
 			},
-			forbidden: []string{"schema describe", "botmux", "Panorama", "fanloop install"},
+			forbidden: []string{"schema describe", "botmux", "Panorama", "commonloop install"},
 		},
 		{
 			name: "flow selects one operation",
@@ -471,7 +471,7 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				}
 			}
 			if spec, ok := idl.LookupCommand(test.commandID); ok && spec.RequirementScope != commonidl.RequirementScope_none &&
-				(!strings.Contains(help, ".fanloop/log/cli.jsonl") || !strings.Contains(help, "complete unredacted arguments, stdin, stdout, and stderr")) {
+				(!strings.Contains(help, ".commonloop/log/cli.jsonl") || !strings.Contains(help, "complete unredacted arguments, stdin, stdout, and stderr")) {
 				t.Fatalf("%s help does not disclose the complete Requirement execution transcript:\n%s", test.commandID, help)
 			}
 			validateHelpRequest(t, test.commandID, requestJSONFromHelp(t, help))
@@ -582,7 +582,7 @@ func TestFlowHelpExplainsProgressConditionAndRoutes(t *testing.T) {
 }
 
 func TestExecuteRoutesFlowWithoutPython(t *testing.T) {
-	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
+	t.Setenv("COMMONLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
 	var stdout, stderr bytes.Buffer
 	code := Execute(
@@ -596,8 +596,8 @@ func TestExecuteRoutesFlowWithoutPython(t *testing.T) {
 	if !strings.Contains(stdout.String(), `"command": "flow.init"`) || !strings.Contains(stdout.String(), `"ok": true`) {
 		t.Fatalf("stdout = %s", stdout.String())
 	}
-	if _, err := os.Stat(filepath.Join(root, ".fanloop", "flow", "state.json")); err != nil {
-		t.Fatalf("final Flow did not write nested .fanloop state: %v", err)
+	if _, err := os.Stat(filepath.Join(root, ".commonloop", "flow", "state.json")); err != nil {
+		t.Fatalf("final Flow did not write nested .commonloop state: %v", err)
 	}
 }
 
@@ -657,7 +657,7 @@ func TestExecuteLogsDryRunReadFailureAndPartialResults(t *testing.T) {
 		test.stdout = stdout.String()
 		test.stderr = stderr.String()
 	}
-	if err := os.WriteFile(filepath.Join(root, ".fanloop", "flow", "state.json"), []byte("{}\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".commonloop", "flow", "state.json"), []byte("{}\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	var stdout, stderr bytes.Buffer
@@ -728,7 +728,7 @@ func TestExecuteSkipsHelpRootlessAndUnknownOperations(t *testing.T) {
 	} {
 		Execute(context.Background(), args, strings.NewReader(""), io.Discard, io.Discard)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".fanloop", "log", "cli.jsonl")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".commonloop", "log", "cli.jsonl")); !os.IsNotExist(err) {
 		t.Fatalf("excluded invocations created a log: %v", err)
 	}
 }
@@ -762,7 +762,7 @@ func TestExecuteUsesParsedLoggingControls(t *testing.T) {
 		if code != 2 || !strings.Contains(stderr.String(), `"code": "ROOT_REQUIRED"`) {
 			t.Fatalf("exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 		}
-		if _, err := os.Stat(filepath.Join(root, ".fanloop", "log", "cli.jsonl")); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(root, ".commonloop", "log", "cli.jsonl")); !os.IsNotExist(err) {
 			t.Fatalf("flag value was treated as --root: %v", err)
 		}
 	})
@@ -782,7 +782,7 @@ func TestExecuteUsesParsedLoggingControls(t *testing.T) {
 		if len(entries) != 1 || entries[0].DryRun {
 			t.Fatalf("entries = %#v, want one non-dry-run invocation", entries)
 		}
-		if _, err := os.Stat(filepath.Join(root, ".fanloop", "flow", "state.json")); err != nil {
+		if _, err := os.Stat(filepath.Join(root, ".commonloop", "flow", "state.json")); err != nil {
 			t.Fatalf("command did not perform its non-dry-run write: %v", err)
 		}
 	})
@@ -790,7 +790,7 @@ func TestExecuteUsesParsedLoggingControls(t *testing.T) {
 
 func TestExecuteIgnoresExecutionLogFailure(t *testing.T) {
 	root := t.TempDir()
-	directory := filepath.Join(root, ".fanloop", "log")
+	directory := filepath.Join(root, ".commonloop", "log")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -817,7 +817,7 @@ func TestExecuteIgnoresExecutionLogFailure(t *testing.T) {
 
 func readExecutionLog(t *testing.T, root string) []storageidl.CLIExecutionLogEntry {
 	t.Helper()
-	content, err := os.ReadFile(filepath.Join(root, ".fanloop", "log", "cli.jsonl"))
+	content, err := os.ReadFile(filepath.Join(root, ".commonloop", "log", "cli.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -835,7 +835,7 @@ func readExecutionLog(t *testing.T, root string) []storageidl.CLIExecutionLogEnt
 }
 
 func TestExecuteRejectsRemovedLoopCommand(t *testing.T) {
-	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
+	t.Setenv("COMMONLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
 	var stdout, stderr bytes.Buffer
 	code := Execute(
@@ -849,7 +849,7 @@ func TestExecuteRejectsRemovedLoopCommand(t *testing.T) {
 }
 
 func TestExecuteRoutesTraceWithoutPython(t *testing.T) {
-	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
+	t.Setenv("COMMONLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
 	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
@@ -865,7 +865,7 @@ func TestExecuteRoutesTraceWithoutPython(t *testing.T) {
 }
 
 func TestExecuteRoutesCardWithoutPython(t *testing.T) {
-	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
+	t.Setenv("COMMONLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
 	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)

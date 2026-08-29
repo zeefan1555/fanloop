@@ -1,4 +1,4 @@
-module github.com/zeefan1555/fanloop
+module github.com/zeefan1555/commonloop
 
 go 1.23.0
 

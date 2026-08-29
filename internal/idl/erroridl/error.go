@@ -58,7 +58,7 @@ var (
 			Type:      ErrorType_state,
 			ExitCode:  5,
 			Retryable: false,
-			Hint:      "Repair or restore .fanloop local state.",
+			Hint:      "Repair or restore .commonloop local state.",
 		},
 		ErrorCode_STATE_SCHEMA_UNSUPPORTED: &ErrorSpec{
 			Code:      ErrorCode_STATE_SCHEMA_UNSUPPORTED,
