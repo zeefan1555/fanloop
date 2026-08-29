@@ -17,7 +17,7 @@ function makeTempPackage(version = "1.2.3") {
       {
         name: "@zeefan1555/commonloop-cli",
         version,
-        publishConfig: { registry: "https://npm.pkg.github.com" },
+        publishConfig: { registry: "https://registry.npmjs.org/", access: "public" },
       },
       null,
       2,

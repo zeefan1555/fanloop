@@ -23,13 +23,11 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 ## 使用 npx 安装
 
-Commonloop 作为私有包 `@zeefan1555/commonloop-cli` 发布到 GitHub Packages。先使用具备
-`read:packages` 权限的 GitHub classic PAT 登录，再安装匹配的 CLI、Workflow 与 Skills：
+Commonloop 作为公开包 `@zeefan1555/commonloop-cli` 发布到 npmjs。无需配置 registry 或
+GitHub PAT，一行安装匹配的 CLI、Workflow 与 Skills：
 
 ```bash
-npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
-NPM_CONFIG_REGISTRY=https://npm.pkg.github.com \
-  npx --yes --prefer-online --package=@zeefan1555/commonloop-cli@latest -- commonloop install
+npx @zeefan1555/commonloop-cli@latest install
 commonloop version
 commonloop doctor
 ```
@@ -130,7 +128,7 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 源码位于私有 GitHub 仓库 `zeefan1555/commonloop`。在 GitHub Actions 手工运行 `Release`
 Workflow 会执行完整测试、构建四个平台配套制品、发布 `candidate`、验证后提升 `latest`；
-发布使用当前仓库的 `GITHUB_TOKEN`，不需要额外 npm secret。代码目前为 `UNLICENSED`，
+发布使用仓库的 `NPM_TOKEN` secret，安装和发布后冒烟均从公开 npmjs 读取。代码目前为 `UNLICENSED`，
 选择许可证和公开前资料审计应在首次公开前单独完成。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)

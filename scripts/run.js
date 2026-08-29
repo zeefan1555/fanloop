@@ -7,7 +7,6 @@ const { spawnSync } = require("child_process");
 const { dataHome, describeInstall, install } = require("./install.js");
 const launcherVersion = require("../package.json").version;
 const npmPackage = "@zeefan1555/commonloop-cli@latest";
-const npmRegistry = "https://npm.pkg.github.com";
 
 function installLauncher(env = process.env) {
   const args = ["install", "--global", "--install-links", "--ignore-scripts", "--no-audit", "--no-fund", path.resolve(__dirname, "..")];
@@ -49,13 +48,11 @@ if (process.argv[2] === "install") {
       result = spawnSync("npx", [
         "--yes",
         "--prefer-online",
-        `--package=${npmPackage}`,
-        "--",
-        "commonloop",
+        npmPackage,
         "install",
       ], {
         cwd: directory,
-        env: { ...process.env, NPM_CONFIG_REGISTRY: npmRegistry, COMMONLOOP_UPDATE_FORWARD_ONLY: "1" },
+        env: { ...process.env, COMMONLOOP_UPDATE_FORWARD_ONLY: "1" },
         stdio: "inherit",
       });
     } finally {
@@ -69,7 +66,7 @@ if (process.argv[2] === "install") {
 } else {
   const binary = path.join(dataHome(), "current", "bin", "commonloop");
   if (!fs.existsSync(binary)) {
-    console.error(`Commonloop is not installed. Authenticate to GitHub Packages, then run: NPM_CONFIG_REGISTRY=${npmRegistry} npx --yes --prefer-online --package=${npmPackage} -- commonloop install`);
+    console.error(`Commonloop is not installed. Run: npx ${npmPackage} install`);
     process.exit(1);
   }
   const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit" });

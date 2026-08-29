@@ -29,6 +29,9 @@ it("packs every platform release archive into the npm package", (t) => {
   for (const file of assets) assert.ok(entries.includes(`package/releases/${file}`), file);
   const metadata = JSON.parse(execFileSync("tar", ["-xOf", artifact, "package/package.json"], { encoding: "utf8" }));
   assert.equal(metadata.name, "@zeefan1555/commonloop-cli");
-  assert.equal(metadata.publishConfig.registry, "https://npm.pkg.github.com");
+  assert.deepEqual(metadata.publishConfig, {
+    registry: "https://registry.npmjs.org/",
+    access: "public",
+  });
   assert.equal(metadata.repository.url, "https://github.com/zeefan1555/commonloop.git");
 });
