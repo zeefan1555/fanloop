@@ -43,18 +43,18 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "registry must be production or test")
 	}
 	if protectedDocument(current, request.DocumentUrl) {
-		return nil, publicError(erroridl.ErrorCode_PROTECTED_DOCUMENT, "Trace document must not reuse a requirement or TechDesign document")
+		return nil, publicError(erroridl.ErrorCode_PROTECTED_DOCUMENT, "Trace document must not reuse the Requirement source or an existing Workflow Output document")
 	}
 	cliLogDocumentURL := request.GetCliLogDocumentUrl()
-	if traceconfig.IsMaintainerProduction(registry.Profile, current.Release.Workflow.ID) != (cliLogDocumentURL != "") {
-		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "cli_log_document_url is required only for fanloop-maintainer production Trace bindings")
+	if registry.RequireCLILogDocument != (cliLogDocumentURL != "") {
+		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "cli_log_document_url must match the selected Trace Registry policy")
 	}
 	if cliLogDocumentURL != "" {
 		if !state.ValidTraceDocumentURL(cliLogDocumentURL) {
 			return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "cli_log_document_url must be an HTTP URL")
 		}
 		if state.SameTraceDocumentURL(request.DocumentUrl, cliLogDocumentURL) || protectedDocument(current, cliLogDocumentURL) {
-			return nil, publicError(erroridl.ErrorCode_PROTECTED_DOCUMENT, "CLI log document must be distinct from Trace, requirement, and TechDesign documents")
+			return nil, publicError(erroridl.ErrorCode_PROTECTED_DOCUMENT, "CLI log document must be distinct from Trace, the Requirement source, and existing Workflow Output documents")
 		}
 	}
 	previous := ""
@@ -164,11 +164,25 @@ func protectedDocument(current state.State, candidate string) bool {
 	if state.SameTraceDocumentURL(candidate, current.Requirement.SourceURL) {
 		return true
 	}
-	var techDesignURL string
-	if output, ok := current.Outputs["technical_design_document_url"]; ok {
-		_ = json.Unmarshal(output.Value, &techDesignURL)
+	for _, output := range current.Outputs {
+		switch output.Type {
+		case workflow.OutputURL:
+			var value string
+			if json.Unmarshal(output.Value, &value) == nil && state.SameTraceDocumentURL(candidate, value) {
+				return true
+			}
+		case workflow.OutputURLList:
+			var values []string
+			if json.Unmarshal(output.Value, &values) == nil {
+				for _, value := range values {
+					if state.SameTraceDocumentURL(candidate, value) {
+						return true
+					}
+				}
+			}
+		}
 	}
-	return state.SameTraceDocumentURL(candidate, techDesignURL)
+	return false
 }
 
 func sameOptionalDocument(left, right string) bool {

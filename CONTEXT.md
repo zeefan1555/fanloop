@@ -3,7 +3,7 @@
 ## 流程配置
 
 **Requirement**
-一次需要持续推进和审计的研发需求。事实保存在 Requirement 自己的 `.fanloop/`。
+一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
 **Workflow Bundle**
 不可拆分、不可变、可版本化的五文件流程包：`workflow.yaml` 注册 Stage/Job/Step，`flow.yaml` 声明正常 Route，`condition.yaml` 声明原子 Condition 与 OutputSpec，`loop.yaml` 声明回流 Route，`prompt.yaml` 保存 Prompt 与 SkillBinding。Release 和 State 绑定五文件规范化语义的同一个 digest。
@@ -52,13 +52,16 @@ Progress 返回 `status_updated`。Result 返回 `advanced|looped|completed`，�
 不可变审计记录。Event Schema 12 使用 Thrift `EventPayload` union；落盘的 `kind` 与唯一 payload 成员一一对应，例如 `flow_progressed`、`flow_result`。Result Event 保存原始 ConditionResults、Evidence、Summary、Effect、Transition 和 accepted/invalidated OutputChanges。dry-run 和 rejected request 不产生 Event。
 
 **CLI Execution Log**
-Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root` 的真实叶子调用在结束后 best-effort 向 `.fanloop/log/cli.jsonl` 追加一条 schema 2 Thrift JSON，包括有序 arguments、实际消费的 stdin、完整 stdout/stderr、只读、失败和 `--dry-run`；`--input @file` 只记录参数中的路径，不把文件内容算作 stdin。Help 与无 Root 的 bootstrap/版本调用不记录。日志不脱敏、不截断，可能包含 URL、Evidence、密钥或 token；目录/文件权限保持 `0700/0600`。它不参与恢复、路由或 Doctor 健康判断，写入失败也不改变命令结果；`fanloop-maintainer` production 会由 `trace sync` 把同步开始前的完整字节快照投影到独立飞书文档。
+Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root` 的真实叶子调用在结束后 best-effort 向 `.fanloop/log/cli.jsonl` 追加一条 schema 2 Thrift JSON，包括有序 arguments、实际消费的 stdin、完整 stdout/stderr、只读、失败和 `--dry-run`；`--input @file` 只记录参数中的路径，不把文件内容算作 stdin。Help 与无 Root 的 bootstrap/版本调用不记录。日志不脱敏、不截断，可能包含 URL、Evidence、密钥或 token；目录/文件权限保持 `0700/0600`。它不参与恢复、路由或 Doctor 健康判断，写入失败也不改变命令结果；当 `internal/traceconfig/registry.yaml` 选中的策略要求 CLI 日志文档时，`trace sync` 会把同步开始前的完整字节快照投影到该文档。
 
 **Output 失效**
 Loop 根据 State 中 `producer_step_id` 失效由 back Step 及其下游生产的有效 Output，保留更早 Step 的事实。
 
+**Panorama 发布回执**
+Human Step 通过 YAML 的 `panorama_card_published` Condition 声明本轮自包含审核材料已发送并回读成功，Output 保存真实 messageId 或 Agent 交互事件 ID。该回执必须与人工结论在同一 Route 组合中上报；CLI 只校验类型与 Route，不自动发送或认证回执。Human Step 重入时不得复用旧回执。
+
 **Trace / Card**
-Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。`fanloop-maintainer` production 的同一 Integration 绑定 Trace 与 CLI 日志两份文档，并把需求澄清、技术方案、MR、CLI 日志投影到专用 Registry；普通 Workflow 与 test Registry 保持原契约。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`，在全局证据区展示两份文档链接，渲染时不读取或写入 Trace；远端失败不回滚本地事实。
+Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Registry endpoint、字段名、CLI 日志要求和 Workflow Output 字段映射由严格加载的 `internal/traceconfig/registry.yaml` 决定；Runtime 不比较具体 Workflow 或 Output ID。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`，URL Output 使用 YAML 中的 `output.description` 或 key 展示，渲染时不读取或写入 Trace；显式 `card render` 生成快照，Flow Runtime 不负责远端发送。
 
 **Agent 手册**
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。

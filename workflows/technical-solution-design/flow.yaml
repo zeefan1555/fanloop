@@ -8,7 +8,7 @@ flow:
 
   confirm_technical_problem:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_technical_problem_flow}
-      when: {any_of: [[technical_problem_approved]]}
+      when: {any_of: [[panorama_card_published, technical_problem_approved]]}
       next_step_id: derive_technical_solution
 
   derive_technical_solution:
@@ -18,7 +18,7 @@ flow:
 
   confirm_solution_direction:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_solution_direction_flow}
-      when: {any_of: [[solution_direction_approved]]}
+      when: {any_of: [[panorama_card_published, solution_direction_approved]]}
       next_step_id: write_technical_solution
 
   write_technical_solution:
@@ -33,5 +33,5 @@ flow:
 
   confirm_technical_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_technical_solution_flow}
-      when: {any_of: [[technical_solution_approved]]}
+      when: {any_of: [[panorama_card_published, technical_solution_approved]]}
       terminal: true

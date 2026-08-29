@@ -193,6 +193,80 @@ func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
 	}
 }
 
+func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
+	repository, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	workflowID := "sample-loop"
+	bundleRoot := filepath.Join(root, "workflows", workflowID)
+	if err := os.MkdirAll(bundleRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range workflow.BundleFileNames() {
+		content, err := os.ReadFile(filepath.Join(repository, "workflows", "technical-solution-design", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if name == "workflow.yaml" {
+			content = []byte(strings.Replace(string(content), "id: technical-solution-design", "id: "+workflowID, 1))
+		}
+		if err := os.WriteFile(filepath.Join(bundleRoot, name), content, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	loaded, err := workflow.LoadDirectory(bundleRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entrypoint := filepath.Join(root, "entrypoints", release.ExposedSkillName, "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(entrypoint), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(entrypoint, []byte("---\nname: fanloop-workflow\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	seenSkills := map[string]bool{}
+	for _, prompt := range loaded.Workflow.Prompts {
+		for _, binding := range prompt.Skills {
+			seenSkills[binding.ID] = true
+		}
+	}
+	for skillID := range seenSkills {
+		path := filepath.Join(root, "skills", workflowID, skillID, "SKILL.md")
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("---\nname: "+skillID+"\n---\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	routes := []byte("schema_version: 2\nscenarios:\n  sample:\n    workflow: " + workflowID + "\n    description: Sample config-only Loop\n")
+	if err := os.WriteFile(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), routes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateWorkflowSkillDirectories(root); err != nil {
+		t.Fatal(err)
+	}
+	skills, err := discoverSkills(root, "1.2.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := release.Manifest{
+		Skills: skills,
+		Workflows: []*release.Workflow{{
+			Id: workflowID, Path: "workflows/" + workflowID, Sha256: loaded.Ref.Digest,
+		}},
+	}
+	if err := validateWorkflowSkillBindings(manifest, []workflow.Loaded{loaded}); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), manifest); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
 	entrypoint, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {

@@ -13,10 +13,10 @@ flow:
 
   confirm_requirements:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_requirements_flow}
-      when: {any_of: [[requirements_approved, requirements_approval_recorded, requirements_evidence_written, implementation_required]]}
+      when: {any_of: [[panorama_card_published, requirements_approved, requirements_approval_recorded, requirements_evidence_written, implementation_required]]}
       next_step_id: design_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_requirements_terminal}
-      when: {any_of: [[requirements_approved, requirements_approval_recorded, requirements_evidence_written, implementation_not_required]]}
+      when: {any_of: [[panorama_card_published, requirements_approved, requirements_approval_recorded, requirements_evidence_written, implementation_not_required]]}
       terminal: true
 
   design_technical_solution:

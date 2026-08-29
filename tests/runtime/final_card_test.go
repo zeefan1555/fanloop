@@ -18,11 +18,11 @@ type cardEnvelope struct {
 	} `json:"data"`
 }
 
-func TestFlowInitBindsTraceBeforeSendingPanorama(t *testing.T) {
+func TestFlowCommandsKeepTraceAndProjectionWithoutSendingPanorama(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	fakeBin := filepath.Dir(binary)
 	callLog := filepath.Join(t.TempDir(), "calls.log")
-	cardCapture := filepath.Join(t.TempDir(), "sent-card.json")
+	botmuxCalled := filepath.Join(t.TempDir(), "botmux-called")
 	const traceURL = "https://bytedance.larkoffice.com/docx/BootstrapPanoramaTrace"
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), `#!/bin/sh
 set -eu
@@ -31,24 +31,13 @@ printf '%s\n' '{"ok":true,"data":{"document":{"url":"https://bytedance.larkoffic
 `)
 	writeExecutable(t, filepath.Join(fakeBin, "botmux"), `#!/bin/sh
 set -eu
-card_file=
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = "--card-file" ]; then
-    card_file=$2
-    shift 2
-  else
-    shift
-  fi
-done
-test -n "$card_file"
-/bin/cp "$card_file" "$CARD_CAPTURE"
-printf '%s\n' botmux >> "$CALL_LOG"
+: > "$BOTMUX_CALLED"
 `)
 
 	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Bootstrap panorama")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
-		"CALL_LOG="+callLog, "CARD_CAPTURE="+cardCapture,
+		"CALL_LOG="+callLog, "BOTMUX_CALLED="+botmuxCalled,
 	)
 	assertSuccess(t, collect(command), "flow.init")
 
@@ -57,25 +46,34 @@ printf '%s\n' botmux >> "$CALL_LOG"
 	if !strings.Contains(status.stdout, `"document_url": "`+traceURL+`"`) {
 		t.Fatalf("flow init did not bind the provisioned Trace:\n%s", status.stdout)
 	}
-	if got := strings.TrimSpace(string(readFile(t, callLog))); got != "lark\nbotmux" {
-		t.Fatalf("provision/send order = %q, want lark then botmux", got)
+	if got := strings.TrimSpace(string(readFile(t, callLog))); got != "lark" {
+		t.Fatalf("flow init external calls = %q, want Trace provisioning only", got)
 	}
-	sent := string(readFile(t, cardCapture))
-	if !strings.Contains(sent, "当前执行证据") || strings.Count(sent, traceURL) != 1 {
-		t.Fatalf("sent Panorama must show the authoritative Trace exactly once:\n%s", sent)
+	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
+		t.Fatalf("flow init unexpectedly invoked botmux: %v", err)
 	}
 	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
 	if !strings.Contains(projection, `"trace_document_url": "`+traceURL+`"`) {
 		t.Fatalf("Card projection did not retain Trace binding:\n%s", projection)
 	}
+
+	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root,
+		"--step-id", "frame_technical_problem", "--status", "in_progress", "--summary", "framing"), "flow.report.progress")
+	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
+		"--step-id", "frame_technical_problem",
+		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
+		"--next-step-id", "confirm_technical_problem", "--summary", "problem framed"), "flow.report.result")
+	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
+		t.Fatalf("flow report unexpectedly invoked botmux: %v", err)
+	}
 }
 
-func TestMaintainerFlowInitBindsTraceAndCLILogBeforeSendingPanorama(t *testing.T) {
+func TestMaintainerFlowInitBindsTraceAndCLILogWithoutSendingPanorama(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	fakeBin := filepath.Dir(binary)
 	callLog := filepath.Join(t.TempDir(), "calls.log")
 	createCount := filepath.Join(t.TempDir(), "create-count")
-	cardCapture := filepath.Join(t.TempDir(), "sent-card.json")
+	botmuxCalled := filepath.Join(t.TempDir(), "botmux-called")
 	const traceURL = "https://bytedance.larkoffice.com/docx/MaintainerPanoramaTrace"
 	const logURL = "https://bytedance.larkoffice.com/docx/MaintainerPanoramaCLILog"
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), `#!/bin/sh
@@ -90,24 +88,13 @@ fi
 `)
 	writeExecutable(t, filepath.Join(fakeBin, "botmux"), `#!/bin/sh
 set -eu
-card_file=
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = "--card-file" ]; then
-    card_file=$2
-    shift 2
-  else
-    shift
-  fi
-done
-test -n "$card_file"
-/bin/cp "$card_file" "$CARD_CAPTURE"
-printf '%s\n' botmux >> "$CALL_LOG"
+: > "$BOTMUX_CALLED"
 `)
 
 	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Maintainer panorama")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
-		"CALL_LOG="+callLog, "CREATE_COUNT="+createCount, "CARD_CAPTURE="+cardCapture,
+		"CALL_LOG="+callLog, "CREATE_COUNT="+createCount, "BOTMUX_CALLED="+botmuxCalled,
 	)
 	assertSuccess(t, collect(command), "flow.init")
 
@@ -118,14 +105,11 @@ printf '%s\n' botmux >> "$CALL_LOG"
 			t.Fatalf("flow init did not bind %q:\n%s", want, status.stdout)
 		}
 	}
-	if got := strings.TrimSpace(string(readFile(t, callLog))); got != "lark\nlark\nbotmux" {
-		t.Fatalf("provision/send order = %q, want two Lark creates then botmux", got)
+	if got := strings.TrimSpace(string(readFile(t, callLog))); got != "lark\nlark" {
+		t.Fatalf("flow init external calls = %q, want two Trace document creates", got)
 	}
-	sent := string(readFile(t, cardCapture))
-	for _, want := range []string{traceURL, logURL, "CLI 日志"} {
-		if strings.Count(sent, want) != 1 {
-			t.Fatalf("sent Panorama must show %q exactly once:\n%s", want, sent)
-		}
+	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
+		t.Fatalf("flow init unexpectedly invoked botmux: %v", err)
 	}
 	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
 	for _, want := range []string{`"trace_document_url": "` + traceURL + `"`, `"cli_log_document_url": "` + logURL + `"`} {
@@ -315,7 +299,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 		t.Fatal(err)
 	}
 	if value.Schema != "2.0" || value.Header.Template != "default" ||
-		value.Header.Title.Content != "后端研发交付 · Driver layout" ||
+		value.Header.Title.Content != "Workflow · Driver layout" ||
 		value.Header.Subtitle.Content != "问题定义 · 技术问题定义" || len(value.Header.TextTagList) != 2 {
 		t.Fatalf("Driver header contract was lost: %s", content)
 	}

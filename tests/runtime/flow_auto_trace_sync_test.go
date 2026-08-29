@@ -222,7 +222,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 		t.Fatalf("automatic sync must resolve the stable user identity through lark-cli whoami:\n%s", log)
 	}
 	traceContent := string(readFile(t, traceContentPath))
-	for _, want := range []string{"# PRD Flow Trace", "问题定义/问题定义/技术问题定义 → 问题定义/问题定义/问题人工确认", "problem_definition_path"} {
+	for _, want := range []string{"# Workflow Trace", "问题定义/问题定义/技术问题定义 → 问题定义/问题定义/问题人工确认", "problem_definition_path"} {
 		if !strings.Contains(traceContent, want) {
 			t.Fatalf("auto-synced Trace content does not contain %q:\n%s", want, traceContent)
 		}

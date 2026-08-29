@@ -14,6 +14,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
 	"github.com/zeefan1555/fanloop/internal/larkexec"
 	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/traceconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -53,7 +54,7 @@ func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
 	tests := []struct {
 		name    string
 		current state.State
-		wantPRD string
+		wantPRD any
 	}{
 		{
 			name: "Meego locator only",
@@ -83,9 +84,13 @@ func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fields := registryFields(test.current, workflow.Workflow{}, nil, "", "trace-key", "owner")
+			registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, "unconfigured-workflow")
+			if !ok {
+				t.Fatal("production default Registry is missing")
+			}
+			fields := registryFields(registry, test.current, workflow.Workflow{}, nil, "", "trace-key", "owner")
 			if got := fields["PRD"]; got != test.wantPRD {
-				t.Fatalf("Registry PRD = %#v, want %q", got, test.wantPRD)
+				t.Fatalf("Registry PRD = %#v, want %#v", got, test.wantPRD)
 			}
 		})
 	}
@@ -106,7 +111,11 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 			"merge_request_urls":            {Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`)},
 		},
 	}
-	fields := registryFields(current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")
+	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
+	if !ok {
+		t.Fatal("Workflow Registry override is missing")
+	}
+	fields := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")
 	want := map[string]any{
 		"PRD":    nil,
 		"需求澄清":   "https://bytedance.larkoffice.com/docx/Requirements",
@@ -120,14 +129,18 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 		}
 	}
 	current.Requirement.SourceURL = "https://bytedance.larkoffice.com/docx/RealPRD"
-	if got := registryFields(current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")["PRD"]; got != current.Requirement.SourceURL {
+	if got := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")["PRD"]; got != current.Requirement.SourceURL {
 		t.Fatalf("maintainer real PRD = %#v, want %q", got, current.Requirement.SourceURL)
 	}
 
 	ordinary := current
-	ordinary.Release.Workflow.ID = "fanloop"
+	ordinary.Release.Workflow.ID = "unconfigured-workflow"
 	ordinary.Integrations.Trace.CLILogDocumentURL = ""
-	ordinaryFields := registryFields(ordinary, workflow.Workflow{}, nil, ordinary.Integrations.Trace.DocumentURL, "trace-key", "owner")
+	ordinaryRegistry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, ordinary.Release.Workflow.ID)
+	if !ok {
+		t.Fatal("production default Registry is missing")
+	}
+	ordinaryFields := registryFields(ordinaryRegistry, ordinary, workflow.Workflow{}, nil, ordinary.Integrations.Trace.DocumentURL, "trace-key", "owner")
 	for _, key := range []string{"需求澄清", "技术方案", "MR", "CLI 日志"} {
 		if _, exists := ordinaryFields[key]; exists {
 			t.Fatalf("ordinary Registry unexpectedly contains %q: %#v", key, ordinaryFields)

@@ -19,7 +19,7 @@ loop:
       when:
         any_of:
           - [requirements_changed]
-          - [requirements_rejected, requirements_approval_recorded]
+          - [panorama_card_published, requirements_rejected, requirements_approval_recorded]
       back_step_id: clarify_requirements
 
   design_technical_solution:

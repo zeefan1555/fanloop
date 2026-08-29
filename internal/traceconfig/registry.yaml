@@ -1,0 +1,66 @@
+schema_version: 1
+profiles:
+  production:
+    default:
+      url: https://bytedance.larkoffice.com/wiki/Cd3iw7bAVilLHykAqRdcWnYZnRg?table=tblAT0YSny5i6ffv&view=vew5zFcUtJ
+      base_token: VXU9bSrZVauBSQsd3TXcxNv4nef
+      table_id: tblAT0YSny5i6ffv
+      view_id: vew5zFcUtJ
+      require_cli_log_document: false
+      fields:
+        trace_key: trace_key
+        title: 需求
+        owner: 负责人
+        location: 阶段 / 子状态
+        status: 状态
+        loop_count: Loop
+        source_url: PRD
+        source_output: requirement_document_url
+        source_document_only: true
+        trace_url: Trace
+        updated_at: 更新时间
+        origin: 来源
+    workflows:
+      fanloop-maintainer:
+        url: https://bytedance.larkoffice.com/wiki/MTuwwC3DHiPSmNkX4GIcKDv0n7b?table=tblW1KFyrKtUeNF4&view=vew5zFcUtJ
+        base_token: Lu15bIcOuaAscosQe9ecddhtnBg
+        table_id: tblW1KFyrKtUeNF4
+        view_id: vew5zFcUtJ
+        require_cli_log_document: true
+        fields:
+          trace_key: trace_key
+          title: 需求
+          owner: 负责人
+          location: 阶段 / 子状态
+          status: 状态
+          loop_count: Loop
+          source_url: PRD
+          source_document_only: true
+          trace_url: Trace
+          updated_at: 更新时间
+          origin: 来源
+          cli_log_url: CLI 日志
+          outputs:
+            requirement_document_url: 需求澄清
+            technical_design_document_url: 技术方案
+            merge_request_urls: MR
+  test:
+    default:
+      url: https://bytedance.larkoffice.com/wiki/GPw5wU3O3ia00MkhN4acCtQDnne?table=tblGrG1epTVE9tHs&view=vew5zFcUtJ
+      base_token: A3zNbz0sFapWzVsjHCDcIebdnfg
+      table_id: tblGrG1epTVE9tHs
+      view_id: vew5zFcUtJ
+      require_cli_log_document: false
+      fields:
+        trace_key: trace_key
+        title: 需求
+        owner: 负责人
+        location: 阶段 / 子状态
+        status: 状态
+        loop_count: Loop
+        source_url: PRD
+        source_output: requirement_document_url
+        source_document_only: true
+        trace_url: Trace
+        updated_at: 更新时间
+        origin: 来源

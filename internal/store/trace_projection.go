@@ -1,12 +1,8 @@
 package store
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -22,25 +18,12 @@ var beijingTimezone = time.FixedZone("UTC+8", 8*60*60)
 // RenderEvents rebuilds the human-facing Trace from committed State and Events.
 func RenderEvents(root string, current state.State, definition workflow.Workflow, events []state.Event) []byte {
 	var output strings.Builder
-	meegoURL, prdURL := RequirementLinks(current)
-	maintainer := current.Integrations.Trace != nil && traceconfig.IsMaintainerProduction(current.Integrations.Trace.Registry, current.Release.Workflow.ID)
-	if maintainer {
-		_, prdURL = RequirementSourceLinks(current.Requirement.SourceURL)
-	}
-	output.WriteString("# PRD Flow Trace\n\n")
-	fmt.Fprintf(&output, "- Meego 需求：%s\n", firstNonEmpty(meegoURL, "未提供"))
-	fmt.Fprintf(&output, "- 需求目录：%s\n", root)
-	fmt.Fprintf(&output, "- 开发分支：%s\n", developmentBranchSummary(root, current))
-	fmt.Fprintf(&output, "- PRD 文档：%s\n", firstNonEmpty(prdURL, "未提供"))
-	if maintainer {
-		fmt.Fprintf(&output, "- 需求澄清文档：%s\n", firstNonEmpty(outputString(current, "requirement_document_url"), "未生成"))
-	}
-	fmt.Fprintf(&output, "- 技术方案文档：%s\n", firstNonEmpty(outputString(current, "technical_design_document_url"), "未生成"))
-	if maintainer {
-		fmt.Fprintf(&output, "- MR：%s\n", firstNonEmpty(firstOutputURL(current, "merge_request_urls"), "未生成"))
-		fmt.Fprintf(&output, "- CLI 日志：%s\n", current.Integrations.Trace.CLILogDocumentURL)
-	}
-	fmt.Fprintf(&output, "- 测试用例文档：%s\n", firstNonEmpty(outputString(current, "test_case_document_url"), "未生成"))
+	output.WriteString("# Workflow Trace\n\n")
+	fmt.Fprintf(&output, "- Requirement：%s\n", current.Requirement.Title)
+	fmt.Fprintf(&output, "- 来源：%s\n", firstNonEmpty(current.Requirement.SourceURL, "未提供"))
+	fmt.Fprintf(&output, "- Requirement Root：%s\n", root)
+	fmt.Fprintf(&output, "- Workflow：%s\n", current.Release.Workflow.ID)
+	fmt.Fprintf(&output, "- Release：%s\n", current.Release.Version)
 	fmt.Fprintf(&output, "- 更新时间：%s\n", beijingTime(current.UpdatedAt))
 	fmt.Fprintf(&output, "- 回流次数：共 %d 次\n", traceLoopCount(events))
 
@@ -59,49 +42,6 @@ func RenderEvents(root string, current state.State, definition workflow.Workflow
 	output.WriteString(strings.Join(traceLogLines(definition, events), "\n"))
 	output.WriteByte('\n')
 	return []byte(output.String())
-}
-
-// RequirementLinks separates a Meego locator from a readable PRD document.
-func RequirementLinks(current state.State) (string, string) {
-	meegoURL, prdURL := RequirementSourceLinks(current.Requirement.SourceURL)
-	if clarified := outputString(current, "requirement_document_url"); isSupportedPRDDocumentURL(clarified) {
-		prdURL = clarified
-	}
-	return meegoURL, prdURL
-}
-
-// RequirementSourceLinks separates a Requirement source locator from a real PRD document.
-func RequirementSourceLinks(source string) (string, string) {
-	sourceURL := strings.TrimSpace(source)
-	meegoURL, prdURL := "", ""
-	if isMeegoURL(sourceURL) {
-		meegoURL = sourceURL
-	} else if isSupportedPRDDocumentURL(sourceURL) {
-		prdURL = sourceURL
-	}
-	return meegoURL, prdURL
-}
-
-func isSupportedPRDDocumentURL(value string) bool {
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Scheme != "https" {
-		return false
-	}
-	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
-	if !strings.HasSuffix(host, ".larkoffice.com") && !strings.HasSuffix(host, ".feishu.cn") {
-		return false
-	}
-	segments := strings.Split(strings.Trim(parsed.EscapedPath(), "/"), "/")
-	return len(segments) > 0 && (segments[0] == "docx" || segments[0] == "wiki" || segments[0] == "docs")
-}
-
-func isMeegoURL(value string) bool {
-	parsed, err := url.Parse(value)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return false
-	}
-	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
-	return host == "project.feishu.cn" || host == "meegle.com" || strings.HasSuffix(host, ".meegle.com") || strings.HasPrefix(host, "meego.")
 }
 
 // RenderTraceConfig projects synchronization metadata. It is never a runtime source.
@@ -257,8 +197,13 @@ func traceProgressPercent(current state.State, definition workflow.Workflow) int
 }
 
 func traceDocumentLink(current state.State) string {
+	lines := []string{}
 	if current.Integrations.Trace != nil && current.Integrations.Trace.DocumentURL != "" {
-		return "📄 Trace 文档：[点此查看飞书审查文档](" + current.Integrations.Trace.DocumentURL + ")"
+		lines = append(lines, "📄 Trace 文档：[点此查看飞书审查文档]("+current.Integrations.Trace.DocumentURL+")")
+		if current.Integrations.Trace.CLILogDocumentURL != "" {
+			lines = append(lines, "📜 CLI 日志：[查看完整输入输出]("+current.Integrations.Trace.CLILogDocumentURL+")")
+		}
+		return strings.Join(lines, "\n")
 	}
 	return "📄 Trace 文档：未绑定"
 }
@@ -462,98 +407,6 @@ func formatEvidence(values []state.Evidence) string {
 		result = append(result, string(item.Source)+":"+item.Content)
 	}
 	return strings.Join(result, "；")
-}
-
-func developmentBranchSummary(root string, current state.State) string {
-	relative := outputString(current, "repository_scope_path")
-	clean := filepath.Clean(relative)
-	if relative == "" || filepath.IsAbs(relative) || clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return "待仓库范围确认"
-	}
-	file, err := os.Open(filepath.Join(root, clean))
-	if err != nil {
-		return "待仓库范围确认"
-	}
-	defer file.Close()
-	rows := make([]string, 0)
-	inWorkspaceTable := false
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.TrimSpace(line) == "## 远端工作区" {
-			inWorkspaceTable = true
-			continue
-		}
-		if inWorkspaceTable && strings.HasPrefix(line, "## ") {
-			break
-		}
-		if !inWorkspaceTable || !strings.HasPrefix(strings.TrimSpace(line), "|") {
-			continue
-		}
-		cells := markdownTableCells(line)
-		if len(cells) < 5 || cells[0] == "仓库" || cells[0] == "" || dividerCell(cells[0]) {
-			continue
-		}
-		repository, branch := cells[0], cells[3]
-		if strings.HasPrefix(repository, "<") || strings.HasPrefix(branch, "<") {
-			continue
-		}
-		rows = append(rows, repository+": "+branch)
-	}
-	if len(rows) == 0 {
-		return "待仓库范围确认"
-	}
-	return strings.Join(rows, "；")
-}
-
-func markdownTableCells(line string) []string {
-	parts := strings.Split(strings.Trim(strings.TrimSpace(line), "|"), "|")
-	for index := range parts {
-		parts[index] = strings.Trim(strings.TrimSpace(parts[index]), "`")
-	}
-	return parts
-}
-
-func dividerCell(value string) bool {
-	if value == "" {
-		return false
-	}
-	for _, char := range value {
-		if char != '-' && char != ':' {
-			return false
-		}
-	}
-	return true
-}
-
-func outputString(current state.State, name string) string {
-	output, ok := current.Outputs[name]
-	if !ok {
-		return ""
-	}
-	var value string
-	if json.Unmarshal(output.Value, &value) != nil {
-		return ""
-	}
-	return value
-}
-
-func firstOutputURL(current state.State, name string) string {
-	output, ok := current.Outputs[name]
-	if !ok {
-		return ""
-	}
-	var values []string
-	if json.Unmarshal(output.Value, &values) != nil {
-		return ""
-	}
-	for _, value := range values {
-		parsed, err := url.Parse(value)
-		if err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != "" {
-			return value
-		}
-	}
-	return ""
 }
 
 func compactRaw(raw json.RawMessage) string {

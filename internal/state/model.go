@@ -246,10 +246,11 @@ func (value State) Validate() error {
 		return fmt.Errorf("invalid current Evidence")
 	}
 	if binding := value.Integrations.Trace; binding != nil {
-		if !ValidTraceDocumentURL(binding.DocumentURL) || !traceconfig.Valid(binding.Registry) ||
+		registry, registryOK := traceconfig.Resolve(binding.Registry, value.Release.Workflow.ID)
+		if !ValidTraceDocumentURL(binding.DocumentURL) || !registryOK ||
 			binding.CLILogDocumentURL != "" && !ValidTraceDocumentURL(binding.CLILogDocumentURL) ||
 			SameTraceDocumentURL(binding.DocumentURL, binding.CLILogDocumentURL) ||
-			traceconfig.IsMaintainerProduction(binding.Registry, value.Release.Workflow.ID) != (binding.CLILogDocumentURL != "") {
+			registry.RequireCLILogDocument != (binding.CLILogDocumentURL != "") {
 			return fmt.Errorf("invalid Trace binding")
 		}
 	}
@@ -357,12 +358,13 @@ func ValidateEventPayload(event Event) error {
 			return err
 		}
 	case TraceDocumentBoundPayload:
+		registry, registryOK := traceconfig.Resolve(value.Registry, event.Workflow.ID)
 		if !ValidTraceDocumentURL(value.DocumentURL) || value.PreviousDocumentURL != "" && !ValidTraceDocumentURL(value.PreviousDocumentURL) ||
-			!traceconfig.Valid(value.Registry) || value.PreviousRegistry != "" && !traceconfig.Valid(value.PreviousRegistry) ||
+			!registryOK || value.PreviousRegistry != "" && !traceconfig.Valid(value.PreviousRegistry) ||
 			value.CLILogDocumentURL != "" && !ValidTraceDocumentURL(value.CLILogDocumentURL) ||
 			value.PreviousCLILogDocumentURL != "" && !ValidTraceDocumentURL(value.PreviousCLILogDocumentURL) ||
 			SameTraceDocumentURL(value.DocumentURL, value.CLILogDocumentURL) ||
-			traceconfig.IsMaintainerProduction(value.Registry, event.Workflow.ID) != (value.CLILogDocumentURL != "") {
+			registry.RequireCLILogDocument != (value.CLILogDocumentURL != "") {
 			return fmt.Errorf("invalid Trace binding")
 		}
 	case TraceSyncStartedPayload:

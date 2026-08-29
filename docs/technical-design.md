@@ -1,5 +1,7 @@
 # Fanloop 当前技术设计
 
+Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码只提供稳定的解释器与持久化能力。
+
 ## 真值与边界
 
 - `idl/*.thrift` 定义公开 CLI、durable storage 与 Workflow YAML 结构；`internal/idl/` 只保存生成物。
@@ -7,6 +9,8 @@
   五个文件共同定义，Go Runtime 只负责通用加载、校验与执行。
 - Agent 提交事实和 RouteSelection；CLI 校验结构、输出类型、互斥条件与唯一 Route，不证明业务事实。
 - Flow State 与 Output Registry 是本地事实，Trace 与 Card 是相互隔离的投影。
+- `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
+  原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
 当前发布两套 Bundle：
 
@@ -22,6 +26,11 @@ Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release �
 `fanloop-maintainer`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
 [ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)。
 
+Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
+可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 endpoint、远端字段名、
+CLI 日志要求和 Output 字段映射。完整通用化决策见
+[ADR-0080](./adr/0080-make-runtime-workflow-agnostic.md)。
+
 ## 推进模型
 
 `flow status` 返回当前 Step 的 context、execution、Prompt/Skills、Conditions、available routes 和
@@ -36,7 +45,13 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-## Technical Solution 领域边界
+Human Step 的全景审核材料同样由五份 YAML 驱动。Route 用
+`panorama_card_published` 与批准、拒绝或反馈分类 Condition 组成 AND 组；绑定 Skill 负责生成、发送
+和回读，CLI 只接受本轮回执并验证 Route。Runtime 不调用 `botmux`，但继续维护本地 Card Projection、
+显式 Card 渲染以及 Trace provision/sync。完整决策见
+[ADR-0081](./adr/0081-publish-panorama-through-workflow-condition.md)。
+
+## 当前配置实例
 
 `technical-solution-design` 先冻结 `.technical-solution/problem.md`，再通过独立人工门禁确认
 `.technical-solution/proposal.md` 的选型与总体架构方向，最后生成 `technical-solution.md`、
@@ -46,7 +61,7 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 `technical-solution-approval`。
 
 问题定义变化回到第一步并失效全部下游 Output；方向变化回到方案推导；写作或审校问题只回到
-方案写作。Human Step 的结论保存在 Flow Event/Evidence，不创建第二套流程状态或审批状态。
+方案写作。Human Step 的全景回执和结论都是普通 Output/Event 事实，不创建第二套流程状态或审批状态。
 
 ## 当前持久化版本
 
@@ -61,6 +76,9 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 
 一个 Release 原子携带 `bin/fanloop`、统一入口、两套 Workflow 和它们引用的 Skills。Release
 Manifest 固定版本、组件路径与 SHA-256；安装验证成功后才切换 `~/.fanloop/current`。
+
+新增 Workflow 的发布改动只包含五份 YAML、同名 Skill 组和场景路由。配置-only 契约测试会临时
+构造第三套 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。
 
 仓库级门禁只有两个：
 

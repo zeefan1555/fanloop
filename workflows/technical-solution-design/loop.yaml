@@ -8,7 +8,7 @@ loop:
 
   confirm_technical_problem:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_rejected]]}
+      when: {any_of: [[panorama_card_published, technical_problem_rejected]]}
       back_step_id: frame_technical_problem
 
   derive_technical_solution:
@@ -18,10 +18,10 @@ loop:
 
   confirm_solution_direction:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_changed]]}
+      when: {any_of: [[panorama_card_published, technical_problem_changed]]}
       back_step_id: frame_technical_problem
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
-      when: {any_of: [[solution_direction_rejected]]}
+      when: {any_of: [[panorama_card_published, solution_direction_rejected]]}
       back_step_id: derive_technical_solution
 
   write_technical_solution:
@@ -45,11 +45,11 @@ loop:
 
   confirm_technical_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_changed]]}
+      when: {any_of: [[panorama_card_published, technical_problem_changed]]}
       back_step_id: frame_technical_problem
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
-      when: {any_of: [[solution_direction_changed]]}
+      when: {any_of: [[panorama_card_published, solution_direction_changed]]}
       back_step_id: derive_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_writing}
-      when: {any_of: [[technical_solution_rejected]]}
+      when: {any_of: [[panorama_card_published, technical_solution_rejected]]}
       back_step_id: write_technical_solution

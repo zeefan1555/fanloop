@@ -15,9 +15,9 @@ func TestAgentSubmittedTechnicalSolutionApprovalsAdvanceWorkflow(t *testing.T) {
 		next       string
 	}{
 		{step: "frame_technical_problem", conditions: []string{conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`)}, next: "confirm_technical_problem"},
-		{step: "confirm_technical_problem", conditions: []string{conditionResult("technical_problem_approved", "enum_value", `"approved"`)}, next: "derive_technical_solution"},
+		{step: "confirm_technical_problem", conditions: []string{conditionResult("panorama_card_published", "string", `"receipt-problem"`), conditionResult("technical_problem_approved", "enum_value", `"approved"`)}, next: "derive_technical_solution"},
 		{step: "derive_technical_solution", conditions: []string{conditionResult("technical_solution_derived", "path", `".technical-solution/proposal.md"`)}, next: "confirm_solution_direction"},
-		{step: "confirm_solution_direction", conditions: []string{conditionResult("solution_direction_approved", "enum_value", `"approved"`)}, next: "write_technical_solution"},
+		{step: "confirm_solution_direction", conditions: []string{conditionResult("panorama_card_published", "string", `"receipt-direction"`), conditionResult("solution_direction_approved", "enum_value", `"approved"`)}, next: "write_technical_solution"},
 		{step: "write_technical_solution", conditions: []string{
 			conditionResult("technical_solution_written", "path", `"technical-solution.md"`),
 			conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`),
@@ -38,6 +38,7 @@ func TestAgentSubmittedTechnicalSolutionApprovalsAdvanceWorkflow(t *testing.T) {
 
 	completed := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_technical_solution",
+		"--condition-result", conditionResult("panorama_card_published", "string", `"receipt-solution"`),
 		"--condition-result", conditionResult("technical_solution_approved", "enum_value", `"approved"`),
 		"--terminal", "--summary", "technical solution approved")
 	assertSuccess(t, completed, "flow.report.result")

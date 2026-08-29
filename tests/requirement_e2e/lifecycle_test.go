@@ -167,11 +167,11 @@ type routeEvent struct {
 
 var linearLoopConditions = map[string][][]string{
 	"frame_technical_problem":   {{"technical_problem_rework_requested"}},
-	"confirm_technical_problem": {{"technical_problem_rejected"}},
+	"confirm_technical_problem": {{"panorama_card_published", "technical_problem_rejected"}},
 	"derive_technical_solution": {{"technical_problem_changed"}},
 	"confirm_solution_direction": {
-		{"technical_problem_changed"},
-		{"solution_direction_rejected"},
+		{"panorama_card_published", "technical_problem_changed"},
+		{"panorama_card_published", "solution_direction_rejected"},
 	},
 	"write_technical_solution": {
 		{"technical_problem_changed"},
@@ -183,9 +183,9 @@ var linearLoopConditions = map[string][][]string{
 		{"technical_solution_review_failed", "technical_solution_review_written"},
 	},
 	"confirm_technical_solution": {
-		{"technical_problem_changed"},
-		{"solution_direction_changed"},
-		{"technical_solution_rejected"},
+		{"panorama_card_published", "technical_problem_changed"},
+		{"panorama_card_published", "solution_direction_changed"},
+		{"panorama_card_published", "technical_solution_rejected"},
 	},
 }
 
@@ -385,7 +385,7 @@ func verifyFinalWorkflowDemo(t *testing.T, binary string, paths workflowDemoPath
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"# PRD Flow Trace", "e2e-mock", "advanced", "looped", "completed"} {
+	for _, want := range []string{"# Workflow Trace", "e2e-mock", "advanced", "looped", "completed"} {
 		if !bytes.Contains(remoteTrace, []byte(want)) {
 			t.Fatalf("mock remote Trace omitted %q", want)
 		}

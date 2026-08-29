@@ -13,12 +13,14 @@ description: 对技术问题定义执行人工确认并留下完整审核证据�
 - 仍存在的开放问题及其是否阻塞后续推导；
 - 明确选择：批准，或拒绝并说明必须修改的内容。
 
+把上述内容连同最新 `flow status` 的完整 Stage/Job/Step 全景、有效 Outputs 和待决事项组成一份自包含审核材料，通过当前 Agent 渠道发送并回读成功。记录本次发送返回的真实 messageId 或 Agent 交互事件 ID；不得复用前一 Step 或前一次进入本 Step 的回执。材料发送成功后才请求人的决定。
+
 检查问题与目标是否具体、事实是否可验证、因果是否成立、范围是否完整且没有混入方案结论。发现问题时只指出，不直接改写已提交材料。
 
 仅在收到人的明确回复后报告结果：
 
-- 明确批准：上报 `technical_problem_approved`；
-- 拒绝或要求修改：上报 `technical_problem_rejected`，回到问题定义；
+- 明确批准：同时上报 `panorama_card_published` 与 `technical_problem_approved`；
+- 拒绝或要求修改：同时上报 `panorama_card_published` 与 `technical_problem_rejected`，回到问题定义；
 - 含糊、沉默或仅提供补充信息：继续等待，不推断批准。
 
-Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。
+`panorama_card_published` 输出本轮真实发送回执。Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。

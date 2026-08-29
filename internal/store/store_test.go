@@ -45,7 +45,7 @@ func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
 	if failure != nil || read.LastEventID != "e1" || bound.Ref != loaded.Ref {
 		t.Fatalf("read = %#v, bound = %#v, failure = %v", read, bound.Ref, failure)
 	}
-	if content, err := os.ReadFile(filepath.Join(root, ".fanloop", "trace", "events.md")); err != nil || !strings.Contains(string(content), "# PRD Flow Trace") || !strings.Contains(string(content), "Workflow 已初始化") {
+	if content, err := os.ReadFile(filepath.Join(root, ".fanloop", "trace", "events.md")); err != nil || !strings.Contains(string(content), "# Workflow Trace") || !strings.Contains(string(content), "Workflow 已初始化") {
 		t.Fatalf("projection = %q, error = %v", content, err)
 	}
 }
@@ -130,7 +130,7 @@ func TestTraceConfigWritesStorageThriftSchema(t *testing.T) {
 	}
 }
 
-func TestTraceProjectionDoesNotPresentMeegoSourceAsPRD(t *testing.T) {
+func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
@@ -146,27 +146,26 @@ func TestTraceProjectionDoesNotPresentMeegoSourceAsPRD(t *testing.T) {
 		Release:           state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID:     &step,
 		CurrentStepStatus: state.StepReady,
-		Outputs: map[string]state.RegisteredOutput{
-			"requirement_document_url": {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/ReadablePRD"`), ProducerStepID: "frame_technical_problem"},
-		},
-		CreatedAt: now,
-		UpdatedAt: now,
+		Outputs:           map[string]state.RegisteredOutput{},
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"- Meego 需求：https://meego.larkoffice.com/aweme/story/detail/7363677776",
-		"- PRD 文档：https://bytedance.larkoffice.com/docx/ReadablePRD",
+		"# Workflow Trace",
+		"- Requirement：Meego source",
+		"- 来源：https://meego.larkoffice.com/aweme/story/detail/7363677776",
+		"- Requirement Root：/tmp/requirement",
+		"- Workflow：technical-solution-design",
+		"- Release：dev",
 	} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)
 		}
 	}
-	if strings.Contains(projection, "- PRD 文档：https://meego.larkoffice.com") {
-		t.Fatalf("Trace projection still presents Meego as PRD:\n%s", projection)
-	}
 }
 
-func TestMaintainerTraceProjectionSeparatesArtifactsFromPRD(t *testing.T) {
+func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T) {
 	loaded, err := workflow.Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
@@ -191,38 +190,13 @@ func TestMaintainerTraceProjectionSeparatesArtifactsFromPRD(t *testing.T) {
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"- PRD 文档：未提供",
-		"- 需求澄清文档：https://bytedance.larkoffice.com/docx/Requirements",
-		"- 技术方案文档：https://bytedance.larkoffice.com/docx/Design",
-		"- MR：https://github.com/zeefan1555/fanloop/merge_requests/123",
-		"- CLI 日志：https://bytedance.larkoffice.com/docx/CLILog",
+		"| requirement_document_url | url | clarify_requirements | https://bytedance.larkoffice.com/docx/Requirements |",
+		"| technical_design_document_url | url | design_technical_solution | https://bytedance.larkoffice.com/docx/Design |",
+		"| merge_request_urls | url_list | handoff_merge_request | [\"https://github.com/zeefan1555/fanloop/merge_requests/123\"] |",
+		"📜 CLI 日志：[查看完整输入输出](https://bytedance.larkoffice.com/docx/CLILog)",
 	} {
 		if !strings.Contains(projection, want) {
-			t.Fatalf("maintainer Trace projection does not contain %q:\n%s", want, projection)
-		}
-	}
-	if strings.Contains(projection, "- PRD 文档：https://bytedance.larkoffice.com/docx/Requirements") {
-		t.Fatalf("maintainer requirements document still masquerades as PRD:\n%s", projection)
-	}
-	current.Requirement.SourceURL = "https://bytedance.larkoffice.com/docx/RealPRD"
-	if projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil)); !strings.Contains(projection, "- PRD 文档："+current.Requirement.SourceURL) {
-		t.Fatalf("maintainer Trace omitted a real PRD:\n%s", projection)
-	}
-}
-
-func TestRequirementLinksOnlyProjectSupportedDocumentSourcesAsPRD(t *testing.T) {
-	for _, test := range []struct {
-		source string
-		prd    string
-	}{
-		{source: "https://bytedance.larkoffice.com/docx/ReadablePRD", prd: "https://bytedance.larkoffice.com/docx/ReadablePRD"},
-		{source: "https://bytedance.larkoffice.com/wiki/ReadablePRD", prd: "https://bytedance.larkoffice.com/wiki/ReadablePRD"},
-		{source: "https://github.com/zeefan1555/fanloop", prd: ""},
-		{source: "https://example.com/requirements", prd: ""},
-	} {
-		_, got := RequirementLinks(state.State{Requirement: state.Requirement{SourceURL: test.source}})
-		if got != test.prd {
-			t.Fatalf("RequirementLinks(%q) PRD = %q, want %q", test.source, got, test.prd)
+			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)
 		}
 	}
 }
