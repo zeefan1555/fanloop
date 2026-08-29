@@ -15,7 +15,7 @@ type Result struct {
 	ExitCode int
 }
 
-// Execute is the only Lark subprocess seam used by Fanloop.
+// Execute is the only Lark subprocess seam used by Commonloop.
 var Execute = execute
 
 func execute(ctx context.Context, args []string, stdin io.Reader, timeout time.Duration) (Result, error) {

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Fanloop DEV Bootstrap"
-  short_description: "准备 Fanloop CLI 诊断工作区与最新基线"
-  default_prompt: "Use $fanloop-dev-bootstrap to prepare an isolated Fanloop CLI issue workspace and main baseline."

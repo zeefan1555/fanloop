@@ -21,9 +21,9 @@ func TestMaintainerTraceUsesSelfIterationRegistry(t *testing.T) {
 	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Self Iteration"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "commonloop-maintainer", "--title", "Self Iteration"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace", "--cli-log-document-url", "https://bytedance.larkoffice.com/docx/AutoSyncCLILog"), "trace.bind")
-	configBytes := readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json"))
+	configBytes := readFile(t, filepath.Join(root, ".commonloop", "trace", "config.json"))
 	var config map[string]any
 	if err := json.Unmarshal(configBytes, &config); err != nil {
 		t.Fatalf("decode Trace config: %v", err)
@@ -63,11 +63,11 @@ func TestMaintainerTraceSyncPublishesCompleteCLILogAsThirdTarget(t *testing.T) {
 	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Complete CLI log"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "commonloop-maintainer", "--title", "Complete CLI log"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root,
 		"--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace",
 		"--cli-log-document-url", "https://bytedance.larkoffice.com/docx/AutoSyncCLILog"), "trace.bind")
-	localLogPath := filepath.Join(root, ".fanloop", "log", "cli.jsonl")
+	localLogPath := filepath.Join(root, ".commonloop", "log", "cli.jsonl")
 	before := readFile(t, localLogPath)
 
 	synced := run(binary, "trace", "sync", "--root", root)
@@ -106,7 +106,7 @@ func TestMaintainerTraceSyncRecordsIndependentCLILogFailure(t *testing.T) {
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 	t.Setenv("FAKE_FAIL_TARGET", "cli_log_document")
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Partial CLI log"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "commonloop-maintainer", "--title", "Partial CLI log"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root,
 		"--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace",
 		"--cli-log-document-url", "https://bytedance.larkoffice.com/docx/AutoSyncCLILog"), "trace.bind")
@@ -122,7 +122,7 @@ func TestMaintainerTraceSyncRecordsIndependentCLILogFailure(t *testing.T) {
 			t.Fatalf("partial sync is missing %s:\n%s", want, synced.stdout)
 		}
 	}
-	config := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json")))
+	config := string(readFile(t, filepath.Join(root, ".commonloop", "trace", "config.json")))
 	for _, want := range []string{
 		`"schema_version": 2`,
 		`"cli_log_document_url": "https://bytedance.larkoffice.com/docx/AutoSyncCLILog"`,
@@ -143,7 +143,7 @@ func TestMaintainerDryRunAcceptsIssueWorkspaceDirectoryOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Directory Output"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "commonloop-maintainer", "--title", "Directory Output"), "flow.init")
 	reported := run(binary, "flow", "report", "result",
 		"--root", root,
 		"--dry-run",
@@ -172,7 +172,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace", "--registry", "test"), "trace.bind")
-	configBytes := readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json"))
+	configBytes := readFile(t, filepath.Join(root, ".commonloop", "trace", "config.json"))
 	var config map[string]any
 	if err := json.Unmarshal(configBytes, &config); err != nil {
 		t.Fatalf("decode Trace config: %v", err)

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
+	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
 	"golang.org/x/sys/unix"
 )
 
@@ -20,7 +20,7 @@ func TestAppendCreatesSecureJSONL(t *testing.T) {
 	if err := Append(root, entry); err != nil {
 		t.Fatal(err)
 	}
-	directory := filepath.Join(root, ".fanloop", "log")
+	directory := filepath.Join(root, ".commonloop", "log")
 	path := filepath.Join(directory, filename)
 	for _, item := range []struct {
 		path string
@@ -53,7 +53,7 @@ func TestAppendCreatesSecureJSONL(t *testing.T) {
 func TestAppendRejectsSymlinkTargets(t *testing.T) {
 	t.Run("file", func(t *testing.T) {
 		root := t.TempDir()
-		directory := filepath.Join(root, ".fanloop", "log")
+		directory := filepath.Join(root, ".commonloop", "log")
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -78,11 +78,11 @@ func TestAppendRejectsSymlinkTargets(t *testing.T) {
 
 	t.Run("directory", func(t *testing.T) {
 		root := t.TempDir()
-		if err := os.MkdirAll(filepath.Join(root, ".fanloop"), 0o700); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, ".commonloop"), 0o700); err != nil {
 			t.Fatal(err)
 		}
 		outside := t.TempDir()
-		if err := os.Symlink(outside, filepath.Join(root, ".fanloop", "log")); err != nil {
+		if err := os.Symlink(outside, filepath.Join(root, ".commonloop", "log")); err != nil {
 			t.Fatal(err)
 		}
 		if err := Append(root, testEntry("directory-link")); err == nil {
@@ -96,7 +96,7 @@ func TestAppendRejectsSymlinkTargets(t *testing.T) {
 
 func TestAppendRejectsNamedPipeWithoutBlocking(t *testing.T) {
 	root := t.TempDir()
-	directory := filepath.Join(root, ".fanloop", "log")
+	directory := filepath.Join(root, ".commonloop", "log")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestAppendSerializesConcurrentLines(t *testing.T) {
 		}
 	}
 
-	file, err := os.Open(filepath.Join(root, ".fanloop", "log", filename))
+	file, err := os.Open(filepath.Join(root, ".commonloop", "log", filename))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestReadAllReturnsExactSnapshotAndRejectsUnsafeFiles(t *testing.T) {
 	t.Run("exact bytes", func(t *testing.T) {
 		root := t.TempDir()
 		content := []byte("first\nsecond without newline ` and ```\n")
-		path := filepath.Join(root, ".fanloop", "log", filename)
+		path := filepath.Join(root, ".commonloop", "log", filename)
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -187,7 +187,7 @@ func TestReadAllReturnsExactSnapshotAndRejectsUnsafeFiles(t *testing.T) {
 
 	t.Run("symlink", func(t *testing.T) {
 		root := t.TempDir()
-		directory := filepath.Join(root, ".fanloop", "log")
+		directory := filepath.Join(root, ".commonloop", "log")
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -205,14 +205,14 @@ func TestReadAllReturnsExactSnapshotAndRejectsUnsafeFiles(t *testing.T) {
 
 	t.Run("symlinked directory", func(t *testing.T) {
 		root := t.TempDir()
-		if err := os.Mkdir(filepath.Join(root, ".fanloop"), 0o700); err != nil {
+		if err := os.Mkdir(filepath.Join(root, ".commonloop"), 0o700); err != nil {
 			t.Fatal(err)
 		}
 		outside := t.TempDir()
 		if err := os.WriteFile(filepath.Join(outside, filename), []byte("secret"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Symlink(outside, filepath.Join(root, ".fanloop", "log")); err != nil {
+		if err := os.Symlink(outside, filepath.Join(root, ".commonloop", "log")); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := ReadAll(root); err == nil {
@@ -222,7 +222,7 @@ func TestReadAllReturnsExactSnapshotAndRejectsUnsafeFiles(t *testing.T) {
 
 	t.Run("named pipe", func(t *testing.T) {
 		root := t.TempDir()
-		directory := filepath.Join(root, ".fanloop", "log")
+		directory := filepath.Join(root, ".commonloop", "log")
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			t.Fatal(err)
 		}

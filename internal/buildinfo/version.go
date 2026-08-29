@@ -3,10 +3,10 @@ package buildinfo
 import (
 	"os"
 
-	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
-	"github.com/zeefan1555/fanloop/internal/release"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	idl "github.com/zeefan1555/commonloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/internal/release"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 var (

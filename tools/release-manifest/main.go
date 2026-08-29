@@ -16,11 +16,11 @@ import (
 	"strings"
 
 	"github.com/ulikunitz/xz"
-	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
-	"github.com/zeefan1555/fanloop/internal/idl/releaseidl"
-	"github.com/zeefan1555/fanloop/internal/release"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/internal/idl/releaseidl"
+	"github.com/zeefan1555/commonloop/internal/release"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -98,8 +98,8 @@ func build(version, source, dist string) (release.Manifest, error) {
 	for _, target := range []struct{ os, arch string }{
 		{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"},
 	} {
-		sourceName := fmt.Sprintf("fanloop-%s-%s-%s.tar", version, target.os, target.arch)
-		name := fmt.Sprintf("fanloop-%s-%s-%s.tar.xz", version, target.os, target.arch)
+		sourceName := fmt.Sprintf("commonloop-%s-%s-%s.tar", version, target.os, target.arch)
+		name := fmt.Sprintf("commonloop-%s-%s-%s.tar.xz", version, target.os, target.arch)
 		path := filepath.Join(dist, name)
 		if err := compressArchive(filepath.Join(dist, sourceName), path); err != nil {
 			return manifest, err
@@ -374,9 +374,9 @@ func verifyArchive(archivePath string, manifest release.Manifest) (string, error
 		hash := sha256.Sum256(content)
 		files[name] = archivedFile{digest: "sha256:" + hex.EncodeToString(hash[:]), content: content}
 	}
-	binary, ok := files["bin/fanloop"]
+	binary, ok := files["bin/commonloop"]
 	if !ok {
-		return "", fmt.Errorf("%s does not contain bin/fanloop", archivePath)
+		return "", fmt.Errorf("%s does not contain bin/commonloop", archivePath)
 	}
 	binaryDigest := binary.digest
 	wantedSkills := map[string]bool{}

@@ -3,11 +3,11 @@ package ops
 import (
 	"context"
 
-	"github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/buildinfo"
-	"github.com/zeefan1555/fanloop/internal/doctor"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/buildinfo"
+	"github.com/zeefan1555/commonloop/internal/doctor"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
 )
 
 type Runtime struct{}

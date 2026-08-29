@@ -24,11 +24,11 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertSuccess(t, ready, "flow.report.result")
 	assertFlowEffect(t, ready.stdout, "advanced", "confirm_technical_problem")
 
-	flowState := readFile(t, filepath.Join(root, ".fanloop", "flow", "state.json"))
+	flowState := readFile(t, filepath.Join(root, ".commonloop", "flow", "state.json"))
 	if bytes.Contains(flowState, []byte(`"outputs"`)) {
 		t.Fatalf("Flow State still embeds Outputs:\n%s", flowState)
 	}
-	registry := readFile(t, filepath.Join(root, ".fanloop", "output", "state.json"))
+	registry := readFile(t, filepath.Join(root, ".commonloop", "output", "state.json"))
 	for _, want := range []string{`"problem_definition_path"`, `"producer_step_id": "frame_technical_problem"`} {
 		if !bytes.Contains(registry, []byte(want)) {
 			t.Fatalf("Output Registry does not contain %s:\n%s", want, registry)
@@ -86,7 +86,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 		t.Fatalf("design loop removed approved Requirement Output: %s", reviewed.stdout)
 	}
 
-	events := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "events.jsonl")))
+	events := string(readFile(t, filepath.Join(root, ".commonloop", "trace", "events.jsonl")))
 	for _, fact := range []string{`"kind":"flow_progressed"`, `"effect":"advanced"`, `"effect":"looped"`, `"condition_id":"technical_solution_review_failed"`} {
 		if !strings.Contains(events, fact) {
 			t.Fatalf("Event audit missing %s:\n%s", fact, events)

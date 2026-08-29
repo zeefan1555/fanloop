@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/commonloop/internal/release"
 )
 
 func TestPreflightSkillLinksExposesOnlyWorkflowSkill(t *testing.T) {
@@ -25,7 +25,7 @@ func TestPreflightSkillLinksExposesOnlyWorkflowSkill(t *testing.T) {
 	manifest := release.Manifest{Skills: []*release.Skill{
 		{Name: "ai-test", Path: "skills/technical-solution-design/ai-test"},
 		{Name: release.ExposedSkillName, Path: release.ExposedSkillPath},
-		{Name: "fanloop-dev-tdd", Path: "skills/fanloop-maintainer/fanloop-dev-tdd"},
+		{Name: "commonloop-dev-tdd", Path: "skills/commonloop-maintainer/commonloop-dev-tdd"},
 	}}
 	plans, external, err := preflightSkillLinks(request, manifest)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestPreflightSkillLinksExposesOnlyWorkflowSkill(t *testing.T) {
 		t.Fatalf("plans = %#v, external = %#v", plans, external)
 	}
 	for _, plan := range plans {
-		if filepath.Base(plan.path) != release.ExposedSkillName || plan.target != filepath.Join(root, "current", "entrypoints", "fanloop-workflow") {
+		if filepath.Base(plan.path) != release.ExposedSkillName || plan.target != filepath.Join(root, "current", "entrypoints", "commonloop-workflow") {
 			t.Fatalf("unexpected link plan: %#v", plan)
 		}
 	}
@@ -45,7 +45,7 @@ func TestCurrentSkillsPreserveGroupedTargets(t *testing.T) {
 	root := t.TempDir()
 	manifest := release.Manifest{Skills: []*release.Skill{
 		{Name: "retired", Path: "skills/technical-solution-design/retired"},
-		{Name: "internal", Path: "skills/fanloop-maintainer/internal"},
+		{Name: "internal", Path: "skills/commonloop-maintainer/internal"},
 	}}
 	content, err := json.Marshal(manifest)
 	if err != nil {
@@ -58,7 +58,7 @@ func TestCurrentSkillsPreserveGroupedTargets(t *testing.T) {
 	}
 
 	got := currentSkills(root)
-	if len(got) != 2 || got[0].name != "retired" || got[0].path != "skills/technical-solution-design/retired" || got[1].name != "internal" || got[1].path != "skills/fanloop-maintainer/internal" {
+	if len(got) != 2 || got[0].name != "retired" || got[0].path != "skills/technical-solution-design/retired" || got[1].name != "internal" || got[1].path != "skills/commonloop-maintainer/internal" {
 		t.Fatalf("currentSkills() = %#v", got)
 	}
 }

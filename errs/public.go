@@ -1,6 +1,6 @@
 package errs
 
-import "github.com/zeefan1555/fanloop/internal/idl/erroridl"
+import "github.com/zeefan1555/commonloop/internal/idl/erroridl"
 
 type Presentation struct {
 	Type      erroridl.ErrorType `json:"type"`

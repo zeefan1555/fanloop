@@ -4,7 +4,7 @@ package releaseidl
 
 import (
 	"fmt"
-	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
 	"strings"
 )
 

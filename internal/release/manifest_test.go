@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
-	"github.com/zeefan1555/fanloop/internal/idl/releaseidl"
+	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
+	"github.com/zeefan1555/commonloop/internal/idl/releaseidl"
 )
 
 func TestDecodeRejectsWorkflowBusinessVersionField(t *testing.T) {
@@ -44,11 +44,11 @@ func TestDecodeUsesGeneratedChildValidation(t *testing.T) {
 func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
 	manifest := validTestManifest()
 	manifest.Workflows = append(manifest.Workflows, &Workflow{
-		Id: "fanloop-maintainer", Path: "workflows/fanloop-maintainer", Sha256: manifest.Skills[0].Sha256,
+		Id: "commonloop-maintainer", Path: "workflows/commonloop-maintainer", Sha256: manifest.Skills[0].Sha256,
 	})
 	manifest.Skills = append(manifest.Skills, &Skill{
-		Name: "fanloop-dev-tdd", Version: "1.2.3",
-		Path: "skills/fanloop-maintainer/fanloop-dev-tdd", Sha256: manifest.Skills[0].Sha256,
+		Name: "commonloop-dev-tdd", Version: "1.2.3",
+		Path: "skills/commonloop-maintainer/commonloop-dev-tdd", Sha256: manifest.Skills[0].Sha256,
 	})
 	if err := manifest.Validate(); err != nil {
 		t.Fatalf("grouped Skill paths were rejected: %v", err)
@@ -59,7 +59,7 @@ func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
 	tests := []struct{ path, want string }{
 		{"skills/ai-test", "invalid or duplicate skill"},
 		{"skills/common/ai-test", `unknown Workflow group "common"`},
-		{"skills/fanloop-workflow/common/ai-test", "invalid or duplicate skill"},
+		{"skills/commonloop-workflow/common/ai-test", "invalid or duplicate skill"},
 		{"skills/Common/ai-test", "invalid or duplicate skill"},
 		{"entrypoints/ai-test", "invalid or duplicate skill"},
 	}
@@ -101,10 +101,10 @@ func validTestManifest() Manifest {
 			{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest},
 		},
 		Assets: []*Asset{
-			{Os: "darwin", Arch: "amd64", File: "fanloop-1.2.3-darwin-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
-			{Os: "darwin", Arch: "arm64", File: "fanloop-1.2.3-darwin-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
-			{Os: "linux", Arch: "amd64", File: "fanloop-1.2.3-linux-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
-			{Os: "linux", Arch: "arm64", File: "fanloop-1.2.3-linux-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "darwin", Arch: "amd64", File: "commonloop-1.2.3-darwin-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "darwin", Arch: "arm64", File: "commonloop-1.2.3-darwin-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "linux", Arch: "amd64", File: "commonloop-1.2.3-linux-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "linux", Arch: "arm64", File: "commonloop-1.2.3-linux-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
 		},
 	}
 }

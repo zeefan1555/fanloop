@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	clierrs "github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/buildinfo"
-	"github.com/zeefan1555/fanloop/internal/executionlog"
-	"github.com/zeefan1555/fanloop/internal/idl"
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
-	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
-	"github.com/zeefan1555/fanloop/internal/output"
-	"github.com/zeefan1555/fanloop/internal/state"
+	clierrs "github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/buildinfo"
+	"github.com/zeefan1555/commonloop/internal/executionlog"
+	"github.com/zeefan1555/commonloop/internal/idl"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
+	"github.com/zeefan1555/commonloop/internal/output"
+	"github.com/zeefan1555/commonloop/internal/state"
 )
 
 type streams struct {
@@ -139,13 +139,13 @@ func NewRoot(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command
 	ioStreams := streams{in: stdin, out: stdout, err: stderr}
 	var requirementRoot string
 	root := &cobra.Command{
-		Use:   "fanloop",
+		Use:   "commonloop",
 		Short: "Backend requirement delivery CLI",
 		Long: `Backend requirement delivery CLI.
 
 Agent workflow:
-1. Read the fanloop-workflow Skill before advancing a requirement.
-2. Run fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT> immediately before acting.
+1. Read the commonloop-workflow Skill before advancing a requirement.
+2. Run commonloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT> immediately before acting.
 3. Execute current.prompt and its required Skills from that latest Status.
 4. Read the target leaf command --help for its exact Request and controls.
 5. Report progress or a Condition result, then read flow status again.
@@ -169,7 +169,7 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		Args:        cobra.NoArgs,
 		Annotations: map[string]string{"bootstrap_control": "true"},
 		RunE: func(*cobra.Command, []string) error {
-			return errors.New("fanloop update requires the npm launcher; reinstall Fanloop with the official npm command")
+			return errors.New("commonloop update requires the npm launcher; reinstall Commonloop with the official npm command")
 		},
 	}
 	update.Flags().String("root", "", "")

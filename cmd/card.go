@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	cardruntime "github.com/zeefan1555/fanloop/internal/card"
-	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	cardruntime "github.com/zeefan1555/commonloop/internal/card"
+	"github.com/zeefan1555/commonloop/internal/idl/cardidl"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
 )
 
 func newCardCommand(ioStreams streams, root *string) *cobra.Command {
@@ -40,7 +40,7 @@ Request JSON:
   }
 
 Typed flags:
-  fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view current --format lark-json
+  commonloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view current --format lark-json
 
 Constraints:
   view and format are required. view is current or panorama. JSON format is markdown or lark_json;
@@ -54,8 +54,8 @@ Controls:
 
 Next step:
   Use the returned content directly and, for non-dry-run calls, retain the returned snapshot path for audit.`
-	command.Example = `  fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
-  fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view current --format lark-json`
+	command.Example = `  commonloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
+  commonloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view current --format lark-json`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		typed := func() (*cardidl.CardRenderRequest, *erroridl.PublicError) {
 			parsedView, err := cardidl.CardViewFromString(view)

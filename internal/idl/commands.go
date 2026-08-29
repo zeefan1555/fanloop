@@ -3,8 +3,8 @@ package idl
 import (
 	"reflect"
 
-	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
 )
 
 type CommandSpec struct {

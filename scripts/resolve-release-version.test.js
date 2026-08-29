@@ -9,13 +9,13 @@ const repository = path.resolve(__dirname, "..");
 const resolver = path.join(repository, "scripts", "resolve-release-version.js");
 
 function makeTempPackage(version = "1.2.3") {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-release-version-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-release-version-"));
   const packageJson = path.join(root, "package.json");
   fs.writeFileSync(
     packageJson,
     `${JSON.stringify(
       {
-        name: "@zeefan1555/fanloop-cli",
+        name: "@zeefan1555/commonloop-cli",
         version,
         publishConfig: { registry: "https://npm.pkg.github.com" },
       },
@@ -27,7 +27,7 @@ function makeTempPackage(version = "1.2.3") {
 }
 
 function fakeNpm(existingVersions) {
-  const bin = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-fake-npm-"));
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-fake-npm-"));
   const npmPath = path.join(bin, "npm");
   fs.writeFileSync(
     npmPath,
@@ -83,7 +83,7 @@ it("writes the resolved version when requested", () => {
 
 it("fails closed when npm returns an unknown registry error", () => {
   const { packageJson } = makeTempPackage("1.2.3");
-  const bin = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-fake-npm-error-"));
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-fake-npm-error-"));
   const npmPath = path.join(bin, "npm");
   fs.writeFileSync(
     npmPath,

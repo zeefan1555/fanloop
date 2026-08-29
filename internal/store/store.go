@@ -10,10 +10,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/zeefan1555/fanloop/errs"
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/errs"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 	"golang.org/x/sys/unix"
 )
 
@@ -36,7 +36,7 @@ func New(root string) (*Store, *erroridl.PublicError) {
 	if err != nil || !info.IsDir() {
 		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "--root must reference an existing directory", nil)
 	}
-	directory := filepath.Join(root, ".fanloop")
+	directory := filepath.Join(root, ".commonloop")
 	return &Store{
 		Root: root, directory: directory,
 		statePath:  filepath.Join(directory, "flow", "state.json"),
@@ -338,7 +338,7 @@ func atomicWrite(path string, content []byte) error {
 }
 
 func atomicWriteMode(path string, content []byte, mode os.FileMode) error {
-	temporary, err := os.CreateTemp(filepath.Dir(path), ".fanloop-*")
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".commonloop-*")
 	if err != nil {
 		return err
 	}

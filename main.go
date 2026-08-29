@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/zeefan1555/fanloop/cmd"
+	"github.com/zeefan1555/commonloop/cmd"
 )
 
 func main() {

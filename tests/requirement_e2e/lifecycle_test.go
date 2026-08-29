@@ -201,19 +201,19 @@ func TestRequirementWorkflowE2E(t *testing.T) {
 	if testing.Short() {
 		t.Skip("run through ./tests/run-e2e")
 	}
-	binary := os.Getenv("FANLOOP_E2E_BINARY")
+	binary := os.Getenv("COMMONLOOP_E2E_BINARY")
 	if binary == "" {
-		t.Fatal("FANLOOP_E2E_BINARY is required; run ./tests/run-e2e")
+		t.Fatal("COMMONLOOP_E2E_BINARY is required; run ./tests/run-e2e")
 	}
 	info, err := os.Stat(binary)
 	if err != nil || info.Mode()&0o111 == 0 {
-		t.Fatalf("FANLOOP_E2E_BINARY is not executable: %s: %v", binary, err)
+		t.Fatalf("COMMONLOOP_E2E_BINARY is not executable: %s: %v", binary, err)
 	}
 	if _, err := exec.LookPath("lark-cli"); err != nil {
 		t.Fatalf("fake lark-cli is not installed by ./tests/run-e2e: %v", err)
 	}
 	var demoInput *bufio.Scanner
-	if os.Getenv("FANLOOP_E2E_INTERACTIVE") == "1" {
+	if os.Getenv("COMMONLOOP_E2E_INTERACTIVE") == "1" {
 		demoTTY, err := os.Open("/dev/tty")
 		if err != nil {
 			t.Fatalf("打开交互终端 /dev/tty：%v", err)
@@ -235,7 +235,7 @@ func runLinearRouteDemo(t *testing.T, binary string, demoInput *bufio.Scanner) {
 	routeCLISuccess(t, binary, nil, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "e2e-mock Requirement lifecycle")
 	routeCLISuccess(t, binary, nil, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/TraceE2E")
 	routeCLISuccess(t, binary, nil, "card", "render", "--root", root, "--view", "panorama", "--format", "lark-json")
-	if _, err := os.Stat(filepath.Join(root, ".fanloop", "trace", "config.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".commonloop", "trace", "config.json")); err != nil {
 		t.Fatalf("complete lifecycle did not bind Trace: %v", err)
 	}
 	if cardSnapshots := routeCardSnapshots(t, root); len(cardSnapshots) == 0 {
@@ -327,7 +327,7 @@ func runLinearRouteDemo(t *testing.T, binary string, demoInput *bufio.Scanner) {
 
 func newWorkflowDemoPaths(t *testing.T) workflowDemoPaths {
 	t.Helper()
-	runRoot := os.Getenv("FANLOOP_E2E_RUN_ROOT")
+	runRoot := os.Getenv("COMMONLOOP_E2E_RUN_ROOT")
 	if runRoot == "" {
 		runRoot = t.TempDir()
 	} else {
@@ -370,12 +370,12 @@ func verifyFinalWorkflowDemo(t *testing.T, binary string, paths workflowDemoPath
 	verifyRouteDiagnostics(t, binary, paths.RequirementRoot)
 
 	for _, relative := range []string{
-		".fanloop/flow/state.json",
-		".fanloop/output/state.json",
-		".fanloop/trace/config.json",
-		".fanloop/trace/events.jsonl",
-		".fanloop/trace/events.md",
-		".fanloop/card/projection.json",
+		".commonloop/flow/state.json",
+		".commonloop/output/state.json",
+		".commonloop/trace/config.json",
+		".commonloop/trace/events.jsonl",
+		".commonloop/trace/events.md",
+		".commonloop/card/projection.json",
 	} {
 		if _, err := os.Stat(filepath.Join(paths.RequirementRoot, filepath.FromSlash(relative))); err != nil {
 			t.Fatalf("complete lifecycle omitted %s: %v", relative, err)
@@ -414,7 +414,7 @@ func verifyFinalWorkflowDemo(t *testing.T, binary string, paths workflowDemoPath
 
 func writeWorkflowDemoReport(t *testing.T, paths workflowDemoPaths, steps, flows, loops, reports int) {
 	t.Helper()
-	commit := strings.TrimSpace(os.Getenv("FANLOOP_E2E_SOURCE_COMMIT"))
+	commit := strings.TrimSpace(os.Getenv("COMMONLOOP_E2E_SOURCE_COMMIT"))
 	if commit == "" {
 		output, err := exec.Command("git", "rev-parse", "HEAD").Output()
 		if err != nil {
@@ -458,7 +458,7 @@ func totalLinearLoops() int {
 
 func routeCardSnapshots(t *testing.T, root string) []string {
 	t.Helper()
-	matches, err := filepath.Glob(filepath.Join(root, ".fanloop", "card", "*.json"))
+	matches, err := filepath.Glob(filepath.Join(root, ".commonloop", "card", "*.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,7 +570,7 @@ func reportLinearProgress(t *testing.T, binary, root string, current *routeCurre
 		Ref     string `json:"ref"`
 	}{Source: "ai", Content: summary, Ref: "progress:" + stepID})
 	requestJSON := mustPrettyJSON(t, request)
-	fmt.Printf("\n[模拟 Agent -> CLI Progress 请求]\n%s\n[CLI 命令]\nfanloop flow report progress --root <requirement> --input -\n\n", requestJSON)
+	fmt.Printf("\n[模拟 Agent -> CLI Progress 请求]\n%s\n[CLI 命令]\ncommonloop flow report progress --root <requirement> --input -\n\n", requestJSON)
 	waitForRouteDemo(t, demoInput, "按 Enter 上报本 Step 开始执行；输入 q/quit 后回车退出：")
 	raw := routeCLISuccess(t, binary, requestJSON, "flow", "report", "progress", "--root", root, "--input", "-")
 	var response routeEnvelope[struct {
@@ -608,10 +608,10 @@ func runRouteCase(t *testing.T, binary, root string, item routeCase, stepOrder m
 	}{Source: "ai", Content: summary, Ref: item.ID})
 	requestJSON := mustPrettyJSON(t, request)
 
-	fmt.Printf("\n=== %s ===\n[当前状态与目标]\nStep: %s\nRoute: %s -> %s\nConditions: %s\n\n[模拟 Agent -> CLI 请求]\n%s\n\n[CLI 命令]\nfanloop flow report result --root <requirement> --input -\n\n", item.ID, item.SourceStepID, item.Direction, item.TargetStepID, strings.Join(item.ConditionIDs, " + "), requestJSON)
+	fmt.Printf("\n=== %s ===\n[当前状态与目标]\nStep: %s\nRoute: %s -> %s\nConditions: %s\n\n[模拟 Agent -> CLI 请求]\n%s\n\n[CLI 命令]\ncommonloop flow report result --root <requirement> --input -\n\n", item.ID, item.SourceStepID, item.Direction, item.TargetStepID, strings.Join(item.ConditionIDs, " + "), requestJSON)
 	waitForRouteDemo(t, demoInput, "按 Enter 执行以上 CLI 调用；输入 q/quit 后回车退出：")
 	raw := routeCLISuccess(t, binary, requestJSON, "flow", "report", "result", "--root", root, "--input", "-")
-	if os.Getenv("FANLOOP_E2E_FULL_RESPONSE") == "1" {
+	if os.Getenv("COMMONLOOP_E2E_FULL_RESPONSE") == "1" {
 		fmt.Printf("[CLI flow report result 完整返回体（推进/回流）]\n%s\n", raw)
 	}
 
@@ -643,7 +643,7 @@ func runRouteCase(t *testing.T, binary, root string, item routeCase, stepOrder m
 			"invalidated_outputs": response.Data.InvalidatedOutputs,
 		},
 	}
-	fmt.Printf("\n[CLI 返回体（紧凑视图；设置 FANLOOP_E2E_FULL_RESPONSE=1 查看完整 state）]\n%s", mustPrettyJSON(t, compact))
+	fmt.Printf("\n[CLI 返回体（紧凑视图；设置 COMMONLOOP_E2E_FULL_RESPONSE=1 查看完整 state）]\n%s", mustPrettyJSON(t, compact))
 	waitForRouteDemo(t, demoInput, "按 Enter 确认返回结果并继续下一步；输入 q/quit 后回车退出：")
 }
 
@@ -733,7 +733,7 @@ func mockAgentValue(t *testing.T, root, scenarioID, conditionID string, spec rou
 		}
 		values := make([]string, count)
 		for index := range values {
-			values[index] = fmt.Sprintf("https://code.byted.org/e2e-mock/fanloop_cli/merge_requests/%d", 7000+index)
+			values[index] = fmt.Sprintf("https://code.byted.org/e2e-mock/commonloop_cli/merge_requests/%d", 7000+index)
 		}
 		return values
 	case "object":
@@ -917,7 +917,7 @@ func routeCLISuccess(t *testing.T, binary string, input []byte, args ...string) 
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr
 	if err := command.Run(); err != nil || stderr.Len() > 0 {
-		t.Fatalf("fanloop %s: %v\nstdout=%s\nstderr=%s", strings.Join(args, " "), err, stdout.Bytes(), stderr.Bytes())
+		t.Fatalf("commonloop %s: %v\nstdout=%s\nstderr=%s", strings.Join(args, " "), err, stdout.Bytes(), stderr.Bytes())
 	}
 	return stdout.Bytes()
 }
@@ -936,17 +936,17 @@ func withoutBotmuxBinding(environment []string) []string {
 func readDurableRouteState(t *testing.T, root string) durableRouteState {
 	t.Helper()
 	var state durableRouteState
-	decodeRouteFile(t, filepath.Join(root, ".fanloop", "flow", "state.json"), &state)
+	decodeRouteFile(t, filepath.Join(root, ".commonloop", "flow", "state.json"), &state)
 	var registry struct {
 		Outputs map[string]registeredValue `json:"outputs"`
 	}
-	decodeRouteFile(t, filepath.Join(root, ".fanloop", "output", "state.json"), &registry)
+	decodeRouteFile(t, filepath.Join(root, ".commonloop", "output", "state.json"), &registry)
 	state.Outputs = registry.Outputs
 	var projection struct {
 		Outputs       map[string]registeredValue `json:"outputs"`
 		SourceEventID string                     `json:"source_event_id"`
 	}
-	decodeRouteFile(t, filepath.Join(root, ".fanloop", "card", "projection.json"), &projection)
+	decodeRouteFile(t, filepath.Join(root, ".commonloop", "card", "projection.json"), &projection)
 	if projection.SourceEventID == "" || !reflect.DeepEqual(projection.Outputs, state.Outputs) {
 		t.Fatal("Card projection differs from Output Registry")
 	}
@@ -956,7 +956,7 @@ func readDurableRouteState(t *testing.T, root string) durableRouteState {
 
 func readRouteEvents(t *testing.T, root string) []routeEvent {
 	t.Helper()
-	content, err := os.ReadFile(filepath.Join(root, ".fanloop", "trace", "events.jsonl"))
+	content, err := os.ReadFile(filepath.Join(root, ".commonloop", "trace", "events.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}

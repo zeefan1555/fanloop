@@ -3,7 +3,7 @@ package workflow
 import (
 	"fmt"
 
-	"github.com/zeefan1555/fanloop/internal/idl/yamlidl"
+	"github.com/zeefan1555/commonloop/internal/idl/yamlidl"
 )
 
 func normalizeYAMLOptionalDefaults(flow *yamlidl.FlowDocument, condition *yamlidl.ConditionDocument) {

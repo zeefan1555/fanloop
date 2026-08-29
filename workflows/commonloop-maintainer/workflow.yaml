@@ -1,0 +1,32 @@
+schema_version: 7
+id: commonloop-maintainer
+
+stages:
+  - id: requirements
+    name: 需求定义
+    jobs:
+      - id: requirements
+        name: 需求定义
+        steps:
+          - {id: bootstrap_techdesign, name: 工作区准备, executor: agent}
+          - {id: clarify_requirements, name: 需求澄清, executor: agent}
+          - {id: confirm_requirements, name: 需求确认, executor: human}
+
+  - id: implementation
+    name: 需求实现
+    jobs:
+      - id: implementation
+        name: 需求实现
+        steps:
+          - {id: design_technical_solution, name: 方案设计, executor: agent}
+          - {id: implement_code, name: 代码实现, executor: agent}
+          - {id: execute_test_cases, name: 本地验证, executor: agent}
+
+  - id: delivery
+    name: 变更交付
+    jobs:
+      - id: delivery
+        name: 变更交付
+        steps:
+          - {id: review_code, name: 代码审查, executor: agent}
+          - {id: handoff_merge_request, name: MR 交接, executor: agent}

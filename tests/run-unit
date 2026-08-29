@@ -4,14 +4,14 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-test_data_root="$(mktemp -d "${TMPDIR:-/tmp}/fanloop-unit.XXXXXX")"
-generated_root="$(mktemp -d "${TMPDIR:-/tmp}/fanloop-generated.XXXXXX")"
+test_data_root="$(mktemp -d "${TMPDIR:-/tmp}/commonloop-unit.XXXXXX")"
+generated_root="$(mktemp -d "${TMPDIR:-/tmp}/commonloop-generated.XXXXXX")"
 [[ -d "$test_data_root" && -d "$generated_root" ]] || exit 1
 cleanup() {
   rm -rf -- "$test_data_root" "$generated_root"
 }
 trap cleanup EXIT
-export FANLOOP_DATA_HOME="$test_data_root"
+export COMMONLOOP_DATA_HOME="$test_data_root"
 
 unformatted="$({
   while IFS= read -r -d '' file; do

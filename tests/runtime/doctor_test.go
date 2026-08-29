@@ -19,7 +19,7 @@ func TestDoctorValidatesConditionRoutingRequirementFiles(t *testing.T) {
 		}
 	}
 
-	statePath := filepath.Join(root, ".fanloop", "output", "state.json")
+	statePath := filepath.Join(root, ".commonloop", "output", "state.json")
 	content := readFile(t, statePath)
 	content = bytes.Replace(content, []byte(`"outputs": {}`), []byte(`"outputs": {"forged": {"type": "string", "value": "x", "producer_step_id": "bootstrap_techdesign"}}`), 1)
 	if err := os.WriteFile(statePath, content, 0o600); err != nil {
@@ -34,7 +34,7 @@ func TestDoctorValidatesConditionRoutingRequirementFiles(t *testing.T) {
 func TestDoctorChecksCardIndependentlyWhenTraceIsCorrupt(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Doctor domains"), "flow.init")
-	if err := os.WriteFile(filepath.Join(root, ".fanloop", "trace", "events.jsonl"), []byte("not-json\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".commonloop", "trace", "events.jsonl"), []byte("not-json\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

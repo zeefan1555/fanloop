@@ -27,6 +27,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
-          version: "~> v2"
+          version: "v2.5.1"
           args: check
       - run: ./tests/run-unit

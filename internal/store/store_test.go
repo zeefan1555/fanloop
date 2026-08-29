@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/traceconfig"
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/commonloop/internal/state"
+	"github.com/zeefan1555/commonloop/internal/traceconfig"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
@@ -45,7 +45,7 @@ func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
 	if failure != nil || read.LastEventID != "e1" || bound.Ref != loaded.Ref {
 		t.Fatalf("read = %#v, bound = %#v, failure = %v", read, bound.Ref, failure)
 	}
-	if content, err := os.ReadFile(filepath.Join(root, ".fanloop", "trace", "events.md")); err != nil || !strings.Contains(string(content), "# Workflow Trace") || !strings.Contains(string(content), "Workflow 已初始化") {
+	if content, err := os.ReadFile(filepath.Join(root, ".commonloop", "trace", "events.md")); err != nil || !strings.Contains(string(content), "# Workflow Trace") || !strings.Contains(string(content), "Workflow 已初始化") {
 		t.Fatalf("projection = %q, error = %v", content, err)
 	}
 }
@@ -55,8 +55,8 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	committedWorkflow(t, root)
 
 	for relative, wantVersion := range map[string]float64{
-		".fanloop/flow/state.json":   12,
-		".fanloop/output/state.json": 3,
+		".commonloop/flow/state.json":   12,
+		".commonloop/output/state.json": 3,
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
 		if err != nil {
@@ -71,7 +71,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 		}
 	}
 
-	content, err := os.ReadFile(filepath.Join(root, ".fanloop", "trace", "events.jsonl"))
+	content, err := os.ReadFile(filepath.Join(root, ".commonloop", "trace", "events.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestLoadBoundRejectsTraceURLTamperedOutsideEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".fanloop", "flow", "state.json"), content, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".commonloop", "flow", "state.json"), content, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, failure := local.LoadBound(); failure == nil || failure.Code != erroridl.ErrorCode_STATE_CORRUPT {
@@ -166,7 +166,7 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 }
 
 func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T) {
-	loaded, err := workflow.Load("fanloop-maintainer")
+	loaded, err := workflow.Load("commonloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 		Outputs: map[string]state.RegisteredOutput{
 			"requirement_document_url":      {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/Requirements"`), ProducerStepID: "clarify_requirements"},
 			"technical_design_document_url": {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/Design"`), ProducerStepID: "design_technical_solution"},
-			"merge_request_urls":            {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`), ProducerStepID: "handoff_merge_request"},
+			"merge_request_urls":            {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://github.com/zeefan1555/commonloop/merge_requests/123"]`), ProducerStepID: "handoff_merge_request"},
 		},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
 			DocumentURL: "https://bytedance.larkoffice.com/docx/Trace", Registry: traceconfig.RegistryProduction,
@@ -192,7 +192,7 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 	for _, want := range []string{
 		"| requirement_document_url | url | clarify_requirements | https://bytedance.larkoffice.com/docx/Requirements |",
 		"| technical_design_document_url | url | design_technical_solution | https://bytedance.larkoffice.com/docx/Design |",
-		"| merge_request_urls | url_list | handoff_merge_request | [\"https://github.com/zeefan1555/fanloop/merge_requests/123\"] |",
+		"| merge_request_urls | url_list | handoff_merge_request | [\"https://github.com/zeefan1555/commonloop/merge_requests/123\"] |",
 		"📜 CLI 日志：[查看完整输入输出](https://bytedance.larkoffice.com/docx/CLILog)",
 	} {
 		if !strings.Contains(projection, want) {
@@ -279,7 +279,7 @@ func TestConcurrentCommitsFromOneEventTailAreSerialized(t *testing.T) {
 	if failure != nil || len(events) != 2 || loaded.LastEventID != events[1].ID {
 		t.Fatalf("events=%d last_event_id=%q failure=%v", len(events), loaded.LastEventID, failure)
 	}
-	if info, err := os.Stat(filepath.Join(root, ".fanloop", "flow", "state.lock")); err != nil || !info.Mode().IsRegular() {
+	if info, err := os.Stat(filepath.Join(root, ".commonloop", "flow", "state.lock")); err != nil || !info.Mode().IsRegular() {
 		t.Fatalf("persistent Requirement lock is missing or invalid: info=%v error=%v", info, err)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/commonloop/internal/workflow"
 )
 
 func TestEmbeddedRegistriesUseDefaultAndWorkflowPolicies(t *testing.T) {
@@ -12,14 +12,14 @@ func TestEmbeddedRegistriesUseDefaultAndWorkflowPolicies(t *testing.T) {
 	if !ok || ordinary.Profile != RegistryProduction || ordinary.RequireCLILogDocument {
 		t.Fatalf("production default = %#v, ok=%t", ordinary, ok)
 	}
-	override, ok := Resolve(RegistryProduction, "fanloop-maintainer")
+	override, ok := Resolve(RegistryProduction, "commonloop-maintainer")
 	if !ok || !override.RequireCLILogDocument || override.Fields.CLILogURL == "" {
 		t.Fatalf("Workflow override = %#v, ok=%t", override, ok)
 	}
 	if got := override.Fields.Outputs["merge_request_urls"]; got != "MR" {
 		t.Fatalf("configured Output mapping = %q, want MR", got)
 	}
-	testRegistry, ok := Resolve(RegistryTest, "fanloop-maintainer")
+	testRegistry, ok := Resolve(RegistryTest, "commonloop-maintainer")
 	if !ok || testRegistry.Profile != RegistryTest || testRegistry.RequireCLILogDocument {
 		t.Fatalf("test fallback = %#v, ok=%t", testRegistry, ok)
 	}

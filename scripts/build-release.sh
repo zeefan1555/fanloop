@@ -13,7 +13,7 @@ trap cleanup EXIT
 
 if ! command -v go >/dev/null || ! go version | grep -Eq 'go1\.(2[3-9]|[3-9][0-9])\.'; then
   if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
-    echo "Go 1.23+ is required to build Fanloop releases" >&2
+    echo "Go 1.23+ is required to build Commonloop releases" >&2
     exit 1
   fi
   go_bundle="$(mktemp -d)"

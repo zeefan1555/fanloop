@@ -8,17 +8,17 @@ const { it } = require("node:test");
 const launcher = path.join(__dirname, "run.js");
 
 it("updates through the latest official npm installer outside the caller project", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-launcher-update-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-launcher-update-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const bin = path.join(root, "bin");
   const log = path.join(root, "npx.log");
   const caller = path.join(root, "same-package-project");
   fs.mkdirSync(bin);
   fs.mkdirSync(caller);
-  fs.writeFileSync(path.join(caller, "package.json"), JSON.stringify({ name: "@zeefan1555/fanloop-cli" }));
+  fs.writeFileSync(path.join(caller, "package.json"), JSON.stringify({ name: "@zeefan1555/commonloop-cli" }));
   fs.writeFileSync(
     path.join(bin, "npx"),
-    "#!/bin/sh\n[ ! -f package.json ] || { printf 'npx ran in caller project\\n' >&2; exit 9; }\nprintf '%s\\n' \"$NPM_CONFIG_REGISTRY|$FANLOOP_UPDATE_FORWARD_ONLY|$*\" >\"$FANLOOP_UPDATE_TEST_LOG\"\nprintf 'Fanloop 9.9.9 installed successfully\\n'\n",
+    "#!/bin/sh\n[ ! -f package.json ] || { printf 'npx ran in caller project\\n' >&2; exit 9; }\nprintf '%s\\n' \"$NPM_CONFIG_REGISTRY|$COMMONLOOP_UPDATE_FORWARD_ONLY|$*\" >\"$COMMONLOOP_UPDATE_TEST_LOG\"\nprintf 'Commonloop 9.9.9 installed successfully\\n'\n",
     { mode: 0o755 },
   );
 
@@ -29,22 +29,22 @@ it("updates through the latest official npm installer outside the caller project
       ...process.env,
       NPM_CONFIG_REGISTRY: "https://wrong.invalid",
       PATH: `${bin}:${process.env.PATH}`,
-      FANLOOP_DATA_HOME: path.join(root, "missing-installation"),
-      FANLOOP_UPDATE_TEST_LOG: log,
+      COMMONLOOP_DATA_HOME: path.join(root, "missing-installation"),
+      COMMONLOOP_UPDATE_TEST_LOG: log,
     },
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, "Fanloop 9.9.9 installed successfully\n");
+  assert.equal(result.stdout, "Commonloop 9.9.9 installed successfully\n");
   assert.equal(result.stderr, "");
   assert.equal(
     fs.readFileSync(log, "utf8"),
-    "https://npm.pkg.github.com|1|--yes --prefer-online --package=@zeefan1555/fanloop-cli@latest -- fanloop install\n",
+    "https://npm.pkg.github.com|1|--yes --prefer-online --package=@zeefan1555/commonloop-cli@latest -- commonloop install\n",
   );
 });
 
 it("returns the latest installer failure", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-launcher-update-failure-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-launcher-update-failure-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const bin = path.join(root, "bin");
   fs.mkdirSync(bin);
@@ -55,7 +55,7 @@ it("returns the latest installer failure", (t) => {
     env: {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
-      FANLOOP_DATA_HOME: path.join(root, "missing-installation"),
+      COMMONLOOP_DATA_HOME: path.join(root, "missing-installation"),
     },
   });
 

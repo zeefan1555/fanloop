@@ -13,13 +13,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/zeefan1555/fanloop/internal/idl/releaseidl"
+	"github.com/zeefan1555/commonloop/internal/idl/releaseidl"
 )
 
 const (
 	ArchiveXZDictionarySize = 8 * 1024 * 1024
-	ExposedSkillName        = "fanloop-workflow"
-	ExposedSkillPath        = "entrypoints/fanloop-workflow"
+	ExposedSkillName        = "commonloop-workflow"
+	ExposedSkillPath        = "entrypoints/commonloop-workflow"
 )
 
 var skillGroupPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -121,7 +121,7 @@ func (value Manifest) Validate() error {
 			return fmt.Errorf("invalid asset %q: %w", asset.File, err)
 		}
 		key := asset.Os + "/" + asset.Arch
-		file := fmt.Sprintf("fanloop-%s-%s-%s.tar.xz", value.ReleaseVersion, asset.Os, asset.Arch)
+		file := fmt.Sprintf("commonloop-%s-%s-%s.tar.xz", value.ReleaseVersion, asset.Os, asset.Arch)
 		if asset.File != file || platforms[key] {
 			return fmt.Errorf("invalid or duplicate asset %q", key)
 		}
