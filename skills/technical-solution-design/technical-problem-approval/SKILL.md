@@ -1,11 +1,13 @@
 ---
 name: technical-problem-approval
-description: 对技术问题定义执行人工确认并留下完整审核证据。用于 technical-solution-design 的问题人工确认 Step；不得代替人批准，也不得在本 Step 修改问题定义。
+description: 对技术问题定义执行 Agent 独立复核或人工确认并留下完整审核证据。用于 technical-solution-design 的问题确认 Step；不得在本 Step 修改问题定义。
 ---
 
-# 人工确认技术问题
+# 确认技术问题
 
-本 Step 的决定只能由人作出。先读取 `.technical-solution/problem.md`，再提供无需聊天历史也能理解的审核摘要：
+先读取 `.technical-solution/problem.md` 并独立检查问题与目标是否具体、事实是否可验证、因果是否成立、范围是否完整且没有混入方案结论。确认无阻塞项且无需人作出新决定时，直接上报 `agent_approved=approved`，Evidence 记录复核理由和文件路径，不发布 Panorama。
+
+不能独立批准时，再提供无需聊天历史也能理解的人工审核摘要：
 
 - 要解决的 2–3 个核心问题；
 - 支撑每个问题的关键事实与来源；
@@ -15,12 +17,12 @@ description: 对技术问题定义执行人工确认并留下完整审核证据�
 
 把上述内容连同最新 `flow status` 的完整 Stage/Job/Step 全景、有效 Outputs 和待决事项组成一份自包含审核材料，通过当前 Agent 渠道发送并回读成功。记录本次发送返回的真实 messageId 或 Agent 交互事件 ID；不得复用前一 Step 或前一次进入本 Step 的回执。材料发送成功后才请求人的决定。
 
-检查问题与目标是否具体、事实是否可验证、因果是否成立、范围是否完整且没有混入方案结论。发现问题时只指出，不直接改写已提交材料。
+发现问题时只指出，不直接改写已提交材料。
 
-仅在收到人的明确回复后报告结果：
+进入人工路径后，仅在收到人的明确回复后报告结果：
 
 - 明确批准：同时上报 `panorama_card_published` 与 `technical_problem_approved`；
 - 拒绝或要求修改：同时上报 `panorama_card_published` 与 `technical_problem_rejected`，回到问题定义；
 - 含糊、沉默或仅提供补充信息：继续等待，不推断批准。
 
-`panorama_card_published` 输出本轮真实发送回执。Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。
+人工路径的 `panorama_card_published` 输出本轮真实发送回执。Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。

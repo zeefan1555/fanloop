@@ -25,7 +25,8 @@ description: 把已确认的 Fanloop CLI requirements.md 生成为 Issue Workspa
 动态 event ID、绝对路径、时间和 Workflow digest 可使用明确占位符，但不得用字段摘要、伪代码
 或删减决策字段的片段冒充真实返回结构。
 
-只落盘人已确认的内容；缺少或冲突的决策返回需求澄清。不要发布外部 Issue，不修改仓库，
+只落盘人或 Agent 通过当前 Workflow 批准的内容；缺少或冲突的决策返回需求澄清。不要发布外部
+Issue，不修改仓库，
 不把本地 Spec 放进 `.scratch/`、`docs/research/` 或 `docs/specs/`。
 
 ## 飞书技术方案产物
