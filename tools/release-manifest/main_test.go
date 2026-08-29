@@ -89,7 +89,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	script := `const fs = require("node:fs");
 const { assertMatchedVersion, selectedAsset } = require(process.argv[1]);
 const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-assertMatchedVersion(manifest, "1.2.3");
+assertMatchedVersion(manifest);
 const asset = selectedAsset(manifest);
 if (!asset.sha256.startsWith("sha256:") || !asset.binary_sha256.startsWith("sha256:")) throw new Error("incomplete platform asset");`
 	if output, err := exec.Command("node", "-e", script, installer, manifestPath).CombinedOutput(); err != nil {

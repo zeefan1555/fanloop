@@ -26,7 +26,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	root := t.TempDir()
 	run := func(args ...string) cliResult {
 		t.Helper()
-		result := runCurrent(dataRoot, codexRoot, agentsRoot, "", args...)
+		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
 		if result.err != nil || result.stderr != "" {
 			t.Fatalf("fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
 		}
@@ -38,7 +38,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if !strings.Contains(first.stdout, `"effect": "advanced"`) {
 		t.Fatalf("matching Condition result did not advance: %s", first.stdout)
 	}
-	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"derive_technical_solution"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
+	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"derive_technical_solution"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
 	if incomplete.err == nil || !strings.Contains(incomplete.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
 		t.Fatalf("approval without Panorama receipt bypassed review gate:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
 	}

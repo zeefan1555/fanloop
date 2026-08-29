@@ -24,7 +24,7 @@ type releaseFixture struct {
 	Version  string
 }
 
-func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
+func TestReleaseInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 	repository := repositoryRoot(t)
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
@@ -65,7 +65,7 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 	}
 	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture.Version, traeRoot, claudeRoot)
 
-	launcher := exec.Command("node", filepath.Join(repository, "scripts", "run.js"), "version")
+	launcher := exec.Command("bash", filepath.Join(repository, "scripts", "fanloop-launcher.sh"), "version")
 	launcher.Env = append(os.Environ(), "FANLOOP_DATA_HOME="+dataRoot)
 	output, err := launcher.CombinedOutput()
 	if err != nil || !bytes.Contains(output, []byte(`"release_version": "1.2.3"`)) || !bytes.Contains(output, []byte(`"name": "fanloop-workflow"`)) {
@@ -79,14 +79,14 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 		{"trace", "render", "--help"}, {"trace", "sync", "--help"},
 		{"card", "render", "--help"}, {"version", "--help"}, {"doctor", "--help"},
 	} {
-		result := runCurrent(dataRoot, codexRoot, agentsRoot, "", args...)
+		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
 		if result.err != nil || result.stderr != "" || !strings.Contains(result.stdout, "Request JSON:") {
 			t.Fatalf("installed fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
 		}
 	}
 }
 
-func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(t *testing.T) {
+func TestReleaseInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(t *testing.T) {
 	repository := repositoryRoot(t)
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
@@ -141,14 +141,14 @@ func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(
 	}
 
 	requirementRoot := t.TempDir()
-	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "init", "--root", requirementRoot, "--workflow", "technical-solution-design", "--title", "Technical solution Skill path E2E")
+	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", requirementRoot, "--workflow", "technical-solution-design", "--title", "Technical solution Skill path E2E")
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 	assertFlowSkillPaths(t, initialized.stdout, filepath.Join(dataRoot, "releases", fixture.Version))
 }
 
-func TestNPMInstallerUpgradesFromLegacyCurrentManifest(t *testing.T) {
+func TestReleaseInstallerUpgradesFromLegacyCurrentManifest(t *testing.T) {
 	repository := repositoryRoot(t)
 	oldRelease := makeReleaseFixture(t, repository, "1.2.3", "1.2.3", "legacy-only")
 	newRelease := makeReleaseFixture(t, repository, "1.2.4", "1.2.4")
@@ -171,7 +171,7 @@ func TestNPMInstallerUpgradesFromLegacyCurrentManifest(t *testing.T) {
 	}
 }
 
-func TestNPMInstallerKeepsCurrentOnChecksumDoctorAndNameConflicts(t *testing.T) {
+func TestReleaseInstallerKeepsCurrentOnChecksumDoctorAndNameConflicts(t *testing.T) {
 	repository := repositoryRoot(t)
 	good := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
@@ -213,7 +213,7 @@ func TestNPMInstallerKeepsCurrentOnChecksumDoctorAndNameConflicts(t *testing.T) 
 	}
 }
 
-func TestNPMInstallerAdoptsExternalSkillLinksWithoutDeletingTheirTargets(t *testing.T) {
+func TestReleaseInstallerAdoptsExternalSkillLinksWithoutDeletingTheirTargets(t *testing.T) {
 	repository := repositoryRoot(t)
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
@@ -253,7 +253,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if result := runInstaller(t, repository, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install: %v\n%s", result.err, result.stderr)
 	}
-	if healthy := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor"); healthy.err != nil || !strings.Contains(healthy.stdout, `"status": "healthy"`) {
+	if healthy := runCurrent(dataRoot, codexRoot, agentsRoot, "doctor"); healthy.err != nil || !strings.Contains(healthy.stdout, `"status": "healthy"`) {
 		t.Fatalf("healthy install failed Doctor: %#v", healthy)
 	}
 	pinned := filepath.Join(codexRoot, "fanloop-workflow")
@@ -263,7 +263,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 	if err := os.Symlink(filepath.Join(dataRoot, "releases", fixture.Version, "entrypoints", "fanloop-workflow"), pinned); err != nil {
 		t.Fatal(err)
 	}
-	if diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor"); diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skill_links"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
+	if diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "doctor"); diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skill_links"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
 		t.Fatalf("Doctor accepted a pinned Skill link: %#v", diagnosed)
 	}
 	if err := os.Remove(pinned); err != nil {
@@ -277,7 +277,7 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 		if err := os.Remove(link); err != nil {
 			t.Fatal(err)
 		}
-		broken := runCurrent(dataRoot, codexRoot, agentsRoot, "", "doctor")
+		broken := runCurrent(dataRoot, codexRoot, agentsRoot, "doctor")
 		if broken.err == nil || !strings.Contains(broken.stdout, `"id": "skill_links"`) || !strings.Contains(broken.stdout, `"status": "failed"`) {
 			t.Fatalf("Doctor missed broken %s Skill link: %#v", client, broken)
 		}

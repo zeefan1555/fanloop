@@ -8,15 +8,14 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
 
 jobs:
   publish:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      NPM_CONFIG_REGISTRY: https://npm.pkg.github.com
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -25,38 +24,52 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: https://npm.pkg.github.com
-          scope: "@zeefan1555"
       - name: Install pinned Thrift generators
         run: |
           go install github.com/cloudwego/thriftgo@v0.4.3
           go install github.com/cloudwego/thrift-gen-validator@v0.2.5
       - run: ./tests/run-unit
       - run: ./tests/run-e2e
-      - name: Build matched release package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build matched GitHub Release
         run: ./scripts/prepare-release.sh
-      - name: Publish candidate, verify, and promote latest
+      - name: Publish verified GitHub Release
         env:
           FANLOOP_EXPECTED_COMMIT: ${{ github.sha }}
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          version="$(node -p 'require("./package.json").version')"
-          package_name="@zeefan1555/fanloop-cli"
-          package_artifact="$(find "$PWD/dist" -maxdepth 1 -type f -name '*.tgz' -print -quit)"
-          test -n "$package_artifact"
-          old_latest="$(npm view "$package_name@latest" version --prefer-online 2>/dev/null || true)"
+          version="$(node -e 'process.stdout.write(require("./dist/release.json").release_version)')"
+          tag="v$version"
+          repository="${{ github.repository }}"
+          old_latest="$(gh release list -R "$repository" --limit 100 --json tagName,isLatest --jq 'map(select(.isLatest))[0].tagName // ""')"
 
-          npm publish "$package_artifact" --tag candidate
-          ./scripts/verify-published-package.sh "$version" "$version"
-          npm dist-tag add "$package_name@$version" latest
+          gh release create "$tag" -R "$repository" \
+            --draft \
+            --target "${{ github.sha }}" \
+            --title "Fanloop $version" \
+            --generate-notes \
+            dist/release.json \
+            dist/fanloop-install.sh \
+            dist/fanloop-install.js \
+            dist/fanloop-launcher.sh \
+            dist/fanloop-"$version"-*.tar.xz
 
-          if ! ./scripts/verify-published-package.sh "$version" latest; then
+          ./scripts/verify-github-release.sh "$version" exact
+          gh release edit "$tag" -R "$repository" --draft=false --latest
+
+          if ! ./scripts/verify-github-release.sh "$version" latest; then
+            rollback_failed=0
+            gh release edit "$tag" -R "$repository" --prerelease --latest=false || rollback_failed=1
             if [[ -n "$old_latest" ]]; then
-              npm dist-tag add "$package_name@$old_latest" latest
-            else
-              npm dist-tag rm "$package_name" latest || true
+              gh release edit "$old_latest" -R "$repository" --latest || rollback_failed=1
+            fi
+            if ! restored_latest="$(gh release list -R "$repository" --limit 100 --json tagName,isLatest --jq 'map(select(.isLatest))[0].tagName // ""')"; then
+              restored_latest=""
+              rollback_failed=1
+            fi
+            if [[ "$restored_latest" != "$old_latest" ]]; then
+              rollback_failed=1
+            fi
+            if [[ "$rollback_failed" -ne 0 ]]; then
+              echo "failed to restore GitHub Release latest from $tag to ${old_latest:-none}" >&2
             fi
             exit 1
           fi

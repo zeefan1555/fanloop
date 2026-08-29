@@ -69,7 +69,7 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 ## 公开契约
 
 **CommandSpec**
-11 个公开命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以五份 YAML 为真值。`fanloop update` 是 npm launcher 安装控制，不属于该 Thrift 目录。
+11 个公开命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以五份 YAML 为真值。`fanloop update` 是 GitHub Release launcher 安装控制，不属于该 Thrift 目录。
 
 **统一结果信封**
 成功写 stdout，使用 `ok/data/meta/_notice`；错误写 stderr，包含稳定 type、code、message、hint 和 retryable。

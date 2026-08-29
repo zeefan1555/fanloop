@@ -3,6 +3,7 @@ status: accepted
 date: 2026-08-30
 amends: ADR-0009, ADR-0010, ADR-0032, ADR-0034, ADR-0065, ADR-0079, ADR-0081, ADR-0082
 supersedes: ADR-0083, ADR-0084
+amended_by: ADR-0086
 ---
 
 # 恢复 Fanloop 与 GitHub Packages 发布

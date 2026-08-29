@@ -67,10 +67,10 @@ func TestHiddenInstallFailureKeepsItsPrivateExitContract(t *testing.T) {
 	}
 }
 
-func TestPayloadUpdateRequiresNPMLauncher(t *testing.T) {
+func TestPayloadUpdateRequiresGitHubReleaseLauncher(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := Execute(context.Background(), []string{"update"}, strings.NewReader(""), &stdout, &stderr)
-	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "update requires the npm launcher") {
+	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "update requires the GitHub Release launcher") {
 		t.Fatalf("exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
 	stderr.Reset()

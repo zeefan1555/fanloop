@@ -6,7 +6,7 @@ package_json="$repo_root/package.json"
 if [[ "${FANLOOP_LOCAL_BUILD:-}" == "1" ]]; then
   version="$(node -p 'require(process.argv[1]).version' "$package_json")"
 else
-  version="$(node "$repo_root/scripts/resolve-release-version.js" "$package_json")"
+  version="$(node "$repo_root/scripts/resolve-github-release-version.js" "$package_json")"
 fi
 echo "Resolved release version: $version"
 release_tag="v$version"
@@ -37,7 +37,7 @@ if [[ "${FANLOOP_LOCAL_BUILD:-}" == "1" ]]; then
 fi
 FANLOOP_BUILD_COMMIT="$head_sha" FANLOOP_RELEASE_VERSION="$version" GOFLAGS=-buildvcs=false \
   go run github.com/goreleaser/goreleaser/v2@v2.5.1 "${goreleaser_args[@]}"
-./scripts/package-release.sh "$version" "$repo_root/dist"
+./scripts/assemble-release.sh "$version" "$repo_root/dist"
 
 release_dir="$repo_root/releases"
 if [[ "$release_dir" != "$repo_root/releases" || "$repo_root" == "/" ]]; then
@@ -48,10 +48,6 @@ rm -rf -- "$release_dir"
 mkdir -p "$release_dir"
 cp "$repo_root/dist/release.json" "$repo_root/release.json"
 cp "$repo_root"/dist/fanloop-"$version"-*.tar.xz "$release_dir/"
-if [[ "${FANLOOP_LOCAL_BUILD:-}" != "1" ]]; then
-  node "$repo_root/scripts/resolve-release-version.js" --write "$package_json" "$version"
-fi
-
 node -e '
 const fs = require("fs");
 const path = require("path");
@@ -62,4 +58,3 @@ for (const asset of manifest.assets) {
   if (!fs.existsSync(path.join(root, "releases", asset.file))) throw new Error(`missing ${asset.file}`);
 }
 ' "$repo_root"
-npm pack --dry-run --json >/dev/null

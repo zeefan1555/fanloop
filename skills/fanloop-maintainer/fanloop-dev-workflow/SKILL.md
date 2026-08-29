@@ -44,7 +44,7 @@ Requirement。`BOTMUX_SESSION_ID` 不存在或为空时没有可精确匹配的 
    fanloop flow init --root <ABSOLUTE_ROOT> --workflow fanloop-maintainer ...
    ```
 
-   同一次新流程启动只初始化一次；不在线解析或切换 npm `latest`。
+   同一次新流程启动只初始化一次；不在线解析或切换 GitHub Release `latest`。
 
 Skill、CLI 或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码
 分析、文档生成或研发交付。

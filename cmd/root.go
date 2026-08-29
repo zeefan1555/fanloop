@@ -169,7 +169,7 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		Args:        cobra.NoArgs,
 		Annotations: map[string]string{"bootstrap_control": "true"},
 		RunE: func(*cobra.Command, []string) error {
-			return errors.New("fanloop update requires the npm launcher; reinstall Fanloop with the official npm command")
+			return errors.New("fanloop update requires the GitHub Release launcher; reinstall Fanloop with the official gh command")
 		},
 	}
 	update.Flags().String("root", "", "")

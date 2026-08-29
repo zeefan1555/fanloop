@@ -5,4 +5,4 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 FANLOOP_LOCAL_BUILD=1 "$repo_root/scripts/build-release.sh"
-node "$repo_root/scripts/install.js"
+FANLOOP_RELEASE_DIR="$repo_root/dist" bash "$repo_root/scripts/install-github.sh"

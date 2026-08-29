@@ -5,26 +5,20 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repository_root"
 
 version="${1:-$(node -p 'require("./package.json").version')}"
-case "$version" in
-  *[!0-9A-Za-z._+-]*|'')
-    echo "invalid release version: $version" >&2
-    exit 1
-    ;;
-esac
-selector="${2:-$version}"
-if [[ "$selector" != "$version" && "$selector" != "latest" ]]; then
+selector="${2:-exact}"
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "invalid release version: $version" >&2
+  exit 1
+fi
+if [[ "$selector" != "exact" && "$selector" != "latest" && "$selector" != "local" ]]; then
   echo "invalid release selector: $selector" >&2
   exit 1
 fi
-package_name="@zeefan1555/fanloop-cli"
 
 smoke_root="$(mktemp -d)"
-test -n "$smoke_root" && test -d "$smoke_root"
-
-export NPM_CONFIG_REGISTRY=https://npm.pkg.github.com
-export NPM_CONFIG_PREFIX="$smoke_root/npm"
-export NPM_CONFIG_CACHE="$smoke_root/cache"
+trap 'rm -rf -- "$smoke_root"' EXIT
 export FANLOOP_DATA_HOME="$smoke_root/data"
+export FANLOOP_BIN_DIR="$smoke_root/bin"
 export FANLOOP_CODEX_SKILLS_ROOT="$smoke_root/codex-skills"
 export FANLOOP_AGENT_SKILLS_ROOT="$smoke_root/agent-skills"
 export FANLOOP_TRAE_SKILLS_ROOT="$smoke_root/trae-skills"
@@ -47,60 +41,38 @@ for index in "${!skill_roots[@]}"; do
   external_markers+=("$marker")
 done
 
-if [[ "$selector" == "latest" ]]; then
-  selector_ready=false
-  attempt=0
-  while [ "$attempt" -lt 12 ]; do
-    resolved="$(npm view "$package_name@latest" version --prefer-online 2>/dev/null || true)"
-    if [[ "$resolved" == "$version" ]]; then
-      selector_ready=true
-      break
-    fi
-    attempt=$((attempt + 1))
-    sleep 5
-  done
-  test "$selector_ready" = true
-fi
-
-mkdir -p "$smoke_root/registry-check"
-package_ready=false
-attempt=0
-while [ "$attempt" -lt 12 ]; do
-  if npm pack "$package_name@$selector" --pack-destination "$smoke_root/registry-check" --json >/dev/null 2>&1; then
-    package_ready=true
-    break
-  fi
-  attempt=$((attempt + 1))
-  sleep 5
-done
-test "$package_ready" = true
-
-node --version
-npm --version
-npx --version
-install_output="$(
-  cd "$smoke_root"
-  npx --yes --package="$package_name@$selector" -- fanloop install
-)"
+case "$selector" in
+  local)
+    : "${FANLOOP_RELEASE_DIR:?FANLOOP_RELEASE_DIR is required for local verification}"
+    install_output="$(bash "$repository_root/scripts/install-github.sh")"
+    ;;
+  exact)
+    install_output="$(FANLOOP_RELEASE_TAG="v$version" bash "$repository_root/scripts/install-github.sh")"
+    ;;
+  latest)
+    install_output="$(bash "$repository_root/scripts/install-github.sh")"
+    ;;
+esac
 printf '%s\n' "$install_output"
 test "$install_output" = "Fanloop $version installed successfully"
-fanloop_bin="$NPM_CONFIG_PREFIX/bin/fanloop"
+fanloop_bin="$FANLOOP_BIN_DIR/fanloop"
 test -x "$fanloop_bin"
 
 version_output="$("$fanloop_bin" version)"
 printf '%s\n' "$version_output"
 printf '%s\n' "$version_output" | grep "\"release_version\": \"$version\""
-if [ -n "${FANLOOP_EXPECTED_COMMIT:-}" ]; then
+if [[ -n "${FANLOOP_EXPECTED_COMMIT:-}" ]]; then
   printf '%s\n' "$version_output" | grep "\"commit_sha\": \"$FANLOOP_EXPECTED_COMMIT\""
 fi
-
 "$fanloop_bin" doctor | grep '"status": "healthy"'
+
 if [[ "$selector" == "latest" ]]; then
   update_output="$("$fanloop_bin" update)"
   printf '%s\n' "$update_output"
   test "$update_output" = "Fanloop $version installed successfully"
   "$fanloop_bin" doctor | grep '"status": "healthy"'
 fi
+
 manifest="$FANLOOP_DATA_HOME/current/release.json"
 test -f "$manifest"
 workflow_ids="$(node -e 'const manifest = require(process.argv[1]); for (const workflow of manifest.workflows) console.log(workflow.id)' "$manifest")"
@@ -137,5 +109,4 @@ for marker in "${external_markers[@]}"; do
   grep 'preserve external Skill target' "$marker" >/dev/null
 done
 
-"$fanloop_bin" version >/dev/null
-printf 'Fanloop %s authenticated release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"
+printf 'Fanloop %s GitHub Release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"

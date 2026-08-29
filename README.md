@@ -21,28 +21,29 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 新增一套流程只需要增加同名 Workflow/Skill 目录和一条场景映射；不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
 
-## 使用 npx 安装
+## 从 GitHub 安装
 
-Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先使用具备
-`read:packages` 权限的 GitHub classic PAT 登录，再安装匹配的 CLI、Workflow 与 Skills：
+Fanloop 只通过私有仓库的 GitHub Releases 发布，不使用 npm registry、GitHub Packages
+或 `npx`。首次使用先让 GitHub CLI 登录，然后一行安装匹配的 CLI、Workflow 与 Skills：
 
 ```bash
-npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
-NPM_CONFIG_REGISTRY=https://npm.pkg.github.com \
-  npx --yes --prefer-online --package=@zeefan1555/fanloop-cli@latest -- fanloop install
+gh auth login
+gh release download -R zeefan1555/fanloop -p fanloop-install.sh -O - | bash
 fanloop version
 fanloop doctor
 ```
 
-后续升级执行 `fanloop update`。从源码安装需要 Node.js 18+、Go 1.23+，系统 `tar` 支持 XZ：
+安装入口需要 GitHub CLI、Node.js 18+ 和支持 XZ 的系统 `tar`。它把配套 Release 安装到
+`~/.fanloop/current`，并把持久启动器写入 `~/.local/bin/fanloop`；后续升级只执行
+`fanloop update`。从源码安装还需要 Go 1.23+：
 
 ```bash
-npm run install:local
+./scripts/install-local.sh
 fanloop version
 fanloop doctor
 ```
 
-安装结果位于 `~/.fanloop/current`。如只需开发二进制：
+如只需开发二进制：
 
 ```bash
 go build -o ./bin/fanloop .
@@ -129,9 +130,10 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 ## 发布边界
 
 源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。在 GitHub Actions 手工运行 `Release`
-Workflow 会执行完整测试、构建四个平台配套制品、发布 `candidate`、验证后提升 `latest`；
-发布使用当前仓库的 `GITHUB_TOKEN`，不需要额外 npm secret。代码目前为 `UNLICENSED`，
-选择许可证和公开前资料审计应在首次公开前单独完成。
+Workflow 会执行完整测试、构建四个平台配套制品、创建草稿 Release、验证精确版本后发布为
+`latest`，再从真实 latest 安装复验。发布只使用当前仓库的 `GITHUB_TOKEN`，不需要 npm
+账号、npm secret 或 Packages token。代码目前为 `UNLICENSED`，选择许可证和公开前资料审计
+应在首次公开前单独完成。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

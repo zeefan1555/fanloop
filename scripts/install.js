@@ -64,9 +64,9 @@ function selectedAsset(manifest) {
   return asset;
 }
 
-function assertMatchedVersion(manifest, launcherVersion) {
-  if (manifest.release_version !== launcherVersion || manifest.cli?.version !== launcherVersion) {
-    throw new Error(`Release ${manifest.release_version || "unknown"} does not match npm launcher ${launcherVersion}`);
+function assertMatchedVersion(manifest) {
+  if (manifest.release_version !== manifest.cli?.version) {
+    throw new Error(`Release ${manifest.release_version || "unknown"} does not match CLI ${manifest.cli?.version || "unknown"}`);
   }
 }
 
@@ -96,23 +96,22 @@ function validateArchive(archive) {
   }
 }
 
-function install(env = process.env, launcherVersion = "") {
-  const manifestPath = env.FANLOOP_RELEASE_MANIFEST || path.join(__dirname, "..", "release.json");
+function install(env = process.env) {
+  if (!env.FANLOOP_RELEASE_MANIFEST || !env.FANLOOP_RELEASE_ARCHIVE) {
+    throw new Error("FANLOOP_RELEASE_MANIFEST and FANLOOP_RELEASE_ARCHIVE are required");
+  }
+  const manifestPath = path.resolve(env.FANLOOP_RELEASE_MANIFEST);
   const manifestContent = fs.readFileSync(manifestPath);
   const manifest = JSON.parse(manifestContent);
-  if (launcherVersion) assertMatchedVersion(manifest, launcherVersion);
+  assertMatchedVersion(manifest);
   const kept = keepsInstalledRelease(env, manifest.release_version);
   if (kept) return { version: kept, kept: true };
   const asset = selectedAsset(manifest);
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-install-"));
   try {
     const archive = path.join(temporary, path.basename(asset.file));
-    if (env.FANLOOP_RELEASE_ARCHIVE) {
-      fs.copyFileSync(path.resolve(env.FANLOOP_RELEASE_ARCHIVE), archive);
-    } else {
-      if (path.basename(asset.file) !== asset.file) throw new Error(`unsafe release asset: ${asset.file}`);
-      fs.copyFileSync(path.join(__dirname, "..", "releases", asset.file), archive);
-    }
+    if (path.basename(asset.file) !== asset.file) throw new Error(`unsafe release asset: ${asset.file}`);
+    fs.copyFileSync(path.resolve(env.FANLOOP_RELEASE_ARCHIVE), archive);
     const actual = checksum(archive);
     if (actual !== asset.sha256) {
       throw new Error(`archive checksum mismatch: expected ${asset.sha256}, got ${actual}`);

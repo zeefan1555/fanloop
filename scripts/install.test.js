@@ -5,7 +5,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const { describe, it } = require("node:test");
 
-const { assertMatchedVersion, checksum, dataHome, describeInstall, keepsInstalledRelease, selectedAsset, validateArchivePath, validateArchive } = require("./install.js");
+const { assertMatchedVersion, checksum, dataHome, describeInstall, install, keepsInstalledRelease, selectedAsset, validateArchivePath, validateArchive } = require("./install.js");
 
 function installedAt(version) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-installed-"));
@@ -14,7 +14,7 @@ function installedAt(version) {
   return root;
 }
 
-describe("Fanloop npm installer", () => {
+describe("Fanloop release installer", () => {
   it("selects the exact current platform asset", () => {
     const platform = { darwin: "darwin", linux: "linux" }[process.platform];
     const arch = { x64: "amd64", arm64: "arm64" }[process.arch];
@@ -63,11 +63,15 @@ describe("Fanloop npm installer", () => {
     assert.equal(keepsInstalledRelease({ ...forwardOnly, FANLOOP_DATA_HOME: installedAt("0.1.66") }, "0.2.0-rc.1"), "");
   });
 
-  it("rejects a Release manifest that does not match the npm launcher", () => {
+  it("rejects a Manifest whose Release and CLI versions differ", () => {
     assert.throws(
-      () => assertMatchedVersion({ release_version: "1.2.4", cli: { version: "1.2.4" } }, "1.2.3"),
-      /does not match npm launcher 1\.2\.3/,
+      () => assertMatchedVersion({ release_version: "1.2.4", cli: { version: "1.2.3" } }),
+      /Release 1\.2\.4 does not match CLI 1\.2\.3/,
     );
+  });
+
+  it("requires explicit GitHub Release assets", () => {
+    assert.throws(() => install({}), /FANLOOP_RELEASE_MANIFEST and FANLOOP_RELEASE_ARCHIVE are required/);
   });
 
   it("rejects links before extracting a Release archive", () => {
