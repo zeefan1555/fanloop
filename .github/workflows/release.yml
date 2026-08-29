@@ -44,7 +44,7 @@ jobs:
         run: |
           version="$(node -p 'require("./package.json").version')"
           package_name="@zeefan1555/fanloop-cli"
-          package_artifact="$(find dist -maxdepth 1 -type f -name '*.tgz' -print -quit)"
+          package_artifact="$(find "$PWD/dist" -maxdepth 1 -type f -name '*.tgz' -print -quit)"
           test -n "$package_artifact"
           old_latest="$(npm view "$package_name@latest" version --prefer-online 2>/dev/null || true)"
 
