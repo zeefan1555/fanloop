@@ -21,9 +21,11 @@ package_name="@zeefan1555/commonloop-cli"
 smoke_root="$(mktemp -d)"
 test -n "$smoke_root" && test -d "$smoke_root"
 
-export NPM_CONFIG_REGISTRY=https://npm.pkg.github.com
+printf 'registry=https://registry.npmjs.org/\n' >"$smoke_root/npmrc"
+export NPM_CONFIG_USERCONFIG="$smoke_root/npmrc"
 export NPM_CONFIG_PREFIX="$smoke_root/npm"
 export NPM_CONFIG_CACHE="$smoke_root/cache"
+unset NODE_AUTH_TOKEN NPM_TOKEN
 export COMMONLOOP_DATA_HOME="$smoke_root/data"
 export COMMONLOOP_CODEX_SKILLS_ROOT="$smoke_root/codex-skills"
 export COMMONLOOP_AGENT_SKILLS_ROOT="$smoke_root/agent-skills"
@@ -80,7 +82,7 @@ npm --version
 npx --version
 install_output="$(
   cd "$smoke_root"
-  npx --yes --package="$package_name@$selector" -- commonloop install
+  npx --yes --prefer-online "$package_name@$selector" install
 )"
 printf '%s\n' "$install_output"
 test "$install_output" = "Commonloop $version installed successfully"
@@ -138,4 +140,4 @@ for marker in "${external_markers[@]}"; do
 done
 
 "$commonloop_bin" version >/dev/null
-printf 'Commonloop %s authenticated release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"
+printf 'Commonloop %s public release smoke passed with %s packaged Skills\n' "$version" "$packaged_skill_count"

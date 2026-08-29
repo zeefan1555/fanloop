@@ -18,7 +18,7 @@ it("updates through the latest official npm installer outside the caller project
   fs.writeFileSync(path.join(caller, "package.json"), JSON.stringify({ name: "@zeefan1555/commonloop-cli" }));
   fs.writeFileSync(
     path.join(bin, "npx"),
-    "#!/bin/sh\n[ ! -f package.json ] || { printf 'npx ran in caller project\\n' >&2; exit 9; }\nprintf '%s\\n' \"$NPM_CONFIG_REGISTRY|$COMMONLOOP_UPDATE_FORWARD_ONLY|$*\" >\"$COMMONLOOP_UPDATE_TEST_LOG\"\nprintf 'Commonloop 9.9.9 installed successfully\\n'\n",
+    "#!/bin/sh\n[ ! -f package.json ] || { printf 'npx ran in caller project\\n' >&2; exit 9; }\nprintf '%s\\n' \"$COMMONLOOP_UPDATE_FORWARD_ONLY|$*\" >\"$COMMONLOOP_UPDATE_TEST_LOG\"\nprintf 'Commonloop 9.9.9 installed successfully\\n'\n",
     { mode: 0o755 },
   );
 
@@ -27,7 +27,6 @@ it("updates through the latest official npm installer outside the caller project
     encoding: "utf8",
     env: {
       ...process.env,
-      NPM_CONFIG_REGISTRY: "https://wrong.invalid",
       PATH: `${bin}:${process.env.PATH}`,
       COMMONLOOP_DATA_HOME: path.join(root, "missing-installation"),
       COMMONLOOP_UPDATE_TEST_LOG: log,
@@ -39,7 +38,7 @@ it("updates through the latest official npm installer outside the caller project
   assert.equal(result.stderr, "");
   assert.equal(
     fs.readFileSync(log, "utf8"),
-    "https://npm.pkg.github.com|1|--yes --prefer-online --package=@zeefan1555/commonloop-cli@latest -- commonloop install\n",
+    "1|--yes --prefer-online @zeefan1555/commonloop-cli@latest install\n",
   );
 });
 

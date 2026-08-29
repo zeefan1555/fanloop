@@ -7,7 +7,8 @@
     "url": "https://github.com/zeefan1555/commonloop.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "bin": {
     "commonloop": "scripts/run.js"
