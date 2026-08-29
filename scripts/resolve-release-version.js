@@ -3,7 +3,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const DEFAULT_REGISTRY = "https://registry.npmjs.org";
+const DEFAULT_REGISTRY = "https://npm.pkg.github.com";
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -33,7 +33,6 @@ function latestPublishedPatch(packageName, major, minor, registry) {
     env: {
       ...process.env,
       NPM_CONFIG_REGISTRY: registry,
-      NPM_CONFIG_USERCONFIG: process.env.NPM_CONFIG_USERCONFIG || "/dev/null",
     },
   });
   if (result.status !== 0) {

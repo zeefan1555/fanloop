@@ -21,10 +21,20 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 新增一套流程只需要增加同名 Workflow/Skill 目录和一条场景映射；不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
 
-## 从源码安装
+## 使用 npx 安装
 
-当前仓库尚未发布 GitHub Release 或 npm 包。请从本地源码构建并安装匹配的 CLI、Workflow
-与 Skills（Node.js 18+、Go 1.23+，系统 `tar` 需支持 XZ）：
+Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先使用具备
+`read:packages` 权限的 GitHub classic PAT 登录，再安装匹配的 CLI、Workflow 与 Skills：
+
+```bash
+npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
+NPM_CONFIG_REGISTRY=https://npm.pkg.github.com \
+  npx --yes --prefer-online --package=@zeefan1555/fanloop-cli@latest -- fanloop install
+fanloop version
+fanloop doctor
+```
+
+后续升级执行 `fanloop update`。从源码安装需要 Node.js 18+、Go 1.23+，系统 `tar` 支持 XZ：
 
 ```bash
 npm run install:local
@@ -118,9 +128,10 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 发布边界
 
-仓库当前只有本地 `main` 分支，不配置远端、不推送。未来创建 GitHub 仓库后再设置
-`origin`；`package.json` 中的 GitHub/npm 地址只是目标发布身份。代码目前为
-`UNLICENSED`，选择许可证和公开前资料审计应在首次公开前单独完成。
+源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。在 GitHub Actions 手工运行 `Release`
+Workflow 会执行完整测试、构建四个平台配套制品、发布 `candidate`、验证后提升 `latest`；
+发布使用当前仓库的 `GITHUB_TOKEN`，不需要额外 npm secret。代码目前为 `UNLICENSED`，
+选择许可证和公开前资料审计应在首次公开前单独完成。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

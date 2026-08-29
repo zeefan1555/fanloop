@@ -15,9 +15,9 @@ function makeTempPackage(version = "1.2.3") {
     packageJson,
     `${JSON.stringify(
       {
-        name: "fanloop-cli",
+        name: "@zeefan1555/fanloop-cli",
         version,
-        publishConfig: { registry: "https://registry.npmjs.org" },
+        publishConfig: { registry: "https://npm.pkg.github.com" },
       },
       null,
       2,

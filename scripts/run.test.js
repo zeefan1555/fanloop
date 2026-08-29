@@ -15,7 +15,7 @@ it("updates through the latest official npm installer outside the caller project
   const caller = path.join(root, "same-package-project");
   fs.mkdirSync(bin);
   fs.mkdirSync(caller);
-  fs.writeFileSync(path.join(caller, "package.json"), JSON.stringify({ name: "fanloop-cli" }));
+  fs.writeFileSync(path.join(caller, "package.json"), JSON.stringify({ name: "@zeefan1555/fanloop-cli" }));
   fs.writeFileSync(
     path.join(bin, "npx"),
     "#!/bin/sh\n[ ! -f package.json ] || { printf 'npx ran in caller project\\n' >&2; exit 9; }\nprintf '%s\\n' \"$NPM_CONFIG_REGISTRY|$FANLOOP_UPDATE_FORWARD_ONLY|$*\" >\"$FANLOOP_UPDATE_TEST_LOG\"\nprintf 'Fanloop 9.9.9 installed successfully\\n'\n",
@@ -39,7 +39,7 @@ it("updates through the latest official npm installer outside the caller project
   assert.equal(result.stderr, "");
   assert.equal(
     fs.readFileSync(log, "utf8"),
-    "https://registry.npmjs.org|1|--yes --prefer-online --package=fanloop-cli@latest -- fanloop install\n",
+    "https://npm.pkg.github.com|1|--yes --prefer-online --package=@zeefan1555/fanloop-cli@latest -- fanloop install\n",
   );
 });
 

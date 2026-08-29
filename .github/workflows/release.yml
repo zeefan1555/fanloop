@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fanloop-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_REGISTRY: https://npm.pkg.github.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@zeefan1555"
+      - name: Install pinned Thrift generators
+        run: |
+          go install github.com/cloudwego/thriftgo@v0.4.3
+          go install github.com/cloudwego/thrift-gen-validator@v0.2.5
+      - run: ./tests/run-unit
+      - run: ./tests/run-e2e
+      - name: Build matched release package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/prepare-release.sh
+      - name: Publish candidate, verify, and promote latest
+        env:
+          FANLOOP_EXPECTED_COMMIT: ${{ github.sha }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          package_name="@zeefan1555/fanloop-cli"
+          package_artifact="$(find dist -maxdepth 1 -type f -name '*.tgz' -print -quit)"
+          test -n "$package_artifact"
+          old_latest="$(npm view "$package_name@latest" version --prefer-online 2>/dev/null || true)"
+
+          npm publish "$package_artifact" --tag candidate
+          ./scripts/verify-published-package.sh "$version" "$version"
+          npm dist-tag add "$package_name@$version" latest
+
+          if ! ./scripts/verify-published-package.sh "$version" latest; then
+            if [[ -n "$old_latest" ]]; then
+              npm dist-tag add "$package_name@$old_latest" latest
+            else
+              npm dist-tag rm "$package_name" latest || true
+            fi
+            exit 1
+          fi
