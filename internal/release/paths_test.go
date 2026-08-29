@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestDefaultDataRootUsesHomeCommonloopDirectory(t *testing.T) {
-	t.Setenv("COMMONLOOP_DATA_HOME", "")
+func TestDefaultDataRootUsesHomeFanloopDirectory(t *testing.T) {
+	t.Setenv("FANLOOP_DATA_HOME", "")
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -18,13 +18,13 @@ func TestDefaultDataRootUsesHomeCommonloopDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(home, ".commonloop"); got != want {
+	if want := filepath.Join(home, ".fanloop"); got != want {
 		t.Fatalf("default data root = %q, want %q", got, want)
 	}
 }
 
 func TestDefaultSkillRootsIncludeClaudeHomeDirectory(t *testing.T) {
-	t.Setenv("COMMONLOOP_CLAUDE_SKILLS_ROOT", "")
+	t.Setenv("FANLOOP_CLAUDE_SKILLS_ROOT", "")
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
@@ -40,10 +40,10 @@ func TestDefaultSkillRootsIncludeClaudeHomeDirectory(t *testing.T) {
 
 func TestDefaultSkillRootsUseAllFourClientOverrides(t *testing.T) {
 	base := t.TempDir()
-	t.Setenv("COMMONLOOP_CODEX_SKILLS_ROOT", filepath.Join(base, "codex"))
-	t.Setenv("COMMONLOOP_AGENT_SKILLS_ROOT", filepath.Join(base, "agents"))
-	t.Setenv("COMMONLOOP_TRAE_SKILLS_ROOT", filepath.Join(base, "trae"))
-	t.Setenv("COMMONLOOP_CLAUDE_SKILLS_ROOT", filepath.Join(base, "claude"))
+	t.Setenv("FANLOOP_CODEX_SKILLS_ROOT", filepath.Join(base, "codex"))
+	t.Setenv("FANLOOP_AGENT_SKILLS_ROOT", filepath.Join(base, "agents"))
+	t.Setenv("FANLOOP_TRAE_SKILLS_ROOT", filepath.Join(base, "trae"))
+	t.Setenv("FANLOOP_CLAUDE_SKILLS_ROOT", filepath.Join(base, "claude"))
 	roots, err := DefaultSkillRoots()
 	if err != nil {
 		t.Fatal(err)

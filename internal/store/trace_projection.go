@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/traceconfig"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/traceconfig"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 var beijingTimezone = time.FixedZone("UTC+8", 8*60*60)

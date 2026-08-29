@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/zeefan1555/commonloop/internal/idl/yamlidl"
+	"github.com/zeefan1555/fanloop/internal/idl/yamlidl"
 )
 
 // Workflow is the resolved, immutable five-file Workflow Bundle.

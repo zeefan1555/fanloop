@@ -5,7 +5,7 @@ package traceidl
 import (
 	"bytes"
 	"fmt"
-	erroridl "github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	erroridl "github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"reflect"
 	"regexp"
 	"strings"

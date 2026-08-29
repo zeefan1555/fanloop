@@ -24,11 +24,11 @@ type result struct {
 
 func buildCLI(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "commonloop")
+	binary := filepath.Join(t.TempDir(), "fanloop")
 	command := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
 	command.Dir = repositoryRoot(t)
 	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("build commonloop: %v\n%s", err, output)
+		t.Fatalf("build fanloop: %v\n%s", err, output)
 	}
 	return binary
 }
@@ -39,9 +39,9 @@ func run(binary string, args ...string) result {
 
 func commandFor(binary string, args ...string) *exec.Cmd {
 	command := exec.Command(binary, args...)
-	command.Env = withoutEnvironment(os.Environ(), "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "COMMONLOOP_DATA_HOME", "PATH")
+	command.Env = withoutEnvironment(os.Environ(), "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "FANLOOP_DATA_HOME", "PATH")
 	command.Env = append(command.Env,
-		"COMMONLOOP_DATA_HOME="+filepath.Join(filepath.Dir(binary), ".commonloop-user"),
+		"FANLOOP_DATA_HOME="+filepath.Join(filepath.Dir(binary), ".fanloop-user"),
 		"PATH="+filepath.Dir(binary),
 	)
 	return command
@@ -66,12 +66,12 @@ func TestCommandForScrubsBotmuxBinding(t *testing.T) {
 	t.Setenv("BOTMUX_CHAT_ID", "oc_real_chat_must_not_escape")
 	t.Setenv("BOTMUX_SESSION_ID", "real_session_must_not_escape")
 	t.Setenv("PATH", "/tmp/real-user-bin"+string(os.PathListSeparator)+os.Getenv("PATH"))
-	command := commandFor("commonloop", "version")
+	command := commandFor("fanloop", "version")
 	if command.Env == nil {
 		t.Fatal("command inherits the process environment implicitly")
 	}
-	wantDataRoot := "COMMONLOOP_DATA_HOME=" + filepath.Join(filepath.Dir("commonloop"), ".commonloop-user")
-	wantPath := "PATH=" + filepath.Dir("commonloop")
+	wantDataRoot := "FANLOOP_DATA_HOME=" + filepath.Join(filepath.Dir("fanloop"), ".fanloop-user")
+	wantPath := "PATH=" + filepath.Dir("fanloop")
 	foundDataRoot := false
 	foundPath := false
 	for _, item := range command.Env {
@@ -85,7 +85,7 @@ func TestCommandForScrubsBotmuxBinding(t *testing.T) {
 		}
 	}
 	if !foundDataRoot {
-		t.Fatal("command inherited the real Commonloop data root")
+		t.Fatal("command inherited the real Fanloop data root")
 	}
 	if !foundPath {
 		t.Fatal("command did not install the isolated executable path")

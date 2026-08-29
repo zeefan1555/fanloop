@@ -1,17 +1,16 @@
 {
-  "name": "@zeefan1555/commonloop-cli",
+  "name": "@zeefan1555/fanloop-cli",
   "version": "0.1.0",
-  "description": "Commonloop local workflow runtime and matched Agent Skills",
+  "description": "Fanloop local workflow runtime and matched Agent Skills",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zeefan1555/commonloop.git"
+    "url": "https://github.com/zeefan1555/fanloop.git"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
+    "registry": "https://npm.pkg.github.com"
   },
   "bin": {
-    "commonloop": "scripts/run.js"
+    "fanloop": "scripts/run.js"
   },
   "scripts": {
     "build": "scripts/build-release.sh",

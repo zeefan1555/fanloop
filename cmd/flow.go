@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/spf13/cobra"
-	"github.com/zeefan1555/commonloop/internal/flow"
-	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/flowidl"
-	"github.com/zeefan1555/commonloop/internal/store"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/flow"
+	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
+	"github.com/zeefan1555/fanloop/internal/store"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func newFlowCommand(ioStreams streams, root *string) *cobra.Command {
@@ -55,7 +55,7 @@ Request JSON:
   }
 
 Typed flags:
-  commonloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --workflow <WORKFLOW_ID> --title <TITLE> --source-url <SOURCE_URL>
+  fanloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --workflow <WORKFLOW_ID> --title <TITLE> --source-url <SOURCE_URL>
 
 Constraints:
   workflow and requirement.title are required non-empty strings. requirement.source_url is optional.
@@ -68,9 +68,9 @@ Controls:
 
 Next step:
   After a successful non-dry-run initialization, run flow status immediately before acting.`
-	command.Example = `  commonloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
-  commonloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --workflow <WORKFLOW_ID> --title <TITLE> --source-url <SOURCE_URL>
-  commonloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>`
+	command.Example = `  fanloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
+  fanloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --workflow <WORKFLOW_ID> --title <TITLE> --source-url <SOURCE_URL>
+  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*flowidl.FlowInitRequest, *erroridl.PublicError) {
@@ -106,7 +106,7 @@ Request JSON:
   {}
 
 Typed flags:
-  commonloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
 
 Constraints:
   The business Request is empty. Evidence in the response is audit data and never affects Route matching.
@@ -118,7 +118,7 @@ Controls:
 
 Next step:
   Execute current.prompt and its required Skills from this Status, then read the target report command's --help.`
-	command.Example = "  commonloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>"
+	command.Example = "  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>"
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
 			func() (*flowidl.FlowStatusRequest, *erroridl.PublicError) { return flowidl.NewFlowStatusRequest(), nil },
@@ -180,7 +180,7 @@ Request JSON:
   }
 
 Typed flags:
-  commonloop flow report progress --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --status in_progress --summary <SUMMARY> --evidence '{"source":"file","content":"<EVIDENCE>","ref":"<OPTIONAL_REF>"}'
+  fanloop flow report progress --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --status in_progress --summary <SUMMARY> --evidence '{"source":"file","content":"<EVIDENCE>","ref":"<OPTIONAL_REF>"}'
 
 Constraints:
   step_id and status are required. step_id must equal latest Status current.context.step_id;
@@ -195,8 +195,8 @@ Controls:
 
 Next step:
   After an accepted non-dry-run update, run flow status again before the next action.`
-	command.Example = `  commonloop flow report progress --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
-  commonloop flow report progress --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --status in_progress --summary <SUMMARY>`
+	command.Example = `  fanloop flow report progress --root <ABSOLUTE_REQUIREMENT_ROOT> --input @request.json --dry-run
+  fanloop flow report progress --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --status in_progress --summary <SUMMARY>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		typed := func() (*flowidl.FlowProgressRequest, *erroridl.PublicError) {
 			var failure *erroridl.PublicError
@@ -263,7 +263,7 @@ Request JSON:
   }
 
 Typed flags:
-  commonloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --condition-result '{"condition_id":"<CONDITION_ID>","output":{"type":"string","value":"<VALUE>"}}' --evidence '{"source":"file","content":"<EVIDENCE>","ref":"<OPTIONAL_REF>"}' --summary <SUMMARY> --next-step-id <NEXT_STEP_ID>
+  fanloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --condition-result '{"condition_id":"<CONDITION_ID>","output":{"type":"string","value":"<VALUE>"}}' --evidence '{"source":"file","content":"<EVIDENCE>","ref":"<OPTIONAL_REF>"}' --summary <SUMMARY> --next-step-id <NEXT_STEP_ID>
 
 Constraints:
   step_id is required and must equal latest Status current.context.step_id. Submit only current.conditions, using each listed Output type and constraints.
@@ -280,10 +280,10 @@ Controls:
 
 Next step:
   After an accepted non-dry-run result, run flow status again before the next action.`
-	command.Example = `  commonloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
-  commonloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --input @result.json --dry-run
-  commonloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --input @result.json
-  commonloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>`
+	command.Example = `  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+  fanloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --input @result.json --dry-run
+  fanloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --input @result.json
+  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>`
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		typed := func() (*flowidl.FlowResultRequest, *erroridl.PublicError) {
 			var failure *erroridl.PublicError

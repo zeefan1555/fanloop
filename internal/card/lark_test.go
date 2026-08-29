@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/commonloop/internal/idl/cardidl"
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/traceconfig"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/traceconfig"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func TestCardShowsConditionRoutesOutputsAndEvidence(t *testing.T) {
@@ -73,7 +73,7 @@ func TestCardShowsOnlyCurrentExecutionEvidence(t *testing.T) {
 }
 
 func TestCardMarkdownShowsCLILogBesideTrace(t *testing.T) {
-	loaded, err := workflow.Load("commonloop-maintainer")
+	loaded, err := workflow.Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}

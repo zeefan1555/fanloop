@@ -52,7 +52,7 @@ set -eu
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
 		t.Fatalf("flow init unexpectedly invoked botmux: %v", err)
 	}
-	projection := string(readFile(t, filepath.Join(root, ".commonloop", "card", "projection.json")))
+	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
 	if !strings.Contains(projection, `"trace_document_url": "`+traceURL+`"`) {
 		t.Fatalf("Card projection did not retain Trace binding:\n%s", projection)
 	}
@@ -91,7 +91,7 @@ set -eu
 : > "$BOTMUX_CALLED"
 `)
 
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "commonloop-maintainer", "--title", "Maintainer panorama")
+	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Maintainer panorama")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
 		"CALL_LOG="+callLog, "CREATE_COUNT="+createCount, "BOTMUX_CALLED="+botmuxCalled,
@@ -111,7 +111,7 @@ set -eu
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
 		t.Fatalf("flow init unexpectedly invoked botmux: %v", err)
 	}
-	projection := string(readFile(t, filepath.Join(root, ".commonloop", "card", "projection.json")))
+	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
 	for _, want := range []string{`"trace_document_url": "` + traceURL + `"`, `"cli_log_document_url": "` + logURL + `"`} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Card projection did not retain %q:\n%s", want, projection)
@@ -134,11 +134,11 @@ func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *test
 	if initialized.exitCode != 0 || !strings.Contains(initialized.stdout, `"ok": true`) || !strings.Contains(initialized.stderr, "Trace document provisioning") {
 		t.Fatalf("flow init did not preserve success with a Trace warning: exit=%d\nstdout=%s\nstderr=%s", initialized.exitCode, initialized.stdout, initialized.stderr)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".commonloop", "flow", "state.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".fanloop", "flow", "state.json")); err != nil {
 		t.Fatalf("flow init did not preserve the committed local Flow: %v", err)
 	}
 	for _, path := range []string{
-		filepath.Join(root, ".commonloop", "card", "projection.json"),
+		filepath.Join(root, ".fanloop", "card", "projection.json"),
 		botmuxCalled,
 	} {
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
@@ -150,11 +150,11 @@ func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *test
 func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Driver layout"), "flow.init")
-	projectionPath := filepath.Join(root, ".commonloop", "card", "projection.json")
+	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	if _, err := os.Stat(projectionPath); err != nil {
 		t.Fatalf("flow init did not create Card projection: %v", err)
 	}
-	eventsPath := filepath.Join(root, ".commonloop", "trace", "events.jsonl")
+	eventsPath := filepath.Join(root, ".fanloop", "trace", "events.jsonl")
 	eventsBefore := readFile(t, eventsPath)
 
 	dryRun := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
@@ -177,7 +177,7 @@ func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {
 		t.Fatalf("snapshot paths are not immutable: %q %q", left.Data.SnapshotPath, right.Data.SnapshotPath)
 	}
 	for _, path := range []string{left.Data.SnapshotPath, right.Data.SnapshotPath} {
-		if !strings.HasPrefix(path, ".commonloop/card/") || !strings.HasSuffix(path, ".json") {
+		if !strings.HasPrefix(path, ".fanloop/card/") || !strings.HasSuffix(path, ".json") {
 			t.Fatalf("snapshot path does not use Driver layout: %q", path)
 		}
 	}
@@ -203,7 +203,7 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Independent card"), "flow.init")
 
-	projectionPath := filepath.Join(root, ".commonloop", "card", "projection.json")
+	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	projection := readFile(t, projectionPath)
 	if !bytes.Contains(projection, []byte(`"current_step_id": "frame_technical_problem"`)) {
 		t.Fatalf("initial Card projection does not contain the current Step:\n%s", projection)
@@ -221,7 +221,7 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 		}
 	}
 
-	eventsPath := filepath.Join(root, ".commonloop", "trace", "events.jsonl")
+	eventsPath := filepath.Join(root, ".fanloop", "trace", "events.jsonl")
 	brokenTrace := []byte("not-json\n")
 	if err := os.WriteFile(eventsPath, brokenTrace, 0o600); err != nil {
 		t.Fatal(err)

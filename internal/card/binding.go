@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
+	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 )
 
 const (
 	CurrentBindingSchemaVersion = storageidl.CARD_BINDING_SCHEMA_VERSION
-	bindingRelativePath         = ".commonloop/card/config.json"
+	bindingRelativePath         = ".fanloop/card/config.json"
 )
 
 type BotmuxBinding struct {

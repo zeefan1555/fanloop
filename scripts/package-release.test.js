@@ -8,14 +8,14 @@ const { it } = require("node:test");
 const { packageRelease } = require("./package-release.js");
 
 it("packs every platform release archive into the npm package", (t) => {
-  const dist = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-package-release-"));
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-package-release-"));
   t.after(() => fs.rmSync(dist, { recursive: true, force: true }));
   const version = "1.2.3";
   const assets = [
-    "commonloop-1.2.3-darwin-amd64.tar.xz",
-    "commonloop-1.2.3-darwin-arm64.tar.xz",
-    "commonloop-1.2.3-linux-amd64.tar.xz",
-    "commonloop-1.2.3-linux-arm64.tar.xz",
+    "fanloop-1.2.3-darwin-amd64.tar.xz",
+    "fanloop-1.2.3-darwin-arm64.tar.xz",
+    "fanloop-1.2.3-linux-amd64.tar.xz",
+    "fanloop-1.2.3-linux-arm64.tar.xz",
   ];
   fs.writeFileSync(path.join(dist, "release.json"), JSON.stringify({
     release_version: version,
@@ -28,10 +28,7 @@ it("packs every platform release archive into the npm package", (t) => {
   const entries = execFileSync("tar", ["-tzf", artifact], { encoding: "utf8" }).trim().split("\n");
   for (const file of assets) assert.ok(entries.includes(`package/releases/${file}`), file);
   const metadata = JSON.parse(execFileSync("tar", ["-xOf", artifact, "package/package.json"], { encoding: "utf8" }));
-  assert.equal(metadata.name, "@zeefan1555/commonloop-cli");
-  assert.deepEqual(metadata.publishConfig, {
-    registry: "https://registry.npmjs.org/",
-    access: "public",
-  });
-  assert.equal(metadata.repository.url, "https://github.com/zeefan1555/commonloop.git");
+  assert.equal(metadata.name, "@zeefan1555/fanloop-cli");
+  assert.equal(metadata.publishConfig.registry, "https://npm.pkg.github.com");
+  assert.equal(metadata.repository.url, "https://github.com/zeefan1555/fanloop.git");
 });

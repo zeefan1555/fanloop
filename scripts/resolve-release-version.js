@@ -3,7 +3,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const DEFAULT_REGISTRY = "https://registry.npmjs.org/";
+const DEFAULT_REGISTRY = "https://npm.pkg.github.com";
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));

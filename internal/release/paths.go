@@ -18,10 +18,10 @@ func DefaultSkillRoots() (SkillRoots, error) {
 		return SkillRoots{}, err
 	}
 	return SkillRoots{
-		Codex:  environmentPath("COMMONLOOP_CODEX_SKILLS_ROOT", filepath.Join(home, ".codex", "skills")),
-		Agent:  environmentPath("COMMONLOOP_AGENT_SKILLS_ROOT", filepath.Join(home, ".agents", "skills")),
-		Trae:   environmentPath("COMMONLOOP_TRAE_SKILLS_ROOT", filepath.Join(home, ".trae", "skills")),
-		Claude: environmentPath("COMMONLOOP_CLAUDE_SKILLS_ROOT", filepath.Join(home, ".claude", "skills")),
+		Codex:  environmentPath("FANLOOP_CODEX_SKILLS_ROOT", filepath.Join(home, ".codex", "skills")),
+		Agent:  environmentPath("FANLOOP_AGENT_SKILLS_ROOT", filepath.Join(home, ".agents", "skills")),
+		Trae:   environmentPath("FANLOOP_TRAE_SKILLS_ROOT", filepath.Join(home, ".trae", "skills")),
+		Claude: environmentPath("FANLOOP_CLAUDE_SKILLS_ROOT", filepath.Join(home, ".claude", "skills")),
 	}, nil
 }
 
@@ -34,10 +34,10 @@ func DefaultDataRoot() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if value := os.Getenv("COMMONLOOP_DATA_HOME"); value != "" {
+	if value := os.Getenv("FANLOOP_DATA_HOME"); value != "" {
 		return filepath.Clean(value), nil
 	}
-	return filepath.Join(home, ".commonloop"), nil
+	return filepath.Join(home, ".fanloop"), nil
 }
 
 func environmentPath(name, fallback string) string {

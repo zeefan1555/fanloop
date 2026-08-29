@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/zeefan1555/commonloop/internal/idl/storageidl"
+	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 )
 
 const CurrentOutputSchemaVersion = storageidl.OUTPUT_REGISTRY_SCHEMA_VERSION

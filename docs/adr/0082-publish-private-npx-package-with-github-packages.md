@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-29
 amends: ADR-0009, ADR-0049, ADR-0065
+amended_by: ADR-0083, ADR-0084, ADR-0085
 ---
 
 # 使用 GitHub Packages 发布私有 npx 安装包

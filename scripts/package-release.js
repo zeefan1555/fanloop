@@ -48,7 +48,7 @@ if (require.main === module) {
     const artifact = packageRelease(process.argv[2], process.argv[3]);
     console.log(artifact);
   } catch (error) {
-    console.error(`Commonloop package failed: ${error.message}`);
+    console.error(`Fanloop package failed: ${error.message}`);
     process.exit(1);
   }
 }

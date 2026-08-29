@@ -2,12 +2,12 @@
 package idl
 
 import (
-	"github.com/zeefan1555/commonloop/internal/idl/cardidl"
-	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/flowidl"
-	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
-	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
+	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
+	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
+	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
+	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
 	"reflect"
 )
 

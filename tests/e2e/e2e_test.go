@@ -19,22 +19,22 @@ type cliResult struct {
 
 func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 	repository := repositoryRoot(t)
-	binary := filepath.Join(t.TempDir(), "commonloop")
+	binary := filepath.Join(t.TempDir(), "fanloop")
 	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
 	build.Dir = repository
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build commonloop: %v\n%s", err, output)
+		t.Fatalf("build fanloop: %v\n%s", err, output)
 	}
 
 	root := t.TempDir()
 	run := func(args ...string) string {
 		t.Helper()
 		command := exec.Command(binary, args...)
-		command.Env = append(withoutBotmuxBinding(os.Environ()), "COMMONLOOP_PYTHON="+filepath.Join(root, "missing-python"))
+		command.Env = append(withoutBotmuxBinding(os.Environ()), "FANLOOP_PYTHON="+filepath.Join(root, "missing-python"))
 		var stdout, stderr bytes.Buffer
 		command.Stdout, command.Stderr = &stdout, &stderr
 		if err := command.Run(); err != nil {
-			t.Fatalf("commonloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+			t.Fatalf("fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 		}
 		return stdout.String()
 	}
@@ -51,12 +51,12 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 	if output := run("card", "render", "--root", root, "--view", "current", "--format", "markdown"); !strings.Contains(output, `"format": "markdown"`) {
 		t.Fatalf("card output = %s", output)
 	}
-	for _, relative := range []string{".commonloop/flow/state.json", ".commonloop/trace/events.jsonl", ".commonloop/trace/events.md"} {
+	for _, relative := range []string{".fanloop/flow/state.json", ".fanloop/trace/events.jsonl", ".fanloop/trace/events.md"} {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(relative))); err != nil {
 			t.Fatalf("final commands did not write Driver layout %s: %v", relative, err)
 		}
 	}
-	for _, deprecated := range []string{".commonloop/state.json", ".commonloop/events.jsonl", ".commonloop/events.md", ".prd-flow"} {
+	for _, deprecated := range []string{".fanloop/state.json", ".fanloop/events.jsonl", ".fanloop/events.md", ".prd-flow"} {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(deprecated))); !os.IsNotExist(err) {
 			t.Fatalf("final commands wrote deprecated requirement path %s: %v", deprecated, err)
 		}
@@ -85,14 +85,14 @@ func withoutBotmuxBinding(environment []string) []string {
 }
 
 func runCurrent(dataRoot, codexRoot, agentsRoot, registryURL string, args ...string) cliResult {
-	command := exec.Command(filepath.Join(dataRoot, "current", "bin", "commonloop"), args...)
+	command := exec.Command(filepath.Join(dataRoot, "current", "bin", "fanloop"), args...)
 	command.Env = append(withoutBotmuxBinding(os.Environ()),
-		"COMMONLOOP_DATA_HOME="+dataRoot,
-		"COMMONLOOP_CODEX_SKILLS_ROOT="+codexRoot,
-		"COMMONLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
-		"COMMONLOOP_TRAE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".trae-skills"),
-		"COMMONLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".claude-skills"),
-		"COMMONLOOP_NPM_REGISTRY="+registryURL,
+		"FANLOOP_DATA_HOME="+dataRoot,
+		"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
+		"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
+		"FANLOOP_TRAE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".trae-skills"),
+		"FANLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".claude-skills"),
+		"FANLOOP_NPM_REGISTRY="+registryURL,
 	)
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr

@@ -20,7 +20,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	for index, item := range items {
 		refs[index] = item.Ref.ID
 	}
-	wantRefs := []string{"commonloop-maintainer", "technical-solution-design"}
+	wantRefs := []string{"fanloop-maintainer", "technical-solution-design"}
 	if !reflect.DeepEqual(refs, wantRefs) {
 		t.Fatalf("Workflow IDs = %v", refs)
 	}
@@ -92,7 +92,7 @@ func TestProductionWorkflowSourcesAreFlatAndVersionless(t *testing.T) {
 }
 
 func TestWorkflowSelectorRejectsRetiredBusinessVersion(t *testing.T) {
-	if _, err := LoadSelector("commonloop@14.0.0"); !errors.Is(err, ErrInvalidSelector) {
+	if _, err := LoadSelector("fanloop@14.0.0"); !errors.Is(err, ErrInvalidSelector) {
 		t.Fatalf("versioned selector error = %v, want ErrInvalidSelector", err)
 	}
 }
