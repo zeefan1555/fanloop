@@ -46,7 +46,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if !strings.Contains(waitingForReview.stdout, `"step_id": "confirm_technical_problem"`) {
 		t.Fatalf("rejected document-only result changed current Step: %s", waitingForReview.stdout)
 	}
-	approved := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"panorama_card_published","output":{"type":"string","value":"receipt-release-e2e"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"derive_technical_solution"},"summary":"technical problem approved","evidence":[{"source":"human","content":"approved problem","ref":"requirement-e2e"}]}`)
+	approved := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"panorama_card_published","output":{"type":"path","value":".fanloop/card/release-e2e.json"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"derive_technical_solution"},"summary":"technical problem approved","evidence":[{"source":"human","content":"approved problem","ref":"requirement-e2e"}]}`)
 	if !strings.Contains(approved.stdout, `"step_id": "derive_technical_solution"`) {
 		t.Fatalf("approved requirements did not enter solution design: %s", approved.stdout)
 	}

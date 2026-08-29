@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -14,11 +13,9 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/workflow"
-	"github.com/zeefan1555/fanloop/internal/workflowview"
 )
 
 type Runtime struct {
@@ -80,124 +77,58 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 }
 
 func renderContent(request *cardidl.CardRenderRequest, current state.State, definition workflow.Workflow) (*commonidl.JsonValue, any, error) {
-	markdown := renderMarkdown(request.View, current, definition)
+	content := buildCardContent(request.View, current, definition)
 	if request.Format == cardidl.CardFormat_markdown {
+		markdown := renderMarkdownContent(content)
 		value, err := commonidl.FromAny(markdown)
 		return value, markdown, err
 	}
-	lark := renderLarkCard(request.View, current, definition)
+	lark := renderLarkCardContent(content)
 	value, err := commonidl.FromAny(lark)
 	return value, lark, err
 }
 
 func renderMarkdown(view cardidl.CardView, current state.State, definition workflow.Workflow) string {
-	lines := []string{"# " + current.Requirement.Title, ""}
-	projected := workflowview.Project(definition, current)
-	if projected.Current == nil {
-		lines = append(lines, "- 当前状态：`workflow completed`")
-	} else {
-		task := projected.Current
-		lines = append(lines,
-			fmt.Sprintf("- 当前阶段：`%s` %s", task.Context.StageId, task.Context.StageName),
-			fmt.Sprintf("- 当前 Job：`%s` %s", task.Context.JobId, task.Context.JobName),
-			fmt.Sprintf("- 当前步骤：`%s` %s", task.Context.StepId, task.Context.StepName),
-			"- 执行状态：`"+task.Execution.Status.String()+"`",
-			"- 执行方：`"+task.Context.Executor.String()+"`",
-			"- "+traceLink(current),
-		)
-		if link := cliLogLink(current); link != "" {
-			lines = append(lines, "- "+link)
-		}
-		lines = append(lines,
-			"- 当前 Prompt："+strings.TrimSpace(task.Prompt.Content),
-			"- 可上报 Condition："+conditionSummary(task),
-			"- 正常方向："+flowRouteSummary(task),
-			"- 回流方向："+loopRouteSummary(task),
-		)
+	return renderMarkdownContent(buildCardContent(view, current, definition))
+}
+
+func renderMarkdownContent(content cardContent) string {
+	lines := []string{
+		fmt.Sprintf("# 后端研发交付 · %s `%s` `%d%%`", markdownTableCell(content.Title), content.Status, content.Progress),
+		"",
+		content.StageName + " · " + content.StepName,
+		"",
+		"## 状态全景",
+		"",
+		content.Panorama,
+		"",
+		"## 各阶段 Output",
+		"",
 	}
-	if current.CurrentStepSummary != "" {
-		lines = append(lines, "- 摘要："+current.CurrentStepSummary)
+	headings := make([]string, 0, len(content.Stages))
+	separators := make([]string, 0, len(content.Stages))
+	outputs := make([]string, 0, len(content.Stages))
+	for _, stage := range content.Stages {
+		headings = append(headings, stage.Name)
+		separators = append(separators, "---")
+		outputs = append(outputs, stage.Output)
 	}
-	if view == cardidl.CardView_current {
-		return strings.Join(lines, "\n")
+	if len(headings) > 0 {
+		lines = append(lines, markdownTableRow(headings...), markdownTableRow(separators...), markdownTableRow(outputs...))
 	}
-	lines = append(lines, "", "## Workflow 全景")
-	for _, stage := range definition.Stages {
-		lines = append(lines, "", "### "+stage.Name)
-		for _, job := range stage.Jobs {
-			lines = append(lines, "#### "+job.Name)
-			for _, step := range job.Steps {
-				marker := "-"
-				if current.CurrentStepID != nil && *current.CurrentStepID == step.ID {
-					marker = "- →"
-				}
-				lines = append(lines, fmt.Sprintf("%s `%s`：%s", marker, step.ID, step.Name))
-			}
-		}
-	}
-	if len(current.Outputs) > 0 {
-		keys := make([]string, 0, len(current.Outputs))
-		for key := range current.Outputs {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		lines = append(lines, "", "## 当前有效 Output")
-		for _, key := range keys {
-			output := current.Outputs[key]
-			lines = append(lines, fmt.Sprintf("- `%s`（%s，producer=%s）：`%s`", key, output.Type, output.ProducerStepID, output.Value))
-		}
-	}
+	lines = append(lines, "", content.Evidence, "", actionMarkdown(content.Action))
 	return strings.Join(lines, "\n")
 }
 
-func conditionSummary(task interface {
-	GetConditions() []*flowidl.ConditionView
-}) string {
-	conditions := task.GetConditions()
-	if len(conditions) == 0 {
-		return "无"
+func markdownTableRow(cells ...string) string {
+	for index := range cells {
+		cells[index] = markdownTableCell(cells[index])
 	}
-	ids := make([]string, 0, len(conditions))
-	for _, condition := range conditions {
-		ids = append(ids, condition.Id)
-	}
-	return "`" + strings.Join(ids, "`、`") + "`"
+	return "| " + strings.Join(cells, " | ") + " |"
 }
 
-func flowRouteSummary(task interface {
-	GetAvailableRoutes() []*flowidl.AvailableRoute
-}) string {
-	targets := make([]string, 0)
-	for _, route := range task.GetAvailableRoutes() {
-		if route.Direction != flowidl.RouteDirection_flow {
-			continue
-		}
-		if route.Route.GetTerminal() {
-			targets = append(targets, "terminal")
-		} else {
-			targets = append(targets, route.Route.GetNextStepId())
-		}
-	}
-	return quotedTargets(targets)
-}
-
-func loopRouteSummary(task interface {
-	GetAvailableRoutes() []*flowidl.AvailableRoute
-}) string {
-	targets := make([]string, 0)
-	for _, route := range task.GetAvailableRoutes() {
-		if route.Direction == flowidl.RouteDirection_loop {
-			targets = append(targets, route.Route.GetBackStepId())
-		}
-	}
-	return quotedTargets(targets)
-}
-
-func quotedTargets(values []string) string {
-	if len(values) == 0 {
-		return "无"
-	}
-	return "`" + strings.Join(values, "`、`") + "`"
+func markdownTableCell(value string) string {
+	return strings.NewReplacer("\r\n", "<br>", "\n", "<br>", "\r", "<br>", "|", "\\|").Replace(strings.TrimSpace(value))
 }
 
 func invalidArgument(message string) *erroridl.PublicError {
