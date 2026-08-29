@@ -102,12 +102,31 @@ if [[ "$selector" == "latest" ]]; then
   test "$update_output" = "Fanloop $version installed successfully"
   "$fanloop_bin" doctor | grep '"status": "healthy"'
 fi
-requirement="$smoke_root/requirement"
-mkdir -p "$requirement"
-"$fanloop_bin" flow init --root "$requirement" --workflow technical-solution-design --title "Technical solution smoke" | grep 'frame_technical_problem'
-
 manifest="$FANLOOP_DATA_HOME/current/release.json"
 test -f "$manifest"
+workflow_ids="$(node -e 'const manifest = require(process.argv[1]); for (const workflow of manifest.workflows) console.log(workflow.id)' "$manifest")"
+workflow_count=0
+while IFS= read -r workflow_id; do
+  test -n "$workflow_id"
+  workflow_count=$((workflow_count + 1))
+  requirement="$smoke_root/requirements/$workflow_id"
+  mkdir -p "$requirement"
+  init_output="$("$fanloop_bin" flow init --root "$requirement" --workflow "$workflow_id" --title "Release smoke: $workflow_id")"
+  printf '%s\n' "$init_output"
+  printf '%s\n' "$init_output" | node -e '
+let content = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", chunk => content += chunk);
+process.stdin.on("end", () => {
+  const response = JSON.parse(content);
+  if (!response.ok || response.data?.workflow?.id !== process.argv[1] || !response.data?.state?.current?.context?.step_id) {
+    throw new Error(`Workflow ${process.argv[1]} did not initialize to a current Step`);
+  }
+});
+' "$workflow_id"
+done <<< "$workflow_ids"
+test "$workflow_count" -gt 0
+
 packaged_skill_count="$(node -e 'const manifest = require(process.argv[1]); process.stdout.write(String(manifest.skills.length))' "$manifest")"
 test "$packaged_skill_count" -gt 0
 for skill_root in "${skill_roots[@]}"; do

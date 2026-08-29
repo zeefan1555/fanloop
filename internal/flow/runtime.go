@@ -19,14 +19,13 @@ import (
 )
 
 type Runtime struct {
-	Clock           func() time.Time
-	EventID         func() string
-	ReleaseVersion  string
-	DeliverPanorama func(context.Context, string, string) string
-	ProjectCard     func(string, state.State) error
-	ProvisionTrace  func(context.Context, string, string) string
-	AutoSyncTrace   func(context.Context, string)
-	Warn            func(string)
+	Clock          func() time.Time
+	EventID        func() string
+	ReleaseVersion string
+	ProjectCard    func(string, state.State) error
+	ProvisionTrace func(context.Context, string, string) string
+	AutoSyncTrace  func(context.Context, string)
+	Warn           func(string)
 }
 
 var _ flowidl.FlowService = Runtime{}
@@ -34,9 +33,8 @@ var _ flowidl.FlowService = Runtime{}
 func DefaultRuntime() Runtime {
 	return Runtime{
 		Clock: time.Now, EventID: state.NewEventID, ReleaseVersion: buildinfo.ReleaseVersion,
-		DeliverPanorama: cardruntime.AttemptPanoramaDelivery,
-		ProjectCard:     cardruntime.WriteProjection,
-		ProvisionTrace:  provisionTraceDocument,
+		ProjectCard:    cardruntime.WriteProjection,
+		ProvisionTrace: provisionTraceDocument,
 		AutoSyncTrace: func(ctx context.Context, root string) {
 			_, _ = trace.DefaultRuntime().Sync(ctx, root, traceidl.NewTraceSyncRequest(), false)
 		},
@@ -112,11 +110,7 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		runtime.warn(fmt.Sprintf("Card projection for Flow Event %s could not load current State: %v", event.ID, loadFailure))
 		return response, nil
 	}
-	projected := runtime.projectCard(root, current, event.ID)
-	runtime.warn(projected)
-	if projected == "" {
-		runtime.warn(runtime.deliverPanorama(ctx, root, event.ID))
-	}
+	runtime.warn(runtime.projectCard(root, current, event.ID))
 	return response, nil
 }
 
@@ -352,11 +346,7 @@ func validHTTPURL(value string) bool {
 }
 
 func (runtime Runtime) afterAcceptedReport(ctx context.Context, root string, current state.State, eventID string) {
-	projected := runtime.projectCard(root, current, eventID)
-	runtime.warn(projected)
-	if projected == "" {
-		runtime.warn(runtime.deliverPanorama(ctx, root, eventID))
-	}
+	runtime.warn(runtime.projectCard(root, current, eventID))
 	if current.Integrations.Trace != nil && runtime.AutoSyncTrace != nil {
 		runtime.AutoSyncTrace(ctx, root)
 	}
@@ -370,13 +360,6 @@ func (runtime Runtime) projectCard(root string, current state.State, eventID str
 		return fmt.Sprintf("Card projection for Flow Event %s could not update: %v", eventID, err)
 	}
 	return ""
-}
-
-func (runtime Runtime) deliverPanorama(ctx context.Context, root, eventID string) string {
-	if runtime.DeliverPanorama == nil {
-		return ""
-	}
-	return runtime.DeliverPanorama(ctx, root, eventID)
 }
 
 func (runtime Runtime) provisionTrace(ctx context.Context, root, title string) string {

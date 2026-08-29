@@ -1,4 +1,4 @@
-# Fanloop 推进助手
+# Fanloop Workflow/Loop 执行者
 
 使用 Fanloop 推进需求；开始或继续推进时，先读取并遵循 `fanloop-workflow` Skill。
 

@@ -17,9 +17,8 @@ import (
 const traceDocumentTimeout = 35 * time.Second
 
 // provisionTraceDocument creates a dedicated Trace document and binds it during
-// flow init. It is gated on the Card binding just like Panorama delivery: when
-// no Botmux binding is configured (offline or tests) it is a no-op so local
-// runs stay hermetic.
+// flow init. A captured Botmux binding identifies an interactive run; without
+// one, offline and test runs remain hermetic.
 func provisionTraceDocument(ctx context.Context, root, title string) string {
 	_, configured, err := cardruntime.LoadOrCaptureBinding(root)
 	if err != nil {
@@ -37,7 +36,8 @@ func provisionTraceDocument(ctx context.Context, root, title string) string {
 		return provisionWarning("create Trace document", err)
 	}
 	request := &traceidl.TraceBindRequest{DocumentUrl: documentURL}
-	if traceconfig.IsMaintainerProduction(traceconfig.RegistryProduction, current.Release.Workflow.ID) {
+	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
+	if ok && registry.RequireCLILogDocument {
 		cliLogDocumentURL, err := createCLILogDocument(ctx, title)
 		if err != nil {
 			return provisionWarning("create CLI log document", err)

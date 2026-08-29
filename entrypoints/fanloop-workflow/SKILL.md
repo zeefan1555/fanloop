@@ -1,9 +1,9 @@
 ---
 name: fanloop-workflow
-description: Fanloop 研发流程统一入口。适用于收到 PRD、新研发需求、缺陷修复或代码变更请求，以及启动或继续 Workflow、执行当前 Prompt、上报 Progress 或 Condition Result 和选择回流目标。
+description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启动或继续结构化流程、执行当前 Prompt、上报 Progress 或 Condition Result，以及选择前进、回流或终止 Route。
 ---
 
-# Fanloop Workflow 推进
+# Fanloop Workflow/Loop 推进
 
 以 CLI 返回为唯一流程依据，持续执行：
 
@@ -15,7 +15,7 @@ description: Fanloop 研发流程统一入口。适用于收到 PRD、新研发�
 
 每次启动或继续 Requirement，先将 Requirement Root 解析为绝对路径并运行 `flow status`：
 
-PRD、新研发需求、缺陷修复或代码变更请求默认表示用户要启动新流程；只有用户明确要求仅回答且不进入研发流程时才跳过。
+用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。此前单独执行的 update 失败不阻止已有 Requirement 继续。
 2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
@@ -38,7 +38,7 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
    `when.any_of` 外层是 OR、内层是 AND。提交一个完整组合；同一 `exclusive_group` 只选一个 Condition。Output key 由 Condition 定义，Agent 不提交 key 或 producer_step_id。Evidence 只用于审计，不参与路由。
 6. 从最新 `available_routes` 选择一条满足该 Condition 组合的 Route，并把 `route` 原样表达为 `--next-step-id`、`--back-step-id` 或 `--terminal`。`direction=flow` 返回 `advanced|completed`；`direction=loop` 返回 `looped`，目标 Step 及其下游生产的 Output 失效。不要猜目标。
 7. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中或多命中都原子拒绝。
-8. Human Step 使用同一个 Result 接缝。等到明确的人类决定后，上报 approved/rejected Condition、消息引用与 Evidence；CLI 校验格式和 Route，不认证审批人或事实真伪。
+8. Human Step 使用同一个 Result 接缝。若当前 Route 要求 `panorama_card_published`，先按绑定 Skill 生成、发送并回读自包含审核材料；等到明确的人类决定后，把本轮真实投递回执与 approved/rejected Condition、消息引用和 Evidence 一起上报。CLI 不自动发送，也不认证审批人或事实真伪。
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
 
 ## 人类提问顺序
@@ -47,8 +47,8 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
 
 1. 禁止调用 `botmux ask` 或其他结构化问答模式；问题只通过当前会话的普通回复发送。
 2. 先完成承载最新状态的非 dry-run 写命令：新 Requirement 使用 `flow init`；Result 进入 Human Step 时复用该 `flow report result`；Agent Step 新增人工依赖时使用 `flow report progress --status blocked`。
-3. 只有对应命令的 Panorama Card 投递尝试完成并返回后，才能在本轮最终普通回复中提出问题；投递前的进度消息不得包含问题。
-4. 当前 State 已记录同一 blocked 事实时不重复上报，直接在已有 Panorama Card 之后继续普通回复。
+3. Human Step 按当前 Prompt/Skill 发送自包含 Panorama 审核材料并取得本轮真实回执后，才能请求人工决定；CLI 写命令不会代为发送。
+4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama 回执。
 
 State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 

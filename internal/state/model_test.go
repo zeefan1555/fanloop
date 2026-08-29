@@ -73,15 +73,15 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	})
 
 	loopResult := FlowResultPayload{
-		ConditionResults: []ConditionResult{{
-			ConditionID: "technical_problem_rejected",
-			Output:      OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)},
-		}},
+		ConditionResults: []ConditionResult{
+			{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"receipt-rejected"`)}},
+			{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}},
+		},
 		Summary: "technical problem rejected", Effect: ResultLooped,
 		Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first},
 		OutputChanges: OutputChanges{
-			Accepted:    []string{"problem_approval_decision"},
-			Invalidated: []string{"problem_approval_decision", "problem_definition_path"},
+			Accepted:    []string{"panorama_card_receipt_id", "problem_approval_decision"},
+			Invalidated: []string{"panorama_card_receipt_id", "problem_approval_decision", "problem_definition_path"},
 		},
 	}
 	current.CurrentStepID = &first
@@ -127,8 +127,13 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 			Summary:          "technical problem defined", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"problem_definition_path"}},
 		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}}},
-			Summary:          "technical problem rejected", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{Accepted: []string{"problem_approval_decision"}, Invalidated: []string{"problem_approval_decision"}},
+			ConditionResults: []ConditionResult{
+				{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"receipt-rejected"`)}},
+				{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}},
+			},
+			Summary: "technical problem rejected", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
+				Accepted: []string{"panorama_card_receipt_id", "problem_approval_decision"}, Invalidated: []string{"panorama_card_receipt_id", "problem_approval_decision"},
+			},
 		})},
 	}
 	if err := ValidateHistory(events, current, loaded.Workflow); err == nil {

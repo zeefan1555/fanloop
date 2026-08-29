@@ -207,7 +207,8 @@ func cliLogDocumentURL(current state.State) string {
 }
 
 func projectionRegistry(workflowID, cliLogDocumentURL string) traceconfig.RegistryProfile {
-	if traceconfig.IsMaintainerProduction(traceconfig.RegistryProduction, workflowID) && cliLogDocumentURL == "" {
+	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, workflowID)
+	if ok && registry.RequireCLILogDocument && cliLogDocumentURL == "" {
 		return traceconfig.RegistryTest
 	}
 	return traceconfig.RegistryProduction

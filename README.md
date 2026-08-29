@@ -1,7 +1,8 @@
 # Fanloop
 
-Fanloop 是从固定源码快照独立出来的本地工作流运行时。它复用既有的
-Flow、Loop、Trace、Card、Release 与 Skill 机制，只使用新的 `fanloop` 身份：
+Fanloop 是由五份 YAML Bundle 驱动的通用本地 Loop 引擎。Go Runtime 不认识任何生产
+Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载、路由校验、状态转换、
+回流失效、审计与投影：
 
 - 命令：`fanloop`
 - Requirement 状态：`.fanloop/`
@@ -16,6 +17,9 @@ Flow、Loop、Trace、Card、Release 与 Skill 机制，只使用新的 `fanloop
 
 业务配置严格按 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设例外。
 统一入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置。
+
+新增一套流程只需要增加同名 Workflow/Skill 目录和一条场景映射；不注册 Go 代码。Trace Registry
+的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
 
 ## 从源码安装
 
@@ -71,6 +75,21 @@ flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow
 三个 Human Step 的结论与完整 Evidence 由 Flow Event 持久化，不额外维护重复审批文件。
 
 流程状态只由 `.fanloop/flow/state.json` 管理。
+
+## 新增 Workflow
+
+```text
+workflows/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
+skills/<workflow-id>/<skill-id>/SKILL.md
+entrypoints/fanloop-workflow/routes.yaml
+```
+
+五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。构建会
+拒绝目录不一一对应、跨 Workflow SkillBinding、未知场景目标、缺失 Route 或图不变量错误。
+
+Human Step 的全景发布也是普通 Condition：Agent 按 `prompt.yaml` 和绑定 Skill 生成、发送并回读
+审核材料，再把真实回执与人工结论一起上报。Flow Runtime 只校验并推进，不自动调用 `botmux`
+发送；Trace provision/sync 与显式 `card render` 保持独立。
 
 选择 `fanloop-maintenance` 场景后，维护 Fanloop 自身时执行：
 

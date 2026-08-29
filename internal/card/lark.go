@@ -79,7 +79,7 @@ func renderLarkCard(view cardidl.CardView, current state.State, definition workf
 		Config: larkConfig{UpdateMulti: true},
 		Header: larkHeader{
 			Template: "default",
-			Title:    plainText("后端研发交付 · " + current.Requirement.Title),
+			Title:    plainText("Workflow · " + current.Requirement.Title),
 			Subtitle: plainText(stageName + " · " + stepName),
 			TextTagList: []larkTextTag{
 				{Tag: "text_tag", Text: plainText(cardStatus(current, definition))},
@@ -224,23 +224,28 @@ func cliLogLink(current state.State) string {
 func outputColumns(current state.State, definition workflow.Workflow) []larkColumn {
 	columns := make([]larkColumn, 0, len(definition.Stages))
 	for _, stage := range definition.Stages {
-		urlOutputs := make([]string, 0)
+		urlOutputs := map[string]workflow.OutputDefinition{}
 		for _, job := range stage.Jobs {
 			for _, step := range job.Steps {
 				for _, conditionID := range definition.RelevantConditionIDs(step.ID) {
 					condition, ok := definition.Condition(conditionID)
 					if ok && condition.Output.Source == "" && isURLOutput(condition.Output.Type) {
-						urlOutputs = append(urlOutputs, condition.Output.Key)
+						if _, exists := urlOutputs[condition.Output.Key]; !exists {
+							urlOutputs[condition.Output.Key] = condition.Output
+						}
 					}
 				}
 			}
 		}
-		sort.Strings(urlOutputs)
-		urlOutputs = uniqueStrings(urlOutputs)
+		keys := make([]string, 0, len(urlOutputs))
+		for key := range urlOutputs {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
 		outputs := make([]string, 0, len(urlOutputs))
-		for _, output := range urlOutputs {
-			registered := current.Outputs[output]
-			outputs = append(outputs, renderOutput(output, registered.Value))
+		for _, key := range keys {
+			registered := current.Outputs[key]
+			outputs = append(outputs, renderOutput(urlOutputs[key], registered.Value))
 		}
 		if len(outputs) == 0 {
 			outputs = append(outputs, "暂未生成")
@@ -259,40 +264,13 @@ func isURLOutput(outputType workflow.OutputType) bool {
 	}
 }
 
-func uniqueStrings(values []string) []string {
-	result := values[:0]
-	for index, value := range values {
-		if index == 0 || value != values[index-1] {
-			result = append(result, value)
-		}
-	}
-	return result
-}
-
-var outputLabels = map[string]string{
-	"requirement_document_url":      "需求澄清文档",
-	"technical_design_document_url": "技术方案文档",
-	"merge_request_urls":            "MR",
-	"code_review_document_url":      "代码评审文档",
-	"test_case_document_url":        "测试用例文档",
-}
-
-func renderOutput(name string, raw json.RawMessage) string {
-	label := outputLabels[name]
+func renderOutput(definition workflow.OutputDefinition, raw json.RawMessage) string {
+	label := strings.TrimSpace(definition.Description)
 	if label == "" {
-		label = name
+		label = definition.Key
 	}
 	if len(raw) == 0 {
-		switch name {
-		case "requirement_document_url":
-			return "暂未生成需求澄清文档"
-		case "technical_design_document_url":
-			return "暂未生成技术方案文档"
-		case "merge_request_urls":
-			return "暂未生成 MR"
-		default:
-			return label + "：暂未生成"
-		}
+		return label + "：暂未生成"
 	}
 	var value any
 	if err := json.Unmarshal(raw, &value); err != nil {
@@ -312,9 +290,6 @@ func renderOutput(name string, raw json.RawMessage) string {
 				continue
 			}
 			itemLabel := fmt.Sprintf("%s %d", label, index+1)
-			if label == "MR" {
-				itemLabel = "MR !" + urlTail(value)
-			}
 			if isHTTPURL(value) {
 				links = append(links, "["+itemLabel+"]("+value+")")
 			}
@@ -333,14 +308,6 @@ func renderOutput(name string, raw json.RawMessage) string {
 func isHTTPURL(value string) bool {
 	parsed, err := url.Parse(value)
 	return err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != ""
-}
-
-func urlTail(value string) string {
-	trimmed := strings.TrimSuffix(value, "/")
-	if index := strings.LastIndex(trimmed, "/"); index >= 0 {
-		return trimmed[index+1:]
-	}
-	return trimmed
 }
 
 func currentEvidence(current state.State) string {

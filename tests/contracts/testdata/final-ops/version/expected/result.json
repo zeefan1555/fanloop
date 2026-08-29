@@ -4,7 +4,7 @@
   "commands": [
     {
       "exit_code": 0,
-      "stdout": "{\n  \"ok\": true,\n  \"data\": {\n    \"release_version\": \"dev\",\n    \"commit_sha\": \"unknown\",\n    \"state_schema\": {\n      \"read_versions\": [\n        12\n      ],\n      \"write_version\": 12\n    },\n    \"skills\": [],\n    \"workflows\": [\n      {\n        \"id\": \"fanloop-maintainer\",\n        \"digest\": \"sha256:518a03e0b424bf4784b8b299286021c880a48b03e2f969fa9d46ee1ef6648336\"\n      },\n      {\n        \"id\": \"technical-solution-design\",\n        \"digest\": \"sha256:d39569dc18af0ee9b6d44664465c5b948ed52fd576b86d9b9b55182eb9c25f48\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"command\": \"version\"\n  },\n  \"_notice\": {}\n}\n",
+      "stdout": "{\n  \"ok\": true,\n  \"data\": {\n    \"release_version\": \"dev\",\n    \"commit_sha\": \"unknown\",\n    \"state_schema\": {\n      \"read_versions\": [\n        12\n      ],\n      \"write_version\": 12\n    },\n    \"skills\": [],\n    \"workflows\": [\n      {\n        \"id\": \"fanloop-maintainer\",\n        \"digest\": \"sha256:b04415a203196eaa9828cc15a72af9481596a97d2e54d13f349f15d621a89cdb\"\n      },\n      {\n        \"id\": \"technical-solution-design\",\n        \"digest\": \"sha256:f119c1cf38cef772cc664b7daaf83f629f0450693bd6275155178e28904cd73e\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"command\": \"version\"\n  },\n  \"_notice\": {}\n}\n",
       "stderr": ""
     },
     {

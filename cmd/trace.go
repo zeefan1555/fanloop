@@ -51,7 +51,7 @@ Typed flags:
 
 Constraints:
   document_url is required and must be an allowed HTTP URL. registry is optional and must be production or test.
-  fanloop-maintainer production also requires a distinct cli_log_document_url; all other Workflow/profile combinations forbid it.
+  cli_log_document_url must be present exactly when the selected Workflow/profile Registry policy requires it.
   After the first successful bind, the same document bundle and Registry are idempotent; a different binding is rejected.
   The typed flag defaults registry to production. Use either --input or the typed flags, not both.
 
@@ -81,7 +81,7 @@ Next step:
 	addOperationControls(command, &controls)
 	command.Flags().StringVar(&request.DocumentUrl, "document-url", "", "Trace document URL")
 	command.Flags().StringVar(&registry, "registry", "production", "fixed Registry profile: production or test")
-	command.Flags().StringVar(&cliLogDocumentURL, "cli-log-document-url", "", "stable CLI log document URL for fanloop-maintainer production")
+	command.Flags().StringVar(&cliLogDocumentURL, "cli-log-document-url", "", "stable CLI log document URL when required by the selected Trace Registry policy")
 	return command
 }
 
@@ -173,8 +173,8 @@ func newTraceSyncCommand(ioStreams streams, root *string) *cobra.Command {
   Sync committed Requirement facts to the configured remote projections.
 
 Effect:
-  External write. A non-dry-run call updates the Trace document and Registry; fanloop-maintainer production also updates
-  its bound CLI-log document with every byte already present in .fanloop/log/cli.jsonl, without redaction or truncation.
+  External write. A non-dry-run call updates the Trace document and Registry; policies with a bound CLI-log document also update
+  that document with every byte already present in .fanloop/log/cli.jsonl, without redaction or truncation.
   The response may be partial when one target succeeds and another fails. dry-run reports skipped targets without remote writes.
 
 Request JSON:

@@ -1,6 +1,10 @@
 schema_version: 2
 
 conditions:
+  panorama_card_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: panorama_card_published_condition}
+    output: {key: panorama_card_receipt_id, type: string, description: 当前 Human Step 全景材料的真实投递回执}
+
   repository_workspace_prepared:
     prompt_ref: {file: prompt.yaml, prompt_id: workspace_condition}
     output: {key: issue_workspace_path, type: path}

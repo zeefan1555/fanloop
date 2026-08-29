@@ -1,6 +1,8 @@
 package workflowview
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/state"
@@ -31,6 +33,12 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	})
 	if projected.Current.Prompt.Content != routePrompt.Prompt || projected.Current.AvailableRoutes[0].Prompt.Content != routePrompt.Prompt {
 		t.Fatalf("Step or Route Prompt was not resolved from the Workflow Bundle: %#v", projected.Current)
+	}
+	if len(projected.Current.Prompt.Skills) != 1 || !strings.HasSuffix(
+		projected.Current.Prompt.Skills[0].Path,
+		filepath.FromSlash("skills/technical-solution-design/technical-problem-framing/SKILL.md"),
+	) {
+		t.Fatalf("source Skill path was not resolved from the bound Workflow group: %#v", projected.Current.Prompt.Skills)
 	}
 	for _, view := range projected.Current.Conditions {
 		if view.Id == conditionID && view.Prompt.Content == conditionPrompt.Prompt {

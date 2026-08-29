@@ -35,7 +35,7 @@ func Project(definition workflow.Workflow, current state.State) *flowidl.FlowSta
 	if !ok {
 		return result
 	}
-	paths := skillPaths()
+	paths := skillPaths(definition.ID)
 	result.Status = flowidl.WorkflowStatus_running
 	result.Current = &flowidl.CurrentTask{
 		Context: &flowidl.CurrentContext{
@@ -170,7 +170,7 @@ func skills(values []workflow.SkillBinding, paths map[string]string) []*flowidl.
 	return result
 }
 
-func skillPaths() map[string]string {
+func skillPaths(workflowID string) map[string]string {
 	root, packaged := skillRoot()
 	paths := map[string]string{}
 	if packaged {
@@ -186,13 +186,14 @@ func skillPaths() map[string]string {
 		}
 		return paths
 	}
-	entries, err := os.ReadDir(filepath.Join(root, "skills"))
+	group := filepath.Join(root, "skills", workflowID)
+	entries, err := os.ReadDir(group)
 	if err != nil {
 		return paths
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
-			addSkillPath(paths, entry.Name(), filepath.Join(root, "skills", entry.Name(), "SKILL.md"))
+			addSkillPath(paths, entry.Name(), filepath.Join(group, entry.Name(), "SKILL.md"))
 		}
 	}
 	return paths

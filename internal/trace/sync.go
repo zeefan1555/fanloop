@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -115,8 +114,13 @@ func syncResponse(outcome traceidl.TraceSyncOutcome, results []*traceidl.TraceTa
 
 func plannedSyncTargets(current state.State) []*traceidl.TraceTargetResult {
 	targets := []traceidl.TraceTarget{traceidl.TraceTarget_trace_document}
+	profile := traceconfig.RegistryProduction
+	if current.Integrations.Trace != nil {
+		profile = current.Integrations.Trace.Registry
+	}
+	registry, registryOK := traceconfig.Resolve(profile, current.Release.Workflow.ID)
 	if current.Integrations.Trace != nil && current.Integrations.Trace.CLILogDocumentURL != "" ||
-		current.Integrations.Trace == nil && current.Release.Workflow.ID == "fanloop-maintainer" {
+		current.Integrations.Trace == nil && registryOK && registry.RequireCLILogDocument {
 		targets = append(targets, traceidl.TraceTarget_cli_log_document)
 	}
 	targets = append(targets, traceidl.TraceTarget_registry)
@@ -229,10 +233,10 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 	if identity["identity"] != "user" || identity["available"] != true || openID == "" {
 		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_UPSTREAM_AUTH_FAILED, Message: "lark-cli user identity is not ready"})
 	}
-	filter, _ := json.Marshal(map[string]any{"logic": "and", "conditions": [][]string{{"trace_key", "==", key}}})
+	filter, _ := json.Marshal(map[string]any{"logic": "and", "conditions": [][]string{{registry.Fields.TraceKey, "==", key}}})
 	listArgs := []string{
 		"base", "+record-list", "--as", "user", "--base-token", registry.BaseToken, "--table-id", registry.TableID, "--view-id", registry.ViewID,
-		"--field-id", "trace_key", "--filter-json", string(filter), "--limit", "2", "--format", "json",
+		"--field-id", registry.Fields.TraceKey, "--filter-json", string(filter), "--limit", "2", "--format", "json",
 	}
 	listed, failure := runLarkJSON(ctx, listArgs, nil, erroridl.ErrorCode_REGISTRY_UPDATE_FAILED)
 	if failure != nil {
@@ -246,7 +250,7 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 	if len(records) == 1 {
 		recordID = stringField(records[0], "record_id", "id", "recordId")
 	}
-	fields, _ := json.Marshal(registryFields(current, definition, events, traceURL, key, openID))
+	fields, _ := json.Marshal(registryFields(registry, current, definition, events, traceURL, key, openID))
 	args := []string{
 		"base", "+record-upsert", "--as", "user", "--base-token", registry.BaseToken, "--table-id", registry.TableID,
 		"--json", string(fields), "--format", "json",
@@ -277,7 +281,7 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 	}
 	verified, failure := runLarkJSON(ctx, []string{
 		"base", "+record-get", "--as", "user", "--base-token", registry.BaseToken, "--table-id", registry.TableID,
-		"--record-id", recordID, "--field-id", "trace_key", "--format", "json",
+		"--record-id", recordID, "--field-id", registry.Fields.TraceKey, "--format", "json",
 	}, nil, erroridl.ErrorCode_REGISTRY_UPDATE_FAILED)
 	if failure != nil {
 		return failedTarget(traceidl.TraceTarget_registry, failure)
@@ -290,7 +294,7 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 		data = record
 	}
 	fieldsMap, _ := data["fields"].(map[string]any)
-	if fmt.Sprint(fieldsMap["trace_key"]) != key {
+	if fmt.Sprint(fieldsMap[registry.Fields.TraceKey]) != key {
 		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_REGISTRY_UPDATE_FAILED, Message: "Trace Registry record verification failed", Retryable: true})
 	}
 	return &traceidl.TraceTargetResult{Target: traceidl.TraceTarget_registry, Status: traceidl.TraceTargetStatus_succeeded}
@@ -314,7 +318,7 @@ func runLarkJSON(ctx context.Context, args []string, stdin io.Reader, fallbackCo
 	return payload, nil
 }
 
-func registryFields(current state.State, definition workflow.Workflow, events []state.Event, traceURL, key, openID string) map[string]any {
+func registryFields(registry traceconfig.Registry, current state.State, definition workflow.Workflow, events []state.Event, traceURL, key, openID string) map[string]any {
 	loops := 0
 	for _, event := range events {
 		if event.Kind == state.EventFlowResult {
@@ -324,58 +328,55 @@ func registryFields(current state.State, definition workflow.Workflow, events []
 			}
 		}
 	}
-	_, prdURL := store.RequirementLinks(current)
+	mapping := registry.Fields
 	fields := map[string]any{
-		"trace_key": key, "需求": current.Requirement.Title, "负责人": []map[string]string{{"id": openID}},
-		"阶段 / 子状态": registryStageAndAudit(current, definition, events), "状态": registryStatus(current, definition), "Loop": loops,
-		"PRD": prdURL, "Trace": traceURL, "更新时间": registryTime(current.UpdatedAt), "来源": "runtime",
+		mapping.TraceKey: key, mapping.Title: current.Requirement.Title, mapping.Owner: []map[string]string{{"id": openID}},
+		mapping.Location: registryStageAndAudit(current, definition, events), mapping.Status: registryStatus(current, definition), mapping.LoopCount: loops,
+		mapping.SourceURL: registrySourceValue(registry, current), mapping.TraceURL: traceURL,
+		mapping.UpdatedAt: registryTime(current.UpdatedAt), mapping.Origin: "runtime",
 	}
-	if current.Integrations.Trace != nil && traceconfig.IsMaintainerProduction(current.Integrations.Trace.Registry, current.Release.Workflow.ID) {
-		_, sourcePRD := store.RequirementSourceLinks(current.Requirement.SourceURL)
-		fields["PRD"] = nil
-		if sourcePRD != "" {
-			fields["PRD"] = sourcePRD
+	if mapping.CLILogURL != "" {
+		fields[mapping.CLILogURL] = nil
+		if current.Integrations.Trace != nil {
+			fields[mapping.CLILogURL] = current.Integrations.Trace.CLILogDocumentURL
 		}
-		fields["需求澄清"] = outputURL(current, "requirement_document_url")
-		fields["技术方案"] = outputURL(current, "technical_design_document_url")
-		fields["MR"] = firstOutputURL(current, "merge_request_urls")
-		fields["CLI 日志"] = current.Integrations.Trace.CLILogDocumentURL
+	}
+	for outputKey, fieldName := range mapping.Outputs {
+		fields[fieldName] = registryOutputValue(current.Outputs[outputKey])
 	}
 	return fields
 }
 
-func outputURL(current state.State, name string) any {
-	output, ok := current.Outputs[name]
-	if !ok {
-		return nil
+func registrySourceValue(registry traceconfig.Registry, current state.State) any {
+	value := strings.TrimSpace(current.Requirement.SourceURL)
+	if outputKey := registry.Fields.SourceOutput; outputKey != "" {
+		if candidate, ok := registryOutputValue(current.Outputs[outputKey]).(string); ok && candidate != "" {
+			value = candidate
+		}
 	}
-	var value string
-	if json.Unmarshal(output.Value, &value) != nil || !isHTTPURL(value) {
+	if value == "" || registry.Fields.SourceDocumentOnly && !state.ValidTraceDocumentURL(value) {
 		return nil
 	}
 	return value
 }
 
-func firstOutputURL(current state.State, name string) any {
-	output, ok := current.Outputs[name]
-	if !ok {
+func registryOutputValue(output state.RegisteredOutput) any {
+	if len(output.Value) == 0 {
 		return nil
 	}
-	var values []string
-	if json.Unmarshal(output.Value, &values) != nil {
+	var value any
+	if json.Unmarshal(output.Value, &value) != nil {
 		return nil
 	}
-	for _, value := range values {
-		if isHTTPURL(value) {
-			return value
+	if values, ok := value.([]any); ok {
+		for _, item := range values {
+			if text, ok := item.(string); ok && text != "" {
+				return text
+			}
 		}
+		return nil
 	}
-	return nil
-}
-
-func isHTTPURL(value string) bool {
-	parsed, err := url.Parse(value)
-	return err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != ""
+	return value
 }
 
 func registryStageAndAudit(current state.State, definition workflow.Workflow, events []state.Event) string {
