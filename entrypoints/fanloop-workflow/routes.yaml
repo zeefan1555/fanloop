@@ -1,0 +1,8 @@
+schema_version: 2
+scenarios:
+  technical-solution:
+    workflow: technical-solution-design
+    description: 编写、评审并人工确认技术方案
+  fanloop-maintenance:
+    workflow: fanloop-maintainer
+    description: 维护 Fanloop 自身代码、Workflow 与 Release

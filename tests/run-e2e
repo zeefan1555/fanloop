@@ -7,7 +7,7 @@ cd "$repo_root"
 runs_root="$repo_root/tests/requirement_e2e/runs"
 mkdir -p "$runs_root"
 run_root="$(mktemp -d "$runs_root/$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
-binary="$run_root/commonloop"
+binary="$run_root/fanloop"
 fake_bin="$run_root/bin"
 process_logs="$run_root/process-logs"
 mkdir -p "$fake_bin" "$process_logs"
@@ -46,21 +46,21 @@ print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
 PY
 
 export PATH="$fake_bin:$PATH"
-export COMMONLOOP_E2E_BINARY="$binary"
-export COMMONLOOP_E2E_SOURCE_COMMIT="$source_commit"
-export COMMONLOOP_E2E_INTERACTIVE="${COMMONLOOP_E2E_INTERACTIVE:-0}"
+export FANLOOP_E2E_BINARY="$binary"
+export FANLOOP_E2E_SOURCE_COMMIT="$source_commit"
+export FANLOOP_E2E_INTERACTIVE="${FANLOOP_E2E_INTERACTIVE:-0}"
 
 mkdir -p "$run_root/route-matrix-remote" "$run_root/route-matrix"
 
 run_lifecycle() {
   local log="$1"
-  if [[ "$COMMONLOOP_E2E_INTERACTIVE" == "1" ]]; then
-    COMMONLOOP_E2E_RUN_ROOT="$run_root/lifecycle" \
+  if [[ "$FANLOOP_E2E_INTERACTIVE" == "1" ]]; then
+    FANLOOP_E2E_RUN_ROOT="$run_root/lifecycle" \
       go test -buildvcs=false ./tests/requirement_e2e \
         -run '^TestRequirementWorkflowE2E$' -count=1 -v \
         2>&1 | tee "$log"
   else
-    COMMONLOOP_E2E_RUN_ROOT="$run_root/lifecycle" \
+    FANLOOP_E2E_RUN_ROOT="$run_root/lifecycle" \
       go test -buildvcs=false ./tests/requirement_e2e \
         -run '^TestRequirementWorkflowE2E$' -count=1 -v \
         >"$log" 2>&1
@@ -72,7 +72,7 @@ run_route_matrix() {
   local log="$2"
   FAKE_LARK_LOG="$run_root/route-matrix-remote/$workflow_id-lark-cli.log" \
     FAKE_TRACE_CONTENT="$run_root/route-matrix-remote/$workflow_id-trace.md" \
-    FAKE_TRACE_KEY="docx:CommonloopRouteMatrixE2E" \
+    FAKE_TRACE_KEY="docx:FanloopRouteMatrixE2E" \
     python3 tests/requirement_e2e/route_matrix.py \
       --source-root "$repo_root" \
       --binary "$binary" \

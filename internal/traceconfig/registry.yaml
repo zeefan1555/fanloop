@@ -21,7 +21,7 @@ profiles:
         updated_at: 更新时间
         origin: 来源
     workflows:
-      commonloop-maintainer:
+      fanloop-maintainer:
         url: https://bytedance.larkoffice.com/wiki/MTuwwC3DHiPSmNkX4GIcKDv0n7b?table=tblW1KFyrKtUeNF4&view=vew5zFcUtJ
         base_token: Lu15bIcOuaAscosQe9ecddhtnBg
         table_id: tblW1KFyrKtUeNF4

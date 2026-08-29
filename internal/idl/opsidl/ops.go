@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"strings"
 )
 

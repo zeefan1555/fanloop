@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 package_json="$repo_root/package.json"
-if [[ "${COMMONLOOP_LOCAL_BUILD:-}" == "1" ]]; then
+if [[ "${FANLOOP_LOCAL_BUILD:-}" == "1" ]]; then
   version="$(node -p 'require(process.argv[1]).version' "$package_json")"
 else
   version="$(node "$repo_root/scripts/resolve-release-version.js" "$package_json")"
@@ -32,10 +32,10 @@ fi
 
 cd "$repo_root"
 goreleaser_args=(release --clean --skip=publish)
-if [[ "${COMMONLOOP_LOCAL_BUILD:-}" == "1" ]]; then
+if [[ "${FANLOOP_LOCAL_BUILD:-}" == "1" ]]; then
   goreleaser_args=(release --clean --snapshot)
 fi
-COMMONLOOP_BUILD_COMMIT="$head_sha" COMMONLOOP_RELEASE_VERSION="$version" GOFLAGS=-buildvcs=false \
+FANLOOP_BUILD_COMMIT="$head_sha" FANLOOP_RELEASE_VERSION="$version" GOFLAGS=-buildvcs=false \
   go run github.com/goreleaser/goreleaser/v2@v2.5.1 "${goreleaser_args[@]}"
 ./scripts/package-release.sh "$version" "$repo_root/dist"
 
@@ -47,8 +47,8 @@ fi
 rm -rf -- "$release_dir"
 mkdir -p "$release_dir"
 cp "$repo_root/dist/release.json" "$repo_root/release.json"
-cp "$repo_root"/dist/commonloop-"$version"-*.tar.xz "$release_dir/"
-if [[ "${COMMONLOOP_LOCAL_BUILD:-}" != "1" ]]; then
+cp "$repo_root"/dist/fanloop-"$version"-*.tar.xz "$release_dir/"
+if [[ "${FANLOOP_LOCAL_BUILD:-}" != "1" ]]; then
   node "$repo_root/scripts/resolve-release-version.js" --write "$package_json" "$version"
 fi
 

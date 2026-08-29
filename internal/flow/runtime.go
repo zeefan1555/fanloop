@@ -6,16 +6,16 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/zeefan1555/commonloop/internal/buildinfo"
-	cardruntime "github.com/zeefan1555/commonloop/internal/card"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/flowidl"
-	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/store"
-	"github.com/zeefan1555/commonloop/internal/trace"
-	"github.com/zeefan1555/commonloop/internal/workflow"
-	"github.com/zeefan1555/commonloop/internal/workflowview"
+	"github.com/zeefan1555/fanloop/internal/buildinfo"
+	cardruntime "github.com/zeefan1555/fanloop/internal/card"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
+	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/store"
+	"github.com/zeefan1555/fanloop/internal/trace"
+	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/workflowview"
 )
 
 type Runtime struct {

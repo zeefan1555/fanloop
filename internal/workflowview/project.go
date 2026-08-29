@@ -7,12 +7,12 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/zeefan1555/commonloop/internal/buildinfo"
-	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
-	"github.com/zeefan1555/commonloop/internal/idl/flowidl"
-	"github.com/zeefan1555/commonloop/internal/release"
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/buildinfo"
+	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
+	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func Project(definition workflow.Workflow, current state.State) *flowidl.FlowState {

@@ -20,7 +20,7 @@ fi
 
 mkdir -p "$IDL_GO_ROOT"
 "$THRIFTGO" --check-keywords -r \
-  -g go:package_prefix=github.com/zeefan1555/commonloop/internal/idl,naming_style=golint,json_enum_as_text,snake_style_json_tag,always_gen_json_tag,gen_deep_equal,reserve_comments,no_default_serdes,no_processor \
+  -g go:package_prefix=github.com/zeefan1555/fanloop/internal/idl,naming_style=golint,json_enum_as_text,snake_style_json_tag,always_gen_json_tag,gen_deep_equal,reserve_comments,no_default_serdes,no_processor \
   -p "validator=$THRIFT_VALIDATOR" \
   -o "$IDL_GO_ROOT" \
   idl/cli.thrift

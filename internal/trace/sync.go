@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zeefan1555/commonloop/internal/executionlog"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
-	"github.com/zeefan1555/commonloop/internal/larkexec"
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/store"
-	"github.com/zeefan1555/commonloop/internal/traceconfig"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/executionlog"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
+	"github.com/zeefan1555/fanloop/internal/larkexec"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/store"
+	"github.com/zeefan1555/fanloop/internal/traceconfig"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func (runtime Runtime) Sync(ctx context.Context, root string, request *traceidl.TraceSyncRequest, dryRun bool) (*traceidl.TraceSyncResponse, error) {
@@ -205,7 +205,7 @@ func renderCLILogDocument(content []byte) []byte {
 		longest = 2
 	}
 	fence := bytes.Repeat([]byte{'`'}, longest+1)
-	result := append([]byte("# Commonloop CLI 日志\n\n> 完整、未脱敏且未截断的 Requirement CLI 输入输出；本地 `.commonloop/log/cli.jsonl` 是事实源。\n\n"), fence...)
+	result := append([]byte("# Fanloop CLI 日志\n\n> 完整、未脱敏且未截断的 Requirement CLI 输入输出；本地 `.fanloop/log/cli.jsonl` 是事实源。\n\n"), fence...)
 	result = append(result, []byte("jsonl\n")...)
 	result = append(result, content...)
 	if len(content) == 0 || content[len(content)-1] != '\n' {

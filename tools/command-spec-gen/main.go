@@ -14,7 +14,7 @@ import (
 	"github.com/cloudwego/thriftgo/parser"
 )
 
-const generatedPackageRoot = "github.com/zeefan1555/commonloop/internal/idl"
+const generatedPackageRoot = "github.com/zeefan1555/fanloop/internal/idl"
 
 type command struct {
 	id, summary, pkg, request, response, risk, scope string

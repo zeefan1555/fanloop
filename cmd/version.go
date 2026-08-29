@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/spf13/cobra"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
-	"github.com/zeefan1555/commonloop/internal/ops"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
+	"github.com/zeefan1555/fanloop/internal/ops"
 )
 
 func newVersionCommand(ioStreams streams) *cobra.Command {
@@ -22,7 +22,7 @@ Request JSON:
   {}
 
 Typed flags:
-  commonloop version
+  fanloop version
 
 Constraints:
   The business Request is empty.
@@ -34,7 +34,7 @@ Controls:
 
 Next step:
   Compare the returned release components, or run doctor when installation health must be checked.`
-	command.Example = "  commonloop version"
+	command.Example = "  fanloop version"
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, "", controls, ioStreams,
 			func() (*opsidl.VersionRequest, *erroridl.PublicError) { return opsidl.NewVersionRequest(), nil },

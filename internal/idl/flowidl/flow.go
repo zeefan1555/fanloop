@@ -7,8 +7,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"strings"
 )
 
@@ -3346,10 +3346,10 @@ var fieldIDToName_RouteSelection = map[int16]string{
 }
 
 // One method maps to one public CLI command:
-// Init     -> commonloop flow init
-// Status   -> commonloop flow status
-// Progress -> commonloop flow report progress
-// Result   -> commonloop flow report result
+// Init     -> fanloop flow init
+// Status   -> fanloop flow status
+// Progress -> fanloop flow report progress
+// Result   -> fanloop flow report result
 type FlowService interface {
 	Init(ctx context.Context, requirementRoot string, request *FlowInitRequest, dryRun bool) (r *FlowInitResponse, err error)
 

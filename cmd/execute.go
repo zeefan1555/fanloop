@@ -13,14 +13,14 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/zeefan1555/commonloop/errs"
-	"github.com/zeefan1555/commonloop/internal/doctor"
-	"github.com/zeefan1555/commonloop/internal/idl"
-	"github.com/zeefan1555/commonloop/internal/idl/commonidl"
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
-	"github.com/zeefan1555/commonloop/internal/output"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/errs"
+	"github.com/zeefan1555/fanloop/internal/doctor"
+	"github.com/zeefan1555/fanloop/internal/idl"
+	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
+	"github.com/zeefan1555/fanloop/internal/output"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 type operationControls struct {
@@ -59,7 +59,7 @@ func addOperationControls(command *cobra.Command, controls *operationControls) {
 
 Diagnostics:
   Every real invocation with a valid --root best-effort appends execution metadata plus the complete unredacted arguments, stdin, stdout, and stderr to
-  .commonloop/log/cli.jsonl. This also applies to read-only and --dry-run calls; the file may contain secrets, and logging never changes command output or exit status.`
+  .fanloop/log/cli.jsonl. This also applies to read-only and --dry-run calls; the file may contain secrets, and logging never changes command output or exit status.`
 	}
 }
 
@@ -140,7 +140,7 @@ func localNotice() commonidl.Notice {
 		return commonidl.Notice{}
 	}
 	sort.Strings(components)
-	return commonidl.Notice{Drift: &commonidl.DriftNotice{Components: components, Command: "commonloop doctor"}}
+	return commonidl.Notice{Drift: &commonidl.DriftNotice{Components: components, Command: "fanloop doctor"}}
 }
 
 func commandRequest[T any](command *cobra.Command, input string, stdin io.Reader, typed func() (T, *erroridl.PublicError)) (T, *erroridl.PublicError) {

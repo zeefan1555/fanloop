@@ -3,6 +3,7 @@ status: accepted
 date: 2026-08-29
 amends: ADR-0009, ADR-0049, ADR-0065, ADR-0083
 supersedes_in_part: ADR-0082
+superseded_by: ADR-0085
 ---
 
 # 在 npmjs 发布公开 Commonloop npx 包

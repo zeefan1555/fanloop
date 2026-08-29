@@ -13,8 +13,8 @@ func TestTraceBindIsImmutableForRequirement(t *testing.T) {
 
 	const firstURL = "https://bytedance.larkoffice.com/docx/RequirementTraceA"
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", firstURL), "trace.bind")
-	statePath := filepath.Join(root, ".commonloop", "flow", "state.json")
-	eventsPath := filepath.Join(root, ".commonloop", "trace", "events.jsonl")
+	statePath := filepath.Join(root, ".fanloop", "flow", "state.json")
+	eventsPath := filepath.Join(root, ".fanloop", "trace", "events.jsonl")
 	stateBefore, eventsBefore := readFile(t, statePath), readFile(t, eventsPath)
 
 	unchanged := run(binary, "trace", "bind", "--root", root, "--document-url", firstURL+"?from=duplicate")
@@ -43,7 +43,7 @@ func TestTraceBindIsImmutableForRequirement(t *testing.T) {
 
 func TestMaintainerTraceBindRequiresStableCLILogDocument(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "commonloop-maintainer", "--title", "Maintainer Trace"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Maintainer Trace"), "flow.init")
 
 	const traceURL = "https://bytedance.larkoffice.com/docx/MaintainerTrace"
 	const logURL = "https://bytedance.larkoffice.com/docx/MaintainerCLILog"
@@ -72,7 +72,7 @@ func TestMaintainerTraceBindRequiresStableCLILogDocument(t *testing.T) {
 	assertError(t, forbidden, 2, "INVALID_ARGUMENT")
 
 	testRoot := t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", testRoot, "--workflow", "commonloop-maintainer", "--title", "Test Trace"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", testRoot, "--workflow", "fanloop-maintainer", "--title", "Test Trace"), "flow.init")
 	forbidden = run(binary, "trace", "bind", "--root", testRoot, "--document-url", traceURL, "--registry", "test", "--cli-log-document-url", logURL)
 	assertError(t, forbidden, 2, "INVALID_ARGUMENT")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", testRoot, "--document-url", traceURL, "--registry", "test"), "trace.bind")
@@ -83,7 +83,7 @@ func TestMaintainerTraceBindRequiresStableCLILogDocument(t *testing.T) {
 	}
 
 	sameRoot := t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", sameRoot, "--workflow", "commonloop-maintainer", "--title", "Distinct Trace"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", sameRoot, "--workflow", "fanloop-maintainer", "--title", "Distinct Trace"), "flow.init")
 	same := run(binary, "trace", "bind", "--root", sameRoot, "--document-url", traceURL, "--cli-log-document-url", traceURL+"?same=1")
 	assertError(t, same, 1, "PROTECTED_DOCUMENT")
 }

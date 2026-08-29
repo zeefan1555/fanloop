@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestProductionBuildContainsOnlyCommonloopWorkflows(t *testing.T) {
-	for _, retired := range []string{"commonloop", "douyin-game", "commonloop-dev", "promotion-design"} {
+func TestProductionBuildContainsOnlyFanloopWorkflows(t *testing.T) {
+	for _, retired := range []string{"fanloop", "douyin-game", "fanloop-dev", "promotion-design"} {
 		if _, err := Load(retired); !errors.Is(err, fs.ErrNotExist) {
 			t.Fatalf("retired Workflow %q is loadable: %v", retired, err)
 		}
@@ -76,7 +76,7 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 }
 
 func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T) {
-	loaded, err := Load("commonloop-maintainer")
+	loaded, err := Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,10 +88,10 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 		t.Fatalf("maintainer Steps = %v, want %v", got, wantSteps)
 	}
 	for _, skillID := range []string{
-		"commonloop-dev-bootstrap", "commonloop-dev-grill-with-docs", "commonloop-dev-grilling",
-		"commonloop-dev-domain-modeling", "commonloop-dev-to-spec", "commonloop-dev-to-tickets",
-		"commonloop-dev-implement", "commonloop-dev-tdd", "commonloop-dev-verify",
-		"commonloop-dev-code-review", "commonloop-dev-mr-handoff", "commonloop-dev-panorama",
+		"fanloop-dev-bootstrap", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
+		"fanloop-dev-domain-modeling", "fanloop-dev-to-spec", "fanloop-dev-to-tickets",
+		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-verify",
+		"fanloop-dev-code-review", "fanloop-dev-mr-handoff", "fanloop-dev-panorama",
 	} {
 		found := false
 		for _, prompt := range loaded.Workflow.Prompts {
@@ -103,7 +103,7 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 			t.Fatalf("maintainer Workflow does not bind %s", skillID)
 		}
 	}
-	assertConditionSkill(t, loaded, "panorama_card_published", "commonloop-dev-panorama")
+	assertConditionSkill(t, loaded, "panorama_card_published", "fanloop-dev-panorama")
 	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed"}, "execute_test_cases", false)
 	assertWorkflowRoute(t, loaded, "confirm_requirements", []string{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"}, "design_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written"}, "handoff_merge_request", false)

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/zeefan1555/commonloop/internal/idl/opsidl"
+	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 )
 
 func TestReleaseManifestGeneratedContract(t *testing.T) {
@@ -17,10 +17,10 @@ func TestReleaseManifestGeneratedContract(t *testing.T) {
 		Skills:         []*SkillArtifact{{Name: "ai-test", Version: "1.2.3", Path: "skills/technical-solution-design/ai-test", Sha256: digest}},
 		Workflows:      []*WorkflowArtifact{{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest}},
 		Assets: []*PlatformAsset{
-			{Os: "darwin", Arch: "amd64", File: "commonloop-1.2.3-darwin-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
-			{Os: "darwin", Arch: "arm64", File: "commonloop-1.2.3-darwin-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
-			{Os: "linux", Arch: "amd64", File: "commonloop-1.2.3-linux-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
-			{Os: "linux", Arch: "arm64", File: "commonloop-1.2.3-linux-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "darwin", Arch: "amd64", File: "fanloop-1.2.3-darwin-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "darwin", Arch: "arm64", File: "fanloop-1.2.3-darwin-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "linux", Arch: "amd64", File: "fanloop-1.2.3-linux-amd64.tar.xz", Sha256: digest, BinarySha256: digest},
+			{Os: "linux", Arch: "arm64", File: "fanloop-1.2.3-linux-arm64.tar.xz", Sha256: digest, BinarySha256: digest},
 		},
 	}
 	if err := manifest.IsValid(); err != nil {

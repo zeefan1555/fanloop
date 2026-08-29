@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/zeefan1555/commonloop/internal/idl/yamlidl"
+	"github.com/zeefan1555/fanloop/internal/idl/yamlidl"
 )
 
 var (

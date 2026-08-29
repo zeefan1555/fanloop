@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute every Flow/Loop Route alternative exposed by Commonloop flow status."""
+"""Execute every Flow/Loop Route alternative exposed by Fanloop flow status."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ import traceback
 from typing import Any
 
 
-TRACE_DOCUMENT_URL = "https://bytedance.larkoffice.com/docx/CommonloopRouteMatrixE2E"
-CLI_LOG_DOCUMENT_URL = "https://bytedance.larkoffice.com/docx/CommonloopRouteMatrixCLILogE2E"
+TRACE_DOCUMENT_URL = "https://bytedance.larkoffice.com/docx/FanloopRouteMatrixE2E"
+CLI_LOG_DOCUMENT_URL = "https://bytedance.larkoffice.com/docx/FanloopRouteMatrixCLILogE2E"
 
 
 def now() -> str:
@@ -123,7 +123,7 @@ def mock_value(
         if maximum is not None and count > maximum:
             raise AssertionError(f"{condition_id} url_list has incompatible item bounds")
         return [
-            f"https://code.byted.org/e2e-mock/commonloop_cli/merge_requests/{7000 + index}"
+            f"https://code.byted.org/e2e-mock/fanloop_cli/merge_requests/{7000 + index}"
             for index in range(count)
         ]
     if output_type == "object":
@@ -137,7 +137,7 @@ class Recorder:
         self.output_root = output_root
         self.process_log = output_root / "process.log"
         self.process_log.write_text(
-            "# Commonloop route-matrix Agent inputs, CLI responses and transitions\n\n",
+            "# Fanloop route-matrix Agent inputs, CLI responses and transitions\n\n",
             encoding="utf-8",
         )
         self.sequences: dict[str, int] = {}
@@ -229,10 +229,10 @@ def status(recorder: Recorder, scenario_id: str, root: pathlib.Path, label: str)
 
 
 def state(root: pathlib.Path) -> dict[str, Any]:
-    value = read_json(root / ".commonloop" / "flow" / "state.json")
+    value = read_json(root / ".fanloop" / "flow" / "state.json")
     if "outputs" in value:
         raise AssertionError("Flow State still embeds Outputs")
-    registry = read_json(root / ".commonloop" / "output" / "state.json")
+    registry = read_json(root / ".fanloop" / "output" / "state.json")
     if registry["workflow"] != value["release"]["workflow"]:
         raise AssertionError("Output Registry Workflow differs from Flow State")
     value["outputs"] = registry["outputs"]
@@ -240,7 +240,7 @@ def state(root: pathlib.Path) -> dict[str, Any]:
 
 
 def events(root: pathlib.Path) -> list[dict[str, Any]]:
-    path = root / ".commonloop" / "trace" / "events.jsonl"
+    path = root / ".fanloop" / "trace" / "events.jsonl"
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
 
@@ -320,10 +320,10 @@ def report_args(
 
 def durable_bytes(root: pathlib.Path) -> tuple[bytes, ...]:
     return (
-        (root / ".commonloop" / "flow" / "state.json").read_bytes(),
-        (root / ".commonloop" / "output" / "state.json").read_bytes(),
-        (root / ".commonloop" / "trace" / "events.jsonl").read_bytes(),
-        (root / ".commonloop" / "card" / "projection.json").read_bytes(),
+        (root / ".fanloop" / "flow" / "state.json").read_bytes(),
+        (root / ".fanloop" / "output" / "state.json").read_bytes(),
+        (root / ".fanloop" / "trace" / "events.jsonl").read_bytes(),
+        (root / ".fanloop" / "card" / "projection.json").read_bytes(),
     )
 
 
@@ -498,7 +498,7 @@ def verify_result(
         raise AssertionError("Event accepted Output keys differ from submitted Conditions")
 
     post_outputs = durable_state.get("outputs", {})
-    projection = read_json(root / ".commonloop" / "card" / "projection.json")
+    projection = read_json(root / ".fanloop" / "card" / "projection.json")
     if projection.get("outputs") != post_outputs:
         raise AssertionError("Card Projection Outputs differ from Output Registry")
     invalidated = sorted(changes.get("invalidated", []))
@@ -640,7 +640,7 @@ def git(source: pathlib.Path, *args: str) -> str:
 def render_report(matrix: dict[str, Any]) -> str:
     metadata, results, checks = matrix["metadata"], matrix["scenarios"], matrix["checks"]
     lines = [
-        "# Commonloop 全路由矩阵 E2E",
+        "# Fanloop 全路由矩阵 E2E",
         "",
         f"- 结果：**{metadata['passed']}/{metadata['discovered']} PASS**，失败 {metadata['failed']}。",
         f"- Flow：{metadata['flow_routes']} Route / {metadata['flow_alternatives']} alternatives。",
@@ -691,7 +691,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run every Flow/Loop when.any_of alternative exposed by flow status."
     )
-    parser.add_argument("--binary", required=True, help="source-built commonloop binary")
+    parser.add_argument("--binary", required=True, help="source-built fanloop binary")
     parser.add_argument("--output-root", required=True, help="new directory for all audit files")
     parser.add_argument("--source-root", default=".", help="Git worktree used to build the binary")
     parser.add_argument("--workflow", default="technical-solution-design", help="Workflow id passed to flow init")
@@ -728,7 +728,7 @@ def main() -> int:
     )
     workflow_digest = init["data"]["workflow"]["digest"]
     trace_bind = ["trace", "bind", "--root", str(baseline), "--document-url", TRACE_DOCUMENT_URL]
-    if args.workflow == "commonloop-maintainer":
+    if args.workflow == "fanloop-maintainer":
         trace_bind.extend(["--cli-log-document-url", CLI_LOG_DOCUMENT_URL])
     success(
         recorder.run(

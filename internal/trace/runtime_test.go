@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeefan1555/commonloop/internal/idl/erroridl"
-	"github.com/zeefan1555/commonloop/internal/idl/traceidl"
-	"github.com/zeefan1555/commonloop/internal/larkexec"
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/traceconfig"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
+	"github.com/zeefan1555/fanloop/internal/larkexec"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/traceconfig"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func TestLatestFlowAuditUsesConditionResultEvent(t *testing.T) {
@@ -99,7 +99,7 @@ func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
 func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T) {
 	current := state.State{
 		Requirement: state.Requirement{Title: "Self iteration"},
-		Release:     state.Release{Workflow: state.WorkflowRef{ID: "commonloop-maintainer"}},
+		Release:     state.Release{Workflow: state.WorkflowRef{ID: "fanloop-maintainer"}},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
 			DocumentURL:       "https://bytedance.larkoffice.com/docx/Trace",
 			Registry:          "production",
@@ -108,7 +108,7 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 		Outputs: map[string]state.RegisteredOutput{
 			"requirement_document_url":      {Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/Requirements"`)},
 			"technical_design_document_url": {Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/Design"`)},
-			"merge_request_urls":            {Value: json.RawMessage(`["https://github.com/zeefan1555/commonloop/merge_requests/123"]`)},
+			"merge_request_urls":            {Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`)},
 		},
 	}
 	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
@@ -120,7 +120,7 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 		"PRD":    nil,
 		"需求澄清":   "https://bytedance.larkoffice.com/docx/Requirements",
 		"技术方案":   "https://bytedance.larkoffice.com/docx/Design",
-		"MR":     "https://github.com/zeefan1555/commonloop/merge_requests/123",
+		"MR":     "https://github.com/zeefan1555/fanloop/merge_requests/123",
 		"CLI 日志": "https://bytedance.larkoffice.com/docx/CLILog",
 	}
 	for key, value := range want {

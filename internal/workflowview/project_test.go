@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zeefan1555/commonloop/internal/state"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {

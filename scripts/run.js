@@ -6,7 +6,8 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const { dataHome, describeInstall, install } = require("./install.js");
 const launcherVersion = require("../package.json").version;
-const npmPackage = "@zeefan1555/commonloop-cli@latest";
+const npmPackage = "@zeefan1555/fanloop-cli@latest";
+const npmRegistry = "https://npm.pkg.github.com";
 
 function installLauncher(env = process.env) {
   const args = ["install", "--global", "--install-links", "--ignore-scripts", "--no-audit", "--no-fund", path.resolve(__dirname, "..")];
@@ -37,36 +38,38 @@ if (process.argv[2] === "install") {
     installLauncher();
     console.log(describeInstall(install(process.env, launcherVersion)));
   } catch (error) {
-    console.error(`Commonloop install failed: ${error.message}`);
+    console.error(`Fanloop install failed: ${error.message}`);
     process.exit(1);
   }
 } else if (process.argv.length === 3 && process.argv[2] === "update") {
   let result;
   try {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "commonloop-update-"));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "fanloop-update-"));
     try {
       result = spawnSync("npx", [
         "--yes",
         "--prefer-online",
-        npmPackage,
+        `--package=${npmPackage}`,
+        "--",
+        "fanloop",
         "install",
       ], {
         cwd: directory,
-        env: { ...process.env, COMMONLOOP_UPDATE_FORWARD_ONLY: "1" },
+        env: { ...process.env, NPM_CONFIG_REGISTRY: npmRegistry, FANLOOP_UPDATE_FORWARD_ONLY: "1" },
         stdio: "inherit",
       });
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
   } catch (error) {
-    console.error(`Commonloop update failed: ${error.message}`);
+    console.error(`Fanloop update failed: ${error.message}`);
     process.exit(1);
   }
   exitWithChild(result);
 } else {
-  const binary = path.join(dataHome(), "current", "bin", "commonloop");
+  const binary = path.join(dataHome(), "current", "bin", "fanloop");
   if (!fs.existsSync(binary)) {
-    console.error(`Commonloop is not installed. Run: npx ${npmPackage} install`);
+    console.error(`Fanloop is not installed. Authenticate to GitHub Packages, then run: NPM_CONFIG_REGISTRY=${npmRegistry} npx --yes --prefer-online --package=${npmPackage} -- fanloop install`);
     process.exit(1);
   }
   const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit" });

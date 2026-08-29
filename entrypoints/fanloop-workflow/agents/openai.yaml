@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fanloop Workflow"
+  short_description: "按照 Fanloop Workflow 安全推进需求"
+  default_prompt: "使用 $fanloop-workflow 推进当前需求：读取最新 flow status 的 Prompt、Conditions 和 available_routes，上报真实 Progress；提交 Result 时把所选 route 原样上报。"

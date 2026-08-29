@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-29
 amends: ADR-0009, ADR-0010, ADR-0032, ADR-0034, ADR-0065, ADR-0077, ADR-0082
+superseded_by: ADR-0085
 ---
 
 # 将 Fanloop 硬切换为 Commonloop

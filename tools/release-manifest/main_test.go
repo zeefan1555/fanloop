@@ -12,11 +12,11 @@ import (
 	"testing"
 
 	"github.com/ulikunitz/xz"
-	"github.com/zeefan1555/commonloop/internal/release"
-	"github.com/zeefan1555/commonloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
-func TestBuildCreatesMatchedCommonloopManifest(t *testing.T) {
+func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	if _, err := exec.LookPath("xz"); err != nil {
 		if _, statErr := os.Stat("/opt/homebrew/bin/xz"); statErr == nil {
 			t.Setenv("PATH", "/opt/homebrew/bin:"+os.Getenv("PATH"))
@@ -38,7 +38,7 @@ func TestBuildCreatesMatchedCommonloopManifest(t *testing.T) {
 	for _, target := range []struct{ os, arch string }{
 		{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"},
 	} {
-		name := "commonloop-1.2.3-" + target.os + "-" + target.arch + ".tar"
+		name := "fanloop-1.2.3-" + target.os + "-" + target.arch + ".tar"
 		if err := os.WriteFile(filepath.Join(dist, name), archiveContent, 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -48,11 +48,11 @@ func TestBuildCreatesMatchedCommonloopManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantSkills := []string{
-		"commonloop-workflow",
-		"commonloop-dev-bootstrap", "commonloop-dev-code-review", "commonloop-dev-domain-modeling",
-		"commonloop-dev-grill-with-docs", "commonloop-dev-grilling", "commonloop-dev-implement",
-		"commonloop-dev-mr-handoff", "commonloop-dev-panorama", "commonloop-dev-tdd", "commonloop-dev-to-spec",
-		"commonloop-dev-to-tickets", "commonloop-dev-verify", "commonloop-dev-workflow",
+		"fanloop-workflow",
+		"fanloop-dev-bootstrap", "fanloop-dev-code-review", "fanloop-dev-domain-modeling",
+		"fanloop-dev-grill-with-docs", "fanloop-dev-grilling", "fanloop-dev-implement",
+		"fanloop-dev-mr-handoff", "fanloop-dev-panorama", "fanloop-dev-tdd", "fanloop-dev-to-spec",
+		"fanloop-dev-to-tickets", "fanloop-dev-verify", "fanloop-dev-workflow",
 		"technical-direction-approval", "technical-problem-approval", "technical-problem-framing",
 		"technical-solution-approval", "technical-solution-derivation", "technical-solution-panorama",
 		"technical-solution-review", "technical-solution-writing",
@@ -71,7 +71,7 @@ func TestBuildCreatesMatchedCommonloopManifest(t *testing.T) {
 			t.Fatalf("Workflow is not pinned: %#v", item)
 		}
 	}
-	if !equalStrings(gotWorkflows, []string{"commonloop-maintainer", "technical-solution-design"}) || len(manifest.Assets) != 4 {
+	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "technical-solution-design"}) || len(manifest.Assets) != 4 {
 		t.Fatalf("Workflows = %v, Assets = %d", gotWorkflows, len(manifest.Assets))
 	}
 	content, err := json.Marshal(manifest)
@@ -100,9 +100,9 @@ if (!asset.sha256.startsWith("sha256:") || !asset.binary_sha256.startsWith("sha2
 func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 	root := t.TempDir()
 	for _, relative := range []string{
-		"entrypoints/commonloop-workflow/SKILL.md",
+		"entrypoints/fanloop-workflow/SKILL.md",
 		"skills/technical-solution-design/write/SKILL.md",
-		"skills/commonloop-maintainer/maintain/SKILL.md",
+		"skills/fanloop-maintainer/maintain/SKILL.md",
 	} {
 		path := filepath.Join(root, filepath.FromSlash(relative))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -121,8 +121,8 @@ func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 		got[index] = skill.Name + "=" + skill.Path
 	}
 	want := []string{
-		"commonloop-workflow=entrypoints/commonloop-workflow",
-		"maintain=skills/commonloop-maintainer/maintain",
+		"fanloop-workflow=entrypoints/fanloop-workflow",
+		"maintain=skills/fanloop-maintainer/maintain",
 		"write=skills/technical-solution-design/write",
 	}
 	if !equalStrings(got, want) {
@@ -163,13 +163,13 @@ func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
 		Skills: []*release.Skill{
 			{Name: release.ExposedSkillName, Path: release.ExposedSkillPath},
 			{Name: "write", Path: "skills/technical-solution-design/write"},
-			{Name: "maintain", Path: "skills/commonloop-maintainer/maintain"},
+			{Name: "maintain", Path: "skills/fanloop-maintainer/maintain"},
 		},
-		Workflows: []*release.Workflow{{Id: "technical-solution-design"}, {Id: "commonloop-maintainer"}},
+		Workflows: []*release.Workflow{{Id: "technical-solution-design"}, {Id: "fanloop-maintainer"}},
 	}
 	loaded := []workflow.Loaded{
 		{Workflow: workflow.Workflow{ID: "technical-solution-design", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "write"}}}}}},
-		{Workflow: workflow.Workflow{ID: "commonloop-maintainer", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "maintain"}}}}}},
+		{Workflow: workflow.Workflow{ID: "fanloop-maintainer", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "maintain"}}}}}},
 	}
 	if err := validateWorkflowSkillBindings(manifest, loaded); err != nil {
 		t.Fatalf("valid bindings rejected: %v", err)
@@ -224,7 +224,7 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(entrypoint), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(entrypoint, []byte("---\nname: commonloop-workflow\n---\n"), 0o600); err != nil {
+	if err := os.WriteFile(entrypoint, []byte("---\nname: fanloop-workflow\n---\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	seenSkills := map[string]bool{}
@@ -268,7 +268,7 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 }
 
 func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
-	entrypoint, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "commonloop-workflow", "SKILL.md"))
+	entrypoint, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
 		}
 	}
 	path := filepath.Join(filepath.Dir(entrypoint), "routes.yaml")
-	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "commonloop-maintainer"}, {Id: "technical-solution-design"}}}
+	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "fanloop-maintainer"}, {Id: "technical-solution-design"}}}
 	if err := validateSelectorRoutes(path, manifest); err != nil {
 		t.Fatalf("production selector is invalid: %v", err)
 	}
@@ -302,7 +302,7 @@ func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
 }
 
 func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
-	path, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "commonloop-workflow", "SKILL.md"))
+	path, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,21 +313,21 @@ func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 	skill := string(content)
 	for _, value := range []string{"flow status", "routes.yaml", "flow init", "`current.prompt`", "`available_routes`"} {
 		if !strings.Contains(skill, value) {
-			t.Fatalf("commonloop-workflow Skill does not contain %q", value)
+			t.Fatalf("fanloop-workflow Skill does not contain %q", value)
 		}
 	}
-	if strings.Contains(skill, "commonloop update") {
+	if strings.Contains(skill, "fanloop update") {
 		t.Fatal("local Workflow entry still requires an online update")
 	}
 }
 
 func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
-	path := filepath.Join("..", "..", "skills", "commonloop-maintainer", "commonloop-dev-workflow", "SKILL.md")
+	path := filepath.Join("..", "..", "skills", "fanloop-maintainer", "fanloop-dev-workflow", "SKILL.md")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(content), "commonloop update") {
+	if strings.Contains(string(content), "fanloop update") {
 		t.Fatal("maintainer Workflow entry still requires an online update")
 	}
 }
@@ -399,7 +399,7 @@ func writeTestArchive(t *testing.T, path string, binary []byte, extra ...map[str
 		t.Fatal(err)
 	}
 	tarWriter := tar.NewWriter(xzWriter)
-	if err := tarWriter.WriteHeader(&tar.Header{Name: "bin/commonloop", Mode: 0o755, Size: int64(len(binary))}); err == nil {
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "bin/fanloop", Mode: 0o755, Size: int64(len(binary))}); err == nil {
 		_, err = tarWriter.Write(binary)
 	}
 	if err == nil && len(extra) > 0 {
@@ -450,7 +450,7 @@ func writeTestReleaseArchive(t *testing.T, source, destination string, binary []
 			}
 		}
 	}
-	write("bin/commonloop", 0o755, strings.NewReader(string(binary)), int64(len(binary)))
+	write("bin/fanloop", 0o755, strings.NewReader(string(binary)), int64(len(binary)))
 	for _, top := range []string{"entrypoints", "skills", "workflows"} {
 		root := filepath.Join(source, top)
 		if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
