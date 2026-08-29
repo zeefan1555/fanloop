@@ -55,6 +55,7 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 			t.Fatalf("Prompt %s Skills = %#v, want required %s", promptID, skilled, skillID)
 		}
 	}
+	assertConditionSkill(t, loaded, "panorama_card_published", "technical-solution-panorama")
 	assertWorkflowRoute(t, loaded, "frame_technical_problem", []string{"technical_problem_defined"}, "confirm_technical_problem", false)
 	assertWorkflowRoute(t, loaded, "confirm_technical_problem", []string{"panorama_card_published", "technical_problem_approved"}, "derive_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "derive_technical_solution", []string{"technical_solution_derived"}, "confirm_solution_direction", false)
@@ -90,7 +91,7 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 		"commonloop-dev-bootstrap", "commonloop-dev-grill-with-docs", "commonloop-dev-grilling",
 		"commonloop-dev-domain-modeling", "commonloop-dev-to-spec", "commonloop-dev-to-tickets",
 		"commonloop-dev-implement", "commonloop-dev-tdd", "commonloop-dev-verify",
-		"commonloop-dev-code-review", "commonloop-dev-mr-handoff",
+		"commonloop-dev-code-review", "commonloop-dev-mr-handoff", "commonloop-dev-panorama",
 	} {
 		found := false
 		for _, prompt := range loaded.Workflow.Prompts {
@@ -102,12 +103,26 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 			t.Fatalf("maintainer Workflow does not bind %s", skillID)
 		}
 	}
+	assertConditionSkill(t, loaded, "panorama_card_published", "commonloop-dev-panorama")
 	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed"}, "execute_test_cases", false)
 	assertWorkflowRoute(t, loaded, "confirm_requirements", []string{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"}, "design_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written"}, "handoff_merge_request", false)
 	assertWorkflowRoute(t, loaded, "handoff_merge_request", []string{"merge_request_created", "merge_request_handed_off", "handoff_record_written"}, "", true)
 	assertWorkflowLoop(t, loaded, "execute_test_cases", []string{"local_validation_failed"}, "implement_code")
 	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed"}, "implement_code")
+}
+
+func assertConditionSkill(t *testing.T, loaded Loaded, conditionID, skillID string) {
+	t.Helper()
+	condition, ok := loaded.Workflow.Condition(conditionID)
+	if !ok {
+		t.Fatalf("Condition %s is missing", conditionID)
+	}
+	prompt, ok := loaded.Workflow.Prompt(condition.PromptRef)
+	if !ok || len(prompt.Skills) != 1 || prompt.Skills[0].ID != skillID ||
+		prompt.Skills[0].Optional == nil || *prompt.Skills[0].Optional {
+		t.Fatalf("Condition %s Skills = %#v, want required %s", conditionID, prompt.Skills, skillID)
+	}
 }
 
 func assertWorkflowRoute(t *testing.T, loaded Loaded, stepID string, conditions []string, nextStepID string, terminal bool) {

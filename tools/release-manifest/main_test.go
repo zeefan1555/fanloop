@@ -51,11 +51,11 @@ func TestBuildCreatesMatchedCommonloopManifest(t *testing.T) {
 		"commonloop-workflow",
 		"commonloop-dev-bootstrap", "commonloop-dev-code-review", "commonloop-dev-domain-modeling",
 		"commonloop-dev-grill-with-docs", "commonloop-dev-grilling", "commonloop-dev-implement",
-		"commonloop-dev-mr-handoff", "commonloop-dev-tdd", "commonloop-dev-to-spec",
+		"commonloop-dev-mr-handoff", "commonloop-dev-panorama", "commonloop-dev-tdd", "commonloop-dev-to-spec",
 		"commonloop-dev-to-tickets", "commonloop-dev-verify", "commonloop-dev-workflow",
 		"technical-direction-approval", "technical-problem-approval", "technical-problem-framing",
-		"technical-solution-approval", "technical-solution-derivation", "technical-solution-review",
-		"technical-solution-writing",
+		"technical-solution-approval", "technical-solution-derivation", "technical-solution-panorama",
+		"technical-solution-review", "technical-solution-writing",
 	}
 	gotSkills := make([]string, len(manifest.Skills))
 	for index, skill := range manifest.Skills {
