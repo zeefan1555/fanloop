@@ -114,7 +114,7 @@ conditions:
 
   code_merged:
     prompt_ref: {file: prompt.yaml, prompt_id: merge_code_condition}
-    output: {key: merge_commit_sha, type: string}
+    output: {key: merge_request_urls, type: url_list, min_items: 1, description: PR}
     exclusive_group: code_merge_outcome
   code_merge_failed:
     prompt_ref: {file: prompt.yaml, prompt_id: merge_code_condition}

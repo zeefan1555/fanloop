@@ -67,8 +67,8 @@ Step 不变。ADR-0072 的同一 Botmux Session 复用唯一 Requirement Root �
 不修改 Thrift IDL、生成物、Workflow loader、State/Event/Output Schema、公开 CLI
 Request/Response 或两个公开测试入口。五份生产 YAML 是 Agent 验收、合码与回流语义的唯一真值；
 Runtime 只保留通用解释和既有 bot-only Trace/Registry 执行接缝。生产 Registry 继续同步需求、技术方案、
-Card Binding、Trace 文档与 CLI 日志；由于 Workflow 不再产生 `merge_request_urls` Output，删除该失效字段映射，
-PR URL 与 merge commit 改由 `acceptance-report.md` 记录和回读。
+Card Binding、Trace 文档与 CLI 日志；`code_merged` 继续输出 `merge_request_urls` 以保留生产 Registry 的
+MR 字段，merge commit 则由 `acceptance-report.md` 记录和回读。
 
 人工审核记录：用户先于 2026-08-30 确认 Q8=B、Q10=A、Pstack 融合和 bot-only 完整 Trace 投影；随后
 明确指出 MR 交接是 Treeloop 逻辑、Fanloop 不应复用，并在收到删除 Human/MR 节点、增加

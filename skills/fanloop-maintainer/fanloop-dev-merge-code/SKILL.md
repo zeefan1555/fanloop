@@ -35,7 +35,7 @@ description: 在 Fanloop Agent 验收通过后，将精确 reviewed HEAD 通过�
 ## 结果
 
 将 PR URL、source/base、reviewed HEAD、merged 时间和 merge commit 写入并回读
-`acceptance-report.md`。成功后上报 `code_merged=<merge commit SHA>` 与
+`acceptance-report.md`。成功后上报 `code_merged=<PR URL 列表>` 与
 `acceptance_report_written=acceptance-report.md`。
 
 候选或 base 漂移上报 `implementation_changes_requested` 与 `acceptance_report_written`。网络或

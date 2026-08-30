@@ -134,7 +134,7 @@ func TestMaintainerAgentAcceptanceAdvancesToMergeCode(t *testing.T) {
 
 	completed := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "merge_code",
-		"--condition-result", conditionResult("code_merged", "string", "\"0123456789abcdef\""),
+		"--condition-result", conditionResult("code_merged", "url_list", `["https://github.com/zeefan1555/fanloop/pull/7"]`),
 		"--condition-result", conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
 		"--terminal", "--summary", "reviewed head merged")
 	assertSuccess(t, completed, "flow.report.result")

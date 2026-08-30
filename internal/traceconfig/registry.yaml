@@ -43,6 +43,7 @@ profiles:
           outputs:
             requirement_document_url: 需求澄清
             technical_design_document_url: 技术方案
+            merge_request_urls: MR
   test:
     default:
       url: https://bytedance.larkoffice.com/wiki/GPw5wU3O3ia00MkhN4acCtQDnne?table=tblGrG1epTVE9tHs&view=vew5zFcUtJ

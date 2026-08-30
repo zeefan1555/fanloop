@@ -81,7 +81,7 @@ prompts:
   review_report_condition: {prompt: review_report_written 输出包含被审 HEAD 与阻断结论的 review_report_path。, skills: []}
   agent_acceptance_condition: {prompt: Verification 维护、候选安装、Doctor 和真实机器人黑盒全部通过时上报 agent_acceptance_passed；确定产品失败时上报 agent_acceptance_failed 并同时选择恰好一个回流原因；基础设施失败不提交该 Condition。, skills: []}
   acceptance_report_condition: {prompt: acceptance_report_written 只输出包含当前 reviewed HEAD 以及截至当前 Step 已发生的维护、安装、Doctor、机器人 Eval 和合码最新事实的 acceptance_report_path=acceptance-report.md；Agent 验收时不得要求尚未发生的合码事实。, skills: []}
-  merge_code_condition: {prompt: GitHub 回读证明唯一 PR 的 base=main、head/head OID 精确匹配 reviewed HEAD、state=MERGED 且 merge commit 非空时上报 code_merged=merge commit SHA；可证明没有歧义合并的暂时失败上报 code_merge_failed=failed。二者只能选择一个。, skills: []}
+  merge_code_condition: {prompt: GitHub 回读证明唯一 PR 的 base=main、head/head OID 精确匹配 reviewed HEAD、state=MERGED 且 merge commit 非空时上报 code_merged=该 PR URL 列表，并把 merge commit 写入 acceptance-report.md；可证明没有歧义合并的暂时失败上报 code_merge_failed=failed。二者只能选择一个。, skills: []}
 
   back_to_repository_scope: {prompt: 回到工作区准备重建 Issue Workspace 或仓库基线，并失效该 Step 及下游 Output。, skills: []}
   back_to_requirements: {prompt: 回到需求澄清补齐或重新确认需求，并失效该 Step 及全部下游 Output。, skills: []}
