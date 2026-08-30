@@ -12,8 +12,8 @@
 
 1. 初始化全新 Requirement，并保存紧邻的 flow status。
 2. current Markdown dry-run 必须包含标题、当前 Stage/Job/Step。
-3. panorama Markdown dry-run 必须包含五个 Stage：本地验证机制、功能图谱、Agent 评测、硬性门禁、
-   云端交付，以及“机器人端到端验收 → 自动合码”。
+3. panorama Markdown dry-run 必须包含五个 Stage、十二个 Job 和十六个 Step；多 Job Stage 必须保留
+   Job 名称与边界，并包含“机器人端到端验收”和“自动合码”。
 4. current lark-json dry-run 必须是有效 JSON，并表达同一当前 Step。
 5. 记录 card 目录，证明 dry-run 不新增快照；再执行一次非 dry-run，保存返回的 snapshot_path 与文件。
 

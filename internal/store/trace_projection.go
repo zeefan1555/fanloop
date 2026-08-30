@@ -142,8 +142,9 @@ func tracePanorama(current state.State, definition workflow.Workflow) string {
 	position := 0
 	lines := make([]string, 0, len(definition.Stages)+1)
 	for _, stage := range definition.Stages {
-		steps := make([]string, 0)
+		jobs := make([]string, 0, len(stage.Jobs))
 		for _, job := range stage.Jobs {
+			steps := make([]string, 0, len(job.Steps))
 			for _, step := range job.Steps {
 				label := step.Name
 				switch {
@@ -155,8 +156,13 @@ func tracePanorama(current state.State, definition workflow.Workflow) string {
 				steps = append(steps, label)
 				position++
 			}
+			if len(stage.Jobs) == 1 {
+				jobs = append(jobs, strings.Join(steps, " → "))
+			} else {
+				jobs = append(jobs, job.Name+"【"+strings.Join(steps, " → ")+"】")
+			}
 		}
-		lines = append(lines, stage.Name+"："+strings.Join(steps, " → "))
+		lines = append(lines, stage.Name+"："+strings.Join(jobs, " ｜ "))
 	}
 	lines = append(lines, fmt.Sprintf("整体进度：%d%%", traceProgressPercent(current, definition)))
 	return strings.Join(lines, "\n")

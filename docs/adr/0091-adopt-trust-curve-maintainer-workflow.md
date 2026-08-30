@@ -48,8 +48,9 @@ Step。`confirm_requirements` executor 从 human 改为 agent；仍缺真实产�
 但因新增 Step 插入，后续既有 Step 的全局序号发生变化。Stage 从 3 个改为 5 个，Job 从 3 个改为
 12 个，所有归组变化均已在表中列出。
 
-Job 用于把需求、实现、验证资产、评测、CI、机器人验收和合码职责显示为独立执行单元。当前通用
-Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG 调度；本决策不伪造并行状态。无数据依赖的工作在
+Job 用于把需求、实现、验证资产、评测、CI、机器人验收和合码职责显示为独立执行单元；Panorama
+对多 Job Stage 保留 Job 名称与边界。当前通用 Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG
+调度；本决策不伪造并行状态。无数据依赖的工作在
 对应 Agent Step 内并行：`execute_eval_candidates` 并行两个隔离 Case，GitHub CI 使用 Matrix，
 `execute_agent_acceptance` 并行两个全新机器人 Case。要实现多个活动 Job 的 durable 并行状态，必须
 另行修改 State/IDL/CLI 并单独审核，不属于本决策。

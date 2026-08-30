@@ -202,8 +202,9 @@ func statusPanorama(view cardidl.CardView, current state.State, definition workf
 				continue
 			}
 		}
-		steps := make([]string, 0, stageStepCount(stage))
+		jobs := make([]string, 0, len(stage.Jobs))
 		for _, job := range stage.Jobs {
+			steps := make([]string, 0, len(job.Steps))
 			for _, step := range job.Steps {
 				label := step.Name
 				switch {
@@ -215,8 +216,13 @@ func statusPanorama(view cardidl.CardView, current state.State, definition workf
 				steps = append(steps, label)
 				position++
 			}
+			if len(stage.Jobs) == 1 {
+				jobs = append(jobs, strings.Join(steps, " → "))
+			} else {
+				jobs = append(jobs, job.Name+"【"+strings.Join(steps, " → ")+"】")
+			}
 		}
-		lines = append(lines, stage.Name+"："+strings.Join(steps, " → "))
+		lines = append(lines, stage.Name+"："+strings.Join(jobs, " ｜ "))
 	}
 	if len(lines) == 0 {
 		return "流程已完成"
