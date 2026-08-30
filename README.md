@@ -23,8 +23,9 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 ## 使用 npx 安装
 
-Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先使用具备
-`read:packages` 权限的 GitHub classic PAT 登录，再安装匹配的 CLI、Workflow 与 Skills：
+Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先创建具备
+`read:packages` 权限的 GitHub classic PAT，再安装匹配的 CLI、Workflow 与 Skills。执行
+`npm login` 后，`Password` 必须粘贴这个 PAT，不能使用 GitHub 密码或 npmjs token：
 
 ```bash
 npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
