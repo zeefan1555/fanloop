@@ -16,8 +16,8 @@ func TestEmbeddedRegistriesUseDefaultAndWorkflowPolicies(t *testing.T) {
 	if !ok || !override.RequireCLILogDocument || override.Fields.CLILogURL == "" {
 		t.Fatalf("Workflow override = %#v, ok=%t", override, ok)
 	}
-	if got := override.Fields.Outputs["merge_request_urls"]; got != "MR" {
-		t.Fatalf("configured Output mapping = %q, want MR", got)
+	if got := override.Fields.Outputs["technical_design_document_url"]; got != "技术方案" {
+		t.Fatalf("configured Output mapping = %q, want 技术方案", got)
 	}
 	testRegistry, ok := Resolve(RegistryTest, "fanloop-maintainer")
 	if !ok || testRegistry.Profile != RegistryTest || testRegistry.RequireCLILogDocument {
