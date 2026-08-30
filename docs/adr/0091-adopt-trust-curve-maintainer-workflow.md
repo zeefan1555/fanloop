@@ -50,7 +50,7 @@ Step。`confirm_requirements` executor 从 human 改为 agent；仍缺真实产�
 
 Job 用于把需求、实现、验证资产、评测、CI、机器人验收和合码职责显示为独立执行单元。当前通用
 Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG 调度；本决策不伪造并行状态。无数据依赖的工作在
-对应 Agent Step 内并行：`execute_eval_candidates` 并行 1 至 3 个隔离 Case，GitHub CI 使用 Matrix，
+对应 Agent Step 内并行：`execute_eval_candidates` 并行两个隔离 Case，GitHub CI 使用 Matrix，
 `execute_agent_acceptance` 并行两个全新机器人 Case。要实现多个活动 Job 的 durable 并行状态，必须
 另行修改 State/IDL/CLI 并单独审核，不属于本决策。
 
@@ -65,8 +65,9 @@ Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG 调度；本决策�
 `fanloop-dev-maintain-verification` 在每次用户表面变化后维护 Skill 与 Feature 页面。真实配方必须覆盖
 Launch、Doctor、Drive、Evidence、Cleanup，使用隔离数据目录和公开入口，Cleanup 后证据仍保留。
 
-Agent Eval 拆为协调者、候选和不同模型裁判。协调者冻结 1 至 3 个 Case、随机目录、硬红线和 10 分
-Rubric；候选在隔离目录并行执行，互不共享中间结果；裁判只读原始证据。评测失败必须选择唯一最早
+Agent Eval 拆为协调者、候选和不同模型裁判。协调者冻结恰好两个 Case、随机目录、硬红线和 10 分
+Rubric；候选在隔离目录并行执行，互不共享中间结果；裁判只读原始证据。机器人验收原样复用这两个
+冻结 Case，不复制、不选择、不临时改题。评测失败必须选择唯一最早
 责任回流，不在冻结候选上 Hill Climbing。
 
 Review 后由 `publish_candidate` 发布唯一 PR。`verify_ci_gates` 要求 main Ruleset 使用 required PR、

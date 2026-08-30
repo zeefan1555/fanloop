@@ -83,7 +83,7 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 			".agents/skills/verify-fanloop", "用户入口", "真实操作", "可观察结果", "clean", "updated", "blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator/SKILL.md": {
-			"1 至 3", "10 分", "Rubric", "随机", "不同模型", "eval-playbook.md",
+			"恰好两个", "10 分", "Rubric", "随机", "不同模型", "eval-playbook.md",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-eval-candidate/SKILL.md": {
 			"并行", "独立随机目录", "candidate_head", "eval-candidates-report.md",

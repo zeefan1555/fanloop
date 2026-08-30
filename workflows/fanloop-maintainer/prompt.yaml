@@ -56,7 +56,7 @@ prompts:
       - {id: fanloop-dev-code-review, prompt: 审查最终 Diff，记录并冻结 reviewed HEAD。, optional: false}
   coordinate_eval_flow:
     prompt: |
-      只读冻结候选。根据需求、验证技能与功能地图生成 1 至 3 个黑盒 Case、10 分制 Rubric、硬红线和随机工作目录名，写入 eval-playbook.md。Case 不得透露正在评测；不得执行候选或修改仓库。完成上报 eval_playbook_frozen。
+      只读冻结候选。根据需求、验证技能与功能地图生成恰好两个黑盒 Case、10 分制 Rubric、硬红线和随机工作目录名，写入 eval-playbook.md。Case 不得透露正在评测；不得执行候选或修改仓库。完成上报 eval_playbook_frozen。
     skills:
       - {id: fanloop-dev-eval-coordinator, prompt: 冻结防作弊评测剧本与评分标准。, optional: false}
   execute_eval_candidates_flow:
