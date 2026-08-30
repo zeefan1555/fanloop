@@ -45,26 +45,26 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-Human Step 的审核与 Panorama 同样由五份 YAML 驱动。Agent 独立批准 Route 使用
-`agent_approved`，不展示 Panorama；人工 Route 用 `panorama_card_published` 与批准、拒绝或反馈分类
-Condition 组成 AND 组。审批 Skill 组织审核材料，Panorama Skill 只按宿主原样展示 renderer 的紧凑
-投影并返回本次 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，
-但继续维护本地 Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
+Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer` 可用
+`agent_approved` 独立批准；`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
+文档 URL、`panorama_card_published` 与人的明确结论。审批 Skill 组织审核材料并按最早受影响层分类，
+Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
+`panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
+Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
 [ADR-0086](./adr/0086-align-panorama-with-treeloop.md) 与
-[ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)。
+[ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)、
+[ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)。
 
 ## 当前配置实例
 
-`technical-solution-design` 先冻结 `.technical-solution/problem.md`，再通过独立人工门禁确认
-`.technical-solution/proposal.md` 的选型与总体架构方向，最后生成 `technical-solution.md`、
-`.technical-solution/architecture.mmd` 和 `.technical-solution/review.md`。七个 Step 分别绑定
-`technical-problem-framing`、`technical-problem-approval`、`technical-solution-derivation`、
-`technical-direction-approval`、`technical-solution-writing`、`technical-solution-review` 和
-`technical-solution-approval`。
+`technical-solution-design` 用十三个 Step 依次产出需求背景、核心问题、设计目标、方案调研、总体
+方案、难点解法、方案收益和落地规划八个无标题片段，再生成附录并组装 `technical-solution.md`。
+最终正文只有九个正文结构，不暴露内部调研清单；总体架构图和独立审校报告分别写入
+`.technical-solution/architecture.mmd` 与 `.technical-solution/review.md`。
 
-问题定义变化回到第一步并失效全部下游 Output；方向变化回到方案推导；写作或审校问题只回到
-方案写作。人工路径的 Panorama 快照路径和审核结论都是普通 Output/Event 事实；Agent 独立批准同样
-使用普通 Condition，不创建第二套流程状态或审批状态。
+问题定义、方案设计和完整方案分别经过强制人工审核，并输出稳定飞书文档 URL。反馈按背景、问题、
+目标、调研、总体方案、难点、收益、落地或呈现中最早受影响的一层回流，目标 Step 及其下游
+Output 全部失效；不存在技术方案 Agent 代批路径。
 
 ## 当前持久化版本
 

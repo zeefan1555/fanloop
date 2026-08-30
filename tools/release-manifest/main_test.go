@@ -53,8 +53,10 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 		"fanloop-dev-grill-with-docs", "fanloop-dev-grilling", "fanloop-dev-implement",
 		"fanloop-dev-mr-handoff", "fanloop-dev-panorama", "fanloop-dev-tdd", "fanloop-dev-to-spec",
 		"fanloop-dev-to-tickets", "fanloop-dev-verify", "fanloop-dev-workflow",
-		"technical-direction-approval", "technical-problem-approval", "technical-problem-framing",
-		"technical-solution-approval", "technical-solution-derivation", "technical-solution-panorama",
+		"technical-background-framing", "technical-direction-approval", "technical-key-solutions",
+		"technical-objective-setting", "technical-overall-solution", "technical-problem-analysis",
+		"technical-problem-approval", "technical-solution-approval", "technical-solution-benefits",
+		"technical-solution-delivery", "technical-solution-panorama", "technical-solution-research",
 		"technical-solution-review", "technical-solution-writing",
 	}
 	gotSkills := make([]string, len(manifest.Skills))
@@ -112,7 +114,6 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 		}
 		delivery := string(content)
 		for _, value := range []string{
-			"选择 `agent_approved` Route 时不得渲染或发送",
 			"只依据系统或开发者上下文中已经声明的当前 Agent 人设",
 			"Botmux Agent：`botmux`",
 			"AIME Agent：`aime`",
@@ -131,6 +132,14 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 			if !strings.Contains(delivery, value) {
 				t.Fatalf("%s does not contain %q", relative, value)
 			}
+		}
+		if relative == "fanloop-maintainer/fanloop-dev-panorama/SKILL.md" &&
+			!strings.Contains(delivery, "选择 `agent_approved` Route 时不得渲染或发送") {
+			t.Fatalf("%s does not preserve the maintainer Agent approval path", relative)
+		}
+		if relative == "technical-solution-design/technical-solution-panorama/SKILL.md" &&
+			strings.Contains(delivery, "agent_approved") {
+			t.Fatalf("%s still documents the retired Agent approval path", relative)
 		}
 		for _, forbidden := range []string{"command -v", "BOTMUX_CHAT_ID:-", "BOTMUX_SESSION_ID:-", "<CURRENT_BOTMUX_SESSION_ID>"} {
 			if strings.Contains(delivery, forbidden) {

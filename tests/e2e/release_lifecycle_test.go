@@ -34,11 +34,13 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	}
 	run("flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Release E2E")
 	run("trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/TraceE2E")
-	first := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"frame_technical_problem","condition_results":[{"condition_id":"technical_problem_defined","output":{"type":"path","value":".technical-solution/problem.md"}}],"route":{"next_step_id":"confirm_technical_problem"},"summary":"technical problem defined","evidence":[]}`)
+	first := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"frame_requirement_background","condition_results":[{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-background.md"}}],"route":{"next_step_id":"analyze_core_problem"},"summary":"background defined","evidence":[]}`)
 	if !strings.Contains(first.stdout, `"effect": "advanced"`) {
 		t.Fatalf("matching Condition result did not advance: %s", first.stdout)
 	}
-	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"derive_technical_solution"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
+	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"analyze_core_problem","condition_results":[{"condition_id":"core_problem_defined","output":{"type":"path","value":".technical-solution/sections/02-problem.md"}}],"route":{"next_step_id":"define_design_objectives"},"summary":"problem defined","evidence":[]}`)
+	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"define_design_objectives","condition_results":[{"condition_id":"design_objectives_defined","output":{"type":"path","value":".technical-solution/sections/03-objectives.md"}}],"route":{"next_step_id":"confirm_technical_problem"},"summary":"objectives defined","evidence":[]}`)
+	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
 	if incomplete.err == nil || !strings.Contains(incomplete.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
 		t.Fatalf("approval without Panorama receipt bypassed review gate:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
 	}
@@ -46,16 +48,16 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if !strings.Contains(waitingForReview.stdout, `"step_id": "confirm_technical_problem"`) {
 		t.Fatalf("rejected document-only result changed current Step: %s", waitingForReview.stdout)
 	}
-	approved := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"panorama_card_published","output":{"type":"path","value":".fanloop/card/release-e2e.json"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"derive_technical_solution"},"summary":"technical problem approved","evidence":[{"source":"human","content":"approved problem","ref":"requirement-e2e"}]}`)
-	if !strings.Contains(approved.stdout, `"step_id": "derive_technical_solution"`) {
+	approved := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"panorama_card_published","output":{"type":"path","value":".fanloop/card/release-e2e.json"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"technical problem approved","evidence":[{"source":"human","content":"approved problem","ref":"requirement-e2e"}]}`)
+	if !strings.Contains(approved.stdout, `"step_id": "research_solution_options"`) {
 		t.Fatalf("approved requirements did not enter solution design: %s", approved.stdout)
 	}
-	looped := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"derive_technical_solution","condition_results":[{"condition_id":"technical_problem_changed","output":{"type":"enum_value","value":"changed"}}],"route":{"back_step_id":"frame_technical_problem"},"summary":"technical problem changed","evidence":[]}`)
+	looped := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"research_solution_options","condition_results":[{"condition_id":"problem_changed","output":{"type":"enum_value","value":"problem"}}],"route":{"back_step_id":"analyze_core_problem"},"summary":"technical problem changed","evidence":[]}`)
 	if !strings.Contains(looped.stdout, `"effect": "looped"`) {
 		t.Fatalf("matching Loop Condition did not return: %s", looped.stdout)
 	}
 	status := run("flow", "status", "--root", root)
-	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "frame_technical_problem"`) || !strings.Contains(status.stdout, `"status": "ready"`) {
+	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "analyze_core_problem"`) || !strings.Contains(status.stdout, `"status": "ready"`) {
 		t.Fatalf("requirement did not preserve its returned Step: %s", status.stdout)
 	}
 
@@ -67,7 +69,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if content, err := os.ReadFile(traceContent); err != nil ||
 		!strings.Contains(string(content), "# Workflow Trace") ||
 		!strings.Contains(string(content), "| 时间 | 事件 | Skill | 状态变化 | 结果 | 用户对话 | 判断依据 | 证据 |") ||
-		!strings.Contains(string(content), "condition=technical_problem_changed:changed") ||
+		!strings.Contains(string(content), "condition=problem_changed:problem") ||
 		!strings.Contains(string(content), "looped") ||
 		strings.Contains(string(content), "loop.feedback") {
 		t.Fatalf("trace projection does not keep the Driver audit layout: %v\n%s", err, content)

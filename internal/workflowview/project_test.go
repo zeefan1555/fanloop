@@ -17,7 +17,7 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	definition := loaded.Workflow
 	stepID := "confirm_technical_problem"
 	route := definition.Flows[stepID][0]
-	conditionID := route.When.AnyOf[0][0]
+	conditionID := "panorama_card_published"
 	condition, _ := definition.Condition(conditionID)
 
 	routePrompt := definition.Prompts[route.PromptRef.PromptID]

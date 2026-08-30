@@ -8,17 +8,21 @@ stages:
       - id: problem
         name: 问题定义
         steps:
-          - {id: frame_technical_problem, name: 技术问题定义, executor: agent}
-          - {id: confirm_technical_problem, name: 问题人工确认, executor: human}
+          - {id: frame_requirement_background, name: 需求背景, executor: agent}
+          - {id: analyze_core_problem, name: 核心问题, executor: agent}
+          - {id: define_design_objectives, name: 设计目标, executor: agent}
+          - {id: confirm_technical_problem, name: 问题审核, executor: human}
 
   - id: solution
-    name: 方案推导
+    name: 方案设计
     jobs:
       - id: solution
-        name: 方案推导
+        name: 方案设计
         steps:
-          - {id: derive_technical_solution, name: 技术方案推导, executor: agent}
-          - {id: confirm_solution_direction, name: 方案方向人工确认, executor: human}
+          - {id: research_solution_options, name: 方案调研, executor: agent}
+          - {id: design_overall_solution, name: 总体方案, executor: agent}
+          - {id: design_key_solutions, name: 难点解法, executor: agent}
+          - {id: confirm_solution_direction, name: 方案审核, executor: human}
 
   - id: document
     name: 方案成文
@@ -26,6 +30,8 @@ stages:
       - id: document
         name: 方案成文
         steps:
-          - {id: write_technical_solution, name: 技术方案写作, executor: agent}
-          - {id: review_technical_solution, name: 技术方案审校, executor: agent}
-          - {id: confirm_technical_solution, name: 技术方案人工确认, executor: human}
+          - {id: evaluate_solution_benefits, name: 方案收益, executor: agent}
+          - {id: plan_solution_delivery, name: 落地规划, executor: agent}
+          - {id: write_technical_solution, name: 方案成文, executor: agent}
+          - {id: review_technical_solution, name: 方案审校, executor: agent}
+          - {id: confirm_technical_solution, name: 方案终审, executor: human}

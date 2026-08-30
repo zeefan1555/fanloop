@@ -48,21 +48,21 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 		CausedByEventID: "e1", Payload: Payload(progress),
 	})
 
-	second := "confirm_technical_problem"
+	second := "analyze_core_problem"
 	flowResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "technical_problem_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`)},
+			ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`)},
 		}},
-		Summary: "technical problem defined", Effect: ResultAdvanced,
+		Summary: "background defined", Effect: ResultAdvanced,
 		Transition:    Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second},
-		OutputChanges: OutputChanges{Accepted: []string{"problem_definition_path"}},
+		OutputChanges: OutputChanges{Accepted: []string{"background_section_path"}},
 	}
 	current.CurrentStepID = &second
 	current.CurrentStepStatus = StepReady
 	current.CurrentStepSummary = flowResult.Summary
 	current.CurrentEvidence = nil
 	current.Outputs = map[string]RegisteredOutput{
-		"problem_definition_path": {Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`), ProducerStepID: first},
+		"background_section_path": {Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`), ProducerStepID: first},
 	}
 	current.LastEventID = "e3"
 	current.UpdatedAt = now.Add(2 * time.Minute)
@@ -73,15 +73,14 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	})
 
 	loopResult := FlowResultPayload{
-		ConditionResults: []ConditionResult{
-			{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/rejected.json"`)}},
-			{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}},
-		},
-		Summary: "technical problem rejected", Effect: ResultLooped,
+		ConditionResults: []ConditionResult{{
+			ConditionID: "background_changed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`)},
+		}},
+		Summary: "background changed", Effect: ResultLooped,
 		Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first},
 		OutputChanges: OutputChanges{
-			Accepted:    []string{"panorama_snapshot_path", "problem_approval_decision"},
-			Invalidated: []string{"panorama_snapshot_path", "problem_approval_decision", "problem_definition_path"},
+			Accepted:    []string{"technical_feedback_scope"},
+			Invalidated: []string{"background_section_path", "technical_feedback_scope"},
 		},
 	}
 	current.CurrentStepID = &first
@@ -116,23 +115,22 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 	current := State{
 		SchemaVersion: CurrentStateSchemaVersion,
 		Requirement:   Requirement{Title: "State v8"}, Release: Release{Version: "dev", Workflow: WorkflowRefFrom(loaded.Ref)},
-		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "technical problem rejected",
+		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "background changed",
 		Outputs: map[string]RegisteredOutput{}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
 	}
-	second := "confirm_technical_problem"
+	second := "analyze_core_problem"
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: current.Release.Workflow, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{{ConditionID: "technical_problem_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/problem.md"`)}}},
-			Summary:          "technical problem defined", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"problem_definition_path"}},
+			ConditionResults: []ConditionResult{{ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`)}}},
+			Summary:          "background defined", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"background_section_path"}},
 		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{
-				{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/rejected.json"`)}},
-				{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}},
-			},
-			Summary: "technical problem rejected", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
-				Accepted: []string{"panorama_snapshot_path", "problem_approval_decision"}, Invalidated: []string{"panorama_snapshot_path", "problem_approval_decision"},
+			ConditionResults: []ConditionResult{{
+				ConditionID: "background_changed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`)},
+			}},
+			Summary: "background changed", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
+				Accepted: []string{"technical_feedback_scope"}, Invalidated: []string{"technical_feedback_scope"},
 			},
 		})},
 	}

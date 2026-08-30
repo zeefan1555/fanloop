@@ -7,55 +7,34 @@ import (
 	"testing"
 )
 
-func TestAgentApprovalsAdvanceTechnicalSolutionWorkflow(t *testing.T) {
+func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Technical solution approvals"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Human approval required"), "flow.init")
 
 	for _, report := range []struct {
 		step       string
 		conditions []string
 		next       string
-		evidence   string
 	}{
-		{step: "frame_technical_problem", conditions: []string{conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`)}, next: "confirm_technical_problem"},
-		{step: "confirm_technical_problem", conditions: []string{conditionResult("agent_approved", "enum_value", `"approved"`)}, next: "derive_technical_solution", evidence: `{"source":"ai","content":"reviewed .technical-solution/problem.md: no blockers","ref":"agent-problem-approval"}`},
-		{step: "derive_technical_solution", conditions: []string{conditionResult("technical_solution_derived", "path", `".technical-solution/proposal.md"`)}, next: "confirm_solution_direction"},
-		{step: "confirm_solution_direction", conditions: []string{conditionResult("agent_approved", "enum_value", `"approved"`)}, next: "write_technical_solution", evidence: `{"source":"ai","content":"reviewed problem.md and proposal.md: no blockers","ref":"agent-direction-approval"}`},
-		{step: "write_technical_solution", conditions: []string{
-			conditionResult("technical_solution_written", "path", `"technical-solution.md"`),
-			conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`),
-		}, next: "review_technical_solution"},
-		{step: "review_technical_solution", conditions: []string{
-			conditionResult("technical_solution_review_passed", "enum_value", `"passed"`),
-			conditionResult("technical_solution_review_written", "path", `".technical-solution/review.md"`),
-		}, next: "confirm_technical_solution"},
+		{step: "frame_requirement_background", conditions: []string{conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`)}, next: "analyze_core_problem"},
+		{step: "analyze_core_problem", conditions: []string{conditionResult("core_problem_defined", "path", `".technical-solution/sections/02-problem.md"`)}, next: "define_design_objectives"},
+		{step: "define_design_objectives", conditions: []string{conditionResult("design_objectives_defined", "path", `".technical-solution/sections/03-objectives.md"`)}, next: "confirm_technical_problem"},
 	} {
 		args := []string{"flow", "report", "result", "--root", root, "--step-id", report.step, "--next-step-id", report.next, "--summary", "accepted"}
 		for _, condition := range report.conditions {
 			args = append(args, "--condition-result", condition)
-		}
-		if report.evidence != "" {
-			args = append(args, "--evidence", report.evidence)
 		}
 		result := run(binary, args...)
 		assertSuccess(t, result, "flow.report.result")
 		assertFlowEffect(t, result.stdout, "advanced", report.next)
 	}
 
-	completed := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "confirm_technical_solution",
+	rejected := run(binary, "flow", "report", "result", "--root", root,
+		"--step-id", "confirm_technical_problem",
 		"--condition-result", conditionResult("agent_approved", "enum_value", `"approved"`),
-		"--evidence", `{"source":"ai","content":"reviewed problem.md, proposal.md, technical-solution.md, architecture.mmd, and review.md: no blockers","ref":"agent-solution-approval"}`,
-		"--terminal", "--summary", "technical solution approved")
-	assertSuccess(t, completed, "flow.report.result")
-	if !strings.Contains(completed.stdout, `"effect": "completed"`) || !strings.Contains(completed.stdout, `"status": "completed"`) {
-		t.Fatalf("completion response = %s", completed.stdout)
-	}
-	events := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "events.jsonl")))
-	for _, want := range []string{"agent-problem-approval", "agent-direction-approval", "agent-solution-approval"} {
-		if !strings.Contains(events, want) {
-			t.Fatalf("Flow Events do not contain %q:\n%s", want, events)
-		}
+		"--next-step-id", "research_solution_options", "--summary", "agent tried to approve")
+	if rejected.exitCode == 0 || !strings.Contains(rejected.stderr, "agent_approved") {
+		t.Fatalf("retired Agent approval was accepted:\nstdout: %s\nstderr: %s", rejected.stdout, rejected.stderr)
 	}
 }
 
