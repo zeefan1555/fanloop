@@ -353,7 +353,7 @@ func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
 	}
 }
 
-func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
+func TestWorkflowEntryOwnsProtocolAndFinalPanorama(t *testing.T) {
 	path, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +363,20 @@ func TestWorkflowEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	skill := string(content)
-	for _, value := range []string{"flow status", "routes.yaml", "flow init", "`current.prompt`", "`available_routes`"} {
+	for _, value := range []string{
+		"flow status",
+		"routes.yaml",
+		"flow init",
+		"`current.prompt`",
+		"`available_routes`",
+		"flow status --root <ABSOLUTE_REQUIREMENT_ROOT>",
+		"card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run",
+		"`data.content`",
+		"本轮最终普通回复必须完整展示同一份 Panorama",
+		"不展示 JSON envelope，不自行拼装、压缩或重排内容",
+		"任一命令失败即以真实错误阻塞并停止",
+		"不得手工 fallback、复用旧 render 或快照",
+	} {
 		if !strings.Contains(skill, value) {
 			t.Fatalf("fanloop-workflow Skill does not contain %q", value)
 		}

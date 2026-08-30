@@ -52,4 +52,17 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
 
 State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 
+## 最终普通回复
+
+每次准备结束一轮普通回复时，先紧邻执行：
+
+```bash
+fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
+```
+
+成功后保留响应的 `data.content`；过程中的 commentary 和工具输出仅作中间反馈，本轮最终普通回复必须完整展示同一份 Panorama。不展示 JSON envelope，不自行拼装、压缩或重排内容。
+
+任一命令失败即以真实错误阻塞并停止；不得手工 fallback、复用旧 render 或快照。
+
 对用户只说明当前 Stage/Job/Step、已接受结果及下一项真实依赖。
