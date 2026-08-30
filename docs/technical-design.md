@@ -45,11 +45,13 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-Human Step 的全景审核材料同样由五份 YAML 驱动。Route 用
-`panorama_card_published` 与批准、拒绝或反馈分类 Condition 组成 AND 组；绑定 Skill 负责生成、发送
-和回读，CLI 只接受本轮回执并验证 Route。Runtime 不调用 `botmux`，但继续维护本地 Card Projection、
-显式 Card 渲染以及 Trace provision/sync。完整决策见
-[ADR-0081](./adr/0081-publish-panorama-through-workflow-condition.md)。
+Human Step 的审核与 Panorama 同样由五份 YAML 驱动。Agent 独立批准 Route 使用
+`agent_approved`，不展示 Panorama；人工 Route 用 `panorama_card_published` 与批准、拒绝或反馈分类
+Condition 组成 AND 组。审批 Skill 组织审核材料，Panorama Skill 只按宿主原样展示 renderer 的紧凑
+投影并返回本次 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，
+但继续维护本地 Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
+[ADR-0086](./adr/0086-align-panorama-with-treeloop.md) 与
+[ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)。
 
 ## 当前配置实例
 
@@ -61,7 +63,8 @@ Human Step 的全景审核材料同样由五份 YAML 驱动。Route 用
 `technical-solution-approval`。
 
 问题定义变化回到第一步并失效全部下游 Output；方向变化回到方案推导；写作或审校问题只回到
-方案写作。Human Step 的全景回执和结论都是普通 Output/Event 事实，不创建第二套流程状态或审批状态。
+方案写作。人工路径的 Panorama 快照路径和审核结论都是普通 Output/Event 事实；Agent 独立批准同样
+使用普通 Condition，不创建第二套流程状态或审批状态。
 
 ## 当前持久化版本
 

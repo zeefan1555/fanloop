@@ -1,20 +1,95 @@
 ---
 name: fanloop-dev-panorama
-description: 在 fanloop-maintainer 的 panorama_card_published Condition 要求时生成并通过当前 Agent 通道展示自包含 Panorama，返回本次真实投递回执。
+description: 在 fanloop-maintainer 的 panorama_card_published Condition 要求时按当前 Agent 人设选择唯一通道，展示 renderer 生成的 Panorama 并返回本次精确 snapshot_path。
 ---
 
-# 展示 Fanloop Panorama
+# Fanloop Panorama 投递
 
-仅当最新 `flow status` 的 `current.conditions[]` 包含 `panorama_card_published` 时执行。
+本 Skill 只负责识别人设、选择唯一展示方式并满足 `panorama_card_published`。外层 Workflow
+决定何时执行 Condition。
 
-1. 读取最新 `flow status`，再运行 `fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown`；只使用成功响应的 `data.content` 和 `data.snapshot_path`。
-2. 以 `data.content` 为流程状态骨架，按当前 Human Step Prompt 读取有效 Outputs 指向的审核产物，把要求审核的正文、约束、验证与待决事项合并为一份无需聊天历史和外部链接也能理解的材料。不得把原始渲染结果或链接清单冒充完整审核材料。
-3. 通过当前 Agent 通道只展示一次该材料，不检测或切换宿主，不调用 Botmux、Aiden、AIME 或其他通道。
-4. 只接受当前通道真实返回的 `messageId` 或当前宿主提供的 Agent 交互 Event ID；两者都不可得时报告 blocked。不得复用前一 Step 或前一次进入本 Step 的回执。
-5. 展示和回读成功后返回：
+## 识别人设
 
-```json
-{"condition_id":"panorama_card_published","output":{"type":"string","value":"<REAL_RECEIPT_ID>"}}
+只依据系统或开发者上下文中已经声明的当前 Agent 人设选择：
+
+- Botmux Agent：`botmux`
+- AIME Agent：`aime`
+- Aiden Agent：`aiden`
+- 本地 Agent，包括 Codex、Claude Code 和 Trae：`local_agent`
+
+不得运行 shell 命令、读取环境变量、扫描配置或探测可执行文件来猜人设。人设不明确时报告
+blocked，不渲染、不发送。
+
+## 展示 Panorama
+
+仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_card_published`，且当前
+选择人工审核路径时执行；选择 `agent_approved` Route 时不得渲染或发送。每次进入一个新的
+Human Step 的人工路径只执行一次；同一 Step 内的 progress 和人工交互不重复展示。
+
+先读取最新 `flow status`，再只执行对应的一个分支。所有分支都必须执行一次非 dry-run render，只使用
+本次成功响应的精确 `data.snapshot_path`；不得扫描 `.fanloop/card` 猜最新文件。
+
+### `botmux`
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
+botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUND_SESSION_ID>
 ```
 
-`data.snapshot_path` 只作为本次渲染证据，不代替真实投递回执。产物读取、渲染、展示或回读失败时上报 blocked，不提交 Result，不跨通道 fallback。
+`BOUND_SESSION_ID` 只取 Requirement 的 `.fanloop/card/config.json` 中绑定的 `session_id`。
+
+### `local_agent`
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown
+```
+
+成功后保留响应的 `data.content`；过程中的 commentary 和工具输出仅作中间反馈，本轮最终普通回复必须完整展示同一份 Panorama。
+不展示 JSON envelope，不自行拼装内容。
+
+### `aime`
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
+```
+
+只使用本次成功响应的 `data.snapshot_path`，在 Requirement Root 下解析为绝对 `card_file`；不得扫描
+`.fanloop/card` 猜最新文件。使用 AIME 宿主提供的当前话题根消息 ID 发送：
+
+```bash
+lark-cli im +messages-reply \
+  --message-id <CURRENT_THREAD_ROOT_MESSAGE_ID> \
+  --msg-type interactive \
+  --content "$(cat -- "$card_file")" \
+  --reply-in-thread \
+  --as bot \
+  --format json
+```
+
+### `aiden`
+
+先运行一次非 dry-run `lark-json` render，并只使用本次返回的 `data.snapshot_path`
+在 Requirement Root 下解析出精确绝对 `card_file`。将快照原样
+暂存到唯一的 `/tmp` 目录，校验字节一致后发送，并在命令退出时清理：
+
+```bash
+tmp_dir="$(mktemp -d /tmp/fanloop-panorama.XXXXXX)" || exit 1
+tmp_card="$tmp_dir/card.json"
+trap 'unlink "$tmp_card" 2>/dev/null || true; rmdir "$tmp_dir" 2>/dev/null || true' EXIT
+cp -- "$card_file" "$tmp_card" || exit 1
+cmp -s -- "$card_file" "$tmp_card" || exit 1
+aiden-bot-cli send-card --card-file "$tmp_card"
+```
+
+不得重新渲染或修改 JSON。暂存、校验或发送任一步失败时，清理临时文件并停止。
+
+## 返回 ConditionResult
+
+只有当前分支已成功展示或发送后，才返回：
+
+```json
+{"condition_id":"panorama_card_published","output":{"type":"path","value":"<data.snapshot_path>"}}
+```
+
+`value` 必须是本次 render 原样返回的 Requirement Root 相对路径。渲染或发送失败、结果无法确认或宿主能力不可用时，
+上报 blocked，不提交 Result。不得跨模式 fallback、双发、扫描旧快照或在结果未知时自动重试。

@@ -97,6 +97,49 @@ if (!asset.sha256.startsWith("sha256:") || !asset.binary_sha256.startsWith("sha2
 	}
 }
 
+func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", "..", "skills"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, relative := range []string{
+		"fanloop-maintainer/fanloop-dev-panorama/SKILL.md",
+		"technical-solution-design/technical-solution-panorama/SKILL.md",
+	} {
+		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		delivery := string(content)
+		for _, value := range []string{
+			"选择 `agent_approved` Route 时不得渲染或发送",
+			"只依据系统或开发者上下文中已经声明的当前 Agent 人设",
+			"Botmux Agent：`botmux`",
+			"AIME Agent：`aime`",
+			"Aiden Agent：`aiden`",
+			"Codex、Claude Code 和 Trae：`local_agent`",
+			"--format markdown",
+			"--format lark-json",
+			"botmux send --card-file",
+			"lark-cli im +messages-reply",
+			"aiden-bot-cli send-card --card-file",
+			"本轮最终普通回复必须完整展示同一份 Panorama",
+			"不自行拼装内容",
+			`{"condition_id":"panorama_card_published","output":{"type":"path","value":"<data.snapshot_path>"}}`,
+			"不得跨模式 fallback、双发、扫描旧快照",
+		} {
+			if !strings.Contains(delivery, value) {
+				t.Fatalf("%s does not contain %q", relative, value)
+			}
+		}
+		for _, forbidden := range []string{"command -v", "BOTMUX_CHAT_ID:-", "BOTMUX_SESSION_ID:-", "<CURRENT_BOTMUX_SESSION_ID>"} {
+			if strings.Contains(delivery, forbidden) {
+				t.Fatalf("%s contains forbidden guidance %q", relative, forbidden)
+			}
+		}
+	}
+}
+
 func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
 	root := t.TempDir()
 	for _, relative := range []string{

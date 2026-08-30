@@ -74,14 +74,14 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 
 	loopResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{
-			{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"receipt-rejected"`)}},
+			{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/rejected.json"`)}},
 			{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}},
 		},
 		Summary: "technical problem rejected", Effect: ResultLooped,
 		Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first},
 		OutputChanges: OutputChanges{
-			Accepted:    []string{"panorama_card_receipt_id", "problem_approval_decision"},
-			Invalidated: []string{"panorama_card_receipt_id", "problem_approval_decision", "problem_definition_path"},
+			Accepted:    []string{"panorama_snapshot_path", "problem_approval_decision"},
+			Invalidated: []string{"panorama_snapshot_path", "problem_approval_decision", "problem_definition_path"},
 		},
 	}
 	current.CurrentStepID = &first
@@ -128,11 +128,11 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{
-				{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"receipt-rejected"`)}},
+				{ConditionID: "panorama_card_published", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/rejected.json"`)}},
 				{ConditionID: "technical_problem_rejected", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rejected"`)}},
 			},
 			Summary: "technical problem rejected", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
-				Accepted: []string{"panorama_card_receipt_id", "problem_approval_decision"}, Invalidated: []string{"panorama_card_receipt_id", "problem_approval_decision"},
+				Accepted: []string{"panorama_snapshot_path", "problem_approval_decision"}, Invalidated: []string{"panorama_snapshot_path", "problem_approval_decision"},
 			},
 		})},
 	}
