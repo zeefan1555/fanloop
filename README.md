@@ -27,6 +27,8 @@ Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。�
 `read:packages` 权限的 GitHub classic PAT，再安装匹配的 CLI、Workflow 与 Skills。执行
 `npm login` 后，`Password` 必须粘贴这个 PAT，不能使用 GitHub 密码或 npmjs token：
 
+每次变更进入 `main` 后，Release Workflow 自动发布下一个 patch 版本并提升 `latest`。
+
 ```bash
 npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
 NPM_CONFIG_REGISTRY=https://npm.pkg.github.com \
