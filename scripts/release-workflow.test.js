@@ -7,6 +7,8 @@ const workflow = fs.readFileSync(path.resolve(__dirname, "../.github/workflows/r
 
 it("publishes every main update without a separate manual trigger", () => {
   assert.match(workflow, /^on:\n  push:\n    branches:\n      - main$/m);
+  assert.match(workflow, /^concurrency:\n  group: fanloop-release\n  queue: max$/m);
   assert.doesNotMatch(workflow, /workflow_dispatch/);
   assert.doesNotMatch(workflow, /if: github\.ref/);
+  assert.doesNotMatch(workflow, /cancel-in-progress/);
 });

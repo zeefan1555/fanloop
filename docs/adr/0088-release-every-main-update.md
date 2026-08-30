@@ -11,7 +11,8 @@ amends: ADR-0082, ADR-0085
 候选包，完成精确版本冒烟后提升 `latest`，再对真实 `latest` 执行同一冒烟。
 
 删除 `workflow_dispatch` 和重复的 Job 级 `main` 判断，避免同一提交被自动与手工各发布一次。
-失败恢复直接使用 GitHub Actions 原生 Re-run；现有单实例 concurrency、旧 `latest` 恢复、
+使用 GitHub Actions 原生 `queue: max` 串行保留待发布任务，避免并发分配相同版本或连续 push
+替换较早的待发布任务；失败恢复直接使用 GitHub Actions 原生 Re-run。旧 `latest` 恢复、
 不可变版本、Manifest/Doctor/Workflow/Skill 配套校验与 `GITHUB_TOKEN` 权限边界均不改变。
 发布过程不向仓库推送生成文件或 Tag，因此不会递归触发新一轮发布。
 
