@@ -45,11 +45,15 @@ install/uninstall、自动回滚或兼容层。Q10=A：保留 local-test-report.
 acceptance-report.md；不创建实现或验收飞书文档。外部每日调度、Cloud Agent 和每 Feature 子 Agent
 不在本次范围。
 
-真实机器人黑盒的外层 Botmux 会话只负责固定 driver/target 身份与回执；Candidate 执行内层 Fanloop
-CLI 时必须清除 BOTMUX_CHAT_ID 与 BOTMUX_SESSION_ID。这样复用“无 Card Binding 就不 provision Trace”
-的现有 Runtime 边界，避免测试 Requirement 捕获外层话题并以用户身份创建或同步 Trace/CLI 文档。
-验收 Requirement 出现 Card Binding、Trace Integration 或对应 Trace Event 时按 governance_failed 处理，
-不得用功能路径已通过覆盖该失败。该隔离不改变 ADR-0035 的正常交互式 Card/Trace 行为。
+真实机器人黑盒保留外层 Botmux 会话，Candidate 执行内层 Fanloop CLI 时必须捕获本轮 Card Binding，
+自动创建并绑定 Trace 与 CLI 日志文档，再同步 Trace 文档、CLI 日志文档和 Registry。验收必须回读
+Card Binding、Trace Integration、`trace_document_bound`、`trace_sync_started`、成功的
+`trace_synced` 与三项远端 target；任一缺失都不得判通过。
+
+上述飞书文档和 Registry 子命令统一使用 lark-cli bot identity，不使用、探测或回退用户 token。
+bot identity 没有用户 open ID，因此 Registry upsert 不写“负责人”：已有行保留原值，新行不伪造
+人类负责人；其余 Registry 字段、Card、Trace、CLI 日志和远端 Event 能力全部保留。bot scope 不足是
+infra_blocked，不得以用户身份绕过。
 
 ADR-0076 的 Test Seam / Tracer Bullet 规则继续成立。Pstack Create 的 repo interview 与
 Launch/Doctor/Drive/Evidence/Cleanup，以及 Maintain 的 feature-unit source + live、只修验证资产、
@@ -63,11 +67,16 @@ clean/changed/blocked，被吸收到现有 Feature Map 与两个新 Skill；不�
 的 Botmux MR 人工审核、不得自动合并或发布，以及 ADR-0072 的同一 Botmux Session 复用唯一
 Requirement Root 契约保持不变。ADR-0088 的 main 更新后发布保持不变。
 
-不修改 Thrift IDL、生成物、通用 Workflow loader/runtime、State/Event/Output Schema、公开 CLI
-Request/Response 或两个公开测试入口。五份生产 YAML 是全部新增推进语义的唯一真值。
+不修改 Thrift IDL、生成物、Workflow loader、State/Event/Output Schema、公开 CLI Request/Response
+或两个公开测试入口。Runtime 只在既有 larkexec 接缝把 Trace/Registry 外部调用固定为 bot identity；
+五份生产 YAML 仍是全部新增推进语义的唯一真值。
 
 人工审核记录：2026-08-30，用户先确认 Q8=B、Q10=A 和 Pstack 融合；随后收到 3/4/3 十步
 workflow、30→37 Conditions、9→12 Flow Routes、13→20 Loop Routes、35→43 Prompts、
 新增 SkillBinding、Human Step 无 Agent 代批及 e2e 影响说明后，明确回复
 “批准，然后现在端到端测试机器人也可用了”。机器人“可用”仅是环境事实，最终候选仍必须实时校验
 driver/target/chat/Release/网络/接单与可读回执。
+
+同日用户进一步明确：Card Binding、Trace Integration、Trace 文档同步和远端 Trace Event 都必须保留，
+只禁止使用用户身份；因此撤销“清除 Botmux 环境、没有 Trace 才通过”的验收解释，改为上述 bot-only
+完整投影契约。

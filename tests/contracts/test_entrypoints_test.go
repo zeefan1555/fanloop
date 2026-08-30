@@ -71,13 +71,13 @@ func TestMaintainerVerificationAssetsAreReleaseBound(t *testing.T) {
 			"FEATURE_MAP.md", "Source", "Live", "clean", "changed", "blocked", "acceptance-report.md",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"review-report.md", "npm run install:local", "fanloop version", "fanloop doctor", "ref/eval-playbook.md", "ref/lark-agent-e2e.md", "acceptance-report.md", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "governance_failed",
+			"review-report.md", "npm run install:local", "fanloop version", "fanloop doctor", "ref/eval-playbook.md", "ref/lark-agent-e2e.md", "acceptance-report.md", "Card Binding", "trace_synced", "governance_failed",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/eval-playbook.md": {
 			"Verification Case", "Rubric", "candidate_commit",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
-			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
+			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token", "lark-cli whoami --as bot", "trace_document_bound", "registry",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",

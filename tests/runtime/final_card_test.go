@@ -26,7 +26,7 @@ func TestFlowCommandsKeepTraceAndProjectionWithoutSendingPanorama(t *testing.T) 
 	const traceURL = "https://bytedance.larkoffice.com/docx/BootstrapPanoramaTrace"
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), `#!/bin/sh
 set -eu
-printf '%s\n' lark >> "$CALL_LOG"
+printf '%s\n' "$*" >> "$CALL_LOG"
 printf '%s\n' '{"ok":true,"data":{"document":{"url":"https://bytedance.larkoffice.com/docx/BootstrapPanoramaTrace"}}}'
 `)
 	writeExecutable(t, filepath.Join(fakeBin, "botmux"), `#!/bin/sh
@@ -46,7 +46,7 @@ set -eu
 	if !strings.Contains(status.stdout, `"document_url": "`+traceURL+`"`) {
 		t.Fatalf("flow init did not bind the provisioned Trace:\n%s", status.stdout)
 	}
-	if got := strings.TrimSpace(string(readFile(t, callLog))); got != "lark" {
+	if got := strings.TrimSpace(string(readFile(t, callLog))); !strings.HasPrefix(got, "docs +create --as bot ") || strings.Contains(got, "--as user") {
 		t.Fatalf("flow init external calls = %q, want Trace provisioning only", got)
 	}
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
@@ -78,7 +78,7 @@ func TestMaintainerFlowInitBindsTraceAndCLILogWithoutSendingPanorama(t *testing.
 	const logURL = "https://bytedance.larkoffice.com/docx/MaintainerPanoramaCLILog"
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), `#!/bin/sh
 set -eu
-printf '%s\n' lark >> "$CALL_LOG"
+printf '%s\n' "$*" >> "$CALL_LOG"
 if [ -f "$CREATE_COUNT" ]; then
   printf '%s\n' '{"ok":true,"data":{"document":{"url":"https://bytedance.larkoffice.com/docx/MaintainerPanoramaCLILog"}}}'
 else
@@ -105,7 +105,7 @@ set -eu
 			t.Fatalf("flow init did not bind %q:\n%s", want, status.stdout)
 		}
 	}
-	if got := strings.TrimSpace(string(readFile(t, callLog))); got != "lark\nlark" {
+	if got := strings.TrimSpace(string(readFile(t, callLog))); strings.Count(got, "docs +create --as bot ") != 2 || strings.Contains(got, "--as user") {
 		t.Fatalf("flow init external calls = %q, want two Trace document creates", got)
 	}
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {

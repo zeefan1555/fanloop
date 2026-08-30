@@ -18,14 +18,11 @@
 3. 从最终工作树执行 npm run install:local，再保存 fanloop version 和 fanloop doctor；版本中的 commit
    必须等于 candidate HEAD。
 4. 为本轮 Case 准备简报文件，写明固定 Case、全新 Requirement、只使用公开命令、证据字段和
-   “到 Human Step 停止”。简报必须要求 Candidate 对每条 Fanloop 命令使用以下精确前缀：
-
-   ~~~bash
-   env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID /Users/bytedance/.fanloop/current/bin/fanloop
-   ~~~
-
-   该前缀只阻止内层 CLI 捕获外层 Botmux 话题及隐式创建用户身份的 Trace/CLI 文档，不改变外层真实
-   driver/target 会话。不得要求机器人替人审批、合并或发布。
+   “到 Human Step 停止”。简报要求 Candidate 保留本轮 Botmux 环境并使用精确路径
+   `/Users/bytedance/.fanloop/current/bin/fanloop`，让新 Requirement 捕获 Card Binding 并完成 Trace
+   外部投影；不得要求机器人替人审批、合并或发布。
+5. 在 Candidate 的同一执行环境回读 `lark-cli whoami --as bot`，必须是 `identity=bot`、
+   `available=true`、`tokenStatus=ready`。bot 权限不足返回 infra_blocked，不得切换 `--as user`。
 
 ## Dispatch
 
@@ -49,8 +46,10 @@ botmux dispatch \
 2. 用同一 driver session 执行 botmux history --session-id <driver-session>，定位新根消息及 target 回复；
    对引用消息执行 botmux quoted <message-id> --session-id <driver-session>，不得用截图代替回执。
 3. 从 target 返回内容定位全新 Requirement Root；读取其 fanloop flow status、State、Events、Card 和
-   CLI 执行证据，确认绑定 Release/commit；同时确认 `.fanloop/card/config.json` 不存在、State 没有
-   Trace Integration，Events 没有 `trace_document_bound`、`trace_sync_started` 或 `trace_synced`。
-4. 到达 Human Step、明确失败或超出 Case 边界即停止。机器人不得提交人工 Condition。
-5. acceptance-report.md 至少保存：群、driver/target app ID、本轮双方视角 open ID、source session、
+   CLI 执行证据，确认绑定 Release/commit；同时确认 `.fanloop/card/config.json` 存在、State 包含
+   Trace 与 CLI 日志文档 Integration，Events 包含 `trace_document_bound`、`trace_sync_started` 和
+   outcome 成功的 `trace_synced`，三个 target 为 trace_document、cli_log_document、registry。
+4. 使用同一 bot identity 回读两份文档和 Registry 记录；缺失权限、资源或成功回执时不得回退用户身份。
+5. 到达 Human Step、明确失败或超出 Case 边界即停止。机器人不得提交人工 Condition。
+6. acceptance-report.md 至少保存：群、driver/target app ID、本轮双方视角 open ID、source session、
    根消息、thread、Requirement Root、candidate commit、命令/卡片/响应、停止原因、Rubric 与结论。

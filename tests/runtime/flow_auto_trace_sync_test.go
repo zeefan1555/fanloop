@@ -218,8 +218,8 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	if strings.Contains(log, "must_not_be_read") {
 		t.Fatalf("automatic sync still reads the removed Registry environment override:\n%s", log)
 	}
-	if !strings.Contains(log, "whoami --as user") || strings.Contains(log, "auth status") {
-		t.Fatalf("automatic sync must resolve the stable user identity through lark-cli whoami:\n%s", log)
+	if !strings.Contains(log, "whoami --as bot") || strings.Contains(log, "--as user") || strings.Contains(log, "auth status") {
+		t.Fatalf("automatic sync must use only the lark-cli bot identity:\n%s", log)
 	}
 	traceContent := string(readFile(t, traceContentPath))
 	for _, want := range []string{"# Workflow Trace", "问题定义/问题定义/需求背景 → 问题定义/问题定义/核心问题", "background_section_path"} {
@@ -312,6 +312,9 @@ func assertRegistryFields(t *testing.T, path, wantStatus, wantStageStep string) 
 	if got := fields["trace_key"]; got != "docx:AutoSyncTrace" {
 		t.Fatalf("Registry trace_key = %#v", got)
 	}
+	if _, ok := fields["负责人"]; ok {
+		t.Fatalf("bot-backed Registry sync must not invent a human owner: %#v", fields["负责人"])
+	}
 	stageAndAudit, _ := fields["阶段 / 子状态"].(string)
 	if stageAndAudit != wantStageStep && !strings.HasPrefix(stageAndAudit, wantStageStep+"\n") {
 		t.Fatalf("Registry 阶段 / 子状态 = %#v, want prefix %q", stageAndAudit, wantStageStep)
@@ -349,7 +352,7 @@ case "$1 $2" in
     printf '%s\n' '{"ok":true}'
     ;;
 	  "whoami --as")
-	    printf '%s\n' '{"identity":"user","available":true,"tokenStatus":"ready","onBehalfOf":{"openId":"ou_runtime"}}'
+	    printf '%s\n' '{"identity":"bot","available":true,"tokenStatus":"ready"}'
     ;;
   "base +record-list")
     if [ -f "$FAKE_RECORD_EXISTS" ]; then
