@@ -18,3 +18,10 @@
 2. `baseline` 与 `candidate` 必须复用相同输入、前置条件和观察项；只允许 commit、Release 和实际结果变化。
 3. 先保存退出码、stdout/stderr 与状态/文件差异，再解释原因；“测试通过”不是单独证据。
 4. Skill、Prompt 或用户可观察 Agent 行为变化还要执行真实机器人 E2E；纯说明文档可记录 `N/A` 和理由。
+
+## 维护契约
+
+Agent 验收前由 fanloop-dev-maintain-verification 逐行串行执行 source + live 检查；每行都必须核对公开
+表面、稳定 Seam、近期变化和最小真实验证，并在 cleanup 后保留证据。只允许修正本 Map、验证 Skill
+及其自有 harness；产品行为与仍正确的 Map 不一致时报告 product gap，不改文档掩盖。结果只能是
+clean、changed 或 blocked，只有 clean 才继续候选安装与真实机器人验收。

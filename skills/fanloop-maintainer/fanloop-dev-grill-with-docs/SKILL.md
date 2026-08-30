@@ -18,7 +18,19 @@ frontier，后者挑战含混领域词并整理 CONTEXT/ADR 候选。Workflow �
 验证计划必须列出拟确认的公开 Test Seams。每个 Seam 写明公开入口、覆盖行为、基线失败信号、
 选择理由、不覆盖项和 TDD 适用性；优先复用能覆盖需求的最高层现有 Seam，数量尽可能少。
 没有可靠 Seam 或独立预期时明确写 `TDD: not applicable`，不得为满足流程制造测试。Test Seams 随完整改造
-计划进入现有 `confirm_requirements` 门禁，不增加第二个人工审批 Step。
+计划进入现有 `confirm_requirements` 门禁。
+
+在选择 Seam 前按 Pstack Create 契约完成一次 repo interview，并写入 requirements.md：
+
+- Surface：用户实际操作的公开表面。
+- Run：如何启动或准备最小隔离 Requirement。
+- Drive：公开命令和允许的 dry-run/read-only 操作。
+- Observe：退出码、stdout/stderr、State/Event/Card/文件证据。
+- Isolate：临时 Root、外部写入边界与 cleanup。
+
+验证资产必须覆盖 Launch / Doctor / Drive / Evidence / Cleanup。首次新增或重建验证资产时，把“至少
+真实跑通一个 FEATURE_MAP.md 映射 Feature，且 cleanup 后证据仍存在”写入验收条件；不得只证明文件
+或 Prompt 关键词存在。
 
 ## Baseline Verification Case
 

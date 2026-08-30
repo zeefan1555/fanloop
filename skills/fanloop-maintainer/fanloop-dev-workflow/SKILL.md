@@ -89,9 +89,9 @@ Skill、CLI 或 init 任一不可用或失败时，原样报告阻塞并停止�
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、
    不触发远端投影。
 
-## 开发授权门禁
+## 两个人工门禁
 
-`confirm_requirements` 是进入需求实现前的唯一 Human Step，同时提供 Agent 与人工两条批准路径。
+confirm_requirements 是进入需求实现前的授权 Human Step，同时提供 Agent 与人工两条批准路径。
 
 Agent 路径先独立复核最新 `requirements.md`。只有所有决策明确、Open Questions 为空、完整改造
 计划与验证边界自洽且不存在需要人决定的阻塞项时，才同时上报 `agent_approved` 与
@@ -118,12 +118,22 @@ turn boundary 之后到达，才继续检查正文。不能只校验显示名，
 审核卡 messageId、Panorama 快照路径、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入
 `requirements.md`，再将 `requirements_evidence_written=requirements.md` 与其他成功 Conditions 一起上报。
 有效 Agent 或人工批准 Result 被 CLI 接受且最新 Status 已进入需求实现前，不得修改源码、提交、推送、创建或更新 MR。
+该批准不替代后续 confirm_human_acceptance。
+
+confirm_human_acceptance 是 Agent 验收通过后的独立 Human Step，不提供 agent_approved Route。先展示
+acceptance-report.md 的 reviewed HEAD、当前本地 Release、1–3 个真实场景和本轮 Panorama；只接收
+fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下 senderType=user、
+senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95 的张菲帆在该展示之后发送的全新消息。正文去除首尾
+空白后精确等于“验收通过”或“跳过人类端到端验收”才可向前；明确需求/实现反馈分别回流。机器人、
+当前 Agent、错误 sender、旧消息或含糊回复不能形成结论。候选漂移只能回 implement_code；通过或
+跳过才进入 handoff_merge_request。
 
 ## 维护者协作边界
 
-需求确认后自动推进。最终 MR 交接前只与张菲帆交互，不通知其他机器人。最终 MR 交接 Step 按当前
-Release-bound Skill 在固定审核群创建话题，真实 @ 张菲帆进行人工审核，并在同一卡片末行 cc
-苏文钦、吴瑜明。
+需求确认后自动推进。execute_agent_acceptance 只允许“使用 Fanloop 机器人”在已批准测试群驱动
+“FanLoop 机器人”执行黑盒 Case；不得通知其他机器人或使用用户身份。confirm_human_acceptance 只与
+固定审批人张菲帆交互。最终 MR 交接 Step 按当前 Release-bound Skill 在固定审核群创建话题，真实
+@ 张菲帆进行人工审核，并在同一卡片末行 cc 苏文钦、吴瑜明。
 
 不自动合并或发布；最终决定由张菲帆完成。
 

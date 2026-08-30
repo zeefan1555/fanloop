@@ -15,7 +15,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 当前发布两套 Bundle：
 
 - `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
-- `fanloop-maintainer`：Fanloop 自迭代的八步维护流程。
+- `fanloop-maintainer`：Fanloop 自迭代的十步维护流程；本地验证、审查、Agent 验收、人类验收与 MR 交接职责分离。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
 Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建拒绝缺失同名 Skill
@@ -45,8 +45,9 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer` 可用
-`agent_approved` 独立批准；`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
+Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_requirements` 可用
+`agent_approved` 独立批准；新增的 `confirm_human_acceptance` 没有 Agent 代批 Route，必须记录固定人工
+审批人的全新结论。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
 文档 URL、`panorama_card_published` 与人的明确结论。审批 Skill 组织审核材料并按最早受影响层分类，
 Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
@@ -65,6 +66,12 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 问题定义、方案设计和完整方案分别经过强制人工审核，并输出稳定飞书文档 URL。反馈按背景、问题、
 目标、调研、总体方案、难点、收益、落地或呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
+
+`fanloop-maintainer` 使用 3/4/3 的十步拓扑：需求定义为工作区准备、需求澄清、需求确认；需求实现为
+方案设计、代码实现、本地验证、代码审查；变更交付为 Agent 自动化验收、人类端到端验收、MR 交接。
+本地验证与审查分别写 `local-test-report.md` 和 `review-report.md`；Agent 验收逐 Feature 维护根
+`FEATURE_MAP.md`、安装同一 reviewed HEAD 并执行真实机器人黑盒，唯一新增的 `acceptance-report.md`
+继续记录人工结论和 MR 交接。MR 仍只交给人审核和合并。
 
 ## 当前持久化版本
 

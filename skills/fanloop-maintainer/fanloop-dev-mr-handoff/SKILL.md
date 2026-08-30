@@ -5,8 +5,9 @@ description: 在本地验证和代码审查通过后，幂等 push Fanloop CLI �
 
 # MR Handoff
 
-只在本地验证报告与代码审查报告都覆盖当前 HEAD、工作树无未提交产品变更时执行。不得查询或
-等待远端 checks，不 approve、merge 或发布。
+只在固定人工审批人已明确通过或跳过，且 local-test-report.md、review-report.md、
+acceptance-report.md 都覆盖当前 HEAD、工作树无未提交产品变更时执行。任一事实漂移都回
+implement_code，不得查询或等待远端 checks，不 approve、merge 或发布。
 
 ## 幂等创建或更新 GitHub PR
 
@@ -69,6 +70,10 @@ botmux send --top-level --chat-id oc_9f25fc928e2e5a6a602e58fa80b4750a \
 
 ## 完成记录与重试
 
+handoff.json、MR 和 Botmux 回执成功后，把 MR URL、source/base、reviewed HEAD、人工结论、
+messageId 与 sessionId 更新到同一 acceptance-report.md 并回读。失败也先把真实失败与已完成动作
+写入该报告，供原地幂等重试。
+
 发送前读取 Issue Workspace 的 `handoff.json`。若它已经是 `phase=complete`，且记录的是相同 MR URL 与 reviewed HEAD，
 直接复用，不重复发送。其他旧格式或不完整记录不做兼容迁移；停止并
 报告，避免猜测或覆盖历史事实。
@@ -87,6 +92,7 @@ botmux send --top-level --chat-id oc_9f25fc928e2e5a6a602e58fa80b4750a \
 }
 ```
 
-只有 MR 存在、Botmux 发送成功且 `handoff.json` 回读与本次 MR URL、reviewed HEAD 和回执一致时，才上报
-`merge_request_created`、`merge_request_handed_off`、`handoff_record_written`。失败时上报
-`merge_request_handoff_failed`；先回读 MR 和本地记录，只重试未完成动作，不重复创建 MR。
+只有 MR、Botmux 回执、handoff.json 与已更新的 acceptance-report.md 都回读一致时，才上报
+merge_request_created、merge_request_handed_off、handoff_record_written 与 acceptance_report_written。
+失败时先更新 acceptance-report.md，再上报 merge_request_handoff_failed 与
+acceptance_report_written；回读 MR 和本地记录后只重试未完成动作，不重复创建 MR。

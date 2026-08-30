@@ -58,6 +58,9 @@ conditions:
   technical_solution_document_published:
     prompt_ref: {file: prompt.yaml, prompt_id: technical_solution_document_published_condition}
     output: {key: technical_design_document_url, type: url, description: 技术方案文档}
+  technical_solution_changes_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: technical_solution_change_condition}
+    output: {key: technical_solution_status, type: enum_value, values: [changes_requested]}
 
   implementation_completed:
     prompt_ref: {file: prompt.yaml, prompt_id: implementation_condition}
@@ -96,6 +99,30 @@ conditions:
   review_report_written:
     prompt_ref: {file: prompt.yaml, prompt_id: review_report_condition}
     output: {key: review_report_path, type: path}
+
+  agent_acceptance_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: agent_acceptance_condition}
+    output: {key: agent_acceptance_result, type: enum_value, values: [passed]}
+    exclusive_group: agent_acceptance_outcome
+  agent_acceptance_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: agent_acceptance_condition}
+    output: {key: agent_acceptance_result, type: enum_value, values: [failed]}
+    exclusive_group: agent_acceptance_outcome
+  acceptance_report_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: acceptance_report_condition}
+    output: {key: acceptance_report_path, type: path}
+
+  human_acceptance_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_condition}
+    output: {key: human_acceptance_result, type: enum_value, values: [passed]}
+    exclusive_group: human_acceptance_outcome
+  human_acceptance_skipped:
+    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_condition}
+    output: {key: human_acceptance_result, type: enum_value, values: [skipped]}
+    exclusive_group: human_acceptance_outcome
+  human_acceptance_result_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_result_condition}
+    output: {key: human_acceptance_message_id, type: string}
 
   merge_request_created:
     prompt_ref: {file: prompt.yaml, prompt_id: merge_request_condition}

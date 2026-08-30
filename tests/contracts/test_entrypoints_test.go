@@ -65,16 +65,25 @@ func TestMaintainerVerificationAssetsAreReleaseBound(t *testing.T) {
 			"FEATURE_MAP.md", "baseline",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
-			"FEATURE_MAP.md", "ref/eval-playbook.md", "ref/lark-agent-e2e.md", "baseline", "candidate", "npm run install:local",
+			"FEATURE_MAP.md", "baseline", "candidate", "./tests/run-unit", "./tests/run-e2e", "local-test-report.md",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-verify/ref/eval-playbook.md": {
+		"skills/fanloop-maintainer/fanloop-dev-maintain-verification/SKILL.md": {
+			"FEATURE_MAP.md", "Source", "Live", "clean", "changed", "blocked", "acceptance-report.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
+			"review-report.md", "npm run install:local", "fanloop version", "fanloop doctor", "ref/eval-playbook.md", "ref/lark-agent-e2e.md", "acceptance-report.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/eval-playbook.md": {
 			"Verification Case", "Rubric", "candidate_commit",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-verify/ref/lark-agent-e2e.md": {
+		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
 			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
-			"Agent Eval", "reviewed HEAD",
+			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-mr-handoff/SKILL.md": {
+			"acceptance-report.md", "人工", "acceptance_report_written",
 		},
 	}
 	for relative, snippets := range contracts {
@@ -87,6 +96,15 @@ func TestMaintainerVerificationAssetsAreReleaseBound(t *testing.T) {
 			if !strings.Contains(string(content), snippet) {
 				t.Errorf("%s is missing %q", relative, snippet)
 			}
+		}
+	}
+	verify, err := os.ReadFile(filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-verify", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"botmux dispatch", "ref/eval-playbook.md", "npm run install:local"} {
+		if strings.Contains(string(verify), forbidden) {
+			t.Errorf("fanloop-dev-verify still owns Agent acceptance detail %q", forbidden)
 		}
 	}
 }

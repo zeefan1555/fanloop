@@ -21,6 +21,7 @@ stages:
           - {id: design_technical_solution, name: 方案设计, executor: agent}
           - {id: implement_code, name: 代码实现, executor: agent}
           - {id: execute_test_cases, name: 本地验证, executor: agent}
+          - {id: review_code, name: 代码审查, executor: agent}
 
   - id: delivery
     name: 变更交付
@@ -28,5 +29,6 @@ stages:
       - id: delivery
         name: 变更交付
         steps:
-          - {id: review_code, name: 代码审查, executor: agent}
+          - {id: execute_agent_acceptance, name: Agent 自动化验收, executor: agent}
+          - {id: confirm_human_acceptance, name: 人类端到端验收, executor: human}
           - {id: handoff_merge_request, name: MR 交接, executor: agent}
