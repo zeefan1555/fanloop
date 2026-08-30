@@ -58,11 +58,11 @@ set -eu
 	}
 
 	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root,
-		"--step-id", "frame_technical_problem", "--status", "in_progress", "--summary", "framing"), "flow.report.progress")
+		"--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "framing"), "flow.report.progress")
 	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_technical_problem",
-		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
-		"--next-step-id", "confirm_technical_problem", "--summary", "problem framed"), "flow.report.result")
+		"--step-id", "frame_requirement_background",
+		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`),
+		"--next-step-id", "analyze_core_problem", "--summary", "background framed"), "flow.report.result")
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
 		t.Fatalf("flow report unexpectedly invoked botmux: %v", err)
 	}
@@ -205,17 +205,17 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 
 	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	projection := readFile(t, projectionPath)
-	if !bytes.Contains(projection, []byte(`"current_step_id": "frame_technical_problem"`)) {
+	if !bytes.Contains(projection, []byte(`"current_step_id": "frame_requirement_background"`)) {
 		t.Fatalf("initial Card projection does not contain the current Step:\n%s", projection)
 	}
 
 	reported := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_technical_problem",
-		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
-		"--next-step-id", "confirm_technical_problem", "--summary", "technical problem defined")
+		"--step-id", "frame_requirement_background",
+		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`),
+		"--next-step-id", "analyze_core_problem", "--summary", "background defined")
 	assertSuccess(t, reported, "flow.report.result")
 	projection = readFile(t, projectionPath)
-	for _, want := range []string{`"current_step_id": "confirm_technical_problem"`, `"problem_definition_path"`} {
+	for _, want := range []string{`"current_step_id": "analyze_core_problem"`, `"background_section_path"`} {
 		if !bytes.Contains(projection, []byte(want)) {
 			t.Fatalf("updated Card projection does not contain %s:\n%s", want, projection)
 		}
@@ -257,7 +257,7 @@ func TestCardRenderDoesNotFallBackToNonURLOutputs(t *testing.T) {
 	rendered := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
 	assertSuccess(t, rendered, "card.render")
 	outputs := outputColumnContents(t, decodeCard(t, rendered.stdout).Data.Content)
-	if strings.Contains(outputs, "problem_definition_path") {
+	if strings.Contains(outputs, "background_section_path") {
 		t.Fatalf("non-URL Condition Output must not be rendered as a stage output:\n%s", outputs)
 	}
 	if !strings.Contains(outputs, "暂未生成") {
@@ -300,7 +300,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 	}
 	if value.Schema != "2.0" || value.Header.Template != "default" ||
 		value.Header.Title.Content != "后端研发交付 · Driver layout" ||
-		value.Header.Subtitle.Content != "问题定义 · 技术问题定义" || len(value.Header.TextTagList) != 2 {
+		value.Header.Subtitle.Content != "问题定义 · 需求背景" || len(value.Header.TextTagList) != 2 {
 		t.Fatalf("Driver header contract was lost: %s", content)
 	}
 	if len(value.Body.Elements) != 5 {
@@ -322,7 +322,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 			t.Fatalf("Output heading = %q", element.Content)
 		}
 	}
-	for _, want := range []string{"状态全景", "技术问题定义", "技术方案写作", "当前执行证据", "当前进行中"} {
+	for _, want := range []string{"状态全景", "需求背景", "总体方案", "方案终审", "当前执行证据", "当前进行中"} {
 		if !bytes.Contains(content, []byte(want)) {
 			t.Fatalf("Driver panorama does not contain %q: %s", want, content)
 		}

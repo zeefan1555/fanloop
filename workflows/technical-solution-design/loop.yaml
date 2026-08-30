@@ -1,55 +1,220 @@
 schema_version: 4
 
 loop:
-  frame_technical_problem:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_rework_requested]]}
-      back_step_id: frame_technical_problem
+  frame_requirement_background:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+
+  analyze_core_problem:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+
+  define_design_objectives:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
 
   confirm_technical_problem:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[panorama_card_published, technical_problem_rejected]]}
-      back_step_id: frame_technical_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_document_published, panorama_card_published, background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_document_published, panorama_card_published, problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_document_published, panorama_card_published, objectives_changed]]}
+      back_step_id: define_design_objectives
 
-  derive_technical_solution:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_changed]]}
-      back_step_id: frame_technical_problem
+  research_solution_options:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[objectives_changed]]}
+      back_step_id: define_design_objectives
+
+  design_overall_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+
+  design_key_solutions:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
 
   confirm_solution_direction:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[panorama_card_published, technical_problem_changed]]}
-      back_step_id: frame_technical_problem
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
-      when: {any_of: [[panorama_card_published, solution_direction_rejected]]}
-      back_step_id: derive_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[solution_document_published, panorama_card_published, background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[solution_document_published, panorama_card_published, problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[solution_document_published, panorama_card_published, objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[solution_document_published, panorama_card_published, research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[solution_document_published, panorama_card_published, overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[solution_document_published, panorama_card_published, key_solutions_changed]]}
+      back_step_id: design_key_solutions
+
+  evaluate_solution_benefits:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_solutions_changed]]}
+      back_step_id: design_key_solutions
+
+  plan_solution_delivery:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_solutions_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[benefits_changed]]}
+      back_step_id: evaluate_solution_benefits
 
   write_technical_solution:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_changed]]}
-      back_step_id: frame_technical_problem
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
-      when: {any_of: [[solution_direction_changed]]}
-      back_step_id: derive_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_solutions_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[benefits_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[delivery_changed]]}
+      back_step_id: plan_solution_delivery
 
   review_technical_solution:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[technical_problem_changed]]}
-      back_step_id: frame_technical_problem
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
-      when: {any_of: [[solution_direction_changed]]}
-      back_step_id: derive_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_writing}
-      when: {any_of: [[technical_solution_review_failed, technical_solution_review_written]]}
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, key_solutions_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, benefits_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, delivery_changed]]}
+      back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, presentation_changed]]}
       back_step_id: write_technical_solution
 
   confirm_technical_solution:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_problem_definition}
-      when: {any_of: [[panorama_card_published, technical_problem_changed]]}
-      back_step_id: frame_technical_problem
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_derivation}
-      when: {any_of: [[panorama_card_published, solution_direction_changed]]}
-      back_step_id: derive_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_solution_writing}
-      when: {any_of: [[panorama_card_published, technical_solution_rejected]]}
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, problem_changed]]}
+      back_step_id: analyze_core_problem
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, objectives_changed]]}
+      back_step_id: define_design_objectives
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, key_solutions_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, benefits_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, delivery_changed]]}
+      back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, presentation_changed]]}
       back_step_id: write_technical_solution

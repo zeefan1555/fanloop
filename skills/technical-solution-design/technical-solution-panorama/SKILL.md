@@ -1,12 +1,12 @@
 ---
 name: technical-solution-panorama
-description: 在 technical-solution-design 的 panorama_card_published Condition 要求时按当前 Agent 人设选择唯一通道，展示 renderer 生成的 Panorama 并返回本次精确 snapshot_path。
+description: 在 technical-solution-design 的每个 Human Step 展示 renderer 生成的最新 Panorama，并返回本次精确 snapshot_path。
 ---
 
 # 技术方案 Panorama 投递
 
-本 Skill 只负责识别人设、选择唯一展示方式并满足 `panorama_card_published`。外层 Workflow
-决定何时执行 Condition。
+本 Skill 只负责识别人设、选择唯一展示方式并满足 `panorama_card_published`。三个 Human Step 都是
+强制人工门禁；外层 Workflow 决定何时执行 Condition。
 
 ## 识别人设
 
@@ -22,12 +22,12 @@ blocked，不渲染、不发送。
 
 ## 展示 Panorama
 
-仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_card_published`，且当前
-选择人工审核路径时执行；选择 `agent_approved` Route 时不得渲染或发送。每次进入一个新的
-Human Step 的人工路径只执行一次；同一 Step 内的 progress 和人工交互不重复展示。
+仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_card_published` 时执行。
+每次进入一个新的 Human Step 只执行一次；同一 Step 内的 progress 和人工交互不重复展示。不得
+复用前一 Step 或前一次进入本 Step 的快照。
 
-先读取最新 `flow status`，再只执行对应的一个分支。所有分支都必须执行一次非 dry-run render，只使用
-本次成功响应的精确 `data.snapshot_path`；不得扫描 `.fanloop/card` 猜最新文件。
+先读取最新 `flow status`，再只执行对应的一个分支。所有分支都必须执行一次非 dry-run render，
+只使用本次成功响应的精确 `data.snapshot_path`；不得扫描 `.fanloop/card` 猜最新文件。
 
 ### `botmux`
 
@@ -53,8 +53,8 @@ fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format 
 fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
 ```
 
-只使用本次成功响应的 `data.snapshot_path`，在 Requirement Root 下解析为绝对 `card_file`；不得扫描
-`.fanloop/card` 猜最新文件。使用 AIME 宿主提供的当前话题根消息 ID 发送：
+只使用本次成功响应的 `data.snapshot_path`，在 Requirement Root 下解析为绝对 `card_file`。使用
+AIME 宿主提供的当前话题根消息 ID 发送：
 
 ```bash
 lark-cli im +messages-reply \
@@ -68,9 +68,9 @@ lark-cli im +messages-reply \
 
 ### `aiden`
 
-先运行一次非 dry-run `lark-json` render，并只使用本次返回的 `data.snapshot_path`
-在 Requirement Root 下解析出精确绝对 `card_file`。将快照原样
-暂存到唯一的 `/tmp` 目录，校验字节一致后发送，并在命令退出时清理：
+先运行一次非 dry-run `lark-json` render，并只使用本次返回的 `data.snapshot_path` 在 Requirement
+Root 下解析出精确绝对 `card_file`。将快照原样暂存到唯一的 `/tmp` 目录，校验字节一致后发送，
+并在命令退出时清理：
 
 ```bash
 tmp_dir="$(mktemp -d /tmp/fanloop-panorama.XXXXXX)" || exit 1
@@ -91,5 +91,6 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 {"condition_id":"panorama_card_published","output":{"type":"path","value":"<data.snapshot_path>"}}
 ```
 
-`value` 必须是本次 render 原样返回的 Requirement Root 相对路径。渲染或发送失败、结果无法确认或宿主能力不可用时，
-上报 blocked，不提交 Result。不得跨模式 fallback、双发、扫描旧快照或在结果未知时自动重试。
+`value` 必须是本次 render 原样返回的 Requirement Root 相对路径。渲染或发送失败、结果无法确认或
+宿主能力不可用时，上报 blocked，不提交 Result。不得跨模式 fallback、双发、扫描旧快照或在结果
+未知时自动重试。

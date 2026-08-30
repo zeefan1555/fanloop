@@ -42,7 +42,7 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 	if output := run("flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "E2E"); !strings.Contains(output, `"command": "flow.init"`) {
 		t.Fatalf("flow output = %s", output)
 	}
-	if output := run("flow", "report", "progress", "--step-id", "frame_technical_problem", "--status", "in_progress", "--summary", "working", "--root", root); !strings.Contains(output, `"effect": "status_updated"`) {
+	if output := run("flow", "report", "progress", "--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "working", "--root", root); !strings.Contains(output, `"effect": "status_updated"`) {
 		t.Fatalf("flow progress result = %s", output)
 	}
 	if output := run("trace", "render", "--root", root); !strings.Contains(output, `"event_count": 2`) {

@@ -1,32 +1,36 @@
 ---
 name: technical-direction-approval
-description: 对候选方案比较、关键取舍和总体架构方向执行 Agent 独立复核或人工确认。用于 technical-solution-design 的方案方向确认 Step。
+description: 将前六个方案片段与架构图发布为飞书方案设计文档，等待人工审核并按最早受影响层回流。用于 technical-solution-design 的方案审核 Step；不得代替人批准或修改片段。
 ---
 
-# 确认方案方向
+# 审核方案设计
 
-读取 `.technical-solution/problem.md` 和 `.technical-solution/proposal.md`，独立确认比较是否公平、推荐结论是否由事实推导、关键问题是否都有设计响应、风险是否透明。确认无阻塞项且无需人作出新决定时，直接上报 `agent_approved=approved`，Evidence 记录复核理由和文件路径，不发布 Panorama。
+读取 `01-background.md` 至 `06-key-solutions.md` 和 `.technical-solution/architecture.mmd`，组装为只含
+“需求背景、核心问题、设计目标、方案调研、总体方案、难点解法”六个正文标题的审核稿。不得出现
+`###` 或 `1.1` 编号，架构图必须嵌入“总体方案”且可独立理解。
 
-不能独立批准时，再提供自包含人工审核摘要：
+`<项目>` 取最新 `flow status` 中的 Requirement 标题。使用当前宿主的 `lark-doc` 能力按稳定标题 `<项目>｜方案设计` 精确查找：唯一命中更新、零命中创建、
+多命中阻塞；创建结果不确定时先重新查找。使用返回 URL 回读，确认正文非空、六个标题顺序正确、
+架构图存在且内容与本地片段一致。失败时报告 blocked，不返回成功 Condition。
 
-- 已批准问题、目标和硬约束；
-- 统一评价维度；
-- 候选方案及同维度优缺点；
-- 推荐方向、关键取舍和未决风险；
-- 总体架构与问题—设计映射；
-- 明确选择：批准方向，或拒绝并说明原因。
+向人展示已验证 URL、推荐方向、关键取舍、主要风险和最新 Panorama，然后等待本次进入该 Step 后
+的全新明确回复。收到修改意见时评估对整体的影响，只选最早受影响层：
 
-把上述内容组成一份自包含审核材料，通过当前 Agent 渠道展示。另按
-`panorama_card_published` 绑定 Skill 原样展示 renderer 生成的 Panorama，不把审核正文二次拼入
-Panorama。两者展示成功后才请求人的决定。
+| 最早变化 | Condition | 回流 Step |
+|---|---|---|
+| 需求背景 | `background_changed` | `frame_requirement_background` |
+| 核心问题 | `problem_changed` | `analyze_core_problem` |
+| 设计目标 | `objectives_changed` | `define_design_objectives` |
+| 评价维度、候选或对比事实 | `research_changed` | `research_solution_options` |
+| 核心选型、架构全景或关键链路 | `overall_solution_changed` | `design_overall_solution` |
+| 局部手段或异常保障 | `key_solutions_changed` | `design_key_solutions` |
 
-不得在本 Step 擅自增加方案决策或改写上游文件。
+回流前向人展示反馈原文、最早受影响层、保留内容、失效产物和回流 Step。多层变化只选最靠上的
+一层；不得把含糊表达推断为批准。
 
-进入人工路径后，仅在人的回复明确后报告一条结果：
+- 明确批准：同时上报 `solution_document_published=<已回读 URL>`、`panorama_card_published`、
+  `solution_direction_approved`；
+- 明确修改：同时上报同一文档 URL、`panorama_card_published` 和一项 feedback Condition；
+- 尚需讨论：继续等待。
 
-- 批准当前方向：同时上报 `panorama_card_published` 与 `solution_direction_approved`；
-- 问题不变但方向需重做：同时上报 `panorama_card_published` 与 `solution_direction_rejected`；
-- 反馈改变问题、目标、非目标或硬约束：同时上报 `panorama_card_published` 与 `technical_problem_changed`；
-- 含糊或尚需讨论：继续等待。
-
-人工路径的 `panorama_card_published` 输出本次 render 的精确 `panorama_snapshot_path`。Evidence 保存人的完整原始回复和被审核的两个文件路径。
+Evidence 保存人的完整原始回复、飞书 URL、六个片段与架构图路径以及影响分析。

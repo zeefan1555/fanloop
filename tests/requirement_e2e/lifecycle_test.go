@@ -166,27 +166,19 @@ type routeEvent struct {
 }
 
 var linearLoopConditions = map[string][][]string{
-	"frame_technical_problem":   {{"technical_problem_rework_requested"}},
-	"confirm_technical_problem": {{"panorama_card_published", "technical_problem_rejected"}},
-	"derive_technical_solution": {{"technical_problem_changed"}},
-	"confirm_solution_direction": {
-		{"panorama_card_published", "technical_problem_changed"},
-		{"panorama_card_published", "solution_direction_rejected"},
-	},
-	"write_technical_solution": {
-		{"technical_problem_changed"},
-		{"solution_direction_changed"},
-	},
-	"review_technical_solution": {
-		{"technical_problem_changed"},
-		{"solution_direction_changed"},
-		{"technical_solution_review_failed", "technical_solution_review_written"},
-	},
-	"confirm_technical_solution": {
-		{"panorama_card_published", "technical_problem_changed"},
-		{"panorama_card_published", "solution_direction_changed"},
-		{"panorama_card_published", "technical_solution_rejected"},
-	},
+	"frame_requirement_background": {{"background_changed"}},
+	"analyze_core_problem":         {{"background_changed"}},
+	"define_design_objectives":     {{"problem_changed"}},
+	"confirm_technical_problem":    {{"problem_document_published", "panorama_card_published", "objectives_changed"}},
+	"research_solution_options":    {{"objectives_changed"}},
+	"design_overall_solution":      {{"research_changed"}},
+	"design_key_solutions":         {{"overall_solution_changed"}},
+	"confirm_solution_direction":   {{"solution_document_published", "panorama_card_published", "key_solutions_changed"}},
+	"evaluate_solution_benefits":   {{"key_solutions_changed"}},
+	"plan_solution_delivery":       {{"benefits_changed"}},
+	"write_technical_solution":     {{"delivery_changed"}},
+	"review_technical_solution":    {{"technical_solution_review_written", "presentation_changed"}},
+	"confirm_technical_solution":   {{"technical_solution_document_published", "panorama_card_published", "presentation_changed"}},
 }
 
 var linearFlowConditions = map[string][][]string{}
@@ -402,7 +394,7 @@ func verifyFinalWorkflowDemo(t *testing.T, binary string, paths workflowDemoPath
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"100%", "流程已完成", "问题定义", "方案推导", "方案成文"} {
+	for _, want := range []string{"100%", "流程已完成", "问题定义", "方案设计", "方案成文"} {
 		if !bytes.Contains(latest, []byte(want)) {
 			t.Fatalf("final Card omitted %q", want)
 		}

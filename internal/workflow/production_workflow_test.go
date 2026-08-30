@@ -21,13 +21,19 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantSteps := []Step{
-		{ID: "frame_technical_problem", Name: "技术问题定义", Executor: StepExecutorAgent},
-		{ID: "confirm_technical_problem", Name: "问题人工确认", Executor: StepExecutorHuman},
-		{ID: "derive_technical_solution", Name: "技术方案推导", Executor: StepExecutorAgent},
-		{ID: "confirm_solution_direction", Name: "方案方向人工确认", Executor: StepExecutorHuman},
-		{ID: "write_technical_solution", Name: "技术方案写作", Executor: StepExecutorAgent},
-		{ID: "review_technical_solution", Name: "技术方案审校", Executor: StepExecutorAgent},
-		{ID: "confirm_technical_solution", Name: "技术方案人工确认", Executor: StepExecutorHuman},
+		{ID: "frame_requirement_background", Name: "需求背景", Executor: StepExecutorAgent},
+		{ID: "analyze_core_problem", Name: "核心问题", Executor: StepExecutorAgent},
+		{ID: "define_design_objectives", Name: "设计目标", Executor: StepExecutorAgent},
+		{ID: "confirm_technical_problem", Name: "问题审核", Executor: StepExecutorHuman},
+		{ID: "research_solution_options", Name: "方案调研", Executor: StepExecutorAgent},
+		{ID: "design_overall_solution", Name: "总体方案", Executor: StepExecutorAgent},
+		{ID: "design_key_solutions", Name: "难点解法", Executor: StepExecutorAgent},
+		{ID: "confirm_solution_direction", Name: "方案审核", Executor: StepExecutorHuman},
+		{ID: "evaluate_solution_benefits", Name: "方案收益", Executor: StepExecutorAgent},
+		{ID: "plan_solution_delivery", Name: "落地规划", Executor: StepExecutorAgent},
+		{ID: "write_technical_solution", Name: "方案成文", Executor: StepExecutorAgent},
+		{ID: "review_technical_solution", Name: "方案审校", Executor: StepExecutorAgent},
+		{ID: "confirm_technical_solution", Name: "方案终审", Executor: StepExecutorHuman},
 	}
 	wantIDs := make([]string, 0, len(wantSteps))
 	for _, want := range wantSteps {
@@ -41,13 +47,19 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		t.Fatalf("Steps = %v, want %v", got, wantIDs)
 	}
 	wantSkills := map[string]string{
-		"frame_technical_problem_flow":    "technical-problem-framing",
-		"confirm_technical_problem_flow":  "technical-problem-approval",
-		"derive_technical_solution_flow":  "technical-solution-derivation",
-		"confirm_solution_direction_flow": "technical-direction-approval",
-		"write_technical_solution_flow":   "technical-solution-writing",
-		"review_technical_solution_flow":  "technical-solution-review",
-		"confirm_technical_solution_flow": "technical-solution-approval",
+		"frame_requirement_background_flow": "technical-background-framing",
+		"analyze_core_problem_flow":         "technical-problem-analysis",
+		"define_design_objectives_flow":     "technical-objective-setting",
+		"confirm_technical_problem_flow":    "technical-problem-approval",
+		"research_solution_options_flow":    "technical-solution-research",
+		"design_overall_solution_flow":      "technical-overall-solution",
+		"design_key_solutions_flow":         "technical-key-solutions",
+		"confirm_solution_direction_flow":   "technical-direction-approval",
+		"evaluate_solution_benefits_flow":   "technical-solution-benefits",
+		"plan_solution_delivery_flow":       "technical-solution-delivery",
+		"write_technical_solution_flow":     "technical-solution-writing",
+		"review_technical_solution_flow":    "technical-solution-review",
+		"confirm_technical_solution_flow":   "technical-solution-approval",
 	}
 	for promptID, skillID := range wantSkills {
 		skilled := loaded.Workflow.Prompts[promptID].Skills
@@ -56,23 +68,64 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		}
 	}
 	assertConditionSkill(t, loaded, "panorama_card_published", "technical-solution-panorama")
-	assertAgentApprovalCondition(t, loaded)
-	assertWorkflowRoute(t, loaded, "frame_technical_problem", []string{"technical_problem_defined"}, "confirm_technical_problem", false)
-	assertWorkflowRouteAnyOf(t, loaded, "confirm_technical_problem", [][]string{{"panorama_card_published", "technical_problem_approved"}, {"agent_approved"}}, "derive_technical_solution", false)
-	assertWorkflowRoute(t, loaded, "derive_technical_solution", []string{"technical_solution_derived"}, "confirm_solution_direction", false)
-	assertWorkflowRouteAnyOf(t, loaded, "confirm_solution_direction", [][]string{{"panorama_card_published", "solution_direction_approved"}, {"agent_approved"}}, "write_technical_solution", false)
-	assertWorkflowRoute(t, loaded, "write_technical_solution", []string{"technical_solution_written", "architecture_diagram_written"}, "review_technical_solution", false)
+	if _, ok := loaded.Workflow.Condition("agent_approved"); ok {
+		t.Fatal("technical-solution-design must require human approval")
+	}
+	assertWorkflowRoute(t, loaded, "frame_requirement_background", []string{"background_defined"}, "analyze_core_problem", false)
+	assertWorkflowRoute(t, loaded, "analyze_core_problem", []string{"core_problem_defined"}, "define_design_objectives", false)
+	assertWorkflowRoute(t, loaded, "define_design_objectives", []string{"design_objectives_defined"}, "confirm_technical_problem", false)
+	assertWorkflowRoute(t, loaded, "confirm_technical_problem", []string{"problem_document_published", "panorama_card_published", "technical_problem_approved"}, "research_solution_options", false)
+	assertWorkflowRoute(t, loaded, "research_solution_options", []string{"solution_research_completed"}, "design_overall_solution", false)
+	assertWorkflowRoute(t, loaded, "design_overall_solution", []string{"overall_solution_designed", "architecture_diagram_written"}, "design_key_solutions", false)
+	assertWorkflowRoute(t, loaded, "design_key_solutions", []string{"key_solutions_designed"}, "confirm_solution_direction", false)
+	assertWorkflowRoute(t, loaded, "confirm_solution_direction", []string{"solution_document_published", "panorama_card_published", "solution_direction_approved"}, "evaluate_solution_benefits", false)
+	assertWorkflowRoute(t, loaded, "evaluate_solution_benefits", []string{"solution_benefits_defined"}, "plan_solution_delivery", false)
+	assertWorkflowRoute(t, loaded, "plan_solution_delivery", []string{"delivery_plan_defined"}, "write_technical_solution", false)
+	assertWorkflowRoute(t, loaded, "write_technical_solution", []string{"technical_solution_written"}, "review_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "review_technical_solution", []string{"technical_solution_review_passed", "technical_solution_review_written"}, "confirm_technical_solution", false)
-	assertWorkflowRouteAnyOf(t, loaded, "confirm_technical_solution", [][]string{{"panorama_card_published", "technical_solution_approved"}, {"agent_approved"}}, "", true)
-	assertWorkflowLoop(t, loaded, "frame_technical_problem", []string{"technical_problem_rework_requested"}, "frame_technical_problem")
-	assertWorkflowLoop(t, loaded, "confirm_technical_problem", []string{"panorama_card_published", "technical_problem_rejected"}, "frame_technical_problem")
-	assertWorkflowLoop(t, loaded, "derive_technical_solution", []string{"technical_problem_changed"}, "frame_technical_problem")
-	assertWorkflowLoop(t, loaded, "confirm_solution_direction", []string{"panorama_card_published", "solution_direction_rejected"}, "derive_technical_solution")
-	assertWorkflowLoop(t, loaded, "write_technical_solution", []string{"solution_direction_changed"}, "derive_technical_solution")
-	assertWorkflowLoop(t, loaded, "review_technical_solution", []string{"technical_solution_review_failed", "technical_solution_review_written"}, "write_technical_solution")
-	assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"panorama_card_published", "technical_solution_rejected"}, "write_technical_solution")
-	if got := len(loaded.Workflow.Conditions); got != 18 {
-		t.Fatalf("Condition count = %d, want 18", got)
+	assertWorkflowRoute(t, loaded, "confirm_technical_solution", []string{"technical_solution_document_published", "panorama_card_published", "technical_solution_approved"}, "", true)
+
+	feedback := []struct {
+		condition string
+		backStep  string
+	}{
+		{"background_changed", "frame_requirement_background"},
+		{"problem_changed", "analyze_core_problem"},
+		{"objectives_changed", "define_design_objectives"},
+		{"research_changed", "research_solution_options"},
+		{"overall_solution_changed", "design_overall_solution"},
+		{"key_solutions_changed", "design_key_solutions"},
+		{"benefits_changed", "evaluate_solution_benefits"},
+		{"delivery_changed", "plan_solution_delivery"},
+		{"presentation_changed", "write_technical_solution"},
+	}
+	for _, conditionID := range []string{
+		"background_defined", "core_problem_defined", "design_objectives_defined", "technical_problem_approved",
+		"solution_research_completed", "overall_solution_designed", "key_solutions_designed", "solution_direction_approved",
+		"solution_benefits_defined", "delivery_plan_defined", "technical_solution_written",
+		"technical_solution_review_passed", "technical_solution_approved",
+	} {
+		condition, _ := loaded.Workflow.Condition(conditionID)
+		if condition.ExclusiveGroup != "technical_decision_outcome" {
+			t.Fatalf("Condition %s exclusive_group = %q", conditionID, condition.ExclusiveGroup)
+		}
+	}
+	for _, item := range feedback[:3] {
+		assertWorkflowLoop(t, loaded, "confirm_technical_problem", []string{"problem_document_published", "panorama_card_published", item.condition}, item.backStep)
+	}
+	for _, item := range feedback[:6] {
+		assertWorkflowLoop(t, loaded, "confirm_solution_direction", []string{"solution_document_published", "panorama_card_published", item.condition}, item.backStep)
+	}
+	for _, item := range feedback {
+		condition, _ := loaded.Workflow.Condition(item.condition)
+		if condition.ExclusiveGroup != "technical_decision_outcome" {
+			t.Fatalf("Condition %s exclusive_group = %q", item.condition, condition.ExclusiveGroup)
+		}
+		assertWorkflowLoop(t, loaded, "review_technical_solution", []string{"technical_solution_review_written", item.condition}, item.backStep)
+		assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"technical_solution_document_published", "panorama_card_published", item.condition}, item.backStep)
+	}
+	if got := len(loaded.Workflow.Conditions); got != 28 {
+		t.Fatalf("Condition count = %d, want 28", got)
 	}
 }
 
