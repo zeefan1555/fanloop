@@ -8,9 +8,9 @@ prompts:
       - {id: technical-problem-framing, prompt: 使用该 Skill 完成事实调查、因果分析和技术问题定义，不进入方案设计。, optional: false}
   confirm_technical_problem_flow:
     prompt: |
-      Agent 先使用绑定 Skill 生成包含完整 Stage/Job/Step 全景、当前问题定义、有效产物和待决事项的自包含审核材料，通过当前 Agent 渠道发送并回读成功；记录本次全新回执。人只审核该材料。明确批准时同时上报 panorama_card_published 与 technical_problem_approved；拒绝或要求修改时同时上报 panorama_card_published 与 technical_problem_rejected 并回到问题定义。不得复用前一 Step 或前一次进入本 Step 的回执。Evidence 保存人的完整审核回复，不把沉默视为批准。
+      Agent 先使用绑定 Skill 独立复核当前问题定义；确认无阻塞项且无需人作出新决定时，直接上报 agent_approved 并在 Evidence 记录复核理由与产物引用，不发布 Panorama。不能独立批准时，生成包含完整 Stage/Job/Step 全景、当前问题定义、有效产物和待决事项的自包含审核材料，通过当前 Agent 渠道发送并回读成功；记录本次全新回执。人只审核该材料。明确批准时同时上报 panorama_card_published 与 technical_problem_approved；拒绝或要求修改时同时上报 panorama_card_published 与 technical_problem_rejected 并回到问题定义。不得复用前一 Step 或前一次进入本 Step 的回执。Evidence 保存人的完整审核回复，不把沉默视为批准。
     skills:
-      - {id: technical-problem-approval, prompt: 使用该 Skill 组织问题定义审核包、约束人工判定口径并记录完整结论。, optional: false}
+      - {id: technical-problem-approval, prompt: 使用该 Skill 独立复核问题定义；不能独立批准时组织人工审核包并记录完整结论。, optional: false}
   derive_technical_solution_flow:
     prompt: |
       只基于已批准的 .technical-solution/problem.md 建立选型维度，公平比较内部方案、行业方案和不改基线，推导核心模型、取舍、总体架构和问题到设计的映射，写入 .technical-solution/proposal.md。成功时上报 technical_solution_derived；发现问题定义语义变化时上报 technical_problem_changed。
@@ -18,9 +18,9 @@ prompts:
       - {id: technical-solution-derivation, prompt: 使用该 Skill 完成候选方案比较、核心模型选择、取舍和总体架构推导。, optional: false}
   confirm_solution_direction_flow:
     prompt: |
-      Agent 先使用绑定 Skill 生成包含完整 Stage/Job/Step 全景、已批准问题、方案推导、有效产物和待决事项的自包含审核材料，通过当前 Agent 渠道发送并回读成功；记录本次全新回执。人审核该材料。明确批准方向时同时上报 panorama_card_published 与 solution_direction_approved；方向不成立时同时上报 panorama_card_published 与 solution_direction_rejected 并回到方案推导；反馈改变已批准问题时同时上报 panorama_card_published 与 technical_problem_changed。不得复用前一 Step 或前一次进入本 Step 的回执。Evidence 保存人的完整审核回复。
+      Agent 先使用绑定 Skill 独立复核已批准问题与方案推导；确认无阻塞项且无需人作出新决定时，直接上报 agent_approved 并在 Evidence 记录复核理由与产物引用，不发布 Panorama。不能独立批准时，生成包含完整 Stage/Job/Step 全景、已批准问题、方案推导、有效产物和待决事项的自包含审核材料，通过当前 Agent 渠道发送并回读成功；记录本次全新回执。人审核该材料。明确批准方向时同时上报 panorama_card_published 与 solution_direction_approved；方向不成立时同时上报 panorama_card_published 与 solution_direction_rejected 并回到方案推导；反馈改变已批准问题时同时上报 panorama_card_published 与 technical_problem_changed。不得复用前一 Step 或前一次进入本 Step 的回执。Evidence 保存人的完整审核回复。
     skills:
-      - {id: technical-direction-approval, prompt: 使用该 Skill 组织方案方向审核包、区分问题变化与方向返工并记录人工结论。, optional: false}
+      - {id: technical-direction-approval, prompt: 使用该 Skill 独立复核方案方向；不能独立批准时组织人工审核包并分类回流。, optional: false}
   write_technical_solution_flow:
     prompt: |
       只基于已批准的问题定义和方案方向生成 technical-solution.md 与 .technical-solution/architecture.mmd；正文必须解释完整总体架构和关键模块，并覆盖容量、异常、安全、迁移、验证、价值、风险与开放项。成功写入并回读后同时上报 technical_solution_written 与 architecture_diagram_written；问题变化时上报 technical_problem_changed，方向变化时上报 solution_direction_changed。
@@ -33,9 +33,9 @@ prompts:
       - {id: technical-solution-review, prompt: 使用该 Skill 执行因果、取舍、架构完整性、量化证据和可读性审校，并对发现分层。, optional: false}
   confirm_technical_solution_flow:
     prompt: |
-      Agent 先使用绑定 Skill 生成包含完整 Stage/Job/Step 全景、问题定义、已批准方向、technical-solution.md、架构图、最新审校结论、有效产物和待决事项的自包含审核材料，通过当前 Agent 渠道发送并回读成功；记录本次全新回执。人审核该材料。明确批准时同时上报 panorama_card_published 与 technical_solution_approved 并结束；写作层拒绝时同时上报 panorama_card_published 与 technical_solution_rejected；方向变化时同时上报 panorama_card_published 与 solution_direction_changed；问题变化时同时上报 panorama_card_published 与 technical_problem_changed。不得复用前一 Step 或前一次进入本 Step 的回执。Evidence 保存人的完整终审回复。
+      Agent 先使用绑定 Skill 独立复核问题定义、已批准方向、technical-solution.md、架构图和最新审校结论；确认无阻塞项且无需人作出新决定时，直接上报 agent_approved 并在 Evidence 记录复核理由与产物引用，不发布 Panorama。不能独立批准时，生成包含完整 Stage/Job/Step 全景、问题定义、已批准方向、technical-solution.md、架构图、最新审校结论、有效产物和待决事项的自包含审核材料，通过当前 Agent 渠道发送并回读成功；记录本次全新回执。人审核该材料。明确批准时同时上报 panorama_card_published 与 technical_solution_approved 并结束；写作层拒绝时同时上报 panorama_card_published 与 technical_solution_rejected；方向变化时同时上报 panorama_card_published 与 solution_direction_changed；问题变化时同时上报 panorama_card_published 与 technical_problem_changed。不得复用前一 Step 或前一次进入本 Step 的回执。Evidence 保存人的完整终审回复。
     skills:
-      - {id: technical-solution-approval, prompt: 使用该 Skill 组织终审包、约束批准条件、分类回流并记录人工结论。, optional: false}
+      - {id: technical-solution-approval, prompt: 使用该 Skill 独立终审完整方案；不能独立批准时组织人工终审包并分类回流。, optional: false}
 
   problem_definition_condition:
     prompt: 上报问题定义已满足准出条件，或需要在当前 Step 重新整理。
@@ -48,6 +48,9 @@ prompts:
       根据 workflow.yaml、当前 flow status、有效 Outputs 和审核要求，生成包含完整 Stage/Job/Step 全景、当前状态、产物和待决事项的自包含审核材料。通过当前 Agent 渠道或对应 Skill 发送并回读成功后，上报真实 messageId 或 Agent 交互事件 ID。不得复用前一 Step 或前一次进入本 Step 的回执。
     skills:
       - {id: technical-solution-panorama, prompt: 使用该 Skill 生成、通过当前 Agent 通道展示并回读本次自包含 Panorama，返回 panorama_card_published ConditionResult。, optional: false}
+  agent_approval_condition:
+    prompt: 仅当当前 Agent 已独立复核最新审核产物、确认无阻塞项且无需人作出新决定时上报 agent_approved=approved；Evidence 必须记录复核理由与产物引用。该路径不发布 Panorama，也不伪造人工回复。
+    skills: []
   technical_problem_changed_condition:
     prompt: 上报反馈或调查改变了已批准技术问题的语义。
     skills: []

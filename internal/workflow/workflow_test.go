@@ -36,7 +36,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(loaded.Workflow.OrderedStepIDs()) != 7 || len(loaded.Workflow.Conditions) != 17 {
+	if len(loaded.Workflow.OrderedStepIDs()) != 7 || len(loaded.Workflow.Conditions) != 18 {
 		t.Fatalf("real Bundle shape = steps:%d conditions:%d", len(loaded.Workflow.OrderedStepIDs()), len(loaded.Workflow.Conditions))
 	}
 	pinned, err := LoadRef(loaded.Ref)
