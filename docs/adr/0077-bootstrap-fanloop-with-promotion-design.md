@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-26
 supersedes_in_part: ADR-0009, ADR-0027, ADR-0053, ADR-0059, ADR-0062, ADR-0065
+amended_by: ADR-0090
 ---
 
 # 从固定 Treeloop 快照直接建立 Fanloop

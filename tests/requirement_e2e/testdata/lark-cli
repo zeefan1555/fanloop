@@ -8,7 +8,7 @@ case "$1 $2" in
     printf '%s\n' '{"ok":true}'
     ;;
   "whoami --as")
-    printf '%s\n' '{"identity":"user","available":true,"tokenStatus":"ready","onBehalfOf":{"openId":"ou_e2e"}}'
+    printf '%s\n' '{"identity":"bot","available":true,"tokenStatus":"ready"}'
     ;;
   "base +record-list")
     printf '%s\n' '{"ok":true,"data":{"items":[]}}'

@@ -129,23 +129,39 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	}
 }
 
-func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T) {
+func TestProductionMaintainerWorkflowEndsWithAgentMerge(t *testing.T) {
 	loaded, err := Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
 	wantSteps := []string{
 		"bootstrap_techdesign", "clarify_requirements", "confirm_requirements", "design_technical_solution",
-		"implement_code", "execute_test_cases", "review_code", "handoff_merge_request",
+		"implement_code", "execute_test_cases", "review_code", "execute_agent_acceptance",
+		"merge_code",
 	}
 	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantSteps) {
 		t.Fatalf("maintainer Steps = %v, want %v", got, wantSteps)
+	}
+	for _, want := range []struct {
+		step     string
+		stage    string
+		executor StepExecutor
+	}{
+		{step: "review_code", stage: "implementation", executor: StepExecutorAgent},
+		{step: "execute_agent_acceptance", stage: "delivery", executor: StepExecutorAgent},
+		{step: "merge_code", stage: "delivery", executor: StepExecutorAgent},
+	} {
+		context, _, ok := loaded.Workflow.FindStep(want.step)
+		if !ok || context.Stage.ID != want.stage || context.Step.Executor != want.executor {
+			t.Fatalf("maintainer Step %s = %#v, want stage=%s executor=%v", want.step, context, want.stage, want.executor)
+		}
 	}
 	for _, skillID := range []string{
 		"fanloop-dev-bootstrap", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
 		"fanloop-dev-domain-modeling", "fanloop-dev-to-spec", "fanloop-dev-to-tickets",
 		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-verify",
-		"fanloop-dev-code-review", "fanloop-dev-mr-handoff", "fanloop-dev-panorama",
+		"fanloop-dev-code-review", "fanloop-dev-maintain-verification", "fanloop-dev-agent-acceptance",
+		"fanloop-dev-merge-code", "fanloop-dev-panorama",
 	} {
 		found := false
 		for _, prompt := range loaded.Workflow.Prompts {
@@ -168,10 +184,46 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_not_required"},
 		{"agent_approved", "implementation_not_required"},
 	}, "", true)
-	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written"}, "handoff_merge_request", false)
-	assertWorkflowRoute(t, loaded, "handoff_merge_request", []string{"merge_request_created", "merge_request_handed_off", "handoff_record_written"}, "", true)
+	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written"}, "execute_agent_acceptance", false)
+	assertWorkflowRoute(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_passed", "acceptance_report_written"}, "merge_code", false)
+	assertWorkflowRoute(t, loaded, "merge_code", []string{"code_merged", "acceptance_report_written"}, "", true)
 	assertWorkflowLoop(t, loaded, "execute_test_cases", []string{"local_validation_failed"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"requirements_changed", "review_report_written"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"technical_solution_changes_requested", "review_report_written"}, "design_technical_solution")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed", "review_report_written"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "technical_solution_changes_requested", "acceptance_report_written"}, "design_technical_solution")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "implementation_changes_requested", "acceptance_report_written"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "merge_code", []string{"requirements_changed", "acceptance_report_written"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "merge_code", []string{"implementation_changes_requested", "acceptance_report_written"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "merge_code", []string{"code_merge_failed", "acceptance_report_written"}, "merge_code")
+
+	for _, removed := range []string{"confirm_human_acceptance", "handoff_merge_request"} {
+		if _, _, ok := loaded.Workflow.FindStep(removed); ok {
+			t.Fatalf("maintainer Workflow still contains removed Step %s", removed)
+		}
+	}
+	for _, removed := range []string{
+		"human_acceptance_passed", "human_acceptance_skipped", "human_acceptance_result_recorded",
+		"merge_request_created", "merge_request_handed_off", "merge_request_handoff_failed", "handoff_record_written",
+	} {
+		if _, ok := loaded.Workflow.Condition(removed); ok {
+			t.Fatalf("maintainer Workflow still contains removed Condition %s", removed)
+		}
+	}
+	flowRoutes, loopRoutes := 0, 0
+	for _, routes := range loaded.Workflow.Flows {
+		flowRoutes += len(routes)
+	}
+	for _, routes := range loaded.Workflow.Loops {
+		loopRoutes += len(routes)
+	}
+	if got := len(loaded.Workflow.Conditions); got != 32 {
+		t.Fatalf("maintainer Conditions = %d, want 32", got)
+	}
+	if flowRoutes != 10 || loopRoutes != 18 || len(loaded.Workflow.Prompts) != 38 {
+		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 10/18/38", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
+	}
 }
 
 func assertAgentApprovalCondition(t *testing.T, loaded Loaded) {

@@ -46,9 +46,14 @@ flow:
   review_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: review_code_flow}
       when: {any_of: [[review_passed, review_report_written]]}
-      next_step_id: handoff_merge_request
+      next_step_id: execute_agent_acceptance
 
-  handoff_merge_request:
-    - prompt_ref: {file: prompt.yaml, prompt_id: handoff_merge_request_flow}
-      when: {any_of: [[merge_request_created, merge_request_handed_off, handoff_record_written]]}
+  execute_agent_acceptance:
+    - prompt_ref: {file: prompt.yaml, prompt_id: execute_agent_acceptance_flow}
+      when: {any_of: [[agent_acceptance_passed, acceptance_report_written]]}
+      next_step_id: merge_code
+
+  merge_code:
+    - prompt_ref: {file: prompt.yaml, prompt_id: merge_code_flow}
+      when: {any_of: [[code_merged, acceptance_report_written]]}
       terminal: true

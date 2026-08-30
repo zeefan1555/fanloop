@@ -180,7 +180,7 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 		Outputs: map[string]state.RegisteredOutput{
 			"requirement_document_url":      {Type: workflow.OutputURL, Value: json.RawMessage(`"https://example.invalid/redacted"`), ProducerStepID: "clarify_requirements"},
 			"technical_design_document_url": {Type: workflow.OutputURL, Value: json.RawMessage(`"https://example.invalid/redacted"`), ProducerStepID: "design_technical_solution"},
-			"merge_request_urls":            {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`), ProducerStepID: "handoff_merge_request"},
+			"artifact_urls":                 {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://example.com/artifacts/123"]`), ProducerStepID: "review_code"},
 		},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
 			DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction,
@@ -192,7 +192,7 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 	for _, want := range []string{
 		"| requirement_document_url | url | clarify_requirements | https://example.invalid/redacted |",
 		"| technical_design_document_url | url | design_technical_solution | https://example.invalid/redacted |",
-		"| merge_request_urls | url_list | handoff_merge_request | [\"https://github.com/zeefan1555/fanloop/merge_requests/123\"] |",
+		"| artifact_urls | url_list | review_code | [\"https://example.com/artifacts/123\"] |",
 		"📜 CLI 日志：[查看完整输入输出](https://example.invalid/redacted)",
 	} {
 		if !strings.Contains(projection, want) {

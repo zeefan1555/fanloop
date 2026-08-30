@@ -61,7 +61,7 @@ func createCLILogDocument(ctx context.Context, title string) (string, error) {
 func createDocument(ctx context.Context, title, description string) (string, error) {
 	content := "<title>" + escapeXML(title) + "</title><p>" + escapeXML(description) + "</p>"
 	result, err := larkexec.Execute(ctx, []string{
-		"docs", "+create", "--as", "user", "--content", content,
+		"docs", "+create", "--as", "bot", "--content", content,
 	}, nil, traceDocumentTimeout)
 	if err != nil {
 		return "", err

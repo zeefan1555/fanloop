@@ -165,7 +165,7 @@ func syncCLILogDocument(ctx context.Context, root, documentURL string) *traceidl
 
 func syncDocument(ctx context.Context, target traceidl.TraceTarget, documentURL string, content []byte) *traceidl.TraceTargetResult {
 	result, err := larkexec.Execute(ctx, []string{
-		"docs", "+update", "--as", "user", "--doc", documentURL, "--command", "overwrite",
+		"docs", "+update", "--as", "bot", "--doc", documentURL, "--command", "overwrite",
 		"--doc-format", "markdown", "--content", "-",
 	}, bytes.NewReader(content), 35*time.Second)
 	if err != nil {
@@ -224,18 +224,16 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 	if key == "" {
 		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_REGISTRY_UPDATE_FAILED, Message: "Trace URL cannot be converted to a registry key"})
 	}
-	identity, failure := runLarkJSON(ctx, []string{"whoami", "--as", "user"}, nil, erroridl.ErrorCode_UPSTREAM_AUTH_FAILED)
+	identity, failure := runLarkJSON(ctx, []string{"whoami", "--as", "bot"}, nil, erroridl.ErrorCode_UPSTREAM_AUTH_FAILED)
 	if failure != nil {
 		return failedTarget(traceidl.TraceTarget_registry, failure)
 	}
-	onBehalfOf, _ := identity["onBehalfOf"].(map[string]any)
-	openID, _ := onBehalfOf["openId"].(string)
-	if identity["identity"] != "user" || identity["available"] != true || openID == "" {
-		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_UPSTREAM_AUTH_FAILED, Message: "lark-cli user identity is not ready"})
+	if identity["identity"] != "bot" || identity["available"] != true {
+		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_UPSTREAM_AUTH_FAILED, Message: "lark-cli bot identity is not ready"})
 	}
 	filter, _ := json.Marshal(map[string]any{"logic": "and", "conditions": [][]string{{registry.Fields.TraceKey, "==", key}}})
 	listArgs := []string{
-		"base", "+record-list", "--as", "user", "--base-token", registry.BaseToken, "--table-id", registry.TableID, "--view-id", registry.ViewID,
+		"base", "+record-list", "--as", "bot", "--base-token", registry.BaseToken, "--table-id", registry.TableID, "--view-id", registry.ViewID,
 		"--field-id", registry.Fields.TraceKey, "--filter-json", string(filter), "--limit", "2", "--format", "json",
 	}
 	listed, failure := runLarkJSON(ctx, listArgs, nil, erroridl.ErrorCode_REGISTRY_UPDATE_FAILED)
@@ -250,9 +248,9 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 	if len(records) == 1 {
 		recordID = stringField(records[0], "record_id", "id", "recordId")
 	}
-	fields, _ := json.Marshal(registryFields(registry, current, definition, events, traceURL, key, openID))
+	fields, _ := json.Marshal(registryFields(registry, current, definition, events, traceURL, key, ""))
 	args := []string{
-		"base", "+record-upsert", "--as", "user", "--base-token", registry.BaseToken, "--table-id", registry.TableID,
+		"base", "+record-upsert", "--as", "bot", "--base-token", registry.BaseToken, "--table-id", registry.TableID,
 		"--json", string(fields), "--format", "json",
 	}
 	if recordID != "" {
@@ -280,7 +278,7 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_REGISTRY_UPDATE_FAILED, Message: "Trace Registry upsert returned no record_id", Retryable: true})
 	}
 	verified, failure := runLarkJSON(ctx, []string{
-		"base", "+record-get", "--as", "user", "--base-token", registry.BaseToken, "--table-id", registry.TableID,
+		"base", "+record-get", "--as", "bot", "--base-token", registry.BaseToken, "--table-id", registry.TableID,
 		"--record-id", recordID, "--field-id", registry.Fields.TraceKey, "--format", "json",
 	}, nil, erroridl.ErrorCode_REGISTRY_UPDATE_FAILED)
 	if failure != nil {
@@ -330,10 +328,13 @@ func registryFields(registry traceconfig.Registry, current state.State, definiti
 	}
 	mapping := registry.Fields
 	fields := map[string]any{
-		mapping.TraceKey: key, mapping.Title: current.Requirement.Title, mapping.Owner: []map[string]string{{"id": openID}},
+		mapping.TraceKey: key, mapping.Title: current.Requirement.Title,
 		mapping.Location: registryStageAndAudit(current, definition, events), mapping.Status: registryStatus(current, definition), mapping.LoopCount: loops,
 		mapping.SourceURL: registrySourceValue(registry, current), mapping.TraceURL: traceURL,
 		mapping.UpdatedAt: registryTime(current.UpdatedAt), mapping.Origin: "runtime",
+	}
+	if openID != "" {
+		fields[mapping.Owner] = []map[string]string{{"id": openID}}
 	}
 	if mapping.CLILogURL != "" {
 		fields[mapping.CLILogURL] = nil

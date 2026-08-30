@@ -10,4 +10,4 @@ description: 实施 Fanloop CLI 修复。用于在维护者源码 worktree 按�
 3. 修根因，不顺手修无关问题；不保留废弃路径兼容层，不引入没有当前需求的配置或抽象。
 4. 运行改动相关的聚焦测试和必要格式检查；最终由 `fanloop-dev-verify` 按风险执行 `targeted` 或 `e2e`。
 5. 自查 diff 并提交到本地分支；使用仓库当前 Git 身份，不注入组织专属 trailer。
-6. 不 push、不创建或更新 MR、不查询远端 checks、不自动 merge 或发布；这些外部写只属于最终 `fanloop-dev-mr-handoff`。
+6. 不 push、不创建或更新 PR、不查询远端 checks、不合并或发布；GitHub 外部写只属于最终 `fanloop-dev-merge-code`。

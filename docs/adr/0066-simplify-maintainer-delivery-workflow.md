@@ -2,7 +2,7 @@
 status: accepted
 date: 2026-08-21
 amends: ADR-0044, ADR-0047, ADR-0059, ADR-0063
-amended_by: ADR-0068, ADR-0069, ADR-0070, ADR-0071, ADR-0072
+amended_by: ADR-0068, ADR-0069, ADR-0070, ADR-0071, ADR-0072, ADR-0090
 ---
 
 # 收敛维护者 Workflow 为本地优先的八步交付链
