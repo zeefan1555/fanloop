@@ -64,6 +64,8 @@ Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG 调度；本决策�
 避免双份地图漂移。Release-bound 的 `fanloop-dev-create-verification` 只在缺失时创建，
 `fanloop-dev-maintain-verification` 在每次用户表面变化后维护 Skill 与 Feature 页面。真实配方必须覆盖
 Launch、Doctor、Drive、Evidence、Cleanup，使用隔离数据目录和公开入口，Cleanup 后证据仍保留。
+专用 `fanloop-dev-workflow` 入口不得绕过统一入口的 renderer-owned 最终回复契约；每次最终普通回复
+前必须紧邻读取 Status、dry-run 渲染 Panorama，并原样展示 `data.content`，任一失败都阻塞。
 
 Agent Eval 拆为协调者、候选和不同模型裁判。协调者冻结恰好两个 Case、随机目录、硬红线和 10 分
 Rubric；候选在隔离目录并行执行，互不共享中间结果；裁判只读原始证据。机器人验收原样复用这两个

@@ -147,4 +147,17 @@ Card Binding、Trace Integration、远端 Trace Event 或用户文档。Candidat
 
 State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 
-对用户只说明当前 Stage/Job/Step、已接受结果及下一项真实依赖。
+## 最终普通回复
+
+专用维护入口不得绕过通用 `fanloop-workflow` 的 renderer-owned 最终回复契约。每次准备结束一轮
+普通回复时，先紧邻执行：
+
+```bash
+fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
+```
+
+成功后，本轮最终普通回复必须完整原样展示 render 响应的 `data.content`；不展示 JSON envelope，
+不自行拼装、压缩或重排内容。任一命令失败即以真实错误阻塞并停止；不得手工 fallback、复用旧 render 或快照。
+
+Panorama 之外只说明当前 Stage/Job/Step、已接受结果及下一项真实依赖。

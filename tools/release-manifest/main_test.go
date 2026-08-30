@@ -394,8 +394,21 @@ func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(content), "fanloop update") {
+	skill := string(content)
+	if strings.Contains(skill, "fanloop update") {
 		t.Fatal("maintainer Workflow entry still requires an online update")
+	}
+	for _, value := range []string{
+		"通用 `fanloop-workflow` 的 renderer-owned 最终回复契约",
+		"flow status --root <ABSOLUTE_REQUIREMENT_ROOT>",
+		"card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run",
+		"本轮最终普通回复必须完整原样展示 render 响应的 `data.content`",
+		"任一命令失败即以真实错误阻塞并停止",
+		"不得手工 fallback、复用旧 render 或快照",
+	} {
+		if !strings.Contains(skill, value) {
+			t.Fatalf("maintainer Workflow entry does not contain %q", value)
+		}
 	}
 }
 
