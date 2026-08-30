@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-30
-amends: ADR-0063, ADR-0066, ADR-0076, ADR-0087
+amends: ADR-0063, ADR-0066, ADR-0071, ADR-0072, ADR-0076, ADR-0087
 ---
 
 # 为维护流程增加 Agent 与人类端到端验收
@@ -53,7 +53,9 @@ clean/changed/blocked，被吸收到现有 Feature Map 与两个新 Skill；不�
 本决策只收窄 ADR-0087 的适用范围：既有 confirm_requirements 继续保留 agent_approved Route；
 新 confirm_human_acceptance 明确没有该 Route。机器人、当前 Agent、旧消息或含糊回复不能代替固定
 人工审批人的全新通过、跳过或反馈结论。ADR-0086 的单源 Panorama 继续作为人工 Route 的前置事实。
-ADR-0071 的 MR 人工审核、不得自动合并或发布保持不变，ADR-0088 的 main 更新后发布保持不变。
+本决策同时只取代 ADR-0071 与 ADR-0072 中“三阶段八步”和“唯一人工门禁”的旧拓扑陈述；ADR-0071
+的 Botmux MR 人工审核、不得自动合并或发布，以及 ADR-0072 的同一 Botmux Session 复用唯一
+Requirement Root 契约保持不变。ADR-0088 的 main 更新后发布保持不变。
 
 不修改 Thrift IDL、生成物、通用 Workflow loader/runtime、State/Event/Output Schema、公开 CLI
 Request/Response 或两个公开测试入口。五份生产 YAML 是全部新增推进语义的唯一真值。
