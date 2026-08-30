@@ -64,7 +64,7 @@ func TestCardShowsOnlyCurrentExecutionEvidence(t *testing.T) {
 		Outputs: map[string]state.RegisteredOutput{},
 	}
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
-	for _, want := range []string{"方案成文 · 技术方案写作", "正在修复代码"} {
+	for _, want := range []string{"方案成文 · 方案成文", "正在修复代码"} {
 		if !strings.Contains(markdown, want) {
 			t.Fatalf("Card is missing current fact %q:\n%s", want, markdown)
 		}

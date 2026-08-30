@@ -1,30 +1,41 @@
 ---
 name: technical-problem-approval
-description: 对技术问题定义执行 Agent 独立复核或人工确认并留下完整审核证据。用于 technical-solution-design 的问题确认 Step；不得在本 Step 修改问题定义。
+description: 将需求背景、核心问题和设计目标发布为飞书问题定义文档，等待人工审核并按最早受影响层回流。用于 technical-solution-design 的问题审核 Step；不得代替人批准或修改片段。
 ---
 
-# 确认技术问题
+# 审核问题定义
 
-先读取 `.technical-solution/problem.md` 并独立检查问题与目标是否具体、事实是否可验证、因果是否成立、范围是否完整且没有混入方案结论。确认无阻塞项且无需人作出新决定时，直接上报 `agent_approved=approved`，Evidence 记录复核理由和文件路径，不发布 Panorama。
+读取 `01-background.md`、`02-problem.md`、`03-objectives.md`，组装为只含以下三个正文标题的审核稿：
 
-不能独立批准时，再提供无需聊天历史也能理解的人工审核摘要：
+```markdown
+# <项目>｜问题定义
+## 1. 需求背景
+## 2. 核心问题
+## 3. 设计目标
+```
 
-- 要解决的 2–3 个核心问题；
-- 支撑每个问题的关键事实与来源；
-- 目标、非目标、约束和成功指标；
-- 仍存在的开放问题及其是否阻塞后续推导；
-- 明确选择：批准，或拒绝并说明必须修改的内容。
+`<项目>` 取最新 `flow status` 中的 Requirement 标题。正文不得出现 `###` 或 `1.1` 编号。使用当前宿主的 `lark-doc` 能力发布：按稳定标题
+`<项目>｜问题定义` 精确查找，唯一命中则更新，零命中才创建，多命中立即阻塞；创建结果不确定时
+先重新查找，不得重复创建。使用返回 URL 回读，确认正文非空、三个标题顺序正确且内容与本地片段
+一致。失败时报告 blocked，不返回成功 Condition。
 
-把上述内容组成一份自包含审核材料，通过当前 Agent 渠道展示。另按
-`panorama_card_published` 绑定 Skill 原样展示 renderer 生成的 Panorama，不把审核正文二次拼入
-Panorama。两者展示成功后才请求人的决定。
+向人展示已验证 URL、三个核心结论、开放项和最新 Panorama，然后等待本次进入该 Step 后的全新
+明确回复。不得把沉默、“看过”“继续讨论”或补充材料解释为批准，也不得自行改写输入。
 
-发现问题时只指出，不直接改写已提交材料。
+收到修改意见时先做整体影响分析，只选最早受影响层：
 
-进入人工路径后，仅在收到人的明确回复后报告结果：
+| 最早变化 | Condition | 回流 Step |
+|---|---|---|
+| 业务形态、现状架构、演进诉求 | `background_changed` | `frame_requirement_background` |
+| 现状评估、瓶颈、根因、取舍 | `problem_changed` | `analyze_core_problem` |
+| 指标、约束、非目标 | `objectives_changed` | `define_design_objectives` |
 
-- 明确批准：同时上报 `panorama_card_published` 与 `technical_problem_approved`；
-- 拒绝或要求修改：同时上报 `panorama_card_published` 与 `technical_problem_rejected`，回到问题定义；
-- 含糊、沉默或仅提供补充信息：继续等待，不推断批准。
+在回流前向人明确展示：反馈原文、最早受影响层、继续保留的内容、将失效的全部下游产物、回流
+Step。反馈同时触及多层时只选表中最靠上的一层。
 
-人工路径的 `panorama_card_published` 输出本次 render 的精确 `panorama_snapshot_path`。Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。
+- 明确批准：同时上报 `problem_document_published=<已回读 URL>`、`panorama_card_published`、
+  `technical_problem_approved`；
+- 明确修改：同时上报同一文档 URL、`panorama_card_published` 和一项 feedback Condition；
+- 含糊或仍在讨论：继续等待。
+
+Evidence 保存人的完整原始回复、飞书 URL、本地三个片段路径和影响分析，不使用摘要替代原文。

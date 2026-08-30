@@ -36,7 +36,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(loaded.Workflow.OrderedStepIDs()) != 7 || len(loaded.Workflow.Conditions) != 18 {
+	if len(loaded.Workflow.OrderedStepIDs()) != 13 || len(loaded.Workflow.Conditions) != 28 {
 		t.Fatalf("real Bundle shape = steps:%d conditions:%d", len(loaded.Workflow.OrderedStepIDs()), len(loaded.Workflow.Conditions))
 	}
 	pinned, err := LoadRef(loaded.Ref)
@@ -49,11 +49,11 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	if _, err := LoadRef(Ref{ID: "technical-solution-design", Digest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); err == nil || !strings.Contains(err.Error(), "digest mismatch") {
 		t.Fatalf("digest mismatch error = %v", err)
 	}
-	problemPrompt := loaded.Workflow.Prompts["frame_technical_problem_flow"]
-	if len(problemPrompt.Skills) != 1 || problemPrompt.Skills[0].ID != "technical-problem-framing" || problemPrompt.Skills[0].Optional == nil || *problemPrompt.Skills[0].Optional {
+	problemPrompt := loaded.Workflow.Prompts["frame_requirement_background_flow"]
+	if len(problemPrompt.Skills) != 1 || problemPrompt.Skills[0].ID != "technical-background-framing" || problemPrompt.Skills[0].Optional == nil || *problemPrompt.Skills[0].Optional {
 		t.Fatalf("problem Prompt Skills = %#v", problemPrompt.Skills)
 	}
-	if routes := loaded.Workflow.Loops["confirm_technical_solution"]; len(routes) != 3 {
+	if routes := loaded.Workflow.Loops["confirm_technical_solution"]; len(routes) != 9 {
 		t.Fatalf("confirm_technical_solution Loop Routes = %#v", routes)
 	}
 	if _, err := Load("fixture"); !errors.Is(err, fs.ErrNotExist) {

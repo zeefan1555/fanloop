@@ -19,9 +19,9 @@ func TestTechnicalSolutionPanoramaStagesAreFixed(t *testing.T) {
 	content := string(decodeCard(t, rendered.stdout).Data.Content)
 
 	for stage, want := range map[string][]string{
-		"问题定义": {"技术问题定义", "问题人工确认"},
-		"方案推导": {"技术方案推导", "方案方向人工确认"},
-		"方案成文": {"技术方案写作", "技术方案审校", "技术方案人工确认"},
+		"问题定义": {"需求背景", "核心问题", "设计目标", "问题审核"},
+		"方案设计": {"方案调研", "总体方案", "难点解法", "方案审核"},
+		"方案成文": {"方案收益", "落地规划", "方案成文", "方案审校", "方案终审"},
 	} {
 		got := panoramaStageSteps(t, content, stage)
 		if len(got) != len(want) {

@@ -1,33 +1,39 @@
 ---
 name: technical-solution-approval
-description: 对完整技术方案包执行 Agent 独立复核或最终人工确认，并将人工拒绝精确分类到问题、方向或写作层。用于 technical-solution-design 的技术方案确认 Step。
+description: 发布完整飞书技术方案，等待人工终审并把反馈精确分类到九个最早受影响层。用于 technical-solution-design 的方案终审 Step；不得代替人批准或直接修改方案。
 ---
 
 # 终审技术方案
 
-读取问题定义、已批准方向、正式方案、架构图和最新审校报告，独立检查完整性、因果、取舍、风险与验证闭环。确认无阻塞项且无需人作出新决定时，直接上报 `agent_approved=approved` 并结束，Evidence 记录复核理由和五个文件路径，不发布 Panorama。
+读取 `technical-solution.md`、`.technical-solution/architecture.mmd` 和最新
+`.technical-solution/review.md`。先确认审校已通过，正文只有九个规定结构且图文一致。
 
-不能独立批准时，再提供无需聊天历史的人工终审摘要：
+`<项目>` 取最新 `flow status` 中的 Requirement 标题。使用当前宿主的 `lark-doc` 能力按稳定标题 `<项目>｜技术方案` 精确查找：唯一命中更新、零命中创建、
+多命中阻塞；创建结果不确定时先重新查找。发布 `technical-solution.md` 后使用返回 URL 回读，确认
+正文非空，九个标题按序且无 `###`、`1.1`，架构图与关键表格存在。失败时报告 blocked，不返回
+成功 Condition。
 
-- 要解决的问题、目标与非目标；
-- 推荐方向和关键取舍；
-- 总体架构、关键模块和主要风险；
-- 验证、迁移、发布与回滚安排；
-- 审校结论及仍保留的非阻塞项；
-- 明确选择：批准，或拒绝并指出变化层级。
+向人展示已验证 URL、方案结论、关键取舍、收益、落地风险、审校结论和最新 Panorama，然后等待
+本次进入该 Step 后的全新明确回复。修改意见按最早受影响层分类：
 
-把上述内容组成一份自包含审核材料，通过当前 Agent 渠道展示。另按
-`panorama_card_published` 绑定 Skill 原样展示 renderer 生成的 Panorama，不把审核正文二次拼入
-Panorama。两者展示成功后才请求人的决定。
+| 层级 | Condition | 回流 Step |
+|---|---|---|
+| 需求背景 | `background_changed` | `frame_requirement_background` |
+| 核心问题 | `problem_changed` | `analyze_core_problem` |
+| 设计目标 | `objectives_changed` | `define_design_objectives` |
+| 方案调研 | `research_changed` | `research_solution_options` |
+| 总体方案 | `overall_solution_changed` | `design_overall_solution` |
+| 难点解法 | `key_solutions_changed` | `design_key_solutions` |
+| 方案收益 | `benefits_changed` | `evaluate_solution_benefits` |
+| 落地规划 | `delivery_changed` | `plan_solution_delivery` |
+| 仅排版、措辞、图文呈现 | `presentation_changed` | `write_technical_solution` |
 
-不得把“看过”“继续”“可以讨论”等含糊表达解释为批准，也不得在本 Step 直接修改输入文件。
+回流前向人展示反馈原文、最早受影响层、保留内容、失效产物和回流 Step。多层变化只选最靠上的
+一层；沉默、“看过”或继续讨论不算批准。
 
-进入人工路径后，仅在人的回复明确后报告一条结果：
+- 明确批准：同时上报 `technical_solution_document_published=<已回读 URL>`、
+  `panorama_card_published` 与 `technical_solution_approved`，流程结束；
+- 明确修改：同时上报同一文档 URL、`panorama_card_published` 与一项 feedback Condition；
+- 尚需讨论：继续等待。
 
-- 批准当前完整方案：同时上报 `panorama_card_published` 与 `technical_solution_approved`，流程结束；
-- 问题和方向不变，只需修改正文、架构图或实现细节：同时上报 `panorama_card_published` 与 `technical_solution_rejected`；
-- 核心模型、选型或总体架构方向变化：同时上报 `panorama_card_published` 与 `solution_direction_changed`；
-- 问题、目标、非目标或硬约束变化：同时上报 `panorama_card_published` 与 `technical_problem_changed`；
-- 含糊或尚需讨论：继续等待。
-
-人工路径的 `panorama_card_published` 输出本次 render 的精确 `panorama_snapshot_path`。Evidence 保存人的完整原始回复，以及本轮审核的五个文件路径。
+Evidence 保存人的完整原始回复、飞书 URL、正式方案、架构图、审校报告和影响分析。

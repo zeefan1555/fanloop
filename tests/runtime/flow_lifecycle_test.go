@@ -11,25 +11,36 @@ import (
 func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Technical solution lifecycle"), "flow.init")
+	advance := func(step, next string, conditions ...string) result {
+		t.Helper()
+		args := []string{"flow", "report", "result", "--root", root, "--step-id", step, "--next-step-id", next, "--summary", "ready"}
+		for _, condition := range conditions {
+			args = append(args, "--condition-result", condition)
+		}
+		got := run(binary, args...)
+		assertSuccess(t, got, "flow.report.result")
+		assertFlowEffect(t, got.stdout, "advanced", next)
+		return got
+	}
 
 	progress := run(binary, "flow", "report", "progress", "--root", root,
-		"--step-id", "frame_technical_problem", "--status", "in_progress", "--summary", "framing")
+		"--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "framing")
 	assertSuccess(t, progress, "flow.report.progress")
-	assertFlowEffect(t, progress.stdout, "status_updated", "frame_technical_problem")
+	assertFlowEffect(t, progress.stdout, "status_updated", "frame_requirement_background")
 
-	ready := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_technical_problem",
-		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
-		"--next-step-id", "confirm_technical_problem", "--summary", "technical problem defined")
-	assertSuccess(t, ready, "flow.report.result")
-	assertFlowEffect(t, ready.stdout, "advanced", "confirm_technical_problem")
+	advance("frame_requirement_background", "analyze_core_problem",
+		conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`))
+	advance("analyze_core_problem", "define_design_objectives",
+		conditionResult("core_problem_defined", "path", `".technical-solution/sections/02-problem.md"`))
+	advance("define_design_objectives", "confirm_technical_problem",
+		conditionResult("design_objectives_defined", "path", `".technical-solution/sections/03-objectives.md"`))
 
 	flowState := readFile(t, filepath.Join(root, ".fanloop", "flow", "state.json"))
 	if bytes.Contains(flowState, []byte(`"outputs"`)) {
 		t.Fatalf("Flow State still embeds Outputs:\n%s", flowState)
 	}
 	registry := readFile(t, filepath.Join(root, ".fanloop", "output", "state.json"))
-	for _, want := range []string{`"problem_definition_path"`, `"producer_step_id": "frame_technical_problem"`} {
+	for _, want := range []string{`"background_section_path"`, `"producer_step_id": "frame_requirement_background"`} {
 		if !bytes.Contains(registry, []byte(want)) {
 			t.Fatalf("Output Registry does not contain %s:\n%s", want, registry)
 		}
@@ -37,57 +48,60 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 
 	rejected := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_technical_problem",
-		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/problem-rejected.json"`),
-		"--condition-result", conditionResult("technical_problem_rejected", "enum_value", `"rejected"`),
-		"--back-step-id", "frame_technical_problem", "--summary", "technical problem needs revision")
+		"--condition-result", conditionResult("problem_document_published", "url", `"https://example.com/problem-definition"`),
+		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/problem-feedback.json"`),
+		"--condition-result", conditionResult("problem_changed", "enum_value", `"problem"`),
+		"--back-step-id", "analyze_core_problem", "--summary", "core problem needs revision")
 	assertSuccess(t, rejected, "flow.report.result")
-	assertFlowEffect(t, rejected.stdout, "looped", "frame_technical_problem")
-	assertOutputAbsent(t, rejected.stdout, "problem_definition_path")
+	assertFlowEffect(t, rejected.stdout, "looped", "analyze_core_problem")
+	assertOutputAbsent(t, rejected.stdout, "problem_section_path")
+	assertOutputAbsent(t, rejected.stdout, "objectives_section_path")
+	assertOutputAbsent(t, rejected.stdout, "problem_document_url")
 	assertOutputAbsent(t, rejected.stdout, "panorama_snapshot_path")
+	if !strings.Contains(rejected.stdout, `"background_section_path"`) {
+		t.Fatalf("problem loop removed approved background Output: %s", rejected.stdout)
+	}
 
-	ready = run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_technical_problem",
-		"--condition-result", conditionResult("technical_problem_defined", "path", `".technical-solution/problem.md"`),
-		"--next-step-id", "confirm_technical_problem", "--summary", "technical problem defined again")
-	assertSuccess(t, ready, "flow.report.result")
-	approved := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "confirm_technical_problem",
-		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/problem-approved.json"`),
-		"--condition-result", conditionResult("technical_problem_approved", "enum_value", `"approved"`),
-		"--next-step-id", "derive_technical_solution", "--summary", "technical problem approved")
-	assertSuccess(t, approved, "flow.report.result")
-	derived := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "derive_technical_solution",
-		"--condition-result", conditionResult("technical_solution_derived", "path", `".technical-solution/proposal.md"`),
-		"--next-step-id", "confirm_solution_direction", "--summary", "solution derived")
-	assertSuccess(t, derived, "flow.report.result")
-	directionApproved := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "confirm_solution_direction",
-		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/direction-approved.json"`),
-		"--condition-result", conditionResult("solution_direction_approved", "enum_value", `"approved"`),
-		"--next-step-id", "write_technical_solution", "--summary", "solution direction approved")
-	assertSuccess(t, directionApproved, "flow.report.result")
-	written := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "write_technical_solution",
-		"--condition-result", conditionResult("technical_solution_written", "path", `"technical-solution.md"`),
-		"--condition-result", conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`),
-		"--next-step-id", "review_technical_solution", "--summary", "technical solution written")
-	assertSuccess(t, written, "flow.report.result")
+	advance("analyze_core_problem", "define_design_objectives",
+		conditionResult("core_problem_defined", "path", `".technical-solution/sections/02-problem.md"`))
+	advance("define_design_objectives", "confirm_technical_problem",
+		conditionResult("design_objectives_defined", "path", `".technical-solution/sections/03-objectives.md"`))
+	advance("confirm_technical_problem", "research_solution_options",
+		conditionResult("problem_document_published", "url", `"https://example.com/problem-definition"`),
+		conditionResult("panorama_card_published", "path", `".fanloop/card/problem-approved.json"`),
+		conditionResult("technical_problem_approved", "enum_value", `"approved"`))
+	advance("research_solution_options", "design_overall_solution",
+		conditionResult("solution_research_completed", "path", `".technical-solution/sections/04-research.md"`))
+	advance("design_overall_solution", "design_key_solutions",
+		conditionResult("overall_solution_designed", "path", `".technical-solution/sections/05-overall-solution.md"`),
+		conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`))
+	advance("design_key_solutions", "confirm_solution_direction",
+		conditionResult("key_solutions_designed", "path", `".technical-solution/sections/06-key-solutions.md"`))
+	advance("confirm_solution_direction", "evaluate_solution_benefits",
+		conditionResult("solution_document_published", "url", `"https://example.com/solution-design"`),
+		conditionResult("panorama_card_published", "path", `".fanloop/card/solution-approved.json"`),
+		conditionResult("solution_direction_approved", "enum_value", `"approved"`))
+	advance("evaluate_solution_benefits", "plan_solution_delivery",
+		conditionResult("solution_benefits_defined", "path", `".technical-solution/sections/07-benefits.md"`))
+	advance("plan_solution_delivery", "write_technical_solution",
+		conditionResult("delivery_plan_defined", "path", `".technical-solution/sections/08-delivery.md"`))
+	advance("write_technical_solution", "review_technical_solution",
+		conditionResult("technical_solution_written", "path", `"technical-solution.md"`))
 	reviewed := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "review_technical_solution",
-		"--condition-result", conditionResult("technical_solution_review_failed", "enum_value", `"failed"`),
 		"--condition-result", conditionResult("technical_solution_review_written", "path", `".technical-solution/review.md"`),
-		"--back-step-id", "write_technical_solution", "--summary", "technical solution needs revision")
+		"--condition-result", conditionResult("presentation_changed", "enum_value", `"presentation"`),
+		"--back-step-id", "write_technical_solution", "--summary", "presentation needs revision")
 	assertSuccess(t, reviewed, "flow.report.result")
 	assertFlowEffect(t, reviewed.stdout, "looped", "write_technical_solution")
 	assertOutputAbsent(t, reviewed.stdout, "technical_solution_path")
-	assertOutputAbsent(t, reviewed.stdout, "architecture_diagram_path")
-	if !strings.Contains(reviewed.stdout, `"problem_definition_path"`) {
-		t.Fatalf("design loop removed approved Requirement Output: %s", reviewed.stdout)
+	assertOutputAbsent(t, reviewed.stdout, "technical_solution_review_path")
+	if !strings.Contains(reviewed.stdout, `"architecture_diagram_path"`) || !strings.Contains(reviewed.stdout, `"delivery_section_path"`) {
+		t.Fatalf("presentation loop removed approved design Outputs: %s", reviewed.stdout)
 	}
 
 	events := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "events.jsonl")))
-	for _, fact := range []string{`"kind":"flow_progressed"`, `"effect":"advanced"`, `"effect":"looped"`, `"condition_id":"technical_solution_review_failed"`} {
+	for _, fact := range []string{`"kind":"flow_progressed"`, `"effect":"advanced"`, `"effect":"looped"`, `"condition_id":"problem_changed"`, `"condition_id":"presentation_changed"`} {
 		if !strings.Contains(events, fact) {
 			t.Fatalf("Event audit missing %s:\n%s", fact, events)
 		}
@@ -98,14 +112,14 @@ func TestFlowResultAcceptsExplicitTechnicalSolutionRoute(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Explicit route"), "flow.init")
 	reported := run(binary, "flow", "report", "result", "--root", root, "--input", `{
-  "step_id": "frame_technical_problem",
-  "condition_results": [{"condition_id":"technical_problem_defined","output":{"type":"path","value":".technical-solution/problem.md"}}],
-  "route": {"next_step_id":"confirm_technical_problem"},
+  "step_id": "frame_requirement_background",
+  "condition_results": [{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-background.md"}}],
+  "route": {"next_step_id":"analyze_core_problem"},
   "evidence": [],
   "summary": "requirements ready"
 }`)
 	assertSuccess(t, reported, "flow.report.result")
-	assertFlowEffect(t, reported.stdout, "advanced", "confirm_technical_problem")
+	assertFlowEffect(t, reported.stdout, "advanced", "analyze_core_problem")
 }
 
 func TestFlowReportRejectsRetiredCommandShapes(t *testing.T) {
