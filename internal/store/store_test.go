@@ -165,6 +165,33 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 	}
 }
 
+func TestMaintainerTracePanoramaPreservesJobHierarchy(t *testing.T) {
+	loaded, err := workflow.Load("fanloop-maintainer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	step, _ := loaded.Workflow.FirstStepID()
+	current := state.State{
+		Requirement:       state.Requirement{Title: "Job hierarchy"},
+		Release:           state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
+		CurrentStepID:     &step,
+		CurrentStepStatus: state.StepReady,
+		Outputs:           map[string]state.RegisteredOutput{},
+	}
+	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
+	for _, want := range []string{
+		"本地验证机制：需求与方案【**工作区准备（Ready）** → 需求澄清 → 需求确认 → 方案设计】 ｜ 候选实现【代码实现】 ｜ 验证能力【验证技能维护】",
+		"功能图谱：产品导航能力【功能地图维护】 ｜ 本地质量闭环【本地验证 → 代码审查】",
+		"Agent 评测：评测设计【评测编排】 ｜ 并行候选评测【子 Agent 执行】 ｜ 独立裁判【独立裁判】",
+		"硬性门禁：候选发布【发布候选 PR】 ｜ Dune 代码库门禁【CI 硬门禁】",
+		"云端交付：并行机器人验收【机器人端到端验收】 ｜ 自动交付【自动合码】",
+	} {
+		if !strings.Contains(projection, want) {
+			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)
+		}
+	}
+}
+
 func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T) {
 	loaded, err := workflow.Load("fanloop-maintainer")
 	if err != nil {

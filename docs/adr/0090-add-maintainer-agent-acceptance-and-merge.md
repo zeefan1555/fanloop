@@ -3,6 +3,7 @@ status: accepted
 date: 2026-08-31
 amends: ADR-0063, ADR-0066, ADR-0072, ADR-0076, ADR-0077, ADR-0087
 supersedes: ADR-0071
+superseded_by: ADR-0091
 ---
 
 # 为维护流程增加 Agent 自动化验收与合码

@@ -1,39 +1,28 @@
 ---
 name: fanloop-dev-maintain-verification
-description: 逐 Feature 校准 Fanloop 的 Feature Map 与验证 Skill。用于 reviewed HEAD 的 Agent 验收前置维护，也可由未来日程直接调用。
+description: 按当前代码变化维护中文项目验证技能和功能地图，并真实运行受影响用户路径。
 ---
 
-# Maintain Verification
+# 维护验证技能
 
-以仓库根 FEATURE_MAP.md 的每一行作为一个 Feature 单位，由当前协调 Agent 串行完成；不派生每
-Feature 子 Agent，不创建外部日程。
+项目唯一真值位于 `.agents/skills/verify-fanloop/`。不要另建根目录 Feature Map，也不要复制成第二套。
 
-## 前置检查
+## 检查变化
 
-1. 记录当前分支、HEAD、git status --short，以及 local-test-report.md 和 review-report.md 的
-   reviewed HEAD。三者不一致或工作树已有未说明改动时输出 blocked。
-2. 运行当前候选规定的健康检查；只有健康候选才执行 live 验证。
-3. 检查近期 diff、公开 Help、Workflow/IDL/Release 真值，找出新增、删除或变化的用户表面。
+1. 记录当前 HEAD、工作树、需求与变更范围。
+2. 对照公开 Help、启动/安装入口、五份 Workflow YAML、IDL 和近期 Diff，找出新增、删除、改名或行为变化的用户表面。
+3. 逐页核对 features/README.md 与 Feature 页面；删除已失效的入口和预期。
 
-## 逐 Feature 维护
+## 维护规则
 
-对 FEATURE_MAP.md 每一行同时完成：
-
-- Source：核对公开命令、稳定代码 Seam、相关五文件/IDL 与近期变化。
-- Live：按该行的最小真实验证串行驱动公开入口，保存命令、退出码、stdout/stderr 和状态/文件变化。
-- Safety：外部写入只能走已声明的 dry-run/read-only 配方；不能因命令名含 dry-run 就假设无副作用，
-  仍需观察文件、网络、Git ref 和 State。
-- Evidence：cleanup 前保存证据，cleanup 后确认该证据仍可读。
-
-只允许修改 FEATURE_MAP.md、fanloop-dev-verify、fanloop-dev-maintain-verification 及它们自有的
-验证 harness。产品行为与仍正确的 Map 不一致时是 product gap，不得改文档掩盖。
+- SKILL.md 必须覆盖 Launch、Doctor、Drive、Evidence、Cleanup。
+- 每个 Feature 页面必须写用户入口、前置条件、真实操作、可观察结果、隔离边界和易错点。
+- 全部说明使用中文；只驱动公开入口，不调用内部 Go 方法充当端到端证据。
+- 使用隔离数据目录、全新 Requirement 和当前候选二进制。外部写入未经授权时停止，不回退用户身份。
+- Cleanup 只移除一次性环境，证据保留在仓库忽略的验证目录。
 
 ## 结果
 
-- clean：每个 Feature 都有 source + live 证据，验证资产无需修改。
-- changed：验证资产已修正，或发现 product gap。把修改、证据和原因写入 Issue Workspace 的
-  acceptance-report.md；候选已变化，旧本地验证与 Review 立即失效，回 implement_code。
-- blocked：健康检查、source/live 全覆盖或证据保留无法完成。写入 acceptance-report.md 并停在
-  execute_agent_acceptance；不提交通过或产品失败 Result。
-
-只有 clean 才能继续安装候选 Release 和真实机器人验收。不得在本 Step 提交或继续沿用旧 Review。
+真实运行所有受影响 Feature。无需修改且全部通过为 clean；修正资产并通过为 updated。产品实现阻断、
+无法覆盖或证据缺失时上报 changes_requested 或 blocked，不改地图掩盖产品问题。验证资产变化必须形成
+新 HEAD，旧本地验证、Review、Eval、CI 与机器人验收全部失效。

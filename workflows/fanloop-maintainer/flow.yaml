@@ -33,6 +33,16 @@ flow:
   implement_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: implement_code_flow}
       when: {any_of: [[implementation_completed]]}
+      next_step_id: maintain_verification_skill
+
+  maintain_verification_skill:
+    - prompt_ref: {file: prompt.yaml, prompt_id: maintain_verification_skill_flow}
+      when: {any_of: [[verification_skill_ready]]}
+      next_step_id: maintain_feature_map
+
+  maintain_feature_map:
+    - prompt_ref: {file: prompt.yaml, prompt_id: maintain_feature_map_flow}
+      when: {any_of: [[feature_map_current]]}
       next_step_id: execute_test_cases
 
   execute_test_cases:
@@ -45,7 +55,32 @@ flow:
 
   review_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: review_code_flow}
-      when: {any_of: [[review_passed, review_report_written]]}
+      when: {any_of: [[review_passed, review_report_written, candidate_head_frozen]]}
+      next_step_id: coordinate_eval
+
+  coordinate_eval:
+    - prompt_ref: {file: prompt.yaml, prompt_id: coordinate_eval_flow}
+      when: {any_of: [[eval_playbook_frozen]]}
+      next_step_id: execute_eval_candidates
+
+  execute_eval_candidates:
+    - prompt_ref: {file: prompt.yaml, prompt_id: execute_eval_candidates_flow}
+      when: {any_of: [[eval_candidates_completed]]}
+      next_step_id: judge_eval
+
+  judge_eval:
+    - prompt_ref: {file: prompt.yaml, prompt_id: judge_eval_flow}
+      when: {any_of: [[agent_eval_passed, acceptance_report_written]]}
+      next_step_id: publish_candidate
+
+  publish_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: publish_candidate_flow}
+      when: {any_of: [[pull_request_published]]}
+      next_step_id: verify_ci_gates
+
+  verify_ci_gates:
+    - prompt_ref: {file: prompt.yaml, prompt_id: verify_ci_gates_flow}
+      when: {any_of: [[repository_guardrails_verified, ci_gates_passed]]}
       next_step_id: execute_agent_acceptance
 
   execute_agent_acceptance:

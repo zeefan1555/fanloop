@@ -54,3 +54,15 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	}
 	t.Fatalf("Condition Prompt %q was not resolved from the Workflow Bundle", conditionID)
 }
+
+func TestFormatPanoramaStagePreservesJobHierarchy(t *testing.T) {
+	loaded, err := workflow.Load("fanloop-maintainer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := FormatPanoramaStage(loaded.Workflow.Stages[0], func(step workflow.Step) string { return step.Name })
+	want := "本地验证机制：需求与方案【工作区准备 → 需求澄清 → 需求确认 → 方案设计】 ｜ 候选实现【代码实现】 ｜ 验证能力【验证技能维护】"
+	if got != want {
+		t.Fatalf("Panorama Stage = %q, want %q", got, want)
+	}
+}

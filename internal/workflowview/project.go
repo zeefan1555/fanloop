@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
@@ -14,6 +15,22 @@ import (
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
+
+func FormatPanoramaStage(stage workflow.Stage, stepLabel func(workflow.Step) string) string {
+	jobs := make([]string, 0, len(stage.Jobs))
+	for _, job := range stage.Jobs {
+		steps := make([]string, 0, len(job.Steps))
+		for _, step := range job.Steps {
+			steps = append(steps, stepLabel(step))
+		}
+		if len(stage.Jobs) == 1 {
+			jobs = append(jobs, strings.Join(steps, " → "))
+		} else {
+			jobs = append(jobs, job.Name+"【"+strings.Join(steps, " → ")+"】")
+		}
+	}
+	return stage.Name + "：" + strings.Join(jobs, " ｜ ")
+}
 
 func Project(definition workflow.Workflow, current state.State) *flowidl.FlowState {
 	result := &flowidl.FlowState{

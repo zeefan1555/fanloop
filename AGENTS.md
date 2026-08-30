@@ -43,12 +43,12 @@
 触发条件：修改 Go、Node、Python、Workflow、IDL、生成链、构建或发布脚本等会改变产品或测试行为的代码。
 
 1. 实现期间必须运行测试计划列出的聚焦测试和必要格式检查；命令、结果和当前 HEAD 写入验证记录。
-2. Fanloop maintainer Workflow 的验证事实只来自当前本地工作树，不读取或等待远端 PR checks。需要在真实 Agent 会话中复现或验证 Skill、Prompt 与 Workflow 内容时，用 `npm run install:local` 从同一工作树安装配套 Release，不拿已发布版本或旧安装当验证对象。PR 创建后 CI 可以异步运行，但不参与 Workflow Route；源码或测试资产更新后，旧本地验证与旧 AI Code Review 立即失效，必须对新 HEAD 重跑。
+2. Fanloop maintainer Workflow 的本地验证与代码审查只使用当前工作树；审查通过后冻结 `candidate_head`，再发布唯一 PR。后续 CI 硬门禁必须回读该精确 SHA 的 Ruleset 与 required checks，不能替代或倒推本地验证。需要在真实 Agent 会话中复现 Skill、Prompt 与 Workflow 时，用 `npm run install:local` 从同一候选安装配套 Release，不拿已发布版本或旧安装当证据。源码、测试或验证资产更新后，旧本地验证、Review、Eval、CI 与机器人验收全部失效，必须形成新 HEAD 并从本地验证重跑。
 3. 测试计划必须选择 `targeted` 或 `e2e`。文档、自迭代 Skill、未改变 Step/Route/Condition/executor 的 Prompt/SkillBinding，以及具备完整聚焦 seam 的局部叶子行为可以选择 `targeted`；该档只执行计划命令，不在本地重复 `run-unit` 或 `run-e2e`。
 4. 修改 Step/Route/Condition 推进语义、Thrift IDL、durable state/storage/output/trace/card、发布/安装/更新/打包、测试入口，或者缺少可靠聚焦 seam、影响面不确定时必须选择 `e2e`。该档在计划命令之外，从同一工作树运行 `./tests/run-unit` 与 `./tests/run-e2e` 并记录报告路径。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制或代码审阅代替。无法确定风险时选择 `e2e`，不得伪造 `targeted` 结论。
 
-完成标准：聚焦命令通过，本地验证与 AI Code Review 覆盖最终 MR HEAD；`e2e` profile 还要求本地 `run-unit` 与 `run-e2e` 零退出，报告对应当前工作树和二进制，且测试执行未改变源码状态。MR 创建后的远端检查不是 maintainer Workflow 的完成条件。
+完成标准：聚焦命令通过，本地验证与 AI Code Review 覆盖冻结的最终候选 HEAD；`e2e` profile 还要求本地 `run-unit` 与 `run-e2e` 零退出，报告对应当前工作树和二进制，且测试执行未改变源码状态。发布 PR 后，远端 Ruleset 与 required checks 还必须在同一 `candidate_head` 上通过，才可进入机器人验收和自动合码。
 
 ## ADR 一致性
 
