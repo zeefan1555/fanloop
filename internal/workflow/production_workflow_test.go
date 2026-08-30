@@ -129,15 +129,16 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	}
 }
 
-func TestProductionMaintainerWorkflowEndsWithAgentMerge(t *testing.T) {
+func TestProductionMaintainerTrustCurveEndsWithAutomaticMerge(t *testing.T) {
 	loaded, err := Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
 	wantSteps := []string{
 		"bootstrap_techdesign", "clarify_requirements", "confirm_requirements", "design_technical_solution",
-		"implement_code", "execute_test_cases", "review_code", "execute_agent_acceptance",
-		"merge_code",
+		"implement_code", "maintain_verification_skill", "maintain_feature_map", "execute_test_cases", "review_code",
+		"coordinate_eval", "execute_eval_candidates", "judge_eval", "publish_candidate", "verify_ci_gates",
+		"execute_agent_acceptance", "merge_code",
 	}
 	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantSteps) {
 		t.Fatalf("maintainer Steps = %v, want %v", got, wantSteps)
@@ -145,22 +146,30 @@ func TestProductionMaintainerWorkflowEndsWithAgentMerge(t *testing.T) {
 	for _, want := range []struct {
 		step     string
 		stage    string
+		job      string
 		executor StepExecutor
 	}{
-		{step: "review_code", stage: "implementation", executor: StepExecutorAgent},
-		{step: "execute_agent_acceptance", stage: "delivery", executor: StepExecutorAgent},
-		{step: "merge_code", stage: "delivery", executor: StepExecutorAgent},
+		{step: "confirm_requirements", stage: "local_verification", job: "requirement_design", executor: StepExecutorAgent},
+		{step: "maintain_verification_skill", stage: "local_verification", job: "verification_skill", executor: StepExecutorAgent},
+		{step: "maintain_feature_map", stage: "feature_intelligence", job: "feature_map", executor: StepExecutorAgent},
+		{step: "review_code", stage: "feature_intelligence", job: "local_quality", executor: StepExecutorAgent},
+		{step: "execute_eval_candidates", stage: "agent_evaluation", job: "eval_candidates", executor: StepExecutorAgent},
+		{step: "verify_ci_gates", stage: "hard_constraints", job: "ci_governance", executor: StepExecutorAgent},
+		{step: "execute_agent_acceptance", stage: "cloud_delivery", job: "robot_acceptance", executor: StepExecutorAgent},
+		{step: "merge_code", stage: "cloud_delivery", job: "automatic_merge", executor: StepExecutorAgent},
 	} {
 		context, _, ok := loaded.Workflow.FindStep(want.step)
-		if !ok || context.Stage.ID != want.stage || context.Step.Executor != want.executor {
-			t.Fatalf("maintainer Step %s = %#v, want stage=%s executor=%v", want.step, context, want.stage, want.executor)
+		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Executor != want.executor {
+			t.Fatalf("maintainer Step %s = %#v, want stage=%s job=%s executor=%v", want.step, context, want.stage, want.job, want.executor)
 		}
 	}
 	for _, skillID := range []string{
 		"fanloop-dev-bootstrap", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
 		"fanloop-dev-domain-modeling", "fanloop-dev-to-spec", "fanloop-dev-to-tickets",
 		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-verify",
-		"fanloop-dev-code-review", "fanloop-dev-maintain-verification", "fanloop-dev-agent-acceptance",
+		"fanloop-dev-code-review", "fanloop-dev-create-verification", "fanloop-dev-maintain-verification",
+		"fanloop-dev-eval-coordinator", "fanloop-dev-eval-candidate", "fanloop-dev-eval-judge",
+		"fanloop-dev-publish-candidate", "fanloop-dev-ci-gate", "fanloop-dev-agent-acceptance",
 		"fanloop-dev-merge-code", "fanloop-dev-panorama",
 	} {
 		found := false
@@ -175,7 +184,7 @@ func TestProductionMaintainerWorkflowEndsWithAgentMerge(t *testing.T) {
 	}
 	assertConditionSkill(t, loaded, "panorama_card_published", "fanloop-dev-panorama")
 	assertAgentApprovalCondition(t, loaded)
-	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed"}, "execute_test_cases", false)
+	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed"}, "maintain_verification_skill", false)
 	assertWorkflowRouteAnyOf(t, loaded, "confirm_requirements", [][]string{
 		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"},
 		{"agent_approved", "implementation_required"},
@@ -184,13 +193,25 @@ func TestProductionMaintainerWorkflowEndsWithAgentMerge(t *testing.T) {
 		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_not_required"},
 		{"agent_approved", "implementation_not_required"},
 	}, "", true)
-	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written"}, "execute_agent_acceptance", false)
+	assertWorkflowRoute(t, loaded, "maintain_verification_skill", []string{"verification_skill_ready"}, "maintain_feature_map", false)
+	assertWorkflowRoute(t, loaded, "maintain_feature_map", []string{"feature_map_current"}, "execute_test_cases", false)
+	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written", "candidate_head_frozen"}, "coordinate_eval", false)
+	assertWorkflowRoute(t, loaded, "coordinate_eval", []string{"eval_playbook_frozen"}, "execute_eval_candidates", false)
+	assertWorkflowRoute(t, loaded, "execute_eval_candidates", []string{"eval_candidates_completed"}, "judge_eval", false)
+	assertWorkflowRoute(t, loaded, "judge_eval", []string{"agent_eval_passed", "acceptance_report_written"}, "publish_candidate", false)
+	assertWorkflowRoute(t, loaded, "publish_candidate", []string{"pull_request_published"}, "verify_ci_gates", false)
+	assertWorkflowRoute(t, loaded, "verify_ci_gates", []string{"repository_guardrails_verified", "ci_gates_passed"}, "execute_agent_acceptance", false)
 	assertWorkflowRoute(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_passed", "acceptance_report_written"}, "merge_code", false)
 	assertWorkflowRoute(t, loaded, "merge_code", []string{"code_merged", "acceptance_report_written"}, "", true)
 	assertWorkflowLoop(t, loaded, "execute_test_cases", []string{"local_validation_failed"}, "implement_code")
 	assertWorkflowLoop(t, loaded, "review_code", []string{"requirements_changed", "review_report_written"}, "clarify_requirements")
 	assertWorkflowLoop(t, loaded, "review_code", []string{"technical_solution_changes_requested", "review_report_written"}, "design_technical_solution")
 	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed", "review_report_written"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "maintain_verification_skill", []string{"verification_skill_changes_requested"}, "maintain_verification_skill")
+	assertWorkflowLoop(t, loaded, "maintain_feature_map", []string{"feature_map_changes_requested"}, "maintain_feature_map")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"feature_map_changes_requested", "review_report_written"}, "maintain_feature_map")
+	assertWorkflowLoop(t, loaded, "judge_eval", []string{"agent_eval_failed", "verification_skill_changes_requested", "acceptance_report_written"}, "maintain_verification_skill")
+	assertWorkflowLoop(t, loaded, "verify_ci_gates", []string{"ci_gates_failed", "feature_map_changes_requested", "acceptance_report_written"}, "maintain_feature_map")
 	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written"}, "clarify_requirements")
 	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "technical_solution_changes_requested", "acceptance_report_written"}, "design_technical_solution")
 	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "implementation_changes_requested", "acceptance_report_written"}, "implement_code")
@@ -218,11 +239,11 @@ func TestProductionMaintainerWorkflowEndsWithAgentMerge(t *testing.T) {
 	for _, routes := range loaded.Workflow.Loops {
 		loopRoutes += len(routes)
 	}
-	if got := len(loaded.Workflow.Conditions); got != 32 {
-		t.Fatalf("maintainer Conditions = %d, want 32", got)
+	if got := len(loaded.Workflow.Conditions); got != 45 {
+		t.Fatalf("maintainer Conditions = %d, want 45", got)
 	}
-	if flowRoutes != 10 || loopRoutes != 18 || len(loaded.Workflow.Prompts) != 38 {
-		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 10/18/38", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
+	if flowRoutes != 17 || loopRoutes != 44 || len(loaded.Workflow.Prompts) != 56 {
+		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 17/44/56", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
 	}
 }
 

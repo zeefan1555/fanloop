@@ -5,7 +5,7 @@ description: 按 targeted 或 e2e 风险档复验 Fanloop CLI 本地源码并写
 
 # 按风险验证 Fanloop CLI
 
-1. 读取确认需求、仓库根 FEATURE_MAP.md、测试计划和已确认的 Verification Case；记录当前分支、
+1. 读取确认需求、`.agents/skills/verify-fanloop/features/README.md`、测试计划和已确认的 Verification Case；记录当前分支、
    HEAD、git status --short 与执行前 diff 摘要。纯文档、自迭代 Skill、未改变
    Step/Route/Condition/executor 与 CLI/IDL/Storage/发布/测试入口的 Prompt/SkillBinding，或具备可靠
    聚焦 Seam 的局部行为可以选择 targeted；推进语义、代码/IDL、durable state、发布/安装/打包、
@@ -20,6 +20,5 @@ description: 按 targeted 或 e2e 风险档复验 Fanloop CLI 本地源码并写
 5. 任一必需命令失败时保留错误摘要并上报 local_validation_failed 回到代码实现；不降档、不伪造。
    源码或测试资产改变后，旧本地验证立即失效。
 
-候选 Release 安装、逐 Feature 维护与真实机器人黑盒属于 Review 后的
-fanloop-dev-maintain-verification 和 fanloop-dev-agent-acceptance。本 Skill 不要求先有 MR，
-不读取或等待远端 checks，不批准 MR、不合并、不发布。
+验证技能与功能地图维护发生在本 Step 之前；本 Skill 只读这些资产。候选 Release 安装与真实机器人
+黑盒发生在 Review 之后。本 Skill 不要求先有 MR，不读取或等待远端 checks，不批准 MR、不合并、不发布。

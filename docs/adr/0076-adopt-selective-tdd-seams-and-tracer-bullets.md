@@ -2,7 +2,7 @@
 status: accepted
 date: 2026-08-25
 amends: ADR-0066
-amended_by: ADR-0090
+amended_by: ADR-0090, ADR-0091
 ---
 
 # 自迭代采用预先确认的 Test Seam、选择性 TDD 与 Tracer Bullet

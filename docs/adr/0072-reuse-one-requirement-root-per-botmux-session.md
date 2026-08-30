@@ -2,7 +2,7 @@
 status: accepted
 date: 2026-08-24
 amends: ADR-0035, ADR-0066
-amended_by: ADR-0090
+amended_by: ADR-0090, ADR-0091
 ---
 
 # Maintainer 在同一 Botmux Session 复用唯一 Requirement Root

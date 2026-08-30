@@ -33,9 +33,9 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 	}
 	markdown := renderMarkdown(cardidl.CardView_current, current, loaded.Workflow)
 	for _, want := range []string{
-		"需求定义 · 需求确认",
+		"本地验证机制 · 需求确认",
 		"[需求确认报告](https://bytedance.larkoffice.com/docx/requirements)",
-		"等待 Agent 识别人工反馈并提交对应 ConditionResult",
+		"waiting for approval",
 	} {
 		if !strings.Contains(markdown, want) {
 			t.Fatalf("card Markdown is missing %q:\n%s", want, markdown)
@@ -93,14 +93,16 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
 	for _, want := range []string{
 		"# 后端研发交付 · Compact card `Ready` `0%`",
-		"需求定义 · 工作区准备",
+		"本地验证机制 · 工作区准备",
 		"## 状态全景",
-		"需求定义：**工作区准备（Ready）** → 需求澄清 → 需求确认",
-		"需求实现：方案设计 → 代码实现 → 本地验证 → 代码审查",
-		"变更交付：Agent 自动化验收 → 合码",
+		"本地验证机制：需求与方案【**工作区准备（Ready）** → 需求澄清 → 需求确认 → 方案设计】 ｜ 候选实现【代码实现】 ｜ 验证能力【验证技能维护】",
+		"功能图谱：产品导航能力【功能地图维护】 ｜ 本地质量闭环【本地验证 → 代码审查】",
+		"Agent 评测：评测设计【评测编排】 ｜ 并行候选评测【子 Agent 执行】 ｜ 独立裁判【独立裁判】",
+		"硬性门禁：候选发布【发布候选 PR】 ｜ Dune 代码库门禁【CI 硬门禁】",
+		"云端交付：并行机器人验收【机器人端到端验收】 ｜ 自动交付【自动合码】",
 		"整体进度：0%",
 		"## 各阶段 Output",
-		"| 需求定义 | 需求实现 | 变更交付 |",
+		"| 本地验证机制 | 功能图谱 | Agent 评测 | 硬性门禁 | 云端交付 |",
 		"> **当前执行证据**",
 		"**🚧 当前进行中**",
 	} {

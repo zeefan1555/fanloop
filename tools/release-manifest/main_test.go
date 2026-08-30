@@ -49,9 +49,11 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	}
 	wantSkills := []string{
 		"fanloop-workflow",
-		"fanloop-dev-agent-acceptance", "fanloop-dev-bootstrap", "fanloop-dev-code-review", "fanloop-dev-domain-modeling",
-		"fanloop-dev-grill-with-docs", "fanloop-dev-grilling", "fanloop-dev-implement",
-		"fanloop-dev-maintain-verification", "fanloop-dev-merge-code", "fanloop-dev-panorama", "fanloop-dev-tdd", "fanloop-dev-to-spec",
+		"fanloop-dev-agent-acceptance", "fanloop-dev-bootstrap", "fanloop-dev-ci-gate", "fanloop-dev-code-review",
+		"fanloop-dev-create-verification", "fanloop-dev-domain-modeling", "fanloop-dev-eval-candidate",
+		"fanloop-dev-eval-coordinator", "fanloop-dev-eval-judge", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
+		"fanloop-dev-implement", "fanloop-dev-maintain-verification", "fanloop-dev-merge-code", "fanloop-dev-panorama",
+		"fanloop-dev-publish-candidate", "fanloop-dev-tdd", "fanloop-dev-to-spec",
 		"fanloop-dev-to-tickets", "fanloop-dev-verify", "fanloop-dev-workflow",
 		"technical-background-framing", "technical-direction-approval", "technical-key-solutions",
 		"technical-objective-setting", "technical-overall-solution", "technical-problem-analysis",
@@ -392,8 +394,21 @@ func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(content), "fanloop update") {
+	skill := string(content)
+	if strings.Contains(skill, "fanloop update") {
 		t.Fatal("maintainer Workflow entry still requires an online update")
+	}
+	for _, value := range []string{
+		"通用 `fanloop-workflow` 的 renderer-owned 最终回复契约",
+		"flow status --root <ABSOLUTE_REQUIREMENT_ROOT>",
+		"card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run",
+		"本轮最终普通回复必须完整原样展示 render 响应的 `data.content`",
+		"任一命令失败即以真实错误阻塞并停止",
+		"不得手工 fallback、复用旧 render 或快照",
+	} {
+		if !strings.Contains(skill, value) {
+			t.Fatalf("maintainer Workflow entry does not contain %q", value)
+		}
 	}
 }
 

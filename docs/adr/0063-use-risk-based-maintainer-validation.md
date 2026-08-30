@@ -2,7 +2,7 @@
 status: accepted
 date: 2026-08-20
 amends: ADR-0055, ADR-0059
-amended_by: ADR-0090
+amended_by: ADR-0090, ADR-0091
 ---
 
 # 自迭代使用按风险分档的本地验证
