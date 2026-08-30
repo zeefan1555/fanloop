@@ -15,11 +15,11 @@ prompts:
       - {id: fanloop-dev-domain-modeling, prompt: 使用该原子 Skill 挑战含混术语并整理 CONTEXT/ADR 候选，不在确认前改仓库真值。, optional: false}
   confirm_requirements_flow:
     prompt: |
-      人以 requirements.md 为唯一主审文档确认完整决策和实现必要性。Agent 必须先从最新 requirements.md 生成一张自包含 Panorama 审核卡，依次完整展示当前 Stage/Job/Step、目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界和精确授权口令；通过当前 Agent 渠道或绑定 Skill 发送并回读成功后，记录本次全新回执并上报 panorama_card_published。不得只给摘要、只贴链接、要求人回翻上下文，或复用前一 Step、前一次进入本 Step 的回执。只有该卡发送成功后到达的全新用户消息才可用于审批。审批人固定为当前 fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下的张菲帆：消息必须满足 senderType=user 且 senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95，不能只校验显示名或复用其他应用作用域的 OpenID。确认需要实现时，消息去除首尾空白后必须精确等于“批准进入 需求实现”，且不得同时包含需求修改、方案反馈或其他文字。有效确认后，先把 Panorama 回执、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入 requirements.md，再同时上报 panorama_card_published、requirements_approved、requirements_approval_recorded、requirements_evidence_written=requirements.md 以及 implementation_required 或 implementation_not_required。确认无需实现时在同样写入回执并提交该完整成功组合后干净结束。错误 sender、笼统同意、字段调整、混合了批准与修改的消息，以及拒绝、补充或改变任何决策的消息，都记录真实消息并回到需求澄清。此后不再设置人工门禁。
+      先以 requirements.md 为唯一主审文档独立复核完整决策和实现必要性。所有决策明确、Open Questions 为空、完整改造计划与验证边界自洽且不存在需要人决定的阻塞项时，Agent 可不发布 Panorama，直接上报 agent_approved、implementation_required 或 implementation_not_required，并在 Evidence 记录复核理由与 requirements.md；否则进入原人工路径。人工路径下，Agent 必须先从最新 requirements.md 生成一张自包含 Panorama 审核卡，依次完整展示当前 Stage/Job/Step、目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界和精确授权口令；通过当前 Agent 渠道或绑定 Skill 发送并回读成功后，记录本次全新回执并上报 panorama_card_published。不得只给摘要、只贴链接、要求人回翻上下文，或复用前一 Step、前一次进入本 Step 的回执。只有该卡发送成功后到达的全新用户消息才可用于审批。审批人固定为当前 fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下的张菲帆：消息必须满足 senderType=user 且 senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95，不能只校验显示名或复用其他应用作用域的 OpenID。确认需要实现时，消息去除首尾空白后必须精确等于“批准进入 需求实现”，且不得同时包含需求修改、方案反馈或其他文字。有效确认后，先把 Panorama 回执、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入 requirements.md，再同时上报 panorama_card_published、requirements_approved、requirements_approval_recorded、requirements_evidence_written=requirements.md 以及 implementation_required 或 implementation_not_required。确认无需实现时在同样写入回执并提交该完整成功组合后干净结束。错误 sender、笼统同意、字段调整、混合了批准与修改的消息，以及拒绝、补充或改变任何决策的消息，都记录真实消息并回到需求澄清。此后不再设置人工门禁。
     skills: []
   confirm_requirements_terminal:
     prompt: |
-      人已确认无需实现。保留 requirements.md 与确认消息作为终止证据；不得进入方案设计、实现、验证或 MR 交接。
+      人或 Agent 已确认无需实现。保留 requirements.md 与对应批准 Evidence 作为终止证据；不得进入方案设计、实现、验证或 MR 交接。
     skills: []
   design_technical_solution_flow:
     prompt: |
@@ -57,7 +57,8 @@ prompts:
       根据 workflow.yaml、当前 flow status、有效 Outputs 和审核要求，生成包含完整 Stage/Job/Step 全景、当前状态、产物和待决事项的自包含审核材料。通过当前 Agent 渠道或对应 Skill 发送并回读成功后，上报真实 messageId 或 Agent 交互事件 ID。不得复用前一 Step 或前一次进入本 Step 的回执。
     skills:
       - {id: fanloop-dev-panorama, prompt: 使用该 Skill 生成、通过当前 Agent 通道展示并回读本次自包含 Panorama，返回 panorama_card_published ConditionResult。, optional: false}
-  implementation_requirement_condition: {prompt: 人选择 implementation_required 或 implementation_not_required；二者只能选择一个且输出 true。, skills: []}
+  agent_approval_condition: {prompt: 仅当当前 Agent 已独立复核最新审核产物、确认无阻塞项且无需人作出新决定时上报 agent_approved=approved；Evidence 必须记录复核理由与产物引用。该路径不发布 Panorama，也不伪造人工消息。, skills: []}
+  implementation_requirement_condition: {prompt: 人工或 Agent 根据当前已确认需求选择 implementation_required 或 implementation_not_required；二者只能选择一个且输出 true。, skills: []}
   requirements_decision_condition: {prompt: 按真实人工结论选择 requirements_approved 或 requirements_rejected；二者只能选择一个。, skills: []}
   requirements_approval_record_condition: {prompt: requirements_approval_recorded 只输出进入 confirm_requirements 后、本轮 Panorama 审核卡发送并回读成功后收到的全新人工消息 ID；消息必须由 fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下 senderType=user、senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95 的张菲帆发送；implementation_required 时正文必须精确为“批准进入 需求实现”且不包含其他内容。, skills: []}
   requirements_evidence_condition: {prompt: requirements_evidence_written 只在确认卡与批准消息的 messageId、senderType、senderId、正文结论和实现必要性已写入 requirements.md 后输出 requirements_evidence_path=requirements.md。, skills: []}

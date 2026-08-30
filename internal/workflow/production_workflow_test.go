@@ -56,13 +56,14 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		}
 	}
 	assertConditionSkill(t, loaded, "panorama_card_published", "technical-solution-panorama")
+	assertAgentApprovalCondition(t, loaded)
 	assertWorkflowRoute(t, loaded, "frame_technical_problem", []string{"technical_problem_defined"}, "confirm_technical_problem", false)
-	assertWorkflowRoute(t, loaded, "confirm_technical_problem", []string{"panorama_card_published", "technical_problem_approved"}, "derive_technical_solution", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_technical_problem", [][]string{{"panorama_card_published", "technical_problem_approved"}, {"agent_approved"}}, "derive_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "derive_technical_solution", []string{"technical_solution_derived"}, "confirm_solution_direction", false)
-	assertWorkflowRoute(t, loaded, "confirm_solution_direction", []string{"panorama_card_published", "solution_direction_approved"}, "write_technical_solution", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_solution_direction", [][]string{{"panorama_card_published", "solution_direction_approved"}, {"agent_approved"}}, "write_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "write_technical_solution", []string{"technical_solution_written", "architecture_diagram_written"}, "review_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "review_technical_solution", []string{"technical_solution_review_passed", "technical_solution_review_written"}, "confirm_technical_solution", false)
-	assertWorkflowRoute(t, loaded, "confirm_technical_solution", []string{"panorama_card_published", "technical_solution_approved"}, "", true)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_technical_solution", [][]string{{"panorama_card_published", "technical_solution_approved"}, {"agent_approved"}}, "", true)
 	assertWorkflowLoop(t, loaded, "frame_technical_problem", []string{"technical_problem_rework_requested"}, "frame_technical_problem")
 	assertWorkflowLoop(t, loaded, "confirm_technical_problem", []string{"panorama_card_published", "technical_problem_rejected"}, "frame_technical_problem")
 	assertWorkflowLoop(t, loaded, "derive_technical_solution", []string{"technical_problem_changed"}, "frame_technical_problem")
@@ -70,8 +71,8 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	assertWorkflowLoop(t, loaded, "write_technical_solution", []string{"solution_direction_changed"}, "derive_technical_solution")
 	assertWorkflowLoop(t, loaded, "review_technical_solution", []string{"technical_solution_review_failed", "technical_solution_review_written"}, "write_technical_solution")
 	assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"panorama_card_published", "technical_solution_rejected"}, "write_technical_solution")
-	if got := len(loaded.Workflow.Conditions); got != 17 {
-		t.Fatalf("Condition count = %d, want 17", got)
+	if got := len(loaded.Workflow.Conditions); got != 18 {
+		t.Fatalf("Condition count = %d, want 18", got)
 	}
 }
 
@@ -104,12 +105,29 @@ func TestProductionMaintainerWorkflowUsesRenamedSelfIterationSkills(t *testing.T
 		}
 	}
 	assertConditionSkill(t, loaded, "panorama_card_published", "fanloop-dev-panorama")
+	assertAgentApprovalCondition(t, loaded)
 	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed"}, "execute_test_cases", false)
-	assertWorkflowRoute(t, loaded, "confirm_requirements", []string{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"}, "design_technical_solution", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_requirements", [][]string{
+		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"},
+		{"agent_approved", "implementation_required"},
+	}, "design_technical_solution", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_requirements", [][]string{
+		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_not_required"},
+		{"agent_approved", "implementation_not_required"},
+	}, "", true)
 	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written"}, "handoff_merge_request", false)
 	assertWorkflowRoute(t, loaded, "handoff_merge_request", []string{"merge_request_created", "merge_request_handed_off", "handoff_record_written"}, "", true)
 	assertWorkflowLoop(t, loaded, "execute_test_cases", []string{"local_validation_failed"}, "implement_code")
 	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed"}, "implement_code")
+}
+
+func assertAgentApprovalCondition(t *testing.T, loaded Loaded) {
+	t.Helper()
+	condition, ok := loaded.Workflow.Condition("agent_approved")
+	if !ok || condition.Output.Key != "agent_approval_decision" || condition.Output.Type != OutputEnum ||
+		!reflect.DeepEqual(condition.Output.Values, []string{"approved"}) {
+		t.Fatalf("agent_approved = %#v", condition)
+	}
 }
 
 func assertConditionSkill(t *testing.T, loaded Loaded, conditionID, skillID string) {
@@ -133,6 +151,16 @@ func assertWorkflowRoute(t *testing.T, loaded Loaded, stepID string, conditions 
 		}
 	}
 	t.Fatalf("%s has no expected Flow for %v: %#v", stepID, conditions, loaded.Workflow.Flows[stepID])
+}
+
+func assertWorkflowRouteAnyOf(t *testing.T, loaded Loaded, stepID string, groups [][]string, nextStepID string, terminal bool) {
+	t.Helper()
+	for _, route := range loaded.Workflow.Flows[stepID] {
+		if reflect.DeepEqual(route.When.AnyOf, groups) && route.NextStepID == nextStepID && route.Terminal == terminal {
+			return
+		}
+	}
+	t.Fatalf("%s has no expected Flow for %v: %#v", stepID, groups, loaded.Workflow.Flows[stepID])
 }
 
 func assertWorkflowLoop(t *testing.T, loaded Loaded, stepID string, conditions []string, backStepID string) {

@@ -80,16 +80,24 @@ Skill、CLI 或 init 任一不可用或失败时，原样报告阻塞并停止�
    失效。不要猜目标。
 7. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中
    或多命中都原子拒绝。
-8. Human Step 使用同一个 Result 接缝。若 Route 要求 `panorama_card_published`，先生成、发送并
-   回读自包含审核材料；等到明确的人类决定后，把本轮真实投递回执与 approved/rejected
-   Condition、消息引用和 Evidence 一起上报。CLI 不自动发送，也不认证审批人或事实真伪。
+8. Human Step 使用同一个 Result 接缝。当前 Conditions 提供 `agent_approved` 且 Agent 已独立确认
+   无阻塞项、无需人作出新决定时，可直接提交该 Condition 与 Route 要求的其他事实，不发布
+   Panorama；否则走人工路径。人工 Route 要求 `panorama_card_published` 时，先生成、发送并回读
+   自包含审核材料；等到明确的人类决定后，把本轮真实投递回执与 approved/rejected Condition、
+   消息引用和 Evidence 一起上报。CLI 不自动发送，也不认证审批人或事实真伪。
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、
    不触发远端投影。
 
 ## 开发授权门禁
 
-`confirm_requirements` 是进入需求实现前的唯一 Human Step。从最新 `requirements.md` 生成一张
-自包含 Panorama Markdown 审核卡并使用
+`confirm_requirements` 是进入需求实现前的唯一 Human Step，同时提供 Agent 与人工两条批准路径。
+
+Agent 路径先独立复核最新 `requirements.md`。只有所有决策明确、Open Questions 为空、完整改造
+计划与验证边界自洽且不存在需要人决定的阻塞项时，才同时上报 `agent_approved` 与
+`implementation_required` 或 `implementation_not_required`；Evidence 记录复核理由和
+`requirements.md`。该路径不发送 Panorama，不构造人工消息或回执。
+
+不能独立批准时进入人工路径：从最新 `requirements.md` 生成一张自包含 Panorama Markdown 审核卡并使用
 `botmux send --mention-back` 发送。确认卡必须依次完整展示当前 Stage/Job/Step、目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界和精确授权口令；不得只给摘要、只贴链接或要求人回翻上下文。
 发送并回读成功后立即把 Botmux `messageId` 写入 `requirements.md`，作为本轮
 `panorama_card_published` 的 Output，并以该审核卡建立 turn boundary：
@@ -107,7 +115,7 @@ Panorama 审核卡发送成功后，需要实现时，正文去除首尾空白�
 这些消息必须连同真实 message ID、senderType 与 senderId 记录后回到需求澄清。形成有效批准时，先把
 Panorama 审核卡 messageId、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入
 `requirements.md`，再将 `requirements_evidence_written=requirements.md` 与其他成功 Conditions 一起上报。
-有效授权 Result 被 CLI 接受且最新 Status 已进入需求实现前，不得修改源码、提交、推送、创建或更新 MR。
+有效 Agent 或人工批准 Result 被 CLI 接受且最新 Status 已进入需求实现前，不得修改源码、提交、推送、创建或更新 MR。
 
 ## 维护者协作边界
 
@@ -125,8 +133,8 @@ Release-bound Skill 在固定审核群创建话题，真实 @ 张菲帆进行人
 2. 先完成承载最新状态的非 dry-run 写命令：新 Requirement 使用 `flow init`；Result 进入
    Human Step 时复用该 `flow report result`；Agent Step 新增人工依赖时使用
    `flow report progress --status blocked`。
-3. Human Step 按当前 Prompt/Skill 发送自包含 Panorama 审核材料并取得本轮真实回执后，才能请求
-   人工决定；CLI 写命令不会代为发送。
+3. Human Step 选择人工路径时，按当前 Prompt/Skill 发送自包含 Panorama 审核材料并取得本轮真实
+   回执后，才能请求人工决定；CLI 写命令不会代为发送。
 4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama
    回执。
 

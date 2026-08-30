@@ -4,6 +4,9 @@ conditions:
   panorama_card_published:
     prompt_ref: {file: prompt.yaml, prompt_id: panorama_card_published_condition}
     output: {key: panorama_card_receipt_id, type: string, description: 当前 Human Step 全景材料的真实投递回执}
+  agent_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: agent_approval_condition}
+    output: {key: agent_approval_decision, type: enum_value, values: [approved], description: 当前 Agent 已独立复核并同意继续}
 
   repository_workspace_prepared:
     prompt_ref: {file: prompt.yaml, prompt_id: workspace_condition}
