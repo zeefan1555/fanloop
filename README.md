@@ -23,8 +23,11 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 ## 使用 npx 安装
 
-Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先使用具备
-`read:packages` 权限的 GitHub classic PAT 登录，再安装匹配的 CLI、Workflow 与 Skills：
+Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先创建具备
+`read:packages` 权限的 GitHub classic PAT，再安装匹配的 CLI、Workflow 与 Skills。执行
+`npm login` 后，`Password` 必须粘贴这个 PAT，不能使用 GitHub 密码或 npmjs token：
+
+每次变更进入 `main` 后，Release Workflow 自动发布下一个 patch 版本并提升 `latest`。
 
 ```bash
 npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
@@ -129,8 +132,8 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 发布边界
 
-源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。在 GitHub Actions 手工运行 `Release`
-Workflow 会执行完整测试、构建四个平台配套制品、发布 `candidate`、验证后提升 `latest`；
+源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。每次变更进入 `main` 后，GitHub Actions
+`Release` Workflow 会执行完整测试、构建四个平台配套制品、发布 `candidate`、验证后提升 `latest`；
 发布使用当前仓库的 `GITHUB_TOKEN`，不需要额外 npm secret。代码目前为 `UNLICENSED`，
 选择许可证和公开前资料审计应在首次公开前单独完成。
 

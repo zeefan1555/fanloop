@@ -1,11 +1,13 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 concurrency:
   group: fanloop-release
-  cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read
@@ -13,7 +15,6 @@ permissions:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       NPM_CONFIG_REGISTRY: https://npm.pkg.github.com
