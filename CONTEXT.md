@@ -66,6 +66,23 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 **Agent 手册**
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。
 
+## 维护者验收
+
+**Maintainer Lifecycle**
+`fanloop-maintainer` 是 3/4/2 的九步流程：需求定义为工作区准备、需求澄清、需求确认；需求实现为
+方案设计、代码实现、本地验证、代码审查；变更交付为 Agent 自动化验收、合码。需求确认可以由
+Agent 独立批准；Agent 验收通过后由合码 Step 通过唯一 GitHub PR squash 合并精确 reviewed HEAD。
+
+**Feature Map / Verification Maintenance**
+仓库根 `FEATURE_MAP.md` 以用户 Feature 为单位映射症状、公开命令、稳定 Seam、最小真实验证和证据。
+Agent 验收前逐 Feature 做 source + live 校准；结果为 `clean|changed|blocked`。维护只能修验证资产，
+产品行为与正确 Map 不一致时作为 product gap 回实现。
+
+**Maintainer Reports**
+`local-test-report.md` 保存 Review 前的确定性本地验证，`review-report.md` 保存独立代码审查；唯一新增的
+`acceptance-report.md` 从 Agent 验收开始，连续记录维护、同 HEAD Release 安装、真实机器人黑盒和
+最终合码回读。三份报告都必须绑定同一 reviewed HEAD；候选变化使下游事实失效。
+
 ## 公开契约
 
 **CommandSpec**

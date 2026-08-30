@@ -1,6 +1,6 @@
 ---
 name: fanloop-dev-workflow
-description: 维护 zeefan1555/fanloop 自身的入口。用于自我迭代机器人接收缺陷、优化或代码变更请求，并沿 fanloop-maintainer Workflow 从需求澄清推进到最终 MR 交接。
+description: 维护 zeefan1555/fanloop 自身的入口。用于自我迭代机器人接收缺陷、优化或代码变更请求，并沿 fanloop-maintainer Workflow 从需求澄清推进到 Agent 验收和合码。
 ---
 
 # Fanloop Dev Workflow
@@ -89,9 +89,9 @@ Skill、CLI 或 init 任一不可用或失败时，原样报告阻塞并停止�
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、
    不触发远端投影。
 
-## 开发授权门禁
+## 需求确认门禁
 
-`confirm_requirements` 是进入需求实现前的唯一 Human Step，同时提供 Agent 与人工两条批准路径。
+confirm_requirements 是进入需求实现前的授权 Human Step，同时提供 Agent 与人工两条批准路径。
 
 Agent 路径先独立复核最新 `requirements.md`。只有所有决策明确、Open Questions 为空、完整改造
 计划与验证边界自洽且不存在需要人决定的阻塞项时，才同时上报 `agent_approved` 与
@@ -118,14 +118,17 @@ turn boundary 之后到达，才继续检查正文。不能只校验显示名，
 审核卡 messageId、Panorama 快照路径、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入
 `requirements.md`，再将 `requirements_evidence_written=requirements.md` 与其他成功 Conditions 一起上报。
 有效 Agent 或人工批准 Result 被 CLI 接受且最新 Status 已进入需求实现前，不得修改源码、提交、推送、创建或更新 MR。
+该批准不替代后续 Agent 验收或合码事实。
 
 ## 维护者协作边界
 
-需求确认后自动推进。最终 MR 交接前只与张菲帆交互，不通知其他机器人。最终 MR 交接 Step 按当前
-Release-bound Skill 在固定审核群创建话题，真实 @ 张菲帆进行人工审核，并在同一卡片末行 cc
-苏文钦、吴瑜明。
+需求确认后自动推进。execute_agent_acceptance 只允许“使用 Fanloop 机器人”在已批准测试群驱动
+“FanLoop 机器人”执行黑盒 Case；不得通知其他机器人或使用用户身份。Candidate 到达 merge_code
+边界即停止，不得在黑盒 Case 中执行合码。
 
-不自动合并或发布；最终决定由张菲帆完成。
+只有 merge_code 可在精确 reviewed HEAD 上创建或更新 GitHub PR 并 squash 合并；不发送 Botmux
+审核话题、不等待人工验收、不直接 push main，也不执行发布。main push 触发的 Release 由现有
+GitHub Actions 独立处理。
 
 ## 人类提问顺序
 
