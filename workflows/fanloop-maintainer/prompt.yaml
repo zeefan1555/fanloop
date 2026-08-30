@@ -56,17 +56,17 @@ prompts:
       - {id: fanloop-dev-code-review, prompt: 审查最终 Diff，记录并冻结 reviewed HEAD。, optional: false}
   coordinate_eval_flow:
     prompt: |
-      只读冻结候选。根据需求、验证技能与功能地图生成恰好两个黑盒 Case、10 分制 Rubric、硬红线和随机工作目录名，写入 eval-playbook.md。Case 不得透露正在评测；不得执行候选或修改仓库。完成上报 eval_playbook_frozen。
+      只读冻结候选。根据需求、验证技能与功能地图生成恰好两个黑盒 Case；每个 Case 的原始 brief 与 10 分制 Rubric 分文件保存并记录 SHA-256，清单写入内容寻址的 eval-playbook.<sha256>.md。brief 不得透露正在评测，并必须内含全新目录、全新 Requirement、公开 CLI、证据字段、内层 Botmux 环境隔离和 merge_code 前停止的固定契约。不得执行候选或修改仓库。完成上报 eval_playbook_frozen。
     skills:
       - {id: fanloop-dev-eval-coordinator, prompt: 冻结防作弊评测剧本与评分标准。, optional: false}
   execute_eval_candidates_flow:
     prompt: |
-      只读冻结候选。在彼此隔离的随机目录中并行派发 eval-playbook.md 的 Case；每个子 Agent 只使用候选 Release、验证技能与功能地图，保存命令、输出和证据，不得修改候选或共享中间结果。全部结束后汇总 eval-candidates-report.md 并上报 eval_candidates_completed；基础设施失败保持 blocked。
+      只读冻结候选。先校验 eval-playbook.<sha256>.md 文件名摘要以及两个 brief/Rubric 摘要，再在彼此隔离的随机目录中并行执行两个原始 brief；每个子 Agent 只使用候选 Release、验证技能与功能地图，保存命令、输出和证据，不得修改候选或共享中间结果。全部结束后汇总 eval-candidates-report.md 并上报 eval_candidates_completed；摘要不一致或基础设施失败保持 blocked。
     skills:
       - {id: fanloop-dev-eval-candidate, prompt: 并行运行隔离候选评测并保留证据。, optional: false}
   judge_eval_flow:
     prompt: |
-      使用不同于候选 Agent 的模型独立复核 Case 证据，逐项按 Rubric 评分。只有全部 10/10 且无硬红线才上报 agent_eval_passed；结论追加 acceptance-report.md。失败时上报 agent_eval_failed、acceptance_report_written 和恰好一个最早责任回流 Condition。最多允许 3 轮，每轮必须经回流形成新 HEAD；第 3 轮仍失败则保持 blocked。
+      使用不同于候选 Agent 的模型，先校验内容寻址 Playbook 与两个原始 brief/Rubric 摘要，再独立复核 Case 证据并逐项按冻结 Rubric 评分。只有全部 10/10 且无硬红线才上报 agent_eval_passed；结论追加 acceptance-report.md。失败时上报 agent_eval_failed、acceptance_report_written 和恰好一个最早责任回流 Condition。最多允许 3 轮，每轮必须经回流形成新 HEAD；第 3 轮仍失败则保持 blocked。
     skills:
       - {id: fanloop-dev-eval-judge, prompt: 以独立模型评分、分类失败并更新验收报告。, optional: false}
   publish_candidate_flow:
@@ -81,7 +81,7 @@ prompts:
       - {id: fanloop-dev-ci-gate, prompt: 校验仓库 Ruleset、必需 checks 与精确候选 HEAD。, optional: false}
   execute_agent_acceptance_flow:
     prompt: |
-      只读冻结候选。使用机器人身份并行运行两个全新端到端 Case：外层 Botmux 只负责机器人通信；内层 Fanloop CLI 必须清除 BOTMUX_CHAT_ID/BOTMUX_SESSION_ID，不使用用户 token 或用户身份，不创建 Card Binding、Trace Integration、远端 Trace Event、用户 Trace 文档或 CLI 日志文档。两机器人、安装版本、Doctor、候选 SHA 和黑盒结果全部通过才上报 agent_acceptance_passed 与 acceptance_report_written。任何身份或远端副作用为 governance_failed；确定产品失败上报 agent_acceptance_failed、报告和恰好一个责任回流 Condition；基础设施失败保持 blocked，不回退用户身份。
+      只读冻结候选。校验 eval_playbook_path 的文件名摘要和其中恰好两个 brief/Rubric 的 SHA-256，使用机器人身份把两个原始 brief 直接作为 --brief-file 并行派发；“全新”只指两个话题、目录和 Requirement，禁止生成、复制、选择或改写题面与 Rubric。外层 Botmux 只负责机器人通信；内层 Fanloop CLI 必须清除 BOTMUX_CHAT_ID/BOTMUX_SESSION_ID，不使用用户 token 或用户身份，不创建 Card Binding、Trace Integration、远端 Trace Event、用户 Trace 文档或 CLI 日志文档。两机器人、安装版本、Doctor、候选 SHA、摘要和黑盒结果全部通过才上报 agent_acceptance_passed 与 acceptance_report_written。摘要不一致、任何身份或远端副作用为 governance_failed；确定产品失败上报 agent_acceptance_failed、报告和恰好一个责任回流 Condition；基础设施失败保持 blocked，不回退用户身份。
     skills:
       - {id: fanloop-dev-agent-acceptance, prompt: 并行执行两机器人真实验收并强制身份隔离。, optional: false}
   merge_code_flow:
@@ -116,7 +116,7 @@ prompts:
   review_condition: {prompt: 按真实审查结论选择 passed 或 failed。, skills: []}
   review_report_condition: {prompt: 输出包含被审 HEAD、结论和 findings 的 review-report.md。, skills: []}
   candidate_head_condition: {prompt: 仅在审查通过且工作树干净时输出完整候选提交 SHA；下游必须只读该 SHA。, skills: []}
-  eval_playbook_condition: {prompt: 输出已冻结 Case、Rubric、红线、随机目录和模型隔离要求的 eval-playbook.md。, skills: []}
+  eval_playbook_condition: {prompt: 输出文件名摘要匹配内容、且记录恰好两个原 brief/Rubric 路径与 SHA-256 的 eval-playbook.<sha256>.md。, skills: []}
   eval_candidates_condition: {prompt: 输出所有隔离候选已结束且证据完整的 eval-candidates-report.md。, skills: []}
   agent_eval_condition: {prompt: 全部 Case 10/10 且无红线上报 passed；否则上报 failed 并附唯一责任回流。, skills: []}
   pull_request_condition: {prompt: 仅在唯一 open PR 的 base、head 与 candidate_head 回读一致时输出 URL。, skills: []}

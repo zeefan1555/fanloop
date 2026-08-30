@@ -135,7 +135,7 @@ func TestMaintainerTrustCurveAdvancesToAutomaticMerge(t *testing.T) {
 		conditionResult("review_report_written", "path", "\"review-report.md\""),
 		conditionResult("candidate_head_frozen", "string", "\""+candidateHead+"\""))
 	advance("coordinate_eval", "execute_eval_candidates",
-		conditionResult("eval_playbook_frozen", "path", "\"eval-playbook.md\""))
+		conditionResult("eval_playbook_frozen", "path", "\"eval-playbook.0000000000000000000000000000000000000000000000000000000000000000.md\""))
 	advance("execute_eval_candidates", "judge_eval",
 		conditionResult("eval_candidates_completed", "path", "\"eval-candidates-report.md\""))
 	advance("judge_eval", "publish_candidate",

@@ -11,6 +11,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/workflowview"
 )
 
 var beijingTimezone = time.FixedZone("UTC+8", 8*60*60)
@@ -142,27 +143,17 @@ func tracePanorama(current state.State, definition workflow.Workflow) string {
 	position := 0
 	lines := make([]string, 0, len(definition.Stages)+1)
 	for _, stage := range definition.Stages {
-		jobs := make([]string, 0, len(stage.Jobs))
-		for _, job := range stage.Jobs {
-			steps := make([]string, 0, len(job.Steps))
-			for _, step := range job.Steps {
-				label := step.Name
-				switch {
-				case current.CurrentStepID == nil || currentFound && position < currentPosition:
-					label = "✅ " + label
-				case currentFound && position == currentPosition:
-					label = "**" + label + "（" + traceStatusLabel(current, definition) + "）**"
-				}
-				steps = append(steps, label)
-				position++
+		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflow.Step) string {
+			label := step.Name
+			switch {
+			case current.CurrentStepID == nil || currentFound && position < currentPosition:
+				label = "✅ " + label
+			case currentFound && position == currentPosition:
+				label = "**" + label + "（" + traceStatusLabel(current, definition) + "）**"
 			}
-			if len(stage.Jobs) == 1 {
-				jobs = append(jobs, strings.Join(steps, " → "))
-			} else {
-				jobs = append(jobs, job.Name+"【"+strings.Join(steps, " → ")+"】")
-			}
-		}
-		lines = append(lines, stage.Name+"："+strings.Join(jobs, " ｜ "))
+			position++
+			return label
+		}))
 	}
 	lines = append(lines, fmt.Sprintf("整体进度：%d%%", traceProgressPercent(current, definition)))
 	return strings.Join(lines, "\n")

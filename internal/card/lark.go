@@ -202,27 +202,17 @@ func statusPanorama(view cardidl.CardView, current state.State, definition workf
 				continue
 			}
 		}
-		jobs := make([]string, 0, len(stage.Jobs))
-		for _, job := range stage.Jobs {
-			steps := make([]string, 0, len(job.Steps))
-			for _, step := range job.Steps {
-				label := step.Name
-				switch {
-				case !found || position < currentPosition:
-					label = "✅ " + label
-				case position == currentPosition:
-					label = "**" + label + "（" + cardStatus(current, definition) + "）**"
-				}
-				steps = append(steps, label)
-				position++
+		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflow.Step) string {
+			label := step.Name
+			switch {
+			case !found || position < currentPosition:
+				label = "✅ " + label
+			case position == currentPosition:
+				label = "**" + label + "（" + cardStatus(current, definition) + "）**"
 			}
-			if len(stage.Jobs) == 1 {
-				jobs = append(jobs, strings.Join(steps, " → "))
-			} else {
-				jobs = append(jobs, job.Name+"【"+strings.Join(steps, " → ")+"】")
-			}
-		}
-		lines = append(lines, stage.Name+"："+strings.Join(jobs, " ｜ "))
+			position++
+			return label
+		}))
 	}
 	if len(lines) == 0 {
 		return "流程已完成"

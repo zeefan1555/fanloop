@@ -15,8 +15,9 @@ source session 解析，不得写死。
 1. 执行 botmux bots list --session-id DRIVER_SESSION，确认 chat、isSelf driver app 与 target app。
 2. 回读 lark-cli whoami --as bot，要求 bot identity ready；不得切换 --as user。
 3. 安装 candidate_head 的 Release，回读 fanloop version 与 fanloop doctor。
-4. 为两个冻结 Case 分别生成 brief，明确全新目录、全新 Requirement、公开 CLI、证据字段、内层环境
-   隔离和“到 merge_code 前停止”。
+4. 从 `eval_playbook_path` 读取恰好两个冻结 Case，校验 Playbook 文件名摘要及每个 brief_sha256、
+   rubric_sha256；固定执行顺序为清单顺序，不选择 Case。原始 brief 已包含全新目录、全新 Requirement、
+   公开 CLI、证据字段、内层环境隔离和“到 merge_code 前停止”，不得再生成、复制或改写。
 
 ## 并行 Dispatch
 
@@ -28,11 +29,12 @@ botmux dispatch \
   --chat-id oc_d532c3a5eda84c60728ab174b0ef671a \
   --title UNIQUE_CASE_TITLE \
   --bot-app cli_a9245f0fddf8dbc8 \
-  --brief-file CASE_BRIEF
+  --brief-file FROZEN_BRIEF_PATH
 ~~~
 
 不得传 --bot、--repo，不发送 /repo、/restart，不使用用户 token。两个 dispatch 必须产生不同的根消息、
-thread 和 Requirement。
+thread 和 Requirement。`FROZEN_BRIEF_PATH` 必须是 Playbook 记录并通过摘要校验的原文件；“全新”只
+适用于话题、目录和 Requirement，不适用于题面或 Rubric。
 
 ## 内层 CLI 隔离
 

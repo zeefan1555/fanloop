@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-30
 amends: ADR-0003, ADR-0080, ADR-0081, ADR-0087
+amended_by: ADR-0091
 ---
 
 # 对齐 Treeloop 的单源 Panorama
@@ -10,6 +11,9 @@ Panorama 回归为 renderer 对当前 Workflow 事实的紧凑投影：标题与
 状态全景、各阶段 URL Output、当前执行证据和当前行动。Markdown 与 Lark JSON 共用
 同一份 `cardContent`，不再展示内部 Step/Condition/Route ID、Prompt 或 Output 注册细节。
 URL Output 的人类可读名称继续只取生产 YAML 的 `output.description`。
+
+ADR-0091 对包含多个 Job 的 Stage 增加 Job 名称与边界；单 Job Stage 继续保持本 ADR 的紧凑
+Stage/Step 格式。该修订同时适用于 Card 与本地 Trace 投影。
 
 ADR-0081 要求 Panorama Skill 重新读取审核产物并拼装自包含材料的部分被取代。
 审核 Step 仍按自身 Prompt/Skill 组织审核内容；Panorama Skill 只识别已知 Agent 人设，

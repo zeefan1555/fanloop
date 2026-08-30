@@ -83,7 +83,7 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 			".agents/skills/verify-fanloop", "用户入口", "真实操作", "可观察结果", "clean", "updated", "blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator/SKILL.md": {
-			"恰好两个", "10 分", "Rubric", "随机", "不同模型", "eval-playbook.md",
+			"恰好两个", "10 分", "Rubric", "随机", "不同模型", "eval-playbook.<sha256>.md", "brief_sha256", "rubric_sha256",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-eval-candidate/SKILL.md": {
 			"并行", "独立随机目录", "candidate_head", "eval-candidates-report.md",
@@ -98,10 +98,10 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 			"Ruleset", "strict", "squash", "linear", "./tests/run-unit", "./tests/run-e2e", "candidate_head",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"candidate_head", "fanloop version", "fanloop doctor", "ref/lark-agent-e2e.md", "acceptance-report.md", "Card Binding", "Trace Integration", "governance_failed",
+			"candidate_head", "fanloop version", "fanloop doctor", "ref/lark-agent-e2e.md", "acceptance-report.md", "brief_sha256", "rubric_sha256", "--brief-file", "禁止生成", "Card Binding", "Trace Integration", "governance_failed",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
-			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token", "lark-cli whoami --as bot", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
+			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "FROZEN_BRIEF_PATH", "brief_sha256", "rubric_sha256", "不得再生成", "用户 token", "lark-cli whoami --as bot", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",

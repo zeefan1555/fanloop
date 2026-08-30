@@ -125,9 +125,10 @@ turn boundary 之后到达，才继续检查正文。不能只校验显示名，
 需求确认后自动推进。Review 冻结 `candidate_head` 后源码只读：协调者冻结 Case，多个隔离候选并行
 执行，不同模型裁判必须 10/10；随后发布唯一 PR 并校验 Ruleset 与该 SHA 的 required checks。
 
-execute_agent_acceptance 只允许“使用 Fanloop 机器人”在固定群驱动“FanLoop 机器人”并行执行两个
-全新黑盒 Case。外层 Botmux 只通信；内层 Fanloop CLI 清除 Botmux 环境，不使用用户身份，不生成
-Card Binding、Trace Integration、远端 Trace Event 或用户文档。Candidate 到达 merge_code 前停止。
+execute_agent_acceptance 只允许“使用 Fanloop 机器人”在固定群驱动“FanLoop 机器人”，校验内容寻址
+Playbook 与两个 brief/Rubric 摘要后，把两个冻结原始 brief 直接派发到全新话题、目录和 Requirement；
+禁止生成、复制、选择或改题。外层 Botmux 只通信；内层 Fanloop CLI 清除 Botmux 环境，不使用用户身份，
+不生成 Card Binding、Trace Integration、远端 Trace Event 或用户文档。Candidate 到达 merge_code 前停止。
 
 只有 merge_code 可对唯一 PR 使用 `--auto --squash --match-head-commit`；不发送 MR 交接、不等待人工
 端到端验收、不使用 `--admin` 或直接 push main。main push 的 Release 由 GitHub Actions 独立处理。

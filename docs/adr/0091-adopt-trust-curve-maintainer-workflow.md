@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-31
-amends: ADR-0063, ADR-0066, ADR-0072, ADR-0076, ADR-0087
+amends: ADR-0063, ADR-0066, ADR-0072, ADR-0076, ADR-0086, ADR-0087
 supersedes: ADR-0090
 ---
 
@@ -52,7 +52,7 @@ Job 用于把需求、实现、验证资产、评测、CI、机器人验收和�
 对多 Job Stage 保留 Job 名称与边界。当前通用 Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG
 调度；本决策不伪造并行状态。无数据依赖的工作在
 对应 Agent Step 内并行：`execute_eval_candidates` 并行两个隔离 Case，GitHub CI 使用 Matrix，
-`execute_agent_acceptance` 并行两个全新机器人 Case。要实现多个活动 Job 的 durable 并行状态，必须
+`execute_agent_acceptance` 在两个全新话题、目录和 Requirement 中并行复用两个冻结 Case。要实现多个活动 Job 的 durable 并行状态，必须
 另行修改 State/IDL/CLI 并单独审核，不属于本决策。
 
 生产五文件最终包含 45 Conditions、17 Flow Routes、44 Loop Routes 和 56 Prompts。新增 Condition
@@ -69,8 +69,10 @@ Launch、Doctor、Drive、Evidence、Cleanup，使用隔离数据目录和公开
 前必须紧邻读取 Status、dry-run 渲染 Panorama，并原样展示 `data.content`，任一失败都阻塞。
 
 Agent Eval 拆为协调者、候选和不同模型裁判。协调者冻结恰好两个 Case、随机目录、硬红线和 10 分
-Rubric；候选在隔离目录并行执行，互不共享中间结果；裁判只读原始证据。机器人验收原样复用这两个
-冻结 Case，不复制、不选择、不临时改题。评测失败必须选择唯一最早
+Rubric；每个 brief 与 Rubric 记录 SHA-256，内容寻址的 `eval-playbook.<sha256>.md` 路径冻结整体清单。
+候选在隔离目录并行执行，互不共享中间结果；裁判只读原始证据。机器人验收校验同一清单和文件摘要，
+并把原 brief 直接传给 target；“全新”只指话题、目录和 Requirement，不复制、不选择、不临时改题。
+评测失败必须选择唯一最早
 责任回流，不在冻结候选上 Hill Climbing。
 
 Review 后由 `publish_candidate` 发布唯一 PR。`verify_ci_gates` 要求 main Ruleset 使用 required PR、
@@ -80,7 +82,8 @@ run-e2e、隔离安装/Doctor、机器人身份隔离、本地材料禁入库和
 替代 ADR-0063 的本地验证。
 
 机器人验收使用固定 driver `cli_aafadbc67e799cdc`、target `cli_a9245f0fddf8dbc8` 和群
-`oc_d532c3a5eda84c60728ab174b0ef671a`，通过外层 Botmux 并行派发两个全新 Case。内层 Fanloop CLI
+`oc_d532c3a5eda84c60728ab174b0ef671a`，通过外层 Botmux 在两个全新话题中并行派发两个冻结 Case 的
+原始 brief。内层 Fanloop CLI
 必须清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID`，不得使用用户 token/身份，也不得创建 Card Binding、
 Trace Integration、远端 Trace Event、用户 Trace 文档或用户 CLI 日志文档。任一副作用为
 `governance_failed`；基础设施阻塞不得回退用户身份。本条取代 ADR-0090 要求内层创建并同步这些远端

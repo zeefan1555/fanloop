@@ -6,7 +6,8 @@ description: 用固定机器人身份并行运行两个真实黑盒 Case，并�
 # 机器人端到端验收
 
 只验收 CI 已在 candidate_head 全绿、工作树只读且 PR head 未漂移的候选。先完整读取
-ref/lark-agent-e2e.md；Eval 阶段的冻结 Case、评分和 acceptance-report.md 必须属于同一 SHA。
+ref/lark-agent-e2e.md；Eval 阶段内容寻址的 Playbook、原始 brief/Rubric、评分和 acceptance-report.md
+必须属于同一 SHA。
 
 ## 候选与身份
 
@@ -17,12 +18,14 @@ ref/lark-agent-e2e.md；Eval 阶段的冻结 Case、评分和 acceptance-report.
 
 ## 两个并行 Case
 
-通过外层 botmux dispatch 建立两个全新顶层话题并并行派发。每个 target 在独立目录创建全新
-Requirement，只使用刚安装 Release 的公开 CLI，并在 merge_code 前停止。内层 CLI 命令必须清除
-BOTMUX_CHAT_ID 与 BOTMUX_SESSION_ID，且不得携带用户凭证。
+校验 `eval_playbook_path` 文件名摘要，以及其中恰好两个 brief_sha256 和 rubric_sha256。通过外层
+botmux dispatch 建立两个全新顶层话题，并将这两个原始 brief 路径直接作为 `--brief-file` 并行派发。
+“全新”只指话题、目录和 Requirement；禁止生成、复制、选择或改写题面与 Rubric。每个 target 只使用
+刚安装 Release 的公开 CLI，并在 merge_code 前停止。内层 CLI 命令必须清除 BOTMUX_CHAT_ID 与
+BOTMUX_SESSION_ID，且不得携带用户凭证。
 
 外层 Botmux 只负责机器人通信，不得泄漏到内层 Requirement。以下任一事实出现都判
-governance_failed：Card Binding、Trace Integration、trace_document_bound、trace_sync_started、远端
+governance_failed：Playbook/brief/Rubric 摘要不一致、Card Binding、Trace Integration、trace_document_bound、trace_sync_started、远端
 trace_synced、用户 Trace 文档、用户 CLI 日志文档、--as user 或任何用户 token。不得为了通过而回退
 用户身份或手工补资源。
 
