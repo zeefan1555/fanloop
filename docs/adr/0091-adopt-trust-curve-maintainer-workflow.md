@@ -23,6 +23,31 @@ Step。`confirm_requirements` executor 从 human 改为 agent；仍缺真实产�
 向人询问，不把例行人工确认放在主路径。`merge_code` 仅把展示名从“合码”改为“自动合码”，
 `execute_agent_acceptance` 展示为“机器人端到端验收”。`technical-solution-design` 完全不变。
 
+逐 Step 基线对比如下；序号是 Workflow 全局推进顺序，“新增”表示 main 基线没有该 Step：
+
+| 目标序号 | Step ID | main 基线位置 | main 名称 / executor | 目标位置 | 目标名称 / executor | 变化 |
+| ---: | --- | --- | --- | --- | --- | --- |
+| 1 | `bootstrap_techdesign` | `requirements/requirements/1` | 工作区准备 / agent | `local_verification/requirement_design/1` | 工作区准备 / agent | 仅 Stage/Job 归组变化 |
+| 2 | `clarify_requirements` | `requirements/requirements/2` | 需求澄清 / agent | `local_verification/requirement_design/2` | 需求澄清 / agent | 仅 Stage/Job 归组变化 |
+| 3 | `confirm_requirements` | `requirements/requirements/3` | 需求确认 / human | `local_verification/requirement_design/3` | 需求确认 / agent | executor 变化 |
+| 4 | `design_technical_solution` | `implementation/implementation/1` | 方案设计 / agent | `local_verification/requirement_design/4` | 方案设计 / agent | 仅 Stage/Job 归组变化 |
+| 5 | `implement_code` | `implementation/implementation/2` | 代码实现 / agent | `local_verification/implementation/1` | 代码实现 / agent | 仅 Stage/Job 归组变化 |
+| 6 | `maintain_verification_skill` | 新增 | — | `local_verification/verification_skill/1` | 验证技能维护 / agent | 新增 |
+| 7 | `maintain_feature_map` | 新增 | — | `feature_intelligence/feature_map/1` | 功能地图维护 / agent | 新增 |
+| 8 | `execute_test_cases` | `implementation/implementation/3` | 本地验证 / agent | `feature_intelligence/local_quality/1` | 本地验证 / agent | 仅插入新 Step 与归组变化 |
+| 9 | `review_code` | `implementation/implementation/4` | 代码审查 / agent | `feature_intelligence/local_quality/2` | 代码审查 / agent | 仅插入新 Step 与归组变化 |
+| 10 | `coordinate_eval` | 新增 | — | `agent_evaluation/eval_design/1` | 评测编排 / agent | 新增 |
+| 11 | `execute_eval_candidates` | 新增 | — | `agent_evaluation/eval_candidates/1` | 子 Agent 执行 / agent | 新增 |
+| 12 | `judge_eval` | 新增 | — | `agent_evaluation/eval_judgement/1` | 独立裁判 / agent | 新增 |
+| 13 | `publish_candidate` | 新增 | — | `hard_constraints/candidate_publication/1` | 发布候选 PR / agent | 新增 |
+| 14 | `verify_ci_gates` | 新增 | — | `hard_constraints/ci_governance/1` | CI 硬门禁 / agent | 新增 |
+| 15 | `execute_agent_acceptance` | `delivery/delivery/1` | Agent 自动化验收 / agent | `cloud_delivery/robot_acceptance/1` | 机器人端到端验收 / agent | 改名及归组变化 |
+| 16 | `merge_code` | `delivery/delivery/2` | 合码 / agent | `cloud_delivery/automatic_merge/1` | 自动合码 / agent | 改名及归组变化 |
+
+审核结论：删除 0 个、增加 7 个、改名 2 个、executor 变化 1 个；九个既有 Step 的相对顺序不变，
+但因新增 Step 插入，后续既有 Step 的全局序号发生变化。Stage 从 3 个改为 5 个，Job 从 3 个改为
+12 个，所有归组变化均已在表中列出。
+
 Job 用于把需求、实现、验证资产、评测、CI、机器人验收和合码职责显示为独立执行单元。当前通用
 Runtime 仍只有一个活动 Step，Job 不承诺原生 DAG 调度；本决策不伪造并行状态。无数据依赖的工作在
 对应 Agent Step 内并行：`execute_eval_candidates` 并行 1 至 3 个隔离 Case，GitHub CI 使用 Matrix，

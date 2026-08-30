@@ -100,9 +100,6 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
 			"candidate_head", "fanloop version", "fanloop doctor", "ref/lark-agent-e2e.md", "acceptance-report.md", "Card Binding", "Trace Integration", "governance_failed",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/eval-playbook.md": {
-			"Rubric", "10 分", "candidate_head", "governance_failed",
-		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
 			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token", "lark-cli whoami --as bot", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
 		},

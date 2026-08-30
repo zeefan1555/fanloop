@@ -20,6 +20,5 @@ description: 按 targeted 或 e2e 风险档复验 Fanloop CLI 本地源码并写
 5. 任一必需命令失败时保留错误摘要并上报 local_validation_failed 回到代码实现；不降档、不伪造。
    源码或测试资产改变后，旧本地验证立即失效。
 
-候选 Release 安装、逐 Feature 维护与真实机器人黑盒属于 Review 后的
-fanloop-dev-maintain-verification 和 fanloop-dev-agent-acceptance。本 Skill 不要求先有 MR，
-不读取或等待远端 checks，不批准 MR、不合并、不发布。
+验证技能与功能地图维护发生在本 Step 之前；本 Skill 只读这些资产。候选 Release 安装与真实机器人
+黑盒发生在 Review 之后。本 Skill 不要求先有 MR，不读取或等待远端 checks，不批准 MR、不合并、不发布。

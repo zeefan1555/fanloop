@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+env:
+  CANDIDATE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   test:
     strategy:
@@ -13,6 +16,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+      - name: Verify candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -35,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+      - name: Verify candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -48,6 +59,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+      - name: Verify candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -65,6 +80,7 @@ jobs:
           unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
           npm run install:local
           "$FANLOOP_DATA_HOME/current/bin/fanloop" version | tee "$verify_root/version.json"
+          grep -q "\"commit_sha\": \"$CANDIDATE_HEAD\"" "$verify_root/version.json"
           "$FANLOOP_DATA_HOME/current/bin/fanloop" doctor | tee "$verify_root/doctor.json"
           grep -q '"status": "healthy"' "$verify_root/doctor.json"
 
@@ -72,6 +88,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+      - name: Verify candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
