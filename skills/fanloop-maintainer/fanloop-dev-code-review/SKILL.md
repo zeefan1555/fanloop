@@ -11,7 +11,7 @@ Issue Workspace 的 requirements.md、Spec/Tickets、local-test-report.md 和相
 逐项检查：
 
 - Standards：仓库规则、根因修复、安全、重复/散弹修改和投机抽象。
-- Design/Spec：批准决策、十步 YAML 前后对照、验收条件与实现逐项对应；无遗漏、超范围或语义偏差。
+- Design/Spec：批准决策、九步 YAML 前后对照、验收条件与实现逐项对应；无遗漏、超范围或语义偏差。
 - Test Seam / Tracer Bullet：测试只落在批准 Seam；阻断私有实现耦合、内部调用次数断言、同算法重算
   预期、无 Seam 造测试、伪造 red 和水平切片。
 - Architecture：复核 CONTEXT、ADR、五份 Workflow YAML、Release 与 Runtime 边界；任何 Thrift diff 都

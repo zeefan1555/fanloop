@@ -27,14 +27,14 @@ app cli_a9245f0fddf8dbc8，唯一群是 oc_d532c3a5eda84c60728ab174b0ef671a。
 每轮从在线 driver source session 实时回读 bots list，校验 chat、isSelf driver app 与 target app；
 open ID 只记录本轮 driver 视角值。随后通过 botmux dispatch --bot-app
 cli_a9245f0fddf8dbc8 创建一个全新顶层话题，要求 target 创建全新 Requirement、只使用刚安装 Release
-的公开 Fanloop CLI、执行 requirements.md 冻结的 1–3 个 Case，并在合法 Human Step 停止。Candidate
+的公开 Fanloop CLI、执行 requirements.md 冻结的 1–3 个 Case，并在合法 merge_code 边界停止。Candidate
 必须保留本轮 Botmux 环境，使用 `/Users/bytedance/.fanloop/current/bin/fanloop` 让 Requirement 捕获
 Card Binding、创建 Trace 与 CLI 日志文档并自动同步；同时回读 `lark-cli whoami --as bot`，不得使用
 或回退用户身份。
 
 用同一 driver session 回读 dispatch、history、quoted 与 target Requirement 的 Status、Events、Card、
-CLI 日志。不得使用用户 token、错误 app/群、旧话题、旧 Requirement、截图替代回执，或让机器人批准、
-合并、发布。Card Binding、Trace Integration、`trace_document_bound`、`trace_sync_started` 和成功的
+CLI 日志。不得使用用户 token、错误 app/群、旧话题、旧 Requirement、截图替代回执，或让 Candidate
+执行 merge_code、合并或发布。Card Binding、Trace Integration、`trace_document_bound`、`trace_sync_started` 和成功的
 `trace_synced` 是必需验收证据；任一缺失、远端 target 失败或出现 `--as user` 都判 governance_failed。
 
 ## 报告与结论

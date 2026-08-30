@@ -82,8 +82,8 @@ func TestMaintainerVerificationAssetsAreReleaseBound(t *testing.T) {
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-mr-handoff/SKILL.md": {
-			"acceptance-report.md", "人工", "acceptance_report_written",
+		"skills/fanloop-maintainer/fanloop-dev-merge-code/SKILL.md": {
+			"acceptance-report.md", "gh pr merge", "--squash", "--match-head-commit", "code_merged",
 		},
 	}
 	for relative, snippets := range contracts {

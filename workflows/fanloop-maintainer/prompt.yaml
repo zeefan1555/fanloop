@@ -15,11 +15,11 @@ prompts:
       - {id: fanloop-dev-domain-modeling, prompt: 使用该原子 Skill 挑战含混术语并整理 CONTEXT/ADR 候选，不在确认前改仓库真值。, optional: false}
   confirm_requirements_flow:
     prompt: |
-      先以 requirements.md 为唯一主审文档独立复核完整决策和实现必要性。所有决策明确、Open Questions 为空、完整改造计划与验证边界自洽且不存在需要人决定的阻塞项时，Agent 可不发布 Panorama，直接上报 agent_approved、implementation_required 或 implementation_not_required，并在 Evidence 记录复核理由与 requirements.md；否则进入人工路径。人工路径下，Agent 必须先从最新 requirements.md 生成一张自包含 Markdown 审核卡，依次完整展示当前 Stage/Job/Step、目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界和精确授权口令；通过当前 Agent 渠道展示并回读成功。另按 panorama_card_published 绑定 Skill 原样展示 renderer 生成的紧凑 Panorama，不把审核正文二次拼入 Panorama。不得只给摘要、只贴链接、要求人回翻上下文，或复用前一 Step、前一次进入本 Step 的 Panorama 快照。只有审核卡与 Panorama 都展示成功后到达的全新用户消息才可用于审批。审批人固定为当前 fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下的张菲帆：消息必须满足 senderType=user 且 senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95，不能只校验显示名或复用其他应用作用域的 OpenID。确认需要实现时，消息去除首尾空白后必须精确等于“批准进入 需求实现”，且不得同时包含需求修改、方案反馈或其他文字。有效确认后，先把审核卡 messageId、Panorama 快照路径、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入 requirements.md，再同时上报 panorama_card_published、requirements_approved、requirements_approval_recorded、requirements_evidence_written=requirements.md 以及 implementation_required 或 implementation_not_required。确认无需实现时在同样写入证据并提交该完整成功组合后干净结束。错误 sender、笼统同意、字段调整、混合了批准与修改的消息，以及拒绝、补充或改变任何决策的消息，都记录真实消息并回到需求澄清。该批准只授权进入需求实现，不构成后续人类端到端验收结论。
+      先以 requirements.md 为唯一主审文档独立复核完整决策和实现必要性。所有决策明确、Open Questions 为空、完整改造计划与验证边界自洽且不存在需要人决定的阻塞项时，Agent 可不发布 Panorama，直接上报 agent_approved、implementation_required 或 implementation_not_required，并在 Evidence 记录复核理由与 requirements.md；否则进入人工路径。人工路径下，Agent 必须先从最新 requirements.md 生成一张自包含 Markdown 审核卡，依次完整展示当前 Stage/Job/Step、目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界和精确授权口令；通过当前 Agent 渠道展示并回读成功。另按 panorama_card_published 绑定 Skill 原样展示 renderer 生成的紧凑 Panorama，不把审核正文二次拼入 Panorama。不得只给摘要、只贴链接、要求人回翻上下文，或复用前一 Step、前一次进入本 Step 的 Panorama 快照。只有审核卡与 Panorama 都展示成功后到达的全新用户消息才可用于审批。审批人固定为当前 fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下的张菲帆：消息必须满足 senderType=user 且 senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95，不能只校验显示名或复用其他应用作用域的 OpenID。确认需要实现时，消息去除首尾空白后必须精确等于“批准进入 需求实现”，且不得同时包含需求修改、方案反馈或其他文字。有效确认后，先把审核卡 messageId、Panorama 快照路径、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入 requirements.md，再同时上报 panorama_card_published、requirements_approved、requirements_approval_recorded、requirements_evidence_written=requirements.md 以及 implementation_required 或 implementation_not_required。确认无需实现时在同样写入证据并提交该完整成功组合后干净结束。错误 sender、笼统同意、字段调整、混合了批准与修改的消息，以及拒绝、补充或改变任何决策的消息，都记录真实消息并回到需求澄清。该批准只授权进入需求实现，不构成后续 Agent 验收或合码事实。
     skills: []
   confirm_requirements_terminal:
     prompt: |
-      人或 Agent 已确认无需实现。保留 requirements.md 与对应批准 Evidence 作为终止证据；不得进入方案设计、实现、验证或 MR 交接。
+      人或 Agent 已确认无需实现。保留 requirements.md 与对应批准 Evidence 作为终止证据；不得进入方案设计、实现、验证或合码。
     skills: []
   design_technical_solution_flow:
     prompt: |
@@ -49,15 +49,11 @@ prompts:
     skills:
       - {id: fanloop-dev-maintain-verification, prompt: 逐 Feature 维护验证 Skill 与 Feature Map；只修验证资产，输出 clean、changed 或 blocked。, optional: false}
       - {id: fanloop-dev-agent-acceptance, prompt: 对同一 reviewed HEAD 执行安装回读、真实机器人黑盒 Eval 与 acceptance-report.md。, optional: false}
-  confirm_human_acceptance_flow:
+  merge_code_flow:
     prompt: |
-      只接收 agent_acceptance_passed 的同一 reviewed HEAD。先展示 acceptance-report.md 中一至三个用户场景、候选 commit 和当前 npm run install:local Release，并按 fanloop-dev-panorama 展示本轮 Panorama；随后只接收 fanloop-dev 应用 cli_aaf6cd8160b89bda 作用域下 senderType=user、senderId=ou_3b0b9cf8364168c5eb999bd6c5a33b95 的张菲帆在本轮展示后发送的全新消息。去除首尾空白后精确等于“验收通过”或“跳过人类端到端验收”才分别上报 human_acceptance_passed/human_acceptance_skipped；明确的需求反馈或实现反馈回对应 Step；其他内容保持 pending。确定结论都先更新 acceptance-report.md，并上报 human_acceptance_result_recorded 与 acceptance_report_written。机器人、当前 Agent、错误 sender、含糊回复或旧消息不能形成通过/跳过；Q8=B 不执行或伪造 managed Dev 清理。
-    skills: []
-  handoff_merge_request_flow:
-    prompt: |
-      确认人工明确通过或跳过，且 local-test-report.md、review-report.md、acceptance-report.md 与当前 HEAD 一致后，幂等推送分支、创建或更新 MR，并写入详细 MR 描述；随后使用 botmux send 在固定审核群发布人工审核话题，真实 @ 张菲帆审核并在同一卡片末行 cc 苏文钦、吴瑜明，正文依次包含背景、问题、解法、影响范围和真实 MR 链接。成功后把 MR URL、source/base、reviewed HEAD、人工结论和 Botmux 回执更新进 acceptance-report.md，记录 handoff.json，并同时上报 merge_request_created、merge_request_handed_off、handoff_record_written 与 acceptance_report_written 后结束；失败先更新 acceptance-report.md，再上报 merge_request_handoff_failed 与 acceptance_report_written 原地重试。不得查询或等待远端 checks，不得等待人工审核、合并或发布。
+      只接收 agent_acceptance_passed 且 local-test-report.md、review-report.md、acceptance-report.md 与当前干净 reviewed HEAD 一致的候选。使用 GitHub PR 作为合码载体：要求 origin 精确为 zeefan1555/fanloop、当前分支不是 main、最新 origin/main 不领先候选；幂等推送并创建或更新该分支唯一的 open PR，不发送 Botmux 话题、不写 handoff.json。使用 squash 和 reviewed HEAD 锁执行合并，不使用 admin、auto、merge commit、rebase 或直接 push main，也不查询或等待远端 checks。回读 PR 的 base、head、head OID、merged 状态与 merge commit；全部精确匹配后更新 acceptance-report.md，上报 code_merged 与 acceptance_report_written 并结束。main push 会按现有 GitHub Actions 独立触发 Release。候选或 origin/main 漂移时更新报告并上报 implementation_changes_requested 回到实现；外部服务暂时失败且可证明未产生歧义合并时上报 code_merge_failed 与 acceptance_report_written 原地重试。
     skills:
-      - {id: fanloop-dev-mr-handoff, prompt: 使用该 Skill 幂等完成详细 MR 创建或更新，以及 Botmux 人工审核话题交接。, optional: false}
+      - {id: fanloop-dev-merge-code, prompt: 使用该 Skill 在精确 reviewed HEAD 上创建或更新 GitHub PR，并完成可回读的 squash 合码。, optional: false}
 
   workspace_condition: {prompt: repository_workspace_prepared 输出 Issue Workspace 路径；范围变化时上报 repository_scope_changed。, skills: []}
   requirements_document_condition: {prompt: requirements_grilled 仅在 requirements.md 完整记录已确认决策、开放问题和可直接展示的完整改造计划时输出 requirements_path。, skills: []}
@@ -84,15 +80,11 @@ prompts:
   review_condition: {prompt: 按真实代码审查结论选择 review_passed 或 review_failed；二者只能选择一个。, skills: []}
   review_report_condition: {prompt: review_report_written 输出包含被审 HEAD 与阻断结论的 review_report_path。, skills: []}
   agent_acceptance_condition: {prompt: Verification 维护、候选安装、Doctor 和真实机器人黑盒全部通过时上报 agent_acceptance_passed；确定产品失败时上报 agent_acceptance_failed 并同时选择恰好一个回流原因；基础设施失败不提交该 Condition。, skills: []}
-  acceptance_report_condition: {prompt: acceptance_report_written 只输出包含当前 reviewed HEAD 以及截至当前 Step 已发生的维护、安装、Doctor、机器人 Eval、人工结论和 MR 交接最新事实的 acceptance_report_path=acceptance-report.md；不得要求尚未发生的下游事实。, skills: []}
-  human_acceptance_condition: {prompt: 固定人工审批人对当前 reviewed HEAD 明确通过时上报 human_acceptance_passed，明确跳过时上报 human_acceptance_skipped；二者只能选择一个，机器人、当前 Agent、旧消息或含糊回复不上报。, skills: []}
-  human_acceptance_result_condition: {prompt: human_acceptance_result_recorded 只输出当前 confirm_human_acceptance Step 中固定人工审批人全新明确结论或反馈的消息 ID；候选漂移回实现时不伪造该 Condition。, skills: []}
-  merge_request_condition: {prompt: merge_request_created 输出本次创建或幂等复用的真实 MR URL。, skills: []}
-  handoff_condition: {prompt: 按真实 MR 与飞书发送结果选择 merge_request_handed_off 或 merge_request_handoff_failed；二者只能选择一个。, skills: []}
-  handoff_record_condition: {prompt: handoff_record_written 仅在 handoff.json 的 phase=complete，且记录 Requirement、MR URL、reviewed HEAD、messageId 与 sessionId 时输出 handoff_record_path。, skills: []}
+  acceptance_report_condition: {prompt: acceptance_report_written 只输出包含当前 reviewed HEAD 以及截至当前 Step 已发生的维护、安装、Doctor、机器人 Eval 和合码最新事实的 acceptance_report_path=acceptance-report.md；Agent 验收时不得要求尚未发生的合码事实。, skills: []}
+  merge_code_condition: {prompt: GitHub 回读证明唯一 PR 的 base=main、head/head OID 精确匹配 reviewed HEAD、state=MERGED 且 merge commit 非空时上报 code_merged=merge commit SHA；可证明没有歧义合并的暂时失败上报 code_merge_failed=failed。二者只能选择一个。, skills: []}
 
   back_to_repository_scope: {prompt: 回到工作区准备重建 Issue Workspace 或仓库基线，并失效该 Step 及下游 Output。, skills: []}
   back_to_requirements: {prompt: 回到需求澄清补齐或重新确认需求，并失效该 Step 及全部下游 Output。, skills: []}
   back_to_technical_solution: {prompt: 回到方案设计补齐可靠公开 Test Seam 或执行路径，并失效方案及全部下游 Output；不得直接实现。, skills: []}
-  back_to_implementation: {prompt: 回到代码实现修复，并失效实现、本地验证、代码审查、Agent 验收、人类验收与 MR 交接 Output；修复后必须重新验证和审查。, skills: []}
-  back_to_handoff: {prompt: 留在 MR 交接，根据本地记录幂等重试失败动作；不得重复创建 MR，相同 MR URL 与 reviewed HEAD 不得重复发送话题。, skills: []}
+  back_to_implementation: {prompt: 回到代码实现修复，并失效实现、本地验证、代码审查、Agent 验收与合码 Output；修复后必须重新验证、审查和验收。, skills: []}
+  back_to_merge: {prompt: 留在合码，根据 GitHub PR 回读结果只重试尚未完成且无歧义的动作；不得使用 admin 绕过、直接 push main 或创建第二个 PR。, skills: []}

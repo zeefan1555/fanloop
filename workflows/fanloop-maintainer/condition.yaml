@@ -112,29 +112,11 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: acceptance_report_condition}
     output: {key: acceptance_report_path, type: path}
 
-  human_acceptance_passed:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_condition}
-    output: {key: human_acceptance_result, type: enum_value, values: [passed]}
-    exclusive_group: human_acceptance_outcome
-  human_acceptance_skipped:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_condition}
-    output: {key: human_acceptance_result, type: enum_value, values: [skipped]}
-    exclusive_group: human_acceptance_outcome
-  human_acceptance_result_recorded:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_result_condition}
-    output: {key: human_acceptance_message_id, type: string}
-
-  merge_request_created:
-    prompt_ref: {file: prompt.yaml, prompt_id: merge_request_condition}
-    output: {key: merge_request_urls, type: url_list, min_items: 1, description: MR}
-  merge_request_handed_off:
-    prompt_ref: {file: prompt.yaml, prompt_id: handoff_condition}
-    output: {key: merge_request_handoff_result, type: enum_value, values: [passed]}
-    exclusive_group: merge_request_handoff_outcome
-  merge_request_handoff_failed:
-    prompt_ref: {file: prompt.yaml, prompt_id: handoff_condition}
-    output: {key: merge_request_handoff_result, type: enum_value, values: [failed]}
-    exclusive_group: merge_request_handoff_outcome
-  handoff_record_written:
-    prompt_ref: {file: prompt.yaml, prompt_id: handoff_record_condition}
-    output: {key: handoff_record_path, type: path}
+  code_merged:
+    prompt_ref: {file: prompt.yaml, prompt_id: merge_code_condition}
+    output: {key: merge_commit_sha, type: string}
+    exclusive_group: code_merge_outcome
+  code_merge_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: merge_code_condition}
+    output: {key: code_merge_result, type: enum_value, values: [failed]}
+    exclusive_group: code_merge_outcome

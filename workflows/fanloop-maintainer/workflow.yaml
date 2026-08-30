@@ -30,5 +30,4 @@ stages:
         name: 变更交付
         steps:
           - {id: execute_agent_acceptance, name: Agent 自动化验收, executor: agent}
-          - {id: confirm_human_acceptance, name: 人类端到端验收, executor: human}
-          - {id: handoff_merge_request, name: MR 交接, executor: agent}
+          - {id: merge_code, name: 合码, executor: agent}

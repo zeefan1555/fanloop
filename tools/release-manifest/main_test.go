@@ -51,7 +51,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 		"fanloop-workflow",
 		"fanloop-dev-agent-acceptance", "fanloop-dev-bootstrap", "fanloop-dev-code-review", "fanloop-dev-domain-modeling",
 		"fanloop-dev-grill-with-docs", "fanloop-dev-grilling", "fanloop-dev-implement",
-		"fanloop-dev-maintain-verification", "fanloop-dev-mr-handoff", "fanloop-dev-panorama", "fanloop-dev-tdd", "fanloop-dev-to-spec",
+		"fanloop-dev-maintain-verification", "fanloop-dev-merge-code", "fanloop-dev-panorama", "fanloop-dev-tdd", "fanloop-dev-to-spec",
 		"fanloop-dev-to-tickets", "fanloop-dev-verify", "fanloop-dev-workflow",
 		"technical-background-framing", "technical-direction-approval", "technical-key-solutions",
 		"technical-objective-setting", "technical-overall-solution", "technical-problem-analysis",

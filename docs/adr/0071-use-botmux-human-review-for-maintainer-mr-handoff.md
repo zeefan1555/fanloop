@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0090
 date: 2026-08-24
 amends: ADR-0066
 supersedes: ADR-0069, ADR-0070

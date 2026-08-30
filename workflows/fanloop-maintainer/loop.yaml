@@ -65,24 +65,13 @@ loop:
       when: {any_of: [[agent_acceptance_failed, implementation_changes_requested, acceptance_report_written]]}
       back_step_id: implement_code
 
-  confirm_human_acceptance:
+  merge_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[panorama_card_published, requirements_changed, human_acceptance_result_recorded, acceptance_report_written]]}
-      back_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when:
-        any_of:
-          - [panorama_card_published, implementation_changes_requested, human_acceptance_result_recorded, acceptance_report_written]
-          - [implementation_changes_requested, acceptance_report_written]
-      back_step_id: implement_code
-
-  handoff_merge_request:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
+      when: {any_of: [[requirements_changed, acceptance_report_written]]}
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
       when: {any_of: [[implementation_changes_requested, acceptance_report_written]]}
       back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_handoff}
-      when: {any_of: [[merge_request_handoff_failed, acceptance_report_written]]}
-      back_step_id: handoff_merge_request
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_merge}
+      when: {any_of: [[code_merge_failed, acceptance_report_written]]}
+      back_step_id: merge_code

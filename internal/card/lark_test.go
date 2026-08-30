@@ -97,7 +97,7 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 		"## 状态全景",
 		"需求定义：**工作区准备（Ready）** → 需求澄清 → 需求确认",
 		"需求实现：方案设计 → 代码实现 → 本地验证 → 代码审查",
-		"变更交付：Agent 自动化验收 → 人类端到端验收 → MR 交接",
+		"变更交付：Agent 自动化验收 → 合码",
 		"整体进度：0%",
 		"## 各阶段 Output",
 		"| 需求定义 | 需求实现 | 变更交付 |",

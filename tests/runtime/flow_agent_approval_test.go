@@ -95,9 +95,9 @@ func TestAgentApprovalAdvancesOrCompletesMaintainerWorkflow(t *testing.T) {
 	}
 }
 
-func TestMaintainerHumanAcceptanceRejectsAgentApproval(t *testing.T) {
+func TestMaintainerAgentAcceptanceAdvancesToMergeCode(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Human acceptance required"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Agent-gated merge"), "flow.init")
 
 	advance := func(step, next string, conditions ...string) {
 		t.Helper()
@@ -128,16 +128,14 @@ func TestMaintainerHumanAcceptanceRejectsAgentApproval(t *testing.T) {
 	advance("review_code", "execute_agent_acceptance",
 		conditionResult("review_passed", "enum_value", "\"passed\""),
 		conditionResult("review_report_written", "path", "\"review-report.md\""))
-	advance("execute_agent_acceptance", "confirm_human_acceptance",
+	advance("execute_agent_acceptance", "merge_code",
 		conditionResult("agent_acceptance_passed", "enum_value", "\"passed\""),
 		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""))
 
-	rejected := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "confirm_human_acceptance",
-		"--condition-result", conditionResult("agent_approved", "enum_value", "\"approved\""),
+	completed := run(binary, "flow", "report", "result", "--root", root,
+		"--step-id", "merge_code",
+		"--condition-result", conditionResult("code_merged", "string", "\"0123456789abcdef\""),
 		"--condition-result", conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
-		"--next-step-id", "handoff_merge_request", "--summary", "agent tried to approve human acceptance")
-	if rejected.exitCode == 0 || !strings.Contains(rejected.stderr, "agent_approved") {
-		t.Fatalf("Agent approval was accepted at human acceptance:\nstdout: %s\nstderr: %s", rejected.stdout, rejected.stderr)
-	}
+		"--terminal", "--summary", "reviewed head merged")
+	assertSuccess(t, completed, "flow.report.result")
 }
