@@ -15,7 +15,9 @@ description: 对技术问题定义执行 Agent 独立复核或人工确认并留
 - 仍存在的开放问题及其是否阻塞后续推导；
 - 明确选择：批准，或拒绝并说明必须修改的内容。
 
-把上述内容连同最新 `flow status` 的完整 Stage/Job/Step 全景、有效 Outputs 和待决事项组成一份自包含审核材料，通过当前 Agent 渠道发送并回读成功。记录本次发送返回的真实 messageId 或 Agent 交互事件 ID；不得复用前一 Step 或前一次进入本 Step 的回执。材料发送成功后才请求人的决定。
+把上述内容组成一份自包含审核材料，通过当前 Agent 渠道展示。另按
+`panorama_card_published` 绑定 Skill 原样展示 renderer 生成的 Panorama，不把审核正文二次拼入
+Panorama。两者展示成功后才请求人的决定。
 
 发现问题时只指出，不直接改写已提交材料。
 
@@ -25,4 +27,4 @@ description: 对技术问题定义执行 Agent 独立复核或人工确认并留
 - 拒绝或要求修改：同时上报 `panorama_card_published` 与 `technical_problem_rejected`，回到问题定义；
 - 含糊、沉默或仅提供补充信息：继续等待，不推断批准。
 
-人工路径的 `panorama_card_published` 输出本轮真实发送回执。Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。
+人工路径的 `panorama_card_published` 输出本次 render 的精确 `panorama_snapshot_path`。Evidence 保存人的完整原始回复以及对应的 `.technical-solution/problem.md` 路径。

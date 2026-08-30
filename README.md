@@ -98,9 +98,10 @@ entrypoints/fanloop-workflow/routes.yaml
 五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。构建会
 拒绝目录不一一对应、跨 Workflow SkillBinding、未知场景目标、缺失 Route 或图不变量错误。
 
-Human Step 的全景发布也是普通 Condition：Agent 按 `prompt.yaml` 和绑定 Skill 生成、发送并回读
-审核材料，再把真实回执与人工结论一起上报。Flow Runtime 只校验并推进，不自动调用 `botmux`
-发送；Trace provision/sync 与显式 `card render` 保持独立。
+Human Step 选择人工审核路径时，审批 Skill 展示审核材料，Panorama Skill 按当前宿主原样展示
+renderer 生成的紧凑全景，并把本次 `snapshot_path` 与人工结论一起上报。选择 `agent_approved`
+路径时不展示 Panorama。Flow Runtime 只校验并推进，不自动调用发送工具；Trace provision/sync
+与显式 `card render` 保持独立。
 
 选择 `fanloop-maintenance` 场景后，维护 Fanloop 自身时执行：
 

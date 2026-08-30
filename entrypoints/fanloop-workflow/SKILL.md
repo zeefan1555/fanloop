@@ -38,7 +38,7 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
    `when.any_of` 外层是 OR、内层是 AND。提交一个完整组合；同一 `exclusive_group` 只选一个 Condition。Output key 由 Condition 定义，Agent 不提交 key 或 producer_step_id。Evidence 只用于审计，不参与路由。
 6. 从最新 `available_routes` 选择一条满足该 Condition 组合的 Route，并把 `route` 原样表达为 `--next-step-id`、`--back-step-id` 或 `--terminal`。`direction=flow` 返回 `advanced|completed`；`direction=loop` 返回 `looped`，目标 Step 及其下游生产的 Output 失效。不要猜目标。
 7. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中或多命中都原子拒绝。
-8. Human Step 使用同一个 Result 接缝。当前 Conditions 提供 `agent_approved` 且 Agent 已独立确认无阻塞项、无需人作出新决定时，可直接提交该 Condition 与 Route 要求的其他事实，不发布 Panorama；否则走人工路径。人工 Route 要求 `panorama_card_published` 时，先按绑定 Skill 生成、发送并回读自包含审核材料；等到明确的人类决定后，把本轮真实投递回执与 approved/rejected Condition、消息引用和 Evidence 一起上报。CLI 不自动发送，也不认证审批人或事实真伪。
+8. Human Step 使用同一个 Result 接缝。当前 Conditions 提供 `agent_approved` 且 Agent 已独立确认无阻塞项、无需人作出新决定时，可直接提交该 Condition 与 Route 要求的其他事实，不发布 Panorama；否则走人工路径。人工 Route 要求 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到明确的人类决定后，把本次精确 `panorama_snapshot_path` 与 approved/rejected Condition、消息引用和 Evidence 一起上报。CLI 不自动发送，也不认证审批人或事实真伪。
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
 
 ## 人类提问顺序
@@ -47,8 +47,8 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
 
 1. 禁止调用 `botmux ask` 或其他结构化问答模式；问题只通过当前会话的普通回复发送。
 2. 先完成承载最新状态的非 dry-run 写命令：新 Requirement 使用 `flow init`；Result 进入 Human Step 时复用该 `flow report result`；Agent Step 新增人工依赖时使用 `flow report progress --status blocked`。
-3. Human Step 选择人工路径时，按当前 Prompt/Skill 发送自包含 Panorama 审核材料并取得本轮真实回执后，才能请求人工决定；CLI 写命令不会代为发送。
-4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama 回执。
+3. Human Step 选择人工路径时，按当前 Prompt/Skill 展示审核材料，并按 Condition 绑定 Skill 原样展示 Panorama、保留本次 `panorama_snapshot_path` 后，才能请求人工决定；CLI 写命令不会代为发送。
+4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama 快照。
 
 State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 
