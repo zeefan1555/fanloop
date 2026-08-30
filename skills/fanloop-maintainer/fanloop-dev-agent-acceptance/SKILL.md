@@ -27,11 +27,15 @@ app cli_a9245f0fddf8dbc8，唯一群是 oc_d532c3a5eda84c60728ab174b0ef671a。
 每轮从在线 driver source session 实时回读 bots list，校验 chat、isSelf driver app 与 target app；
 open ID 只记录本轮 driver 视角值。随后通过 botmux dispatch --bot-app
 cli_a9245f0fddf8dbc8 创建一个全新顶层话题，要求 target 创建全新 Requirement、只使用刚安装 Release
-的公开 Fanloop CLI、执行 requirements.md 冻结的 1–3 个 Case，并在合法 Human Step 停止。
+的公开 Fanloop CLI、执行 requirements.md 冻结的 1–3 个 Case，并在合法 Human Step 停止。Candidate
+执行每条 Fanloop 命令时必须使用
+`env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID /Users/bytedance/.fanloop/current/bin/fanloop`；这只隔离内层
+CLI，避免它捕获外层验收话题并以用户身份创建或同步飞书 Trace，外层真实 driver/target 身份保持不变。
 
 用同一 driver session 回读 dispatch、history、quoted 与 target Requirement 的 Status、Events、Card、
 CLI 日志。不得使用用户 token、错误 app/群、旧话题、旧 Requirement、截图替代回执，或让机器人批准、
-合并、发布。
+合并、发布。若 Requirement 出现 Card Binding、Trace Integration 或 trace_document_bound / trace_sync_started /
+trace_synced Event，按未授权外部写入判 governance_failed。
 
 ## 报告与结论
 

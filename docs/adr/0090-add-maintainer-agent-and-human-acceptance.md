@@ -45,6 +45,12 @@ install/uninstall、自动回滚或兼容层。Q10=A：保留 local-test-report.
 acceptance-report.md；不创建实现或验收飞书文档。外部每日调度、Cloud Agent 和每 Feature 子 Agent
 不在本次范围。
 
+真实机器人黑盒的外层 Botmux 会话只负责固定 driver/target 身份与回执；Candidate 执行内层 Fanloop
+CLI 时必须清除 BOTMUX_CHAT_ID 与 BOTMUX_SESSION_ID。这样复用“无 Card Binding 就不 provision Trace”
+的现有 Runtime 边界，避免测试 Requirement 捕获外层话题并以用户身份创建或同步 Trace/CLI 文档。
+验收 Requirement 出现 Card Binding、Trace Integration 或对应 Trace Event 时按 governance_failed 处理，
+不得用功能路径已通过覆盖该失败。该隔离不改变 ADR-0035 的正常交互式 Card/Trace 行为。
+
 ADR-0076 的 Test Seam / Tracer Bullet 规则继续成立。Pstack Create 的 repo interview 与
 Launch/Doctor/Drive/Evidence/Cleanup，以及 Maintain 的 feature-unit source + live、只修验证资产、
 clean/changed/blocked，被吸收到现有 Feature Map 与两个新 Skill；不复制 Cursor slash command、
