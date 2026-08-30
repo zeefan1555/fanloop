@@ -29,12 +29,12 @@ frontier，后者挑战含混领域词并整理 CONTEXT/ADR 候选。Workflow �
 - Isolate：临时 Root、外部写入边界与 cleanup。
 
 验证资产必须覆盖 Launch / Doctor / Drive / Evidence / Cleanup。首次新增或重建验证资产时，把“至少
-真实跑通一个 FEATURE_MAP.md 映射 Feature，且 cleanup 后证据仍存在”写入验收条件；不得只证明文件
+真实跑通一个功能地图映射 Feature，且 cleanup 后证据仍存在”写入验收条件；不得只证明文件
 或 Prompt 关键词存在。
 
 ## Baseline Verification Case
 
-验证计划还必须读取仓库根 `FEATURE_MAP.md`，为每个已确认的用户可观察行为建立最小
+验证计划还必须读取 `.agents/skills/verify-fanloop/features/README.md`，为每个已确认的用户可观察行为建立最小
 `Verification Case`。每个 Case 在 `requirements.md` 中记录：Case ID、原始症状/意图、Feature Map
 条目、公开入口、前置条件、输入与操作、独立预期、观察项、不覆盖项，以及 `baseline` 的 commit、
 命令、退出码、stdout/stderr、状态/文件变化和明确 red signal。`candidate` 必须复用完全相同的输入、

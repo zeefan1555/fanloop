@@ -69,19 +69,20 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 是 3/4/2 的九步流程：需求定义为工作区准备、需求澄清、需求确认；需求实现为
-方案设计、代码实现、本地验证、代码审查；变更交付为 Agent 自动化验收、合码。需求确认可以由
-Agent 独立批准；Agent 验收通过后由合码 Step 通过唯一 GitHub PR squash 合并精确 reviewed HEAD。
+`fanloop-maintainer` 是 5 Stage / 12 Job / 16 Step 的信任曲线：本地验证机制、功能图谱、Agent 评测、
+硬性门禁、云端交付。需求确认由 Agent 自主复核；缺少真实产品决策时保持 blocked。Review 冻结
+`candidate_head`，随后只读完成三角色 Eval、唯一 PR、Ruleset/CI、两机器人验收和自动 squash 合码。
+Runtime 同一时刻仍只有一个活动 Step；隔离 Eval Case、CI Jobs 和两个机器人 Case 在各自边界并行。
 
 **Feature Map / Verification Maintenance**
-仓库根 `FEATURE_MAP.md` 以用户 Feature 为单位映射症状、公开命令、稳定 Seam、最小真实验证和证据。
-Agent 验收前逐 Feature 做 source + live 校准；结果为 `clean|changed|blocked`。维护只能修验证资产，
-产品行为与正确 Map 不一致时作为 product gap 回实现。
+唯一项目验证真值位于 `.agents/skills/verify-fanloop/`，中文 Skill 覆盖 Launch、Doctor、Drive、Evidence、
+Cleanup，`features/` 按用户 Feature 保存入口、操作、证据与隔离边界。Create 只在缺失时创建，Maintain
+随用户表面变化校准；验证资产变化形成新 HEAD 并使全部下游门禁失效。
 
 **Maintainer Reports**
 `local-test-report.md` 保存 Review 前的确定性本地验证，`review-report.md` 保存独立代码审查；唯一新增的
-`acceptance-report.md` 从 Agent 验收开始，连续记录维护、同 HEAD Release 安装、真实机器人黑盒和
-最终合码回读。三份报告都必须绑定同一 reviewed HEAD；候选变化使下游事实失效。
+`acceptance-report.md` 从独立裁判开始，连续记录 Eval、PR/CI、同 HEAD Release、两机器人黑盒和
+最终合码回读。三份报告都必须绑定同一 `candidate_head`；候选变化使下游事实失效。
 
 ## 公开契约
 

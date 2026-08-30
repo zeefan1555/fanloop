@@ -2,7 +2,7 @@
 status: accepted
 date: 2026-08-30
 amends: ADR-0066, ADR-0072, ADR-0076, ADR-0079, ADR-0081
-amended_by: ADR-0090
+amended_by: ADR-0090, ADR-0091
 ---
 
 # 允许 Agent 在 Human Step 独立批准

@@ -1,6 +1,6 @@
 ---
 name: fanloop-dev-workflow
-description: 维护 zeefan1555/fanloop 自身的入口。用于自我迭代机器人接收缺陷、优化或代码变更请求，并沿 fanloop-maintainer Workflow 从需求澄清推进到 Agent 验收和合码。
+description: 维护 zeefan1555/fanloop 自身的入口。沿 fanloop-maintainer 从本地验证、功能图谱、独立 Eval、CI 和机器人验收推进到自动合码。
 ---
 
 # Fanloop Dev Workflow
@@ -80,18 +80,18 @@ Skill、CLI 或 init 任一不可用或失败时，原样报告阻塞并停止�
    失效。不要猜目标。
 7. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中
    或多命中都原子拒绝。
-8. Human Step 使用同一个 Result 接缝。当前 Conditions 提供 `agent_approved` 且 Agent 已独立确认
-   无阻塞项、无需人作出新决定时，可直接提交该 Condition 与 Route 要求的其他事实，不发布
-   Panorama；否则走人工路径。人工 Route 要求 `panorama_card_published` 时，先按其绑定 Skill
+8. `confirm_requirements` 是 Agent Step。Agent 已独立确认无阻塞项、无需人作出新决定时，提交
+   `agent_approved` 与 Route 要求的其他事实，不发布 Panorama；否则保持 blocked 并请求真实产品
+   决策。补充人工 Route 要求 `panorama_card_published` 时，先按其绑定 Skill
    原样展示 renderer 生成的 Panorama；等到明确的人类决定后，把本次精确
    `panorama_snapshot_path` 与 approved/rejected Condition、消息引用和 Evidence 一起上报。
    CLI 不自动发送，也不认证审批人或事实真伪。
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、
    不触发远端投影。
 
-## 需求确认门禁
+## 需求确认
 
-confirm_requirements 是进入需求实现前的授权 Human Step，同时提供 Agent 与人工两条批准路径。
+confirm_requirements 由 Agent 主动复核，同时保留需要真实产品决策时的人工补充路径。
 
 Agent 路径先独立复核最新 `requirements.md`。只有所有决策明确、Open Questions 为空、完整改造
 计划与验证边界自洽且不存在需要人决定的阻塞项时，才同时上报 `agent_approved` 与
@@ -105,7 +105,7 @@ turn boundary。另按 `panorama_card_published` 绑定 Skill 原样展示紧凑
 Condition 只输出本次 `panorama_snapshot_path`：
 只接受此后到达的全新用户消息，不得复用进入 Human Step 前或计划卡发送前的消息。
 
-进入 Human Step 前，在 `requirements.md` 记录 `expectedApprover`：当前 `fanloop-dev` 应用
+选择人工补充路径前，在 `requirements.md` 记录 `expectedApprover`：当前 `fanloop-dev` 应用
 `cli_aaf6cd8160b89bda` 作用域下的张菲帆 OpenID
 `ou_3b0b9cf8364168c5eb999bd6c5a33b95`。收到消息后用 `botmux quoted <message_id> --raw` 或当前
 话题的 `botmux history` 回读元数据；只有 `senderType=user`、`senderId` 精确等于该 OpenID，且消息在
@@ -117,18 +117,20 @@ turn boundary 之后到达，才继续检查正文。不能只校验显示名，
 这些消息必须连同真实 message ID、senderType 与 senderId 记录后回到需求澄清。形成有效批准时，先把
 审核卡 messageId、Panorama 快照路径、批准消息 messageId、senderType、senderId、正文结论和实现必要性写入
 `requirements.md`，再将 `requirements_evidence_written=requirements.md` 与其他成功 Conditions 一起上报。
-有效 Agent 或人工批准 Result 被 CLI 接受且最新 Status 已进入需求实现前，不得修改源码、提交、推送、创建或更新 MR。
+有效 Agent 或人工批准 Result 被 CLI 接受且最新 Status 已进入 `design_technical_solution` 前，不得修改源码、提交、推送、创建或更新 PR。
 该批准不替代后续 Agent 验收或合码事实。
 
 ## 维护者协作边界
 
-需求确认后自动推进。execute_agent_acceptance 只允许“使用 Fanloop 机器人”在已批准测试群驱动
-“FanLoop 机器人”执行黑盒 Case；不得通知其他机器人或使用用户身份。Candidate 到达 merge_code
-边界即停止，不得在黑盒 Case 中执行合码。
+需求确认后自动推进。Review 冻结 `candidate_head` 后源码只读：协调者冻结 Case，多个隔离候选并行
+执行，不同模型裁判必须 10/10；随后发布唯一 PR 并校验 Ruleset 与该 SHA 的 required checks。
 
-只有 merge_code 可在精确 reviewed HEAD 上创建或更新 GitHub PR 并 squash 合并；不发送 Botmux
-审核话题、不等待人工验收、不直接 push main，也不执行发布。main push 触发的 Release 由现有
-GitHub Actions 独立处理。
+execute_agent_acceptance 只允许“使用 Fanloop 机器人”在固定群驱动“FanLoop 机器人”并行执行两个
+全新黑盒 Case。外层 Botmux 只通信；内层 Fanloop CLI 清除 Botmux 环境，不使用用户身份，不生成
+Card Binding、Trace Integration、远端 Trace Event 或用户文档。Candidate 到达 merge_code 前停止。
+
+只有 merge_code 可对唯一 PR 使用 `--auto --squash --match-head-commit`；不发送 MR 交接、不等待人工
+端到端验收、不使用 `--admin` 或直接 push main。main push 的 Release 由 GitHub Actions 独立处理。
 
 ## 人类提问顺序
 
@@ -138,7 +140,7 @@ GitHub Actions 独立处理。
 2. 先完成承载最新状态的非 dry-run 写命令：新 Requirement 使用 `flow init`；Result 进入
    Human Step 时复用该 `flow report result`；Agent Step 新增人工依赖时使用
    `flow report progress --status blocked`。
-3. Human Step 选择人工路径时，按当前 Prompt/Skill 展示审核材料，并按 Condition 绑定 Skill
+3. 需求确认选择人工补充路径时，按当前 Prompt/Skill 展示审核材料，并按 Condition 绑定 Skill
    原样展示 Panorama、保留本次 `panorama_snapshot_path` 后，才能请求人工决定；CLI 写命令不会代为发送。
 4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama
    快照。

@@ -5,7 +5,7 @@ description: 按 targeted 或 e2e 风险档复验 Fanloop CLI 本地源码并写
 
 # 按风险验证 Fanloop CLI
 
-1. 读取确认需求、仓库根 FEATURE_MAP.md、测试计划和已确认的 Verification Case；记录当前分支、
+1. 读取确认需求、`.agents/skills/verify-fanloop/features/README.md`、测试计划和已确认的 Verification Case；记录当前分支、
    HEAD、git status --short 与执行前 diff 摘要。纯文档、自迭代 Skill、未改变
    Step/Route/Condition/executor 与 CLI/IDL/Storage/发布/测试入口的 Prompt/SkillBinding，或具备可靠
    聚焦 Seam 的局部行为可以选择 targeted；推进语义、代码/IDL、durable state、发布/安装/打包、

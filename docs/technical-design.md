@@ -15,7 +15,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 当前发布两套 Bundle：
 
 - `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
-- `fanloop-maintainer`：Fanloop 自迭代的九步维护流程；本地验证、审查、Agent 验收与 GitHub 合码职责分离。
+- `fanloop-maintainer`：Fanloop 的 5 Stage / 12 Job / 16 Step 信任曲线；验证技能、功能地图、独立 Eval、CI、机器人验收与自动合码职责分离。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
 Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建拒绝缺失同名 Skill
@@ -45,8 +45,9 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_requirements` 可用
-`agent_approved` 独立批准，也是该流程唯一 Human Step。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
+Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_requirements` 现在
+由 Agent 独立复核；缺少真实产品决策时保持 blocked，人工补充路径仍可使用 Panorama，但不是生产
+拓扑中的 Human Step。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
 文档 URL、`panorama_card_published` 与人的明确结论。审批 Skill 组织审核材料并按最早受影响层分类，
 Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
@@ -66,12 +67,17 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 目标、调研、总体方案、难点、收益、落地或呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
-`fanloop-maintainer` 使用 3/4/2 的九步拓扑：需求定义为工作区准备、需求澄清、需求确认；需求实现为
-方案设计、代码实现、本地验证、代码审查；变更交付为 Agent 自动化验收、合码。
-本地验证与审查分别写 `local-test-report.md` 和 `review-report.md`；Agent 验收逐 Feature 维护根
-`FEATURE_MAP.md`、安装同一 reviewed HEAD 并执行真实机器人黑盒，唯一新增的 `acceptance-report.md`
-继续记录合码事实。合码 Step 创建或更新唯一 GitHub PR，以 reviewed HEAD 锁执行 squash merge 并
-回读 merge commit；不发送人工 MR 交接话题，也不直接 push main。
+`fanloop-maintainer` 使用 5 Stage / 12 Job / 16 Step：本地验证机制完成需求、方案、实现和中文验证
+技能；功能图谱维护 `.agents/skills/verify-fanloop/features/`，再执行本地验证与 Review；Agent 评测
+冻结 Case、并行运行隔离候选并由不同模型裁判；硬性门禁发布唯一 PR 并校验 Ruleset/CI；云端交付
+并行运行两个机器人 Case 后自动合码。Runtime 仍是单活动 Step，Job 负责职责与展示，真正无依赖的
+候选、CI 和机器人批次在对应边界并行。
+
+本地验证与审查分别写 `local-test-report.md` 和 `review-report.md`；Review 冻结 `candidate_head`，
+`acceptance-report.md` 连续记录 Eval、PR/CI、两机器人隔离与合码事实。机器人外层使用 Botmux，内层
+CLI 清除 Botmux 环境且不生成 Card Binding、Trace Integration、远端 Trace Event 或用户文档。
+`merge_code` 使用 `--auto --squash --match-head-commit`，不发送 MR 交接、不要求人工端到端验收、
+不使用 `--admin` 或直接 push main。
 
 ## 当前持久化版本
 

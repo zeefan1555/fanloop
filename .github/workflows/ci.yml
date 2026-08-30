@@ -30,3 +30,52 @@ jobs:
           version: "v2.5.1"
           args: check
       - run: ./tests/run-unit
+
+  requirement-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run Requirement E2E and Route Matrix
+        run: ./tests/run-e2e
+
+  install-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install current candidate in isolation
+        run: |
+          verify_root="$(mktemp -d)"
+          export FANLOOP_DATA_HOME="$verify_root/data"
+          export FANLOOP_CODEX_SKILLS_ROOT="$verify_root/skills/codex"
+          export FANLOOP_AGENT_SKILLS_ROOT="$verify_root/skills/agents"
+          export FANLOOP_TRAE_SKILLS_ROOT="$verify_root/skills/trae"
+          export FANLOOP_CLAUDE_SKILLS_ROOT="$verify_root/skills/claude"
+          unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
+          npm run install:local
+          "$FANLOOP_DATA_HOME/current/bin/fanloop" version | tee "$verify_root/version.json"
+          "$FANLOOP_DATA_HOME/current/bin/fanloop" doctor | tee "$verify_root/doctor.json"
+          grep -q '"status": "healthy"' "$verify_root/doctor.json"
+
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Reject local-only materials
+        run: test -z "$(git ls-files .scratch docs/research docs/specs)"
+      - name: Verify Botmux identity isolation
+        run: go test ./tests/contracts ./tests/e2e -run 'Test(MergeEnvironmentScrubsBotmuxBindingByDefault|E2ECommandsScrubBotmuxBindingByDefault)$' -count=1

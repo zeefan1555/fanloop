@@ -52,38 +52,65 @@ func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
 	}
 }
 
-func TestMaintainerVerificationAssetsAreReleaseBound(t *testing.T) {
+func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 	repo := repositoryRoot(t)
+	if _, err := os.Stat(filepath.Join(repo, "FEATURE_MAP.md")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("root FEATURE_MAP.md must not duplicate the project verification map: %v", err)
+	}
 	contracts := map[string][]string{
+		".github/workflows/ci.yml": {
+			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
+		},
 		".goreleaser.yml": {
 			`"skills/**/*"`,
 		},
-		"FEATURE_MAP.md": {
-			"症状 / 意图", "公开命令", "稳定代码 Seam", "最小真实验证", "证据",
+		".agents/skills/verify-fanloop/SKILL.md": {
+			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID",
+		},
+		".agents/skills/verify-fanloop/features/README.md": {
+			"Fanloop 功能地图", "Requirement 与 Flow", "Output 与 State", "安装、Release 与 Skills",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
-			"FEATURE_MAP.md", "baseline",
+			".agents/skills/verify-fanloop/features/README.md", "baseline",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
-			"FEATURE_MAP.md", "baseline", "candidate", "./tests/run-unit", "./tests/run-e2e", "local-test-report.md",
+			".agents/skills/verify-fanloop/features/README.md", "baseline", "candidate", "./tests/run-unit", "./tests/run-e2e", "local-test-report.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-create-verification/SKILL.md": {
+			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", ".agents/skills/verify-fanloop",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-maintain-verification/SKILL.md": {
-			"FEATURE_MAP.md", "Source", "Live", "clean", "changed", "blocked", "acceptance-report.md",
+			".agents/skills/verify-fanloop", "用户入口", "真实操作", "可观察结果", "clean", "updated", "blocked",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator/SKILL.md": {
+			"1 至 3", "10 分", "Rubric", "随机", "不同模型", "eval-playbook.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-eval-candidate/SKILL.md": {
+			"并行", "独立随机目录", "candidate_head", "eval-candidates-report.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-eval-judge/SKILL.md": {
+			"不同于候选模型", "10/10", "最多三轮", "acceptance-report.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-publish-candidate/SKILL.md": {
+			"candidate_head", "base=main", "唯一", "pull_request_url",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-ci-gate/SKILL.md": {
+			"Ruleset", "strict", "squash", "linear", "./tests/run-unit", "./tests/run-e2e", "candidate_head",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"review-report.md", "npm run install:local", "fanloop version", "fanloop doctor", "ref/eval-playbook.md", "ref/lark-agent-e2e.md", "acceptance-report.md", "Card Binding", "trace_synced", "governance_failed",
+			"candidate_head", "fanloop version", "fanloop doctor", "ref/lark-agent-e2e.md", "acceptance-report.md", "Card Binding", "Trace Integration", "governance_failed",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/eval-playbook.md": {
-			"Verification Case", "Rubric", "candidate_commit",
+			"Rubric", "10 分", "candidate_head", "governance_failed",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
-			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token", "lark-cli whoami --as bot", "trace_document_bound", "registry",
+			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "用户 token", "lark-cli whoami --as bot", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-merge-code/SKILL.md": {
-			"acceptance-report.md", "gh pr merge", "--squash", "--match-head-commit", "code_merged",
+			"acceptance-report.md", "gh pr merge", "--auto", "--squash", "--match-head-commit", "code_merged",
 		},
 	}
 	for relative, snippets := range contracts {

@@ -1,54 +1,37 @@
 ---
 name: fanloop-dev-agent-acceptance
-description: 对同一 reviewed HEAD 安装 Fanloop Release，并用固定机器人身份执行真实黑盒验收和 acceptance-report.md。
+description: 用固定机器人身份并行运行两个真实黑盒 Case，并验证内层 Fanloop 与用户身份、Card 和远端 Trace 完全隔离。
 ---
 
-# Agent Acceptance
+# 机器人端到端验收
 
-只验收工作树干净、已提交，且 local-test-report.md、review-report.md、当前 HEAD 完全一致的候选。
-先完整读取 ref/eval-playbook.md 与 ref/lark-agent-e2e.md；fanloop-dev-maintain-verification 的结果
-不是 clean 时不得继续。
+只验收 CI 已在 candidate_head 全绿、工作树只读且 PR head 未漂移的候选。先完整读取
+ref/lark-agent-e2e.md；Eval 阶段的冻结 Case、评分和 acceptance-report.md 必须属于同一 SHA。
 
-## 候选安装
+## 候选与身份
 
-1. 记录 reviewed HEAD 与三点 diff。
-2. 从该工作树运行 npm run install:local。
-3. 回读 fanloop version，要求 commit 精确等于 reviewed HEAD；再运行 fanloop doctor。
-4. Q8=B：该安装切换正式 current slot；不执行、不声称也不伪造 managed Dev install、uninstall、
-   自动回滚或恢复。
+1. 从候选工作树安装 Release，回读 fanloop version 的 commit 等于 candidate_head，fanloop doctor 健康。
+2. driver 固定为“使用 Fanloop 机器人” app cli_aafadbc67e799cdc，target 固定为“FanLoop 机器人”
+   app cli_a9245f0fddf8dbc8，群固定为 oc_d532c3a5eda84c60728ab174b0ef671a。
+3. open ID 每轮从 driver 在线 source session 实时解析；不得使用用户 token、用户身份、旧话题或旧 Requirement。
 
-安装、版本或 Doctor 不一致属于基础设施 blocked；不使用旧安装继续。
+## 两个并行 Case
 
-## 真实机器人黑盒
+通过外层 botmux dispatch 建立两个全新顶层话题并并行派发。每个 target 在独立目录创建全新
+Requirement，只使用刚安装 Release 的公开 CLI，并在 merge_code 前停止。内层 CLI 命令必须清除
+BOTMUX_CHAT_ID 与 BOTMUX_SESSION_ID，且不得携带用户凭证。
 
-固定 driver 是“使用 Fanloop 机器人” app cli_aafadbc67e799cdc，target 是“FanLoop 机器人”
-app cli_a9245f0fddf8dbc8，唯一群是 oc_d532c3a5eda84c60728ab174b0ef671a。
+外层 Botmux 只负责机器人通信，不得泄漏到内层 Requirement。以下任一事实出现都判
+governance_failed：Card Binding、Trace Integration、trace_document_bound、trace_sync_started、远端
+trace_synced、用户 Trace 文档、用户 CLI 日志文档、--as user 或任何用户 token。不得为了通过而回退
+用户身份或手工补资源。
 
-每轮从在线 driver source session 实时回读 bots list，校验 chat、isSelf driver app 与 target app；
-open ID 只记录本轮 driver 视角值。随后通过 botmux dispatch --bot-app
-cli_a9245f0fddf8dbc8 创建一个全新顶层话题，要求 target 创建全新 Requirement、只使用刚安装 Release
-的公开 Fanloop CLI、执行 requirements.md 冻结的 1–3 个 Case，并在合法 merge_code 边界停止。Candidate
-必须保留本轮 Botmux 环境，使用 `/Users/bytedance/.fanloop/current/bin/fanloop` 让 Requirement 捕获
-Card Binding、创建 Trace 与 CLI 日志文档并自动同步；同时回读 `lark-cli whoami --as bot`，不得使用
-或回退用户身份。
+## 证据与结论
 
-用同一 driver session 回读 dispatch、history、quoted 与 target Requirement 的 Status、Events、Card、
-CLI 日志。不得使用用户 token、错误 app/群、旧话题、旧 Requirement、截图替代回执，或让 Candidate
-执行 merge_code、合并或发布。Card Binding、Trace Integration、`trace_document_bound`、`trace_sync_started` 和成功的
-`trace_synced` 是必需验收证据；任一缺失、远端 target 失败或出现 `--as user` 都判 governance_failed。
+用同一 driver session 回读 dispatch、history、quoted、两个 target 回复以及 Requirement 的 Status、
+Events、Card、CLI 输出和文件树。acceptance-report.md 记录 candidate_head、安装/Doctor、两个话题、
+身份、Case、命令、前后状态、隔离断言、得分和停止原因。
 
-## 报告与结论
-
-在 Issue Workspace 的唯一 acceptance-report.md 中记录：
-
-- reviewed HEAD、工作树状态、local/review report HEAD；
-- Verification 维护 clean 证据；
-- npm install、version、doctor 的命令、退出码和回读；
-- chat、driver/target app 与本轮 open ID、source session、根消息、thread；
-- 全新 Requirement Root、candidate commit、Case、命令/卡片/响应和停止原因；
-- Rubric 每项证据、得分、总分和分类。
-
-Rubric 10/10 且所有护栏通过才输出 passed。确定产品失败输出 failed，并在 requirements_changed、
-technical_solution_changes_requested、implementation_changes_requested 中恰好选择一个原因。
-身份、群、网络、接单、回读或证据不可用时输出 blocked，留在当前 Step，不提交 Result，也不回退
-用户身份。任何源码或测试资产变化都会使本报告、安装与 Review 失效。
+两个 Case 均满足独立预期且治理断言全部通过才输出 passed。确定失败输出 failed，并在需求、方案、
+实现、验证技能、功能地图中恰好选择一个最早责任层。身份、网络、接单或回读不可用时保持 blocked，
+不提交 Result。任何候选变化都会使本验收失效。

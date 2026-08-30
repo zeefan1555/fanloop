@@ -95,9 +95,9 @@ func TestAgentApprovalAdvancesOrCompletesMaintainerWorkflow(t *testing.T) {
 	}
 }
 
-func TestMaintainerAgentAcceptanceAdvancesToMergeCode(t *testing.T) {
+func TestMaintainerTrustCurveAdvancesToAutomaticMerge(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Agent-gated merge"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Trust curve auto merge"), "flow.init")
 
 	advance := func(step, next string, conditions ...string) {
 		t.Helper()
@@ -119,15 +119,33 @@ func TestMaintainerAgentAcceptanceAdvancesToMergeCode(t *testing.T) {
 		conditionResult("spec_written", "path", "\"spec.md\""),
 		conditionResult("tickets_written", "path", "\"ticket-01.md\""),
 		conditionResult("technical_solution_document_published", "url", "\"https://example.com/design\""))
-	advance("implement_code", "execute_test_cases",
+	advance("implement_code", "maintain_verification_skill",
 		conditionResult("implementation_completed", "enum_value", "\"completed\""))
+	advance("maintain_verification_skill", "maintain_feature_map",
+		conditionResult("verification_skill_ready", "path", "\".agents/skills/verify-fanloop/SKILL.md\""))
+	advance("maintain_feature_map", "execute_test_cases",
+		conditionResult("feature_map_current", "enum_value", "\"clean\""))
 	advance("execute_test_cases", "review_code",
 		conditionResult("validation_profile_selected", "enum_value", "\"e2e\""),
 		conditionResult("e2e_entrypoint_passed", "enum_value", "\"passed\""),
 		conditionResult("local_test_report_written", "path", "\"local-test-report.md\""))
-	advance("review_code", "execute_agent_acceptance",
+	candidateHead := "0123456789abcdef0123456789abcdef01234567"
+	advance("review_code", "coordinate_eval",
 		conditionResult("review_passed", "enum_value", "\"passed\""),
-		conditionResult("review_report_written", "path", "\"review-report.md\""))
+		conditionResult("review_report_written", "path", "\"review-report.md\""),
+		conditionResult("candidate_head_frozen", "string", "\""+candidateHead+"\""))
+	advance("coordinate_eval", "execute_eval_candidates",
+		conditionResult("eval_playbook_frozen", "path", "\"eval-playbook.md\""))
+	advance("execute_eval_candidates", "judge_eval",
+		conditionResult("eval_candidates_completed", "path", "\"eval-candidates-report.md\""))
+	advance("judge_eval", "publish_candidate",
+		conditionResult("agent_eval_passed", "enum_value", "\"passed\""),
+		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""))
+	advance("publish_candidate", "verify_ci_gates",
+		conditionResult("pull_request_published", "url", "\"https://github.com/zeefan1555/fanloop/pull/7\""))
+	advance("verify_ci_gates", "execute_agent_acceptance",
+		conditionResult("repository_guardrails_verified", "string", "\"1234\""),
+		conditionResult("ci_gates_passed", "string", "\""+candidateHead+"\""))
 	advance("execute_agent_acceptance", "merge_code",
 		conditionResult("agent_acceptance_passed", "enum_value", "\"passed\""),
 		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""))

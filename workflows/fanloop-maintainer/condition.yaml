@@ -71,6 +71,24 @@ conditions:
     output: {key: implementation_result, type: enum_value, values: [changes_requested]}
     exclusive_group: implementation_outcome
 
+  verification_skill_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: verification_skill_condition}
+    output: {key: verification_skill_path, type: path, description: 当前候选可运行的中文验证技能入口}
+    exclusive_group: verification_skill_outcome
+  verification_skill_changes_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: verification_skill_condition}
+    output: {key: verification_skill_status, type: enum_value, values: [changes_requested]}
+    exclusive_group: verification_skill_outcome
+
+  feature_map_current:
+    prompt_ref: {file: prompt.yaml, prompt_id: feature_map_condition}
+    output: {key: feature_map_status, type: enum_value, values: [clean, updated]}
+    exclusive_group: feature_map_outcome
+  feature_map_changes_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: feature_map_condition}
+    output: {key: feature_map_status, type: enum_value, values: [changes_requested]}
+    exclusive_group: feature_map_outcome
+
   validation_profile_selected:
     prompt_ref: {file: prompt.yaml, prompt_id: validation_profile_condition}
     output: {key: validation_profile, type: enum_value, values: [targeted, e2e]}
@@ -99,6 +117,39 @@ conditions:
   review_report_written:
     prompt_ref: {file: prompt.yaml, prompt_id: review_report_condition}
     output: {key: review_report_path, type: path}
+  candidate_head_frozen:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_head_condition}
+    output: {key: candidate_head, type: string, description: 代码审查通过后冻结的候选提交 SHA}
+
+  eval_playbook_frozen:
+    prompt_ref: {file: prompt.yaml, prompt_id: eval_playbook_condition}
+    output: {key: eval_playbook_path, type: path}
+  eval_candidates_completed:
+    prompt_ref: {file: prompt.yaml, prompt_id: eval_candidates_condition}
+    output: {key: eval_candidates_report_path, type: path}
+  agent_eval_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: agent_eval_condition}
+    output: {key: agent_eval_result, type: enum_value, values: [passed]}
+    exclusive_group: agent_eval_outcome
+  agent_eval_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: agent_eval_condition}
+    output: {key: agent_eval_result, type: enum_value, values: [failed]}
+    exclusive_group: agent_eval_outcome
+
+  pull_request_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: pull_request_condition}
+    output: {key: pull_request_url, type: url}
+  repository_guardrails_verified:
+    prompt_ref: {file: prompt.yaml, prompt_id: repository_guardrails_condition}
+    output: {key: repository_ruleset_id, type: string}
+  ci_gates_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: ci_gate_condition}
+    output: {key: ci_checked_head, type: string}
+    exclusive_group: ci_gate_outcome
+  ci_gates_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: ci_gate_condition}
+    output: {key: ci_gate_result, type: enum_value, values: [failed]}
+    exclusive_group: ci_gate_outcome
 
   agent_acceptance_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: agent_acceptance_condition}

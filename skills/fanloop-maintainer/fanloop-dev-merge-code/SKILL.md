@@ -1,44 +1,31 @@
 ---
 name: fanloop-dev-merge-code
-description: 在 Fanloop Agent 验收通过后，将精确 reviewed HEAD 通过唯一 GitHub PR 安全地 squash 合并到 main；不用于人工 MR 交接或通知。
+description: 在 Ruleset、CI 和两机器人验收通过后，对精确 candidate_head 启用 GitHub 自动 squash 合码。
 ---
 
-# 合码
+# 自动合码
 
-只在 `agent_acceptance_passed` 已被 Workflow 接受，且 `local-test-report.md`、`review-report.md`、
-`acceptance-report.md` 都绑定当前干净 HEAD 时执行。任一候选事实漂移都回到实现，不沿用旧验证。
+只接收 acceptance-report.md 中同一 candidate_head 的 Eval 通过、Ruleset ID、全部必需 CI checks 和
+两机器人验收事实。PR 必须唯一、base=main、open、非 draft，head OID 精确匹配；当前工作树只读。
 
-## 合并前检查
+## 执行
 
-1. 要求当前分支不是 `main`，`origin` 精确指向 `zeefan1555/fanloop`；读取分支、HEAD 与三个报告。
-2. 执行 `git fetch origin main`，要求候选相对最新 `origin/main` 为零 behind 且至少一条 ahead。
-   base 漂移时不自行 rebase 或 merge，记录 `implementation_changes_requested` 并回到实现。
-3. 用 `gh pr list --repo zeefan1555/fanloop --state all --head <branch>` 查找该分支的 PR。只能存在
-   一个权威 PR；多个、错误 base、draft 或 head OID 不等于 reviewed HEAD 时停止。
+回读 PR 和 main Ruleset 后执行：
 
-## 创建并合并
+~~~bash
+gh pr merge "$PR_URL" \
+  --repo zeefan1555/fanloop \
+  --auto \
+  --squash \
+  --match-head-commit "$CANDIDATE_HEAD"
+~~~
 
-1. `git push -u origin HEAD` 后，无 PR 时创建 `base=main` 的 PR；唯一 open PR 时更新标题和详细正文。
-   正文包含背景、问题、解决方案、改动范围、本地测试、Agent 验收、ADR impact 和风险/非目标。
-2. 回读 PR，要求 `baseRefName=main`、`headRefName=<branch>`、`headRefOid=<reviewed HEAD>`、
-   `state=OPEN`、`isDraft=false`。不查询或等待远端 checks；本 Workflow 的合并门禁只使用当前
-   reviewed HEAD 的本地验证、代码审查和 Agent 验收事实。
-3. 使用以下形状合并，不使用 `--admin`、`--auto`、merge commit、rebase 或直接 push `main`：
-
-   ```bash
-   gh pr merge <PR URL> --repo zeefan1555/fanloop --squash --match-head-commit <reviewed HEAD>
-   ```
-
-4. 再次回读同一 PR，只有 `state=MERGED`、base/head/head OID 仍匹配且 `mergeCommit.oid` 非空才成功。
-   `main` push 触发的 Release 是独立异步流程；本 Skill 不等待、不重跑或宣称发布成功。
+禁止 --admin、直接 push main、merge commit、rebase、第二个 PR、人工端到端验收或绕过 required
+checks。命令返回后持续回读同一 PR；只有 state=MERGED、base/head/head OID 仍匹配且 mergeCommit.oid
+非空才成功。自动合并仍在等待 checks 时保持 blocked，不把已启用 auto-merge 记为已合并。
 
 ## 结果
 
-将 PR URL、source/base、reviewed HEAD、merged 时间和 merge commit 写入并回读
-`acceptance-report.md`。成功后上报 `code_merged=<PR URL 列表>` 与
-`acceptance_report_written=acceptance-report.md`。
-
-候选或 base 漂移上报 `implementation_changes_requested` 与 `acceptance_report_written`。网络或
-GitHub 暂时失败时，先回读 PR；只有能证明尚未产生歧义合并时，才上报
-`code_merge_failed=failed` 与 `acceptance_report_written` 原地重试。不得发送 Botmux 消息、写
-`handoff.json`、请求人工验收、自动发布或使用其他仓库/身份兜底。
+把 PR URL、candidate_head、Ruleset ID、checks、mergedAt 和 merge commit 追加并回读
+acceptance-report.md，随后上报 code_merged 与 acceptance_report_written。候选或 base 漂移回到实现；
+平台暂时失败时先回读 PR，只有能证明未发生歧义合并才上报 code_merge_failed 原地重试。
