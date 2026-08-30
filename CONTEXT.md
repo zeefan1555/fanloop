@@ -57,8 +57,8 @@ Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root`
 **Output 失效**
 Loop 根据 State 中 `producer_step_id` 失效由 back Step 及其下游生产的有效 Output，保留更早 Step 的事实。
 
-**Panorama 发布回执**
-Human Step 通过 YAML 的 `panorama_card_published` Condition 声明本轮自包含审核材料已发送并回读成功，Output 保存真实 messageId 或 Agent 交互事件 ID。该回执必须与人工结论在同一 Route 组合中上报；CLI 只校验类型与 Route，不自动发送或认证回执。Human Step 重入时不得复用旧回执。
+**Panorama 发布**
+Human Step 通过 YAML 的 `panorama_card_published` Condition 声明 renderer 生成的紧凑 Panorama 已由当前宿主成功展示或发送，Output 原样保存本次 non-dry-run render 返回的 Requirement Root 相对 `panorama_snapshot_path`。该 Condition 必须与人工结论在同一 Route 组合中上报；CLI 只校验类型与 Route，不自动发送。Panorama Skill 只做宿主分流和原样展示，不二次拼装审核材料。
 
 **Trace / Card**
 Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Registry endpoint、字段名、CLI 日志要求和 Workflow Output 字段映射由严格加载的 `internal/traceconfig/registry.yaml` 决定；Runtime 不比较具体 Workflow 或 Output ID。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`，URL Output 使用 YAML 中的 `output.description` 或 key 展示，渲染时不读取或写入 Trace；显式 `card render` 生成快照，Flow Runtime 不负责远端发送。

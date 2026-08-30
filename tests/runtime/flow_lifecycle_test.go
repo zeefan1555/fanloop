@@ -37,13 +37,13 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 
 	rejected := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_technical_problem",
-		"--condition-result", conditionResult("panorama_card_published", "string", `"receipt-problem-rejected"`),
+		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/problem-rejected.json"`),
 		"--condition-result", conditionResult("technical_problem_rejected", "enum_value", `"rejected"`),
 		"--back-step-id", "frame_technical_problem", "--summary", "technical problem needs revision")
 	assertSuccess(t, rejected, "flow.report.result")
 	assertFlowEffect(t, rejected.stdout, "looped", "frame_technical_problem")
 	assertOutputAbsent(t, rejected.stdout, "problem_definition_path")
-	assertOutputAbsent(t, rejected.stdout, "panorama_card_receipt_id")
+	assertOutputAbsent(t, rejected.stdout, "panorama_snapshot_path")
 
 	ready = run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "frame_technical_problem",
@@ -52,7 +52,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertSuccess(t, ready, "flow.report.result")
 	approved := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_technical_problem",
-		"--condition-result", conditionResult("panorama_card_published", "string", `"receipt-problem-approved"`),
+		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/problem-approved.json"`),
 		"--condition-result", conditionResult("technical_problem_approved", "enum_value", `"approved"`),
 		"--next-step-id", "derive_technical_solution", "--summary", "technical problem approved")
 	assertSuccess(t, approved, "flow.report.result")
@@ -63,7 +63,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertSuccess(t, derived, "flow.report.result")
 	directionApproved := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_solution_direction",
-		"--condition-result", conditionResult("panorama_card_published", "string", `"receipt-direction-approved"`),
+		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/direction-approved.json"`),
 		"--condition-result", conditionResult("solution_direction_approved", "enum_value", `"approved"`),
 		"--next-step-id", "write_technical_solution", "--summary", "solution direction approved")
 	assertSuccess(t, directionApproved, "flow.report.result")

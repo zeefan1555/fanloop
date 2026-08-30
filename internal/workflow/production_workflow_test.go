@@ -136,6 +136,9 @@ func assertConditionSkill(t *testing.T, loaded Loaded, conditionID, skillID stri
 	if !ok {
 		t.Fatalf("Condition %s is missing", conditionID)
 	}
+	if condition.Output.Key != "panorama_snapshot_path" || condition.Output.Type != OutputPath {
+		t.Fatalf("Condition %s Output = %#v, want panorama_snapshot_path:path", conditionID, condition.Output)
+	}
 	prompt, ok := loaded.Workflow.Prompt(condition.PromptRef)
 	if !ok || len(prompt.Skills) != 1 || prompt.Skills[0].ID != skillID ||
 		prompt.Skills[0].Optional == nil || *prompt.Skills[0].Optional {

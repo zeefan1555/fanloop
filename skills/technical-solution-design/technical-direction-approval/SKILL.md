@@ -16,7 +16,9 @@ description: 对候选方案比较、关键取舍和总体架构方向执行 Age
 - 总体架构与问题—设计映射；
 - 明确选择：批准方向，或拒绝并说明原因。
 
-把上述内容连同最新 `flow status` 的完整 Stage/Job/Step 全景、有效 Outputs 和待决事项组成一份自包含审核材料，通过当前 Agent 渠道发送并回读成功。记录本次发送返回的真实 messageId 或 Agent 交互事件 ID；不得复用前一 Step 或前一次进入本 Step 的回执。材料发送成功后才请求人的决定。
+把上述内容组成一份自包含审核材料，通过当前 Agent 渠道展示。另按
+`panorama_card_published` 绑定 Skill 原样展示 renderer 生成的 Panorama，不把审核正文二次拼入
+Panorama。两者展示成功后才请求人的决定。
 
 不得在本 Step 擅自增加方案决策或改写上游文件。
 
@@ -27,4 +29,4 @@ description: 对候选方案比较、关键取舍和总体架构方向执行 Age
 - 反馈改变问题、目标、非目标或硬约束：同时上报 `panorama_card_published` 与 `technical_problem_changed`；
 - 含糊或尚需讨论：继续等待。
 
-人工路径的 `panorama_card_published` 输出本轮真实发送回执。Evidence 保存人的完整原始回复和被审核的两个文件路径。
+人工路径的 `panorama_card_published` 输出本次 render 的精确 `panorama_snapshot_path`。Evidence 保存人的完整原始回复和被审核的两个文件路径。

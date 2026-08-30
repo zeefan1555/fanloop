@@ -3,7 +3,7 @@ schema_version: 2
 conditions:
   panorama_card_published:
     prompt_ref: {file: prompt.yaml, prompt_id: panorama_card_published_condition}
-    output: {key: panorama_card_receipt_id, type: string, description: 当前 Human Step 全景材料的真实投递回执}
+    output: {key: panorama_snapshot_path, type: path, description: 本次成功展示的精确 Panorama 快照}
   agent_approved:
     prompt_ref: {file: prompt.yaml, prompt_id: agent_approval_condition}
     output: {key: agent_approval_decision, type: enum_value, values: [approved], description: 当前 Agent 已独立复核并同意继续}
@@ -22,7 +22,7 @@ conditions:
     output: {key: requirements_path, type: path}
   requirements_document_published:
     prompt_ref: {file: prompt.yaml, prompt_id: requirements_document_published_condition}
-    output: {key: requirement_document_url, type: url}
+    output: {key: requirement_document_url, type: url, description: 需求确认报告}
   implementation_required:
     prompt_ref: {file: prompt.yaml, prompt_id: implementation_requirement_condition}
     output: {key: implementation_required, type: boolean}
@@ -57,7 +57,7 @@ conditions:
     output: {key: tickets_path, type: path}
   technical_solution_document_published:
     prompt_ref: {file: prompt.yaml, prompt_id: technical_solution_document_published_condition}
-    output: {key: technical_design_document_url, type: url}
+    output: {key: technical_design_document_url, type: url, description: 技术方案文档}
 
   implementation_completed:
     prompt_ref: {file: prompt.yaml, prompt_id: implementation_condition}
@@ -99,7 +99,7 @@ conditions:
 
   merge_request_created:
     prompt_ref: {file: prompt.yaml, prompt_id: merge_request_condition}
-    output: {key: merge_request_urls, type: url_list, min_items: 1}
+    output: {key: merge_request_urls, type: url_list, min_items: 1, description: MR}
   merge_request_handed_off:
     prompt_ref: {file: prompt.yaml, prompt_id: handoff_condition}
     output: {key: merge_request_handoff_result, type: enum_value, values: [passed]}

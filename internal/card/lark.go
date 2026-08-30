@@ -71,27 +71,60 @@ type cardAction struct {
 	Prompt  string
 }
 
-func renderLarkCard(view cardidl.CardView, current state.State, definition workflow.Workflow) larkCard {
+type cardStage struct {
+	Name   string
+	Output string
+}
+
+type cardContent struct {
+	Title     string
+	StageName string
+	StepName  string
+	Status    string
+	Progress  int
+	Panorama  string
+	Stages    []cardStage
+	Evidence  string
+	Action    cardAction
+}
+
+func buildCardContent(view cardidl.CardView, current state.State, definition workflow.Workflow) cardContent {
 	stageName, stepName := currentLocation(current, definition)
-	action := buildCardAction(current, definition)
+	stages := make([]cardStage, 0, len(definition.Stages))
+	for _, stage := range definition.Stages {
+		stages = append(stages, cardStage{Name: stage.Name, Output: stageOutputContent(current, definition, stage)})
+	}
+	return cardContent{
+		Title: current.Requirement.Title, StageName: stageName, StepName: stepName,
+		Status: cardStatus(current, definition), Progress: progressPercent(current, definition),
+		Panorama: statusPanorama(view, current, definition), Stages: stages,
+		Evidence: currentEvidence(current), Action: buildCardAction(current, definition),
+	}
+}
+
+func renderLarkCard(view cardidl.CardView, current state.State, definition workflow.Workflow) larkCard {
+	return renderLarkCardContent(buildCardContent(view, current, definition))
+}
+
+func renderLarkCardContent(content cardContent) larkCard {
 	return larkCard{
 		Schema: "2.0",
 		Config: larkConfig{UpdateMulti: true},
 		Header: larkHeader{
 			Template: "default",
-			Title:    plainText("Workflow · " + current.Requirement.Title),
-			Subtitle: plainText(stageName + " · " + stepName),
+			Title:    plainText("后端研发交付 · " + content.Title),
+			Subtitle: plainText(content.StageName + " · " + content.StepName),
 			TextTagList: []larkTextTag{
-				{Tag: "text_tag", Text: plainText(cardStatus(current, definition))},
-				{Tag: "text_tag", Text: plainText(fmt.Sprintf("%d%%", progressPercent(current, definition)))},
+				{Tag: "text_tag", Text: plainText(content.Status)},
+				{Tag: "text_tag", Text: plainText(fmt.Sprintf("%d%%", content.Progress))},
 			},
 		},
 		Body: larkBody{Elements: []any{
-			larkColumnSet{Tag: "column_set", Columns: []larkColumn{newLarkColumn("grey", "**状态全景**\n"+statusPanorama(view, current, definition))}},
+			larkColumnSet{Tag: "column_set", Columns: []larkColumn{newLarkColumn("grey", "**状态全景**\n"+content.Panorama)}},
 			larkMarkdown{Tag: "markdown", Content: "**各阶段 Output**"},
-			larkColumnSet{Tag: "column_set", Columns: outputColumns(current, definition)},
-			larkMarkdown{Tag: "markdown", Content: currentEvidence(current)},
-			larkColumnSet{Tag: "column_set", Columns: []larkColumn{newLarkColumn(action.Theme, actionMarkdown(action))}},
+			larkColumnSet{Tag: "column_set", Columns: outputColumns(content.Stages)},
+			larkMarkdown{Tag: "markdown", Content: content.Evidence},
+			larkColumnSet{Tag: "column_set", Columns: []larkColumn{newLarkColumn(content.Action.Theme, actionMarkdown(content.Action))}},
 		}},
 	}
 }
@@ -221,38 +254,42 @@ func cliLogLink(current state.State) string {
 	return ""
 }
 
-func outputColumns(current state.State, definition workflow.Workflow) []larkColumn {
-	columns := make([]larkColumn, 0, len(definition.Stages))
-	for _, stage := range definition.Stages {
-		urlOutputs := map[string]workflow.OutputDefinition{}
-		for _, job := range stage.Jobs {
-			for _, step := range job.Steps {
-				for _, conditionID := range definition.RelevantConditionIDs(step.ID) {
-					condition, ok := definition.Condition(conditionID)
-					if ok && condition.Output.Source == "" && isURLOutput(condition.Output.Type) {
-						if _, exists := urlOutputs[condition.Output.Key]; !exists {
-							urlOutputs[condition.Output.Key] = condition.Output
-						}
+func outputColumns(stages []cardStage) []larkColumn {
+	columns := make([]larkColumn, 0, len(stages))
+	for _, stage := range stages {
+		columns = append(columns, newLarkColumn("grey", "**"+stage.Name+"**\n"+stage.Output))
+	}
+	return columns
+}
+
+func stageOutputContent(current state.State, definition workflow.Workflow, stage workflow.Stage) string {
+	urlOutputs := map[string]workflow.OutputDefinition{}
+	for _, job := range stage.Jobs {
+		for _, step := range job.Steps {
+			for _, conditionID := range definition.RelevantConditionIDs(step.ID) {
+				condition, ok := definition.Condition(conditionID)
+				if ok && condition.Output.Source == "" && isURLOutput(condition.Output.Type) {
+					if _, exists := urlOutputs[condition.Output.Key]; !exists {
+						urlOutputs[condition.Output.Key] = condition.Output
 					}
 				}
 			}
 		}
-		keys := make([]string, 0, len(urlOutputs))
-		for key := range urlOutputs {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		outputs := make([]string, 0, len(urlOutputs))
-		for _, key := range keys {
-			registered := current.Outputs[key]
-			outputs = append(outputs, renderOutput(urlOutputs[key], registered.Value))
-		}
-		if len(outputs) == 0 {
-			outputs = append(outputs, "暂未生成")
-		}
-		columns = append(columns, newLarkColumn("grey", "**"+stage.Name+"**\n"+strings.Join(outputs, "\n")))
 	}
-	return columns
+	keys := make([]string, 0, len(urlOutputs))
+	for key := range urlOutputs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	outputs := make([]string, 0, len(urlOutputs))
+	for _, key := range keys {
+		registered := current.Outputs[key]
+		outputs = append(outputs, renderOutput(urlOutputs[key], registered.Value))
+	}
+	if len(outputs) == 0 {
+		return "暂未生成"
+	}
+	return strings.Join(outputs, "\n")
 }
 
 func isURLOutput(outputType workflow.OutputType) bool {
