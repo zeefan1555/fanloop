@@ -16,6 +16,10 @@ Issue Workspace `requirements.md`、Spec/Tickets、本地验证报告和相关 A
   测试，以及缺少独立 Demo / verification path 的水平切片。
 - Architecture：复核 IDL、durable storage、五份 Workflow YAML、Runtime 与 Release 边界；
   任意 `.thrift` diff 必须能定位到编码前人工审核记录，实际范围不得超过获批片段。
+- Verification / Agent Eval：本地报告中的 baseline/candidate 必须是同一已确认 Case；涉及用户可观察
+  CLI/Agent 行为、`skills/**` 或相关 Prompt 时，必须有真实 Agent Eval 且 Rubric 通过。报告的
+  candidate commit、安装 Release commit、Agent Requirement commit 与当前 reviewed HEAD 必须完全一致；
+  纯说明文档的 `N/A` 必须有可核对理由。缺失、失败、身份错误或 HEAD 漂移均为阻塞项。
 
 工具能自动发现的格式问题直接运行工具，不写成评审意见。把结论写入
 `review_report_path`，明确写入 reviewed HEAD；发现有效阻塞项时记录具体文件和行为并回流实现，
