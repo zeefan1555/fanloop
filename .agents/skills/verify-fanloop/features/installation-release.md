@@ -17,7 +17,10 @@ Schema 来自同一 commit。
    fanloop-dev-create-verification、fanloop-dev-maintain-verification、fanloop-dev-ci-gate 和
    fanloop-dev-merge-code 出现在 Skills。
 4. 运行 doctor，要求 Manifest、checksum、Skills、Skill links、Workflows 与 version drift 均通过。
-5. 保存 release.json 和所有链接目标，要求全部位于一次性 session。
+5. 用安装后二进制在全新 Requirement 初始化 `technical-solution-design`，要求返回的 Workflow digest
+   与 version 一致，Status 的 Skill path 位于本次 Release；回读已安装的 writing/review Skill，确认
+   九个语义章节允许 `###`，并保留证据状态与适用边界门禁。
+6. 保存 release.json 和所有链接目标，要求全部位于一次性 session。
 
 dist/ 是工作树共享构建目录，不并发运行多个 install:local。源码 build 的 version 不能替代安装后
 Doctor。Cleanup 移除隔离安装和链接，但保留证据。

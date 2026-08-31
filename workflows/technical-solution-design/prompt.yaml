@@ -3,17 +3,17 @@ schema_version: 1
 prompts:
   frame_requirement_background_flow:
     prompt: |
-      仅确定需求背景：调查业务形态、现状架构和演进诉求，写入并回读 .technical-solution/sections/01-background.md。不得分析根因、定义目标或设计方案。完成时上报 background_defined；证据仍可调查时继续工作。
+      仅确定需求背景：从具体业务场景、角色和关键链路出发，调查业务形态、现状架构、演进诉求与可追溯的定量事实，明确来源和证据状态，写入并回读 .technical-solution/sections/01-background.md。不得把估算、目标或待确认信息写成现状事实，不得分析根因、定义目标或设计方案。完成时上报 background_defined；证据仍可调查时继续工作。
     skills:
-      - {id: technical-background-framing, prompt: 使用该 Skill 形成无二级标题的需求背景片段。, optional: false}
+      - {id: technical-background-framing, prompt: 使用该 Skill 形成不重复二级语义标题、证据可追溯的需求背景片段。, optional: false}
   analyze_core_problem_flow:
     prompt: |
-      仅基于 01-background.md 分析现状评估、瓶颈、根因和关键取舍，写入并回读 .technical-solution/sections/02-problem.md。不得定义目标或设计方案。背景语义变化时上报 background_changed；否则完成时上报 core_problem_defined。
+      仅基于 01-background.md 分析现状和常见方案为何不够，区分现象、瓶颈与根因，提炼共同技术特点和关键取舍，写入并回读 .technical-solution/sections/02-problem.md。不得定义目标或设计方案。背景语义变化时上报 background_changed；否则完成时上报 core_problem_defined。
     skills:
       - {id: technical-problem-analysis, prompt: 使用该 Skill 从事实推导核心问题并保持背景边界稳定。, optional: false}
   define_design_objectives_flow:
     prompt: |
-      仅基于已完成的背景与问题定义量化核心指标、设计约束和非目标，写入并回读 .technical-solution/sections/03-objectives.md。不得调研或选择方案。背景或问题变化时上报最早受影响的 feedback Condition；否则完成时上报 design_objectives_defined。
+      仅基于已完成的背景与问题定义可验收的核心指标、设计约束、非目标和取舍顺序，区分基线、目标与待补证据，写入并回读 .technical-solution/sections/03-objectives.md。不得调研或选择方案。背景或问题变化时上报最早受影响的 feedback Condition；否则完成时上报 design_objectives_defined。
     skills:
       - {id: technical-objective-setting, prompt: 使用该 Skill 形成可验证的设计目标片段。, optional: false}
   confirm_technical_problem_flow:
@@ -24,17 +24,17 @@ prompts:
 
   research_solution_options_flow:
     prompt: |
-      仅基于已批准的 01–03 片段建立评价维度，调研内部、业界与不改基线方案，写入并回读 .technical-solution/sections/04-research.md。不得选择总体架构。上游语义变化时上报最早受影响的 feedback Condition；否则完成时上报 solution_research_completed。
+      仅基于已批准的 01–03 片段建立统一评价维度，公平调研不改基线、内部、业界与当前候选方案，记录来源、未选择原因和不行动成本，写入并回读 .technical-solution/sections/04-research.md。不得选择总体架构。上游语义变化时上报最早受影响的 feedback Condition；否则完成时上报 solution_research_completed。
     skills:
       - {id: technical-solution-research, prompt: 使用该 Skill 完成同维度、可追溯的方案调研。, optional: false}
   design_overall_solution_flow:
     prompt: |
-      仅基于已批准问题与方案调研确定核心思路、核心选型、架构全景和关键链路，写入并回读 .technical-solution/sections/05-overall-solution.md 与 .technical-solution/architecture.mmd。不得展开局部难点解法。上游变化时上报最早受影响的 feedback Condition；否则同时上报 overall_solution_designed 与 architecture_diagram_written。
+      仅基于已批准问题与方案调研确定核心思路、核心选型、系统边界与职责、架构全景，以及数据流、控制流和异常流，逐项回扣问题与目标，写入并回读 .technical-solution/sections/05-overall-solution.md 与可独立理解的主架构图 .technical-solution/architecture.mmd。不得展开局部难点解法。上游变化时上报最早受影响的 feedback Condition；否则同时上报 overall_solution_designed 与 architecture_diagram_written。
     skills:
       - {id: technical-overall-solution, prompt: 使用该 Skill 完成总体方案与完整可编辑架构图。, optional: false}
   design_key_solutions_flow:
     prompt: |
-      仅围绕核心问题和总体架构逐项设计难点解法与异常保障，写入并回读 .technical-solution/sections/06-key-solutions.md。上游变化时上报最早受影响的 feedback Condition；否则完成时上报 key_solutions_designed。
+      仅围绕核心问题和总体架构先判断接口、数据与存储、状态与并发、性能与容量、稳定性与观测、安全与合规、兼容与迁移的适用性，再只对相关难点设计正常、异常、降级和恢复闭环；必要时补充被正文明确引用的可编辑辅助图，写入并回读 .technical-solution/sections/06-key-solutions.md。上游变化时上报最早受影响的 feedback Condition；否则完成时上报 key_solutions_designed。
     skills:
       - {id: technical-key-solutions, prompt: 使用该 Skill 形成问题到手段的逐项闭环。, optional: false}
   confirm_solution_direction_flow:
@@ -45,24 +45,24 @@ prompts:
 
   evaluate_solution_benefits_flow:
     prompt: |
-      仅基于已批准的 01–06 片段定义效果验证、业务价值、技术价值和复用价值，写入并回读 .technical-solution/sections/07-benefits.md。上游变化时上报最早受影响的 feedback Condition；否则完成时上报 solution_benefits_defined。
+      仅基于已批准的 01–06 片段定义效果验证、业务价值、技术价值和复用价值，区分已测、估算、目标与待确认，明确适用场景、不适用场景和方案代价，写入并回读 .technical-solution/sections/07-benefits.md。上游变化时上报最早受影响的 feedback Condition；否则完成时上报 solution_benefits_defined。
     skills:
       - {id: technical-solution-benefits, prompt: 使用该 Skill 形成可验证且回扣目标的方案收益。, optional: false}
   plan_solution_delivery_flow:
     prompt: |
-      仅基于已批准方案制定迁移、发布验证、风险回滚和后续演进，写入并回读 .technical-solution/sections/08-delivery.md。上游变化时上报最早受影响的 feedback Condition；否则完成时上报 delivery_plan_defined。
+      仅基于已批准方案制定迁移、发布、验证、观测、风险止损、回滚恢复和后续演进，给出负责人、阈值与完成信号，写入并回读 .technical-solution/sections/08-delivery.md。上游变化时上报最早受影响的 feedback Condition；否则完成时上报 delivery_plan_defined。
     skills:
       - {id: technical-solution-delivery, prompt: 使用该 Skill 形成可执行的落地规划。, optional: false}
   write_technical_solution_flow:
     prompt: |
-      只组装已确认的 01–08 片段、架构图与证据，生成 .technical-solution/sections/09-appendix.md 和 technical-solution.md。正文除项目标题外只允许“需求背景、核心问题、设计目标、方案调研、总体方案、难点解法、方案收益、落地规划、附录”九个二级标题，不得出现三级标题或 1.1 编号。发现上游语义变化时上报最早受影响的 feedback Condition；写入并回读成功时上报 technical_solution_written。
+      只组装已确认的 01–08 片段、主架构图、片段明确引用的辅助图与证据，生成 .technical-solution/sections/09-appendix.md 和 technical-solution.md。正文保留“需求背景、核心问题、设计目标、方案调研、总体方案、难点解法、方案收益、落地规划、附录”九个二级语义章节，允许按项目内容生成三级标题，但不得使用手工 1.1 编号或更深标题；关键事实必须保留来源和证据状态。发现上游语义变化时上报最早受影响的 feedback Condition；写入并回读成功时上报 technical_solution_written。
     skills:
-      - {id: technical-solution-writing, prompt: 使用该 Skill 将内部细粒度产物组装为只有九个一级呈现结构的正式方案。, optional: false}
+      - {id: technical-solution-writing, prompt: 使用该 Skill 保留九个二级语义章节，并按真实内容组织三级标题。, optional: false}
   review_technical_solution_flow:
     prompt: |
-      不修改输入，冷读 01–09 片段、technical-solution.md 与架构图，将审校证据写入 .technical-solution/review.md。无阻塞项时同时上报 technical_solution_review_passed 与 technical_solution_review_written；有阻塞项时只选择最早受影响的 background_changed 至 presentation_changed 中一项，并与 technical_solution_review_written 同时上报。
+      不修改输入，冷读 01–09 片段、technical-solution.md、主架构图与被正文引用的辅助图，检查九个语义章节、动态三级标题、证据状态、适用边界和端到端落地闭环，将审校证据写入 .technical-solution/review.md。无阻塞项时同时上报 technical_solution_review_passed 与 technical_solution_review_written；有阻塞项时只选择最早受影响的 background_changed 至 presentation_changed 中一项，并与 technical_solution_review_written 同时上报。
     skills:
-      - {id: technical-solution-review, prompt: 使用该 Skill 检查推导闭环、系统完整性与九段式呈现契约。, optional: false}
+      - {id: technical-solution-review, prompt: 使用该 Skill 检查推导闭环、系统完整性、证据状态与语义章节契约。, optional: false}
   confirm_technical_solution_flow:
     prompt: |
       使用绑定 Skill 发布并回读稳定飞书完整技术方案，展示本次 Panorama，再等待人的全新明确决定。批准时同时上报 technical_solution_document_published、panorama_card_published 与 technical_solution_approved 并结束；修改意见只上报最早受影响的 background_changed 至 presentation_changed 中一项，并同时上报前两个发布事实。Evidence 保存完整原始回复。不得自行批准或修改方案。
@@ -70,7 +70,7 @@ prompts:
       - {id: technical-solution-approval, prompt: 使用该 Skill 发布完整方案、组织人工终审并分类回流。, optional: false}
 
   section_artifact_condition:
-    prompt: 上报当前 Step 写入并回读成功的正式片段或完整方案路径。
+    prompt: 上报当前 Step 已写入、回读并通过对应语义与证据门禁的正式片段或完整方案路径。
     skills: []
   stage_document_condition:
     prompt: 上报按稳定标题唯一创建或更新且回读验证成功的飞书文档 URL。

@@ -73,6 +73,9 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 		".agents/skills/verify-fanloop/features/README.md": {
 			"Fanloop 功能地图", "Requirement 与 Flow", "Output 与 State", "安装、Release 与 Skills",
 		},
+		".agents/skills/verify-fanloop/features/card.md": {
+			"dry-run 成功时只返回渲染内容，不返回 `snapshot_path`", "单独执行一次非 dry-run 的本地渲染", "不得同时要求只执行 dry-run 和必须返回 `snapshot_path`",
+		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
 			".agents/skills/verify-fanloop/features/README.md", "baseline",
 		},
@@ -145,6 +148,46 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 	for _, forbidden := range []string{"botmux dispatch", "ref/eval-playbook.md", "npm run install:local"} {
 		if strings.Contains(string(verify), forbidden) {
 			t.Errorf("fanloop-dev-verify still owns Agent acceptance detail %q", forbidden)
+		}
+	}
+}
+
+func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
+	repo := repositoryRoot(t)
+	required := map[string][]string{
+		"workflows/technical-solution-design/prompt.yaml": {
+			"九个二级语义章节", "允许按项目内容生成三级标题", "来源和证据状态", "适用场景、不适用场景",
+		},
+		"skills/technical-solution-design/technical-solution-writing/SKILL.md": {
+			"九个语义章节", "允许 `###`", "证据状态",
+		},
+		"skills/technical-solution-design/technical-solution-review/SKILL.md": {
+			"语义章节", "允许 `###`", "适用边界",
+		},
+		"skills/technical-solution-design/technical-problem-approval/SKILL.md": {
+			"允许 `###`",
+		},
+		"skills/technical-solution-design/technical-direction-approval/SKILL.md": {
+			"允许 `###`",
+		},
+		"skills/technical-solution-design/technical-solution-approval/SKILL.md": {
+			"允许 `###`",
+		},
+	}
+	for relative, snippets := range required {
+		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, snippet := range snippets {
+			if !strings.Contains(string(content), snippet) {
+				t.Errorf("%s is missing %q", relative, snippet)
+			}
+		}
+		for _, forbidden := range []string{"不得出现 `###`", "禁止 `###`", "且无 `###`"} {
+			if strings.Contains(string(content), forbidden) {
+				t.Errorf("%s still contains obsolete flat-heading rule %q", relative, forbidden)
+			}
 		}
 	}
 }

@@ -35,6 +35,18 @@ func TestTechnicalSolutionPanoramaStagesAreFixed(t *testing.T) {
 	}
 }
 
+func TestTechnicalSolutionInitialPromptExposesEvidenceContract(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	initialized := run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Evidence Contract")
+	assertSuccess(t, initialized, "flow.init")
+	content := string(initialized.stdout)
+	for _, want := range []string{"具体业务场景", "定量事实", "来源和证据状态"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("flow.init response does not expose %q:\n%s", want, content)
+		}
+	}
+}
+
 // panoramaStageSteps extracts the ordered Step labels of one Stage line from the
 // "状态全景" panorama block, stripping the "✅ ", "**...**" and "（status）"
 // decoration the renderer applies to completed and current Steps.
