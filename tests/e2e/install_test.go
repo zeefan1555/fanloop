@@ -86,6 +86,84 @@ func TestNPMInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges(t *testing.T) {
+	repository := repositoryRoot(t)
+	home := t.TempDir()
+	dataRoot := filepath.Join(home, ".fanloop")
+	codexRoot := filepath.Join(home, ".codex", "skills")
+	agentsRoot := filepath.Join(home, ".agents", "skills")
+	oldRelease := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	if result := runInstaller(t, repository, oldRelease, dataRoot, codexRoot, agentsRoot); result.err != nil {
+		t.Fatalf("install initializing release: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+
+	oldRoot := filepath.Join(home, "fanloop", "issues", "old-requirement")
+	if err := os.MkdirAll(oldRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "init", "--root", oldRoot, "--workflow", "fanloop-maintainer", "--title", "Pinned controller E2E")
+	if initialized.err != nil {
+		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
+	}
+
+	pinner := filepath.Join(dataRoot, "current", "skills", "fanloop-maintainer", "fanloop-dev-agent-acceptance", "scripts", "pin-controller-release.sh")
+	pinned := exec.Command(pinner, oldRoot)
+	pinned.Env = append(os.Environ(), "HOME="+home)
+	if output, err := pinned.CombinedOutput(); err != nil {
+		t.Fatalf("pin initializing controller: %v\n%s", err, output)
+	}
+
+	newRelease := makeReleaseFixtureWithChangedMaintainerPrompt(t, repository, "1.2.4", "1.2.4")
+	if result := runInstaller(t, repository, newRelease, dataRoot, codexRoot, agentsRoot); result.err != nil {
+		t.Fatalf("install candidate release: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+	repinned := exec.Command(pinner, oldRoot)
+	repinned.Env = append(os.Environ(), "HOME="+home)
+	if output, err := repinned.CombinedOutput(); err != nil {
+		t.Fatalf("reuse pinned controller after current changed: %v\n%s", err, output)
+	}
+	controllerBinary := filepath.Join(oldRoot, "bound-release-home", "current", "bin", "fanloop")
+	if err := os.Chmod(controllerBinary, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	invalidPinned := exec.Command(pinner, oldRoot)
+	invalidPinned.Env = append(os.Environ(), "HOME="+home)
+	invalidOutput, invalidErr := invalidPinned.CombinedOutput()
+	if invalidErr == nil || !strings.Contains(string(invalidOutput), "existing pinned controller is invalid") || strings.Contains(string(invalidOutput), "WORKFLOW_MISMATCH") {
+		t.Fatalf("invalid pinned controller did not fail closed: %v\n%s", invalidErr, invalidOutput)
+	}
+	if err := os.Chmod(controllerBinary, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "status", "--root", oldRoot)
+	if globalOldStatus.err == nil || !strings.Contains(globalOldStatus.stderr, "WORKFLOW_MISMATCH") {
+		t.Fatalf("candidate current unexpectedly controlled old Requirement: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
+	}
+
+	controllerHome := filepath.Join(oldRoot, "bound-release-home")
+	controllerStatus := runBoundController(controllerHome, "flow", "status", "--root", oldRoot)
+	if controllerStatus.err != nil {
+		t.Fatalf("pinned controller did not continue old Requirement: %v\nstdout: %s\nstderr: %s", controllerStatus.err, controllerStatus.stdout, controllerStatus.stderr)
+	}
+	controllerVersion := runBoundController(controllerHome, "version")
+	if controllerVersion.err != nil || !strings.Contains(controllerVersion.stdout, `"release_version": "1.2.3"`) {
+		t.Fatalf("pinned controller version: %v\nstdout: %s\nstderr: %s", controllerVersion.err, controllerVersion.stdout, controllerVersion.stderr)
+	}
+
+	newRoot := filepath.Join(home, "fanloop", "issues", "new-requirement")
+	if err := os.MkdirAll(newRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	newInitialized := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "init", "--root", newRoot, "--workflow", "fanloop-maintainer", "--title", "Candidate current E2E")
+	if newInitialized.err != nil {
+		t.Fatalf("candidate current did not initialize new Requirement: %v\nstdout: %s\nstderr: %s", newInitialized.err, newInitialized.stdout, newInitialized.stderr)
+	}
+	candidateVersion := runCurrent(dataRoot, codexRoot, agentsRoot, "", "version")
+	if candidateVersion.err != nil || !strings.Contains(candidateVersion.stdout, `"release_version": "1.2.4"`) {
+		t.Fatalf("candidate current version: %v\nstdout: %s\nstderr: %s", candidateVersion.err, candidateVersion.stdout, candidateVersion.stderr)
+	}
+}
+
 func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(t *testing.T) {
 	repository := repositoryRoot(t)
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
@@ -523,6 +601,29 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 		t.Fatalf("build release binary: %v\n%s", err, output)
 	}
 
+	return packageReleaseFixture(t, repository, staging, binary, releaseVersion, additionalSkillNames...)
+}
+
+func makeReleaseFixtureWithChangedMaintainerPrompt(t *testing.T, repository, releaseVersion, compiledVersion string) releaseFixture {
+	t.Helper()
+	candidateRepository := copyTrackedRepository(t, repository)
+	path := filepath.Join(candidateRepository, "workflows", "fanloop-maintainer", "prompt.yaml")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := bytes.Replace(content, []byte("main 固定基线"), []byte("candidate 固定基线"), 1)
+	if bytes.Equal(changed, content) {
+		t.Fatal("maintainer prompt fixture replacement did not match")
+	}
+	if err := os.WriteFile(path, changed, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return makeReleaseFixture(t, candidateRepository, releaseVersion, compiledVersion)
+}
+
+func packageReleaseFixture(t *testing.T, repository, staging, binary, releaseVersion string, additionalSkillNames ...string) releaseFixture {
+	t.Helper()
 	skillItems := []map[string]any{}
 	skillSources := []string{filepath.Join(repository, "entrypoints", "fanloop-workflow", "SKILL.md")}
 	matches, err := filepath.Glob(filepath.Join(repository, "skills", "*", "*", "SKILL.md"))
@@ -577,17 +678,20 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 	}
 	for _, source := range workflowPaths {
 		sourceRoot := filepath.Dir(source)
-		loaded, decodeErr := workflow.LoadDirectory(sourceRoot)
-		if decodeErr != nil {
-			t.Fatalf("read workflow Bundle %s: %v", sourceRoot, decodeErr)
-		}
 		relative, err := filepath.Rel(repository, sourceRoot)
 		if err != nil {
 			t.Fatal(err)
 		}
 		relative = filepath.ToSlash(relative)
+		targetRoot := filepath.Join(staging, filepath.FromSlash(relative))
 		for _, name := range workflow.BundleFileNames() {
-			copyTreeFile(t, filepath.Join(sourceRoot, name), filepath.Join(staging, filepath.FromSlash(relative), name))
+			sourcePath := filepath.Join(sourceRoot, name)
+			targetPath := filepath.Join(targetRoot, name)
+			copyTreeFile(t, sourcePath, targetPath)
+		}
+		loaded, decodeErr := workflow.LoadDirectory(targetRoot)
+		if decodeErr != nil {
+			t.Fatalf("read workflow Bundle %s: %v", targetRoot, decodeErr)
 		}
 		workflowItems = append(workflowItems, map[string]any{
 			"id": loaded.Ref.ID, "path": relative, "sha256": loaded.Ref.Digest,
@@ -632,6 +736,28 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 	return releaseFixture{Archive: archive, Manifest: manifestPath, Version: releaseVersion}
 }
 
+func runBoundController(controllerHome string, args ...string) cliResult {
+	skillRoot := filepath.Join(controllerHome, "skill-roots")
+	command := exec.Command(filepath.Join(controllerHome, "current", "bin", "fanloop"), args...)
+	command.Env = append(withoutBotmuxBinding(os.Environ()),
+		"FANLOOP_DATA_HOME="+controllerHome,
+		"FANLOOP_CODEX_SKILLS_ROOT="+filepath.Join(skillRoot, "codex"),
+		"FANLOOP_AGENT_SKILLS_ROOT="+filepath.Join(skillRoot, "agent"),
+		"FANLOOP_TRAE_SKILLS_ROOT="+filepath.Join(skillRoot, "trae"),
+		"FANLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(skillRoot, "claude"),
+	)
+	var stdout, stderr bytes.Buffer
+	command.Stdout, command.Stderr = &stdout, &stderr
+	exitCode := 0
+	err := command.Run()
+	if exit, ok := err.(*exec.ExitError); ok {
+		exitCode = exit.ExitCode()
+	} else if err != nil {
+		exitCode = -1
+	}
+	return cliResult{stdout: stdout.String(), stderr: stderr.String(), exitCode: exitCode, err: err}
+}
+
 func replaceAssetDigest(t *testing.T, source, digest string) string {
 	t.Helper()
 	content, err := os.ReadFile(source)
@@ -665,12 +791,35 @@ func copyTreeFile(t *testing.T, source, target string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	info, err := os.Stat(source)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(target, content, 0o600); err != nil {
+	if err := os.WriteFile(target, content, info.Mode().Perm()); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func copyTrackedRepository(t *testing.T, repository string) string {
+	t.Helper()
+	command := exec.Command("git", "ls-files", "-z")
+	command.Dir = repository
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("list tracked repository files: %v", err)
+	}
+	target := t.TempDir()
+	for _, raw := range bytes.Split(output, []byte{0}) {
+		if len(raw) == 0 {
+			continue
+		}
+		relative := string(raw)
+		copyTreeFile(t, filepath.Join(repository, relative), filepath.Join(target, relative))
+	}
+	return target
 }
 
 func fixtureFileDigest(t *testing.T, path string) string {
