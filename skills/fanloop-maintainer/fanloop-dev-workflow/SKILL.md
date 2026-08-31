@@ -16,6 +16,8 @@ description: 维护 zeefan1555/fanloop 自身的入口。沿 fanloop-maintainer 
 `bound-release-home` 后，本维护流程自身的 Status、Progress、Result、Doctor 与最终 Card 都使用该
 控制器；全局 `$HOME/.fanloop/current` 只供候选安装、两个机器人和后续新 Requirement 使用。固定
 控制器失败时原样阻塞，禁止以全局 current 重试或修改 State 绕过 `WORKFLOW_MISMATCH`。
+下文 `<REQUIREMENT_CONTROLLER>` 表示通用入口解析出的固定控制器及其五个环境变量，未固定时才表示
+全局 `fanloop`；它不是可直接省略的装饰占位符。
 
 ## 启动
 
@@ -66,14 +68,14 @@ Skill、CLI 或 init 任一不可用或失败时，原样报告阻塞并停止�
 4. 工作尚未形成退出结论时上报：
 
    ```bash
-   fanloop flow report progress --step-id <当前 Step ID> --status <in_progress|fixing|blocked> --summary <摘要> [--evidence '<JSON>']
+   <REQUIREMENT_CONTROLLER> flow report progress --step-id <当前 Step ID> --status <in_progress|fixing|blocked> --summary <摘要> [--evidence '<JSON>']
    ```
 
 5. 形成真实结论后，从 `current.conditions[]` 选择原子 Condition，并按其 `output.type` 与约束
    构造：
 
    ```bash
-   fanloop flow report result --step-id <当前 Step ID> --condition-result '{"condition_id":"<ID>","output":{"type":"<TYPE>","value":<JSON>}}' [--condition-result ...] <--next-step-id ID|--back-step-id ID|--terminal> --summary <摘要> [--evidence '<JSON>']
+   <REQUIREMENT_CONTROLLER> flow report result --step-id <当前 Step ID> --condition-result '{"condition_id":"<ID>","output":{"type":"<TYPE>","value":<JSON>}}' [--condition-result ...] <--next-step-id ID|--back-step-id ID|--terminal> --summary <摘要> [--evidence '<JSON>']
    ```
 
    `when.any_of` 外层是 OR、内层是 AND。提交一个完整组合；同一 `exclusive_group` 只选一个
@@ -162,8 +164,8 @@ State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 普通回复时，先紧邻执行：
 
 ```bash
-fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
-fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
+<REQUIREMENT_CONTROLLER> flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+<REQUIREMENT_CONTROLLER> card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
 ```
 
 成功后，本轮最终普通回复必须完整原样展示 render 响应的 `data.content`；不展示 JSON envelope，

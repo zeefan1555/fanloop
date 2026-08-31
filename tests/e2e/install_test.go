@@ -122,6 +122,19 @@ func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges
 	if output, err := repinned.CombinedOutput(); err != nil {
 		t.Fatalf("reuse pinned controller after current changed: %v\n%s", err, output)
 	}
+	controllerBinary := filepath.Join(oldRoot, "bound-release-home", "current", "bin", "fanloop")
+	if err := os.Chmod(controllerBinary, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	invalidPinned := exec.Command(pinner, oldRoot)
+	invalidPinned.Env = append(os.Environ(), "HOME="+home)
+	invalidOutput, invalidErr := invalidPinned.CombinedOutput()
+	if invalidErr == nil || !strings.Contains(string(invalidOutput), "existing pinned controller is invalid") || strings.Contains(string(invalidOutput), "WORKFLOW_MISMATCH") {
+		t.Fatalf("invalid pinned controller did not fail closed: %v\n%s", invalidErr, invalidOutput)
+	}
+	if err := os.Chmod(controllerBinary, 0o755); err != nil {
+		t.Fatal(err)
+	}
 	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "status", "--root", oldRoot)
 	if globalOldStatus.err == nil || !strings.Contains(globalOldStatus.stderr, "WORKFLOW_MISMATCH") {
 		t.Fatalf("candidate current unexpectedly controlled old Requirement: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)

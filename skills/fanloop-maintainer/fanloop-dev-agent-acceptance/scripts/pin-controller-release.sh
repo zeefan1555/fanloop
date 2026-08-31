@@ -21,14 +21,21 @@ controller_env=(
 validate_controller() {
   env "${controller_env[@]}" "$controller_binary" flow status --root "$requirement_root" >/dev/null || return
   local doctor
-  doctor="$(env "${controller_env[@]}" "$controller_binary" doctor)" || return
+  if ! doctor="$(env "${controller_env[@]}" "$controller_binary" doctor 2>&1)"; then
+    echo "$doctor" >&2
+    return 1
+  fi
   if [[ "$doctor" != *'"status": "healthy"'* ]]; then
     echo "$doctor" >&2
     return 1
   fi
 }
 
-if [[ -x "$controller_binary" ]]; then
+if [[ -e "$controller_home" || -L "$controller_home" ]]; then
+  if [[ ! -x "$controller_binary" ]]; then
+    echo "existing pinned controller is invalid: $controller_home" >&2
+    exit 1
+  fi
   validate_controller
   printf '%s\n' "$controller_binary"
   exit 0

@@ -69,11 +69,13 @@ State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 
 ## 最终普通回复
 
-每次准备结束一轮普通回复时，先紧邻执行：
+每次准备结束一轮普通回复时，先紧邻使用本轮已经解析的 Requirement 控制器执行以下两个参数序列；
+`<REQUIREMENT_CONTROLLER>` 表示上文固定控制器及其五个环境变量，未固定时才表示全局 `fanloop`，不是
+可省略的装饰占位符：
 
 ```bash
-fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
-fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
+<REQUIREMENT_CONTROLLER> flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+<REQUIREMENT_CONTROLLER> card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
 ```
 
 成功后保留响应的 `data.content`；过程中的 commentary 和工具输出仅作中间反馈，本轮最终普通回复必须完整展示同一份 Panorama。不展示 JSON envelope，不自行拼装、压缩或重排内容。
