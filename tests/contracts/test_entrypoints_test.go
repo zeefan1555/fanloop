@@ -131,6 +131,13 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 			}
 		}
 	}
+	entrypoint, err := os.ReadFile(filepath.Join(repo, "entrypoints", "fanloop-workflow", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(entrypoint), "issue-workspace/bound-release-home") {
+		t.Error("fanloop-workflow trusts a candidate-writable controller path")
+	}
 	verify, err := os.ReadFile(filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-verify", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
