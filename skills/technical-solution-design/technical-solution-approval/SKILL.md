@@ -6,12 +6,13 @@ description: 发布完整飞书技术方案，等待人工终审并把反馈精�
 # 终审技术方案
 
 读取 `technical-solution.md`、`.technical-solution/architecture.mmd` 和最新
-`.technical-solution/review.md`。先确认审校已通过，正文只有九个规定结构且图文一致。
+`.technical-solution/review.md`。先确认审校已通过，正文保留九个规定语义章节且图文一致。
 
 `<项目>` 取最新 `flow status` 中的 Requirement 标题。使用当前宿主的 `lark-doc` 能力按稳定标题 `<项目>｜技术方案` 精确查找：唯一命中更新、零命中创建、
 多命中阻塞；创建结果不确定时先重新查找。发布 `technical-solution.md` 后使用返回 URL 回读，确认
-正文非空，九个标题按序且无 `###`、`1.1`，架构图与关键表格存在。失败时报告 blocked，不返回
-成功 Condition。
+正文非空，九个 `##` 按序；允许 `###` 按真实内容组织，但禁止 `####` 和手工 `1.1`，所有 `###`
+均归属当前语义章节，主架构图、正文引用的辅助图与关键表格存在。失败时报告 blocked，不返回成功
+Condition。
 
 向人展示已验证 URL、方案结论、关键取舍、收益、落地风险、审校结论和最新 Panorama，然后等待
 本次进入该 Step 后的全新明确回复。修改意见按最早受影响层分类：
