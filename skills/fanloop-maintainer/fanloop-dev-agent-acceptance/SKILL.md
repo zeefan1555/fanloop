@@ -9,12 +9,36 @@ description: 用固定机器人身份并行运行两个真实黑盒 Case，并�
 ref/lark-agent-e2e.md；Eval 阶段内容寻址的 Playbook、原始 brief/Rubric、评分和 acceptance-report.md
 必须属于同一 SHA。
 
-## 候选与身份
+## 当前候选的真实本地安装
 
-1. 从候选工作树安装 Release，回读 fanloop version 的 commit 等于 candidate_head，fanloop doctor 健康。
-2. driver 固定为“使用 Fanloop 机器人” app cli_aafadbc67e799cdc，target 固定为“FanLoop 机器人”
+1. 在候选工作树确认工作树干净、`git rev-parse HEAD` 等于 `candidate_head`，PR head 未漂移。
+2. 只对安装子进程清除所有隔离覆盖，然后从候选工作树执行真实本地安装：
+
+   ~~~bash
+   env \
+     -u FANLOOP_DATA_HOME \
+     -u FANLOOP_CODEX_SKILLS_ROOT \
+     -u FANLOOP_AGENT_SKILLS_ROOT \
+     -u FANLOOP_TRAE_SKILLS_ROOT \
+     -u FANLOOP_CLAUDE_SKILLS_ROOT \
+     -u BOTMUX_CHAT_ID \
+     -u BOTMUX_SESSION_ID \
+     npm run install:local
+   ~~~
+
+3. 要求 `$HOME/.fanloop/current` 指向 `$HOME/.fanloop/releases/` 内的 Release；使用
+   `$HOME/.fanloop/current/bin/fanloop` 回读 `version`，其中 commit 必须等于 `candidate_head`，随后运行
+   `doctor` 并要求 `healthy`。把实际 `readlink`、二进制路径、版本和 Doctor 输出写入验收报告。
+4. 禁止用 `go build -o`、`mktemp` 下的候选二进制、私有 bin 或设置临时 `FANLOOP_DATA_HOME` 代替安装；
+   安装成功后保留该候选为本机 `current`，不恢复旧版本。
+
+安装失败、current 未切换、commit 不匹配或 Doctor 不健康时保持 `blocked`，不得继续使用旧安装或派发机器人。
+
+## 机器人身份
+
+1. driver 固定为“使用 Fanloop 机器人” app cli_aafadbc67e799cdc，target 固定为“FanLoop 机器人”
    app cli_a9245f0fddf8dbc8，群固定为 oc_d532c3a5eda84c60728ab174b0ef671a。
-3. open ID 每轮从 driver 在线 source session 实时解析；不得使用用户 token、用户身份、旧话题或旧 Requirement。
+2. open ID 每轮从 driver 在线 source session 实时解析；不得使用用户 token、用户身份、旧话题或旧 Requirement。
 
 ## 两个并行 Case
 
@@ -32,7 +56,8 @@ trace_synced、用户 Trace 文档、用户 CLI 日志文档、--as user 或任�
 ## 证据与结论
 
 用同一 driver session 回读 dispatch、history、quoted、两个 target 回复以及 Requirement 的 Status、
-Events、Card、CLI 输出和文件树。acceptance-report.md 记录 candidate_head、安装/Doctor、两个话题、
+Events、Card、CLI 输出和文件树。acceptance-report.md 记录 candidate_head、默认 current 的 readlink、
+实际安装二进制、版本/Doctor、两个话题、
 身份、Case、命令、前后状态、隔离断言、得分和停止原因。
 
 两个 Case 均满足独立预期且治理断言全部通过才输出 passed。确定失败输出 failed，并在需求、方案、

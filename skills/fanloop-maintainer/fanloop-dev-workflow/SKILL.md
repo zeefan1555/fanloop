@@ -127,7 +127,10 @@ turn boundary 之后到达，才继续检查正文。不能只校验显示名，
 
 execute_agent_acceptance 只允许“使用 Fanloop 机器人”在固定群驱动“FanLoop 机器人”，校验内容寻址
 Playbook 与两个 brief/Rubric 摘要后，把两个冻结原始 brief 直接派发到全新话题、目录和 Requirement；
-禁止生成、复制、选择或改题。外层 Botmux 只通信；内层 Fanloop CLI 清除 Botmux 环境，不使用用户身份，
+禁止生成、复制、选择或改题。派发前必须从 `candidate_head` 的干净工作树执行真实
+`npm run install:local`，清除 `FANLOOP_DATA_HOME` 与 Skill Root 覆盖，并以默认
+`$HOME/.fanloop/current/bin/fanloop` 的 commit 和 Doctor 回读为准；临时候选 bin 或隔离安装不能代替。
+外层 Botmux 只通信；内层 Fanloop CLI 清除 Botmux 环境，不使用用户身份，
 不生成 Card Binding、Trace Integration、远端 Trace Event 或用户文档。Candidate 到达 merge_code 前停止。
 
 只有 merge_code 可对唯一 PR 使用 `--auto --squash --match-head-commit`；不发送 MR 交接、不等待人工

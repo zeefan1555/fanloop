@@ -14,7 +14,10 @@ source session 解析，不得写死。
 
 1. 执行 botmux bots list --session-id DRIVER_SESSION，确认 chat、isSelf driver app 与 target app。
 2. 回读 lark-cli whoami --as bot，要求 bot identity ready；不得切换 --as user。
-3. 安装 candidate_head 的 Release，回读 fanloop version 与 fanloop doctor。
+3. 在 candidate_head 的干净工作树中，使用 `env -u FANLOOP_DATA_HOME` 并同时清除四个 Skill Root
+   覆盖后执行 `npm run install:local`。要求 `$HOME/.fanloop/current` 指向本机 Releases，且
+   `$HOME/.fanloop/current/bin/fanloop version` 的 commit 等于 candidate_head、`fanloop doctor` 为
+   healthy。禁止用临时候选 bin、私有 bin 或隔离数据目录替代，验收结束后保留该 candidate 为 current。
 4. 从 `eval_playbook_path` 读取恰好两个冻结 Case，校验 Playbook 文件名摘要及每个 brief_sha256、
    rubric_sha256；固定执行顺序为清单顺序，不选择 Case。原始 brief 已包含全新目录、全新 Requirement、
    公开 CLI、证据字段、内层环境隔离和“到 merge_code 前停止”，不得再生成、复制或改写。
