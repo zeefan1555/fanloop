@@ -11,6 +11,21 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 `.fanloop` 由 CLI 管理。构造命令输入前读取目标叶子命令的 `--help`。新需求未指定目录时使用 `~/fanloop/worktrees/<requirement_slug>`；已有需求使用包含 `.fanloop` 的目录。
 
+## 已初始化 Requirement 的固定控制器
+
+解析出绝对 Requirement Root 后、第一次执行 `flow status` 前，依次检查：
+
+1. `<ABSOLUTE_REQUIREMENT_ROOT>/bound-release-home/current/bin/fanloop`；
+2. 已有维护需求的 `<ABSOLUTE_REQUIREMENT_ROOT>/issue-workspace/bound-release-home/current/bin/fanloop`。
+
+首个存在的路径就是该 Requirement 的固定控制器。它后续的 `flow`、`trace`、`card` 和 `doctor`
+命令都必须同时设置对应 `bound-release-home` 下的 `FANLOOP_DATA_HOME`，以及
+`skill-roots/{codex,agent,trae,claude}` 四个 Skill Root；不得再调用全局 `fanloop`。先用该控制器执行
+`flow status`，失败即原样阻塞，不得回退到全局 current、扫描其他 Release、改写 State 或猜测版本。
+
+未找到固定控制器时才使用全局 `fanloop`。新 Requirement 的 `flow init` 始终使用全局 current；固定
+控制器只保持已经初始化的 Requirement 继续运行，不影响新 Requirement 选择当前 Release。
+
 ## 启动
 
 每次启动或继续 Requirement，先将 Requirement Root 解析为绝对路径并运行 `flow status`：

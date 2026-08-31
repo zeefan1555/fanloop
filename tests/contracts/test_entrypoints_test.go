@@ -58,6 +58,9 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 		t.Fatalf("root FEATURE_MAP.md must not duplicate the project verification map: %v", err)
 	}
 	contracts := map[string][]string{
+		"entrypoints/fanloop-workflow/SKILL.md": {
+			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current",
+		},
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
 		},
@@ -98,10 +101,16 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 			"Ruleset", "strict", "squash", "linear", "./tests/run-unit", "./tests/run-e2e", "candidate_head",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"candidate_head", "env \\", "-u FANLOOP_DATA_HOME", "npm run install:local", "$HOME/.fanloop/current/bin/fanloop", "readlink", "禁止用 `go build -o`", "不恢复旧版本", "ref/lark-agent-e2e.md", "acceptance-report.md", "brief_sha256", "rubric_sha256", "--brief-file", "禁止生成", "Card Binding", "Trace Integration", "governance_failed",
+			"candidate_head", "pin-controller-release.sh", "bound-release-home", "controller_binary", "env \\", "-u FANLOOP_DATA_HOME", "npm run install:local", "$HOME/.fanloop/current/bin/fanloop", "readlink", "禁止用 `go build -o`", "不恢复旧版本", "ref/lark-agent-e2e.md", "acceptance-report.md", "brief_sha256", "rubric_sha256", "--brief-file", "禁止生成", "Card Binding", "Trace Integration", "governance_failed",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh": {
+			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
-			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "botmux dispatch", "FROZEN_BRIEF_PATH", "brief_sha256", "rubric_sha256", "不得再生成", "用户 token", "lark-cli whoami --as bot", "env -u FANLOOP_DATA_HOME", "npm run install:local", "$HOME/.fanloop/current/bin/fanloop version", "禁止用临时候选 bin", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
+			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "pin-controller-release.sh", "bound-release-home", "botmux dispatch", "FROZEN_BRIEF_PATH", "brief_sha256", "rubric_sha256", "不得再生成", "用户 token", "lark-cli whoami --as bot", "env -u FANLOOP_DATA_HOME", "npm run install:local", "$HOME/.fanloop/current/bin/fanloop version", "禁止用临时候选 bin", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
+			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",

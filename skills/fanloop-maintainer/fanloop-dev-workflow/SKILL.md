@@ -12,6 +12,11 @@ description: 维护 zeefan1555/fanloop 自身的入口。沿 fanloop-maintainer 
 `.fanloop` 由 CLI 管理。构造命令输入前读取目标叶子命令的 `--help`。新 Requirement
 使用 `~/fanloop/issues/<issue-slug>`；已有 Requirement 使用包含 `.fanloop` 的目录。
 
+已有 Requirement 必须先执行通用 `fanloop-workflow` 的“固定控制器”解析，再读取 Status。存在
+`bound-release-home` 后，本维护流程自身的 Status、Progress、Result、Doctor 与最终 Card 都使用该
+控制器；全局 `$HOME/.fanloop/current` 只供候选安装、两个机器人和后续新 Requirement 使用。固定
+控制器失败时原样阻塞，禁止以全局 current 重试或修改 State 绕过 `WORKFLOW_MISMATCH`。
+
 ## 启动
 
 每次启动或继续 Requirement，先将 Requirement Root 解析为绝对路径并运行 `flow status`：
