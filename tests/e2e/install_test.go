@@ -584,24 +584,6 @@ func rewriteCurrentWorkflowPaths(t *testing.T, dataRoot string, rewrite func(str
 }
 
 func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersion string, additionalSkillNames ...string) releaseFixture {
-	return makeReleaseFixtureWithWorkflowOverrides(t, repository, releaseVersion, compiledVersion, nil, additionalSkillNames...)
-}
-
-func makeReleaseFixtureWithChangedMaintainerPrompt(t *testing.T, repository, releaseVersion, compiledVersion string) releaseFixture {
-	t.Helper()
-	path := filepath.Join(repository, "workflows", "fanloop-maintainer", "prompt.yaml")
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	changed := bytes.Replace(content, []byte("main 固定基线"), []byte("candidate 固定基线"), 1)
-	if bytes.Equal(changed, content) {
-		t.Fatal("maintainer prompt fixture replacement did not match")
-	}
-	return makeReleaseFixtureWithWorkflowOverrides(t, repository, releaseVersion, compiledVersion, map[string][]byte{path: changed})
-}
-
-func makeReleaseFixtureWithWorkflowOverrides(t *testing.T, repository, releaseVersion, compiledVersion string, workflowOverrides map[string][]byte, additionalSkillNames ...string) releaseFixture {
 	t.Helper()
 	staging := t.TempDir()
 	binary := filepath.Join(staging, "bin", "fanloop")
@@ -613,32 +595,35 @@ func makeReleaseFixtureWithWorkflowOverrides(t *testing.T, repository, releaseVe
 		"-X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion=" + compiledVersion,
 		"-X github.com/zeefan1555/fanloop/internal/buildinfo.Commit=install-test",
 	}, " ")
-	buildArguments := []string{"build", "-buildvcs=false", "-ldflags", linker, "-o", binary, "."}
-	if len(workflowOverrides) > 0 {
-		replacements := map[string]string{}
-		for source, content := range workflowOverrides {
-			replacement := filepath.Join(t.TempDir(), filepath.Base(source))
-			if err := os.WriteFile(replacement, content, 0o600); err != nil {
-				t.Fatal(err)
-			}
-			replacements[source] = replacement
-		}
-		overlay, err := json.Marshal(map[string]any{"Replace": replacements})
-		if err != nil {
-			t.Fatal(err)
-		}
-		overlayPath := filepath.Join(t.TempDir(), "overlay.json")
-		if err := os.WriteFile(overlayPath, overlay, 0o600); err != nil {
-			t.Fatal(err)
-		}
-		buildArguments = append([]string{"build", "-overlay", overlayPath}, buildArguments[1:]...)
-	}
-	build := exec.Command("go", buildArguments...)
+	build := exec.Command("go", "build", "-buildvcs=false", "-ldflags", linker, "-o", binary, ".")
 	build.Dir = repository
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build release binary: %v\n%s", err, output)
 	}
 
+	return packageReleaseFixture(t, repository, staging, binary, releaseVersion, additionalSkillNames...)
+}
+
+func makeReleaseFixtureWithChangedMaintainerPrompt(t *testing.T, repository, releaseVersion, compiledVersion string) releaseFixture {
+	t.Helper()
+	candidateRepository := copyTrackedRepository(t, repository)
+	path := filepath.Join(candidateRepository, "workflows", "fanloop-maintainer", "prompt.yaml")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := bytes.Replace(content, []byte("main 固定基线"), []byte("candidate 固定基线"), 1)
+	if bytes.Equal(changed, content) {
+		t.Fatal("maintainer prompt fixture replacement did not match")
+	}
+	if err := os.WriteFile(path, changed, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return makeReleaseFixture(t, candidateRepository, releaseVersion, compiledVersion)
+}
+
+func packageReleaseFixture(t *testing.T, repository, staging, binary, releaseVersion string, additionalSkillNames ...string) releaseFixture {
+	t.Helper()
 	skillItems := []map[string]any{}
 	skillSources := []string{filepath.Join(repository, "entrypoints", "fanloop-workflow", "SKILL.md")}
 	matches, err := filepath.Glob(filepath.Join(repository, "skills", "*", "*", "SKILL.md"))
@@ -702,15 +687,6 @@ func makeReleaseFixtureWithWorkflowOverrides(t *testing.T, repository, releaseVe
 		for _, name := range workflow.BundleFileNames() {
 			sourcePath := filepath.Join(sourceRoot, name)
 			targetPath := filepath.Join(targetRoot, name)
-			if content, ok := workflowOverrides[sourcePath]; ok {
-				if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(targetPath, content, 0o600); err != nil {
-					t.Fatal(err)
-				}
-				continue
-			}
 			copyTreeFile(t, sourcePath, targetPath)
 		}
 		loaded, decodeErr := workflow.LoadDirectory(targetRoot)
@@ -825,6 +801,25 @@ func copyTreeFile(t *testing.T, source, target string) {
 	if err := os.WriteFile(target, content, info.Mode().Perm()); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func copyTrackedRepository(t *testing.T, repository string) string {
+	t.Helper()
+	command := exec.Command("git", "ls-files", "-z")
+	command.Dir = repository
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("list tracked repository files: %v", err)
+	}
+	target := t.TempDir()
+	for _, raw := range bytes.Split(output, []byte{0}) {
+		if len(raw) == 0 {
+			continue
+		}
+		relative := string(raw)
+		copyTreeFile(t, filepath.Join(repository, relative), filepath.Join(target, relative))
+	}
+	return target
 }
 
 func fixtureFileDigest(t *testing.T, path string) string {
