@@ -8,96 +8,60 @@ prompts:
       - {id: fanloop-dev-bootstrap, prompt: 使用该 Skill 准备可审计的 Issue Workspace、main 基线和只读调查环境。, optional: false}
   clarify_requirements_flow:
     prompt: |
-      自行读取反馈、代码、日志、相关 ADR 和 .agents/skills/verify-fanloop/features/README.md，按 design tree 澄清所有仍需人决定的问题，不把可查明的环境事实反问人。requirements.md 必须记录决策、约束、非目标、验收条件、公开 Test Seam、验证路径、改造计划与 Open Questions。Open Questions 为空后发布并回读需求文档，同时上报 requirements_grilled 与 requirements_document_published；不得编码。
+      自行读取反馈、代码、日志和相关 ADR，澄清所有仍需人决定的问题，不把可查明的环境事实反问人。requirements.md 必须记录决策、约束、非目标、验收条件、1 至 3 个公开 CLI 验收场景及独立预期、验证路径、改造计划与 Open Questions。Open Questions 为空后，以 Requirement 身份为稳定标题创建或更新唯一飞书需求文档并语义回读；同时上报 requirements_grilled 与 requirements_document_published，不得编码。
     skills:
-      - {id: fanloop-dev-grill-with-docs, prompt: 组合需求追问与领域语言沉淀。, optional: false}
+      - {id: fanloop-dev-grill-with-docs, prompt: 组合需求追问、公开 CLI 验收场景和飞书需求文档沉淀。, optional: false}
       - {id: fanloop-dev-grilling, prompt: 按 design-tree/frontier 完成分轮批量询问。, optional: false}
       - {id: fanloop-dev-domain-modeling, prompt: 挑战含混术语并整理 CONTEXT/ADR 候选。, optional: false}
   confirm_requirements_flow:
     prompt: |
-      以 requirements.md 为唯一主审材料独立复核。决策完整、Open Questions 为空且无需人作出新决定时，上报 agent_approved 与 implementation_required 或 implementation_not_required，Evidence 写明理由与文件引用。仍缺真实产品决策时保持 blocked 并向用户询问；不得猜测。人工路径仍可使用最新审核卡、Panorama 与真实批准证据，但不是例行门禁。
+      以 requirements.md 为唯一主审材料独立复核；可委托一个无实现上下文的独立 Sub-agent 检查完整性，并把结论与文件引用写入 Evidence。决策完整、Open Questions 为空且无需人作出新决定时，上报 agent_approved 与 implementation_required 或 implementation_not_required。仍缺真实产品决策时保持 blocked 并向用户询问；不得猜测。人工路径仍可使用最新审核卡、Panorama 与真实批准证据，但不是例行门禁。
     skills: []
   confirm_requirements_terminal:
     prompt: |
-      已确认无需实现。保留 requirements.md 与批准 Evidence，终止本次 Workflow。
+      已确认无需实现。保留 requirements.md、需求飞书文档与批准 Evidence，终止本次 Workflow。
     skills: []
   design_technical_solution_flow:
     prompt: |
-      只根据已确认 requirements.md 生成本地 Spec，并拆成最少的纵向 Tickets；保留已确认 Test Seam，不引入新产品决策。发布并回读技术方案后，上报 spec_written、tickets_written 与 technical_solution_document_published；发现缺失或冲突决策时上报 requirements_changed。
+      只根据已确认 requirements.md 生成本地 Spec，并拆成最少的纵向 Tickets；保留已确认公开 Test Seam 与 CLI 验收场景，不引入新产品决策。以 Requirement 身份为稳定标题创建或更新唯一飞书技术方案并语义回读后，上报 spec_written、tickets_written 与 technical_solution_document_published；发现缺失或冲突决策时上报 requirements_changed。
     skills:
-      - {id: fanloop-dev-to-spec, prompt: 把已确认需求生成本地 Spec。, optional: false}
+      - {id: fanloop-dev-to-spec, prompt: 把已确认需求生成本地 Spec 并同步飞书技术方案。, optional: false}
       - {id: fanloop-dev-to-tickets, prompt: 把 Spec 拆成可独立验证的纵向 Tickets。, optional: false}
   implement_code_flow:
     prompt: |
-      按需求、Spec 和 Ticket frontier 完成最小纵向实现、契约真值、ADR 与聚焦测试。只在已确认公开 Test Seam 上使用 TDD。提交到本地分支，不推送、不创建 PR、不合并。完成上报 implementation_completed；发现需求、方案或实现问题时选择对应回流 Condition。
+      按需求、Spec 和 Ticket frontier 完成最小纵向实现、契约真值、ADR 与聚焦测试。只在已确认公开 Test Seam 上使用 TDD。把当前 HEAD、diff、实现结论、命令与结果写入 implementation-report.md；以 Requirement 身份为稳定标题创建或更新唯一飞书研发实现报告并语义回读。提交到本地分支，不推送、不创建 PR、不合并。完成上报 implementation_completed、implementation_report_written 与 implementation_document_published；发现需求、方案或实现问题时选择对应回流 Condition。
     skills:
-      - {id: fanloop-dev-implement, prompt: 完成本地实现、聚焦验证与提交。, optional: false}
+      - {id: fanloop-dev-implement, prompt: 完成本地实现、聚焦验证、实现报告与飞书文档。, optional: false}
       - {id: fanloop-dev-tdd, prompt: 仅在存在独立正确预期的公开 Test Seam 上推进 red-green。, optional: true}
-  maintain_verification_skill_flow:
-    prompt: |
-      检查 .agents/skills/verify-fanloop/SKILL.md 是否存在且能从当前工作树执行 Launch、Doctor、Drive、Evidence、Cleanup。不存在时创建，存在时按本次用户可见变化维护；内容必须为中文并只使用公开入口。真实跑通至少一个受影响 Feature，证据清理后仍保留。可用时上报 verification_skill_ready；产品实现阻断或技能仍不可靠时选择唯一回流原因。
-    skills:
-      - {id: fanloop-dev-create-verification, prompt: 缺失时创建项目级验证技能和初始功能地图。, optional: true}
-      - {id: fanloop-dev-maintain-verification, prompt: 维护并真实验证项目级验证技能。, optional: false}
-  maintain_feature_map_flow:
-    prompt: |
-      对照代码 Diff、公开 Help、真实 UI/CLI 表面和近期变化，更新 .agents/skills/verify-fanloop/features/ 下的中文功能地图。每个 Feature 必须包含用户入口、操作步骤、可观察证据、隔离边界和易错点；删除过期入口。无变化上报 feature_map_current=clean，已更新并跑通受影响配方上报 updated；无法可靠维护时上报唯一回流原因。
-    skills:
-      - {id: fanloop-dev-maintain-verification, prompt: 维护功能地图并验证受影响配方。, optional: false}
-  execute_test_cases_flow:
-    prompt: |
-      Review 前按风险选择 targeted 或 e2e。修改 Step、Route、Condition、executor、IDL、状态、发布或测试入口时必须使用 e2e，并在聚焦命令外运行 ./tests/run-unit 与 ./tests/run-e2e。所有命令零退出、源码状态稳定后上报 validation_profile_selected、对应通过 Condition 与 local_test_report_written；失败回到责任 Step。此处不安装候选 Release、不运行机器人、不等待远端 CI。
-    skills:
-      - {id: fanloop-dev-verify, prompt: 执行确定性本地验证并记录当前 HEAD 证据。, optional: false}
   review_code_flow:
     prompt: |
-      对照需求、Spec、Tickets、ADR、仓库规则和 main...HEAD 独立审查最终本地 Diff。结论与 findings 写入 review-report.md。通过时要求工作树干净，记录完整 HEAD，并同时上报 review_passed、review_report_written、candidate_head_frozen；此后候选源码、测试和验证资产只读。任何变化都必须回流并产生新 HEAD，重跑验证与审查。
+      对照需求、Spec、Tickets、ADR、仓库规则和 main...HEAD 独立审查最终本地 Diff，并运行风险档要求的全部本地验证。把 reviewed HEAD、findings、验证命令、退出码与结论更新到 implementation-report.md 和同一飞书研发实现报告，语义回读后再决定。通过时要求工作树干净，上报 review_passed、implementation_report_written、implementation_document_published 与 candidate_head_frozen；任何候选变化都会使验证和审查失效并回流。
     skills:
-      - {id: fanloop-dev-code-review, prompt: 审查最终 Diff，记录并冻结 reviewed HEAD。, optional: false}
-  coordinate_eval_flow:
-    prompt: |
-      只读冻结候选。根据需求、验证技能与功能地图生成恰好两个黑盒 Case；每个 Case 的原始 brief 与 10 分制 Rubric 分文件保存并记录 SHA-256，清单写入内容寻址的 eval-playbook.<sha256>.md。brief 不得透露正在评测，并必须内含全新目录、全新 Requirement、公开 CLI、证据字段、内层 Botmux 环境隔离和 merge_code 前停止的固定契约。不得执行候选或修改仓库。完成上报 eval_playbook_frozen。
-    skills:
-      - {id: fanloop-dev-eval-coordinator, prompt: 冻结防作弊评测剧本与评分标准。, optional: false}
-  execute_eval_candidates_flow:
-    prompt: |
-      只读冻结候选。先校验 eval-playbook.<sha256>.md 文件名摘要以及两个 brief/Rubric 摘要，再在彼此隔离的随机目录中并行执行两个原始 brief；每个子 Agent 只使用候选 Release、验证技能与功能地图，保存命令、输出和证据，不得修改候选或共享中间结果。全部结束后汇总 eval-candidates-report.md 并上报 eval_candidates_completed；摘要不一致或基础设施失败保持 blocked。
-    skills:
-      - {id: fanloop-dev-eval-candidate, prompt: 并行运行隔离候选评测并保留证据。, optional: false}
-  judge_eval_flow:
-    prompt: |
-      使用不同于候选 Agent 的模型，先校验内容寻址 Playbook 与两个原始 brief/Rubric 摘要，再独立复核 Case 证据并逐项按冻结 Rubric 评分。只有全部 10/10 且无硬红线才上报 agent_eval_passed；结论追加 acceptance-report.md。失败时上报 agent_eval_failed、acceptance_report_written 和恰好一个最早责任回流 Condition。最多允许 3 轮，每轮必须经回流形成新 HEAD；第 3 轮仍失败则保持 blocked。
-    skills:
-      - {id: fanloop-dev-eval-judge, prompt: 以独立模型评分、分类失败并更新验收报告。, optional: false}
-  publish_candidate_flow:
-    prompt: |
-      只读冻结候选。确认 origin=zeefan1555/fanloop、当前分支非 main、工作树干净，幂等推送 candidate_head，并创建或更新该分支唯一的 open PR；PR base 必须为 main，head OID 必须等于 candidate_head。回读成功后上报 pull_request_published；网络或权限故障保持 blocked，不创建第二个 PR。
-    skills:
-      - {id: fanloop-dev-publish-candidate, prompt: 发布唯一且锁定 candidate_head 的 GitHub PR。, optional: false}
-  verify_ci_gates_flow:
-    prompt: |
-      只读冻结候选。回读 main Ruleset 与 PR checks：要求 PR 必经、strict、squash、linear history、禁止 force/delete/bypass、人工审批数为 0；必需 checks 必须覆盖 Workflow 契约与 Route Matrix、生成物/IDL 新鲜度、run-unit、run-e2e、安装/Doctor、机器人身份隔离、本地材料禁入库和候选只读。Ruleset 合格且全部 checks 对 candidate_head 成功时上报 repository_guardrails_verified 与 ci_gates_passed。确定失败时写 acceptance-report.md，并上报 ci_gates_failed、acceptance_report_written 和恰好一个责任回流 Condition；等待或平台故障保持 blocked。
-    skills:
-      - {id: fanloop-dev-ci-gate, prompt: 校验仓库 Ruleset、必需 checks 与精确候选 HEAD。, optional: false}
+      - {id: fanloop-dev-code-review, prompt: 验证并审查最终 Diff，更新研发实现报告并冻结 reviewed HEAD。, optional: false}
   execute_agent_acceptance_flow:
     prompt: |
-      只读冻结候选。校验 eval_playbook_path 的文件名摘要和其中恰好两个 brief/Rubric 的 SHA-256，使用机器人身份把两个原始 brief 直接作为 --brief-file 并行派发；“全新”只指两个话题、目录和 Requirement，禁止生成、复制、选择或改写题面与 Rubric。外层 Botmux 只负责机器人通信；内层 Fanloop CLI 必须清除 BOTMUX_CHAT_ID/BOTMUX_SESSION_ID，不使用用户 token 或用户身份，不创建 Card Binding、Trace Integration、远端 Trace Event、用户 Trace 文档或 CLI 日志文档。两机器人、安装版本、Doctor、候选 SHA、摘要和黑盒结果全部通过才上报 agent_acceptance_passed 与 acceptance_report_written。摘要不一致、任何身份或远端副作用为 governance_failed；确定产品失败上报 agent_acceptance_failed、报告和恰好一个责任回流 Condition；基础设施失败保持 blocked，不回退用户身份。
+      只读冻结候选。在隔离的 FANLOOP_DATA_HOME 与四类 Skill Root 中从 candidate_head 执行 npm run install:local，回读版本与 Doctor；随后派发恰好一个无实现上下文的全新 Sub-agent，使用该绝对 CLI 路径和 requirements.md 中 1 至 3 个公开场景创建全新 Requirement 做真实黑盒验收。Sub-agent 只能使用公开 CLI 和叶子 --help，不得读源码、调用私有 helper、修改候选、使用机器人/Botmux/用户凭证或触碰全局 current。记录命令、输出、状态、清理和全局 current 未变证据到 acceptance-report.md；创建或更新唯一飞书验收交付报告并语义回读。产品失败上报 agent_acceptance_failed、报告、文档与唯一最早责任回流；基础设施失败保持 blocked；全部通过上报 agent_acceptance_passed、acceptance_report_written 与 acceptance_document_published。
     skills:
-      - {id: fanloop-dev-agent-acceptance, prompt: 并行执行两机器人真实验收并强制身份隔离。, optional: false}
+      - {id: fanloop-dev-agent-acceptance, prompt: 用隔离候选 CLI 和一个独立 Sub-agent 完成真实黑盒验收。, optional: false}
   merge_code_flow:
     prompt: |
-      只接收 candidate_head 上通过 CI 与两机器人验收的唯一 PR。执行 gh pr merge "$PR_URL" --repo zeefan1555/fanloop --auto --squash --match-head-commit "$CANDIDATE_HEAD"；禁止 --admin、直接 push main、merge commit、rebase、第二个 PR 或人工端到端验收。回读 state=MERGED、base=main、head OID 与 merge commit 后更新 acceptance-report.md，上报 code_merged 与 acceptance_report_written。候选漂移回到实现；无歧义的暂时失败上报 code_merge_failed 原地重试。
+      只接收同一 candidate_head 的本地验证、Review 与 Sub-agent 验收通过事实。幂等推送并创建或更新该分支唯一的 GitHub PR，回读 main Ruleset 和 candidate_head 上的 required checks；全部成功后执行 gh pr merge --auto --squash --match-head-commit。禁止 --admin、直接 push main、第二个 PR 或人工端到端验收。只有回读 state=MERGED 且 merge commit 非空才更新 acceptance-report.md 与同一飞书验收交付报告并上报 code_merged、acceptance_report_written、acceptance_document_published；候选漂移回实现，无歧义暂时失败上报 code_merge_failed 原地重试。
     skills:
-      - {id: fanloop-dev-merge-code, prompt: 对精确 candidate_head 启用并回读 GitHub 自动 squash 合码。, optional: false}
+      - {id: fanloop-dev-merge-code, prompt: 发布唯一 PR、校验精确 HEAD 的门禁并自动 squash 合码。, optional: false}
+  update_local_cli_terminal:
+    prompt: |
+      先把本 Requirement 的控制器固定到 bound-release-home，再在精确 merge commit 的干净 detached worktree 中清除 FANLOOP 与 Botmux 覆盖并执行 npm run install:local。回读全局 current、version commit 与 Doctor；成功后把安装证据更新到 acceptance-report.md 和同一飞书验收交付报告并语义回读，上报 local_cli_updated、acceptance_report_written、acceptance_document_published 后终止。任何失败保持 blocked，不伪造成功，也不在成功后回滚 current。
+    skills:
+      - {id: fanloop-dev-update-local-cli, prompt: 固定旧控制器并把精确合并提交安装为本地全局 current。, optional: false}
 
   workspace_condition: {prompt: repository_workspace_prepared 输出 Issue Workspace 路径；范围变化上报 repository_scope_changed。, skills: []}
-  requirements_document_condition: {prompt: requirements_grilled 仅在 requirements.md 完整且 Open Questions 为空时输出路径。, skills: []}
-  requirements_document_published_condition: {prompt: requirements_document_published 输出已发布并回读非空的需求文档 URL。, skills: []}
+  requirements_document_condition: {prompt: requirements_grilled 仅在 requirements.md 完整、含 1 至 3 个公开 CLI 验收场景且 Open Questions 为空时输出路径。, skills: []}
+  requirements_document_published_condition: {prompt: requirements_document_published 输出唯一需求飞书文档语义回读成功后的 URL。, skills: []}
   panorama_card_published_condition:
     prompt: 仅人工补充决策路径使用最新 Panorama；Agent 自主路径不执行。展示失败保持 blocked。
     skills:
       - {id: fanloop-dev-panorama, prompt: 展示本轮最新 Panorama 并返回精确快照路径。, optional: false}
-  agent_approval_condition: {prompt: 仅当 Agent 独立复核产物且无待人决策项时上报 approved，并附理由和产物引用。, skills: []}
+  agent_approval_condition: {prompt: 仅当 Agent 或受托独立 Sub-agent 复核产物且无待人决策项时上报 approved，并附理由和产物引用。, skills: []}
   implementation_requirement_condition: {prompt: 根据确认需求选择 implementation_required 或 implementation_not_required，二者只能一个为 true。, skills: []}
   requirements_decision_condition: {prompt: 人工补充路径按真实结论选择 approved 或 rejected。, skills: []}
   requirements_approval_record_condition: {prompt: 人工补充路径只输出本轮全新批准消息 ID。, skills: []}
@@ -105,31 +69,21 @@ prompts:
   requirements_changed_condition: {prompt: 需求或已确认决策缺失、变化或冲突时上报 changed。, skills: []}
   spec_condition: {prompt: spec_written 输出本地 Spec 路径。, skills: []}
   tickets_condition: {prompt: tickets_written 输出本地 Tickets 路径。, skills: []}
-  technical_solution_document_published_condition: {prompt: 输出已发布并回读非空的技术方案 URL。, skills: []}
+  technical_solution_document_published_condition: {prompt: 输出唯一飞书技术方案语义回读成功后的 URL。, skills: []}
   technical_solution_change_condition: {prompt: 已确认需求不变但方案或公开 Test Seam 不可靠时上报 changes_requested。, skills: []}
   implementation_condition: {prompt: 按真实实现结论选择 completed 或 changes_requested。, skills: []}
-  verification_skill_condition: {prompt: 验证技能真实可运行时输出路径；需要修正时上报 changes_requested，二者互斥。, skills: []}
-  feature_map_condition: {prompt: 功能地图已核对时输出 clean 或 updated；需要修正时输出 changes_requested。, skills: []}
-  validation_profile_condition: {prompt: 输出本次 targeted 或 e2e 风险档。, skills: []}
-  local_validation_condition: {prompt: 按 profile 上报对应 passed；失败上报 local_validation_failed。, skills: []}
-  local_test_report_condition: {prompt: 输出包含 profile、HEAD、命令、退出码和报告路径的 local-test-report.md。, skills: []}
+  implementation_report_condition: {prompt: 输出包含当前 HEAD、diff、实现或审查结论及验证证据的 implementation-report.md。, skills: []}
+  implementation_document_published_condition: {prompt: 输出唯一飞书研发实现报告语义回读成功后的 URL。, skills: []}
   review_condition: {prompt: 按真实审查结论选择 passed 或 failed。, skills: []}
-  review_report_condition: {prompt: 输出包含被审 HEAD、结论和 findings 的 review-report.md。, skills: []}
-  candidate_head_condition: {prompt: 仅在审查通过且工作树干净时输出完整候选提交 SHA；下游必须只读该 SHA。, skills: []}
-  eval_playbook_condition: {prompt: 输出文件名摘要匹配内容、且记录恰好两个原 brief/Rubric 路径与 SHA-256 的 eval-playbook.<sha256>.md。, skills: []}
-  eval_candidates_condition: {prompt: 输出所有隔离候选已结束且证据完整的 eval-candidates-report.md。, skills: []}
-  agent_eval_condition: {prompt: 全部 Case 10/10 且无红线上报 passed；否则上报 failed 并附唯一责任回流。, skills: []}
-  pull_request_condition: {prompt: 仅在唯一 open PR 的 base、head 与 candidate_head 回读一致时输出 URL。, skills: []}
-  repository_guardrails_condition: {prompt: 仅在 main Ruleset 满足完整硬门禁时输出规则集 ID。, skills: []}
-  ci_gate_condition: {prompt: 全部必需 checks 在 candidate_head 成功时输出该 SHA；确定失败输出 failed 并附唯一责任回流。, skills: []}
-  agent_acceptance_condition: {prompt: 两机器人黑盒与身份隔离全部通过时输出 passed；确定失败输出 failed 和唯一责任回流；基础设施失败不提交。, skills: []}
-  acceptance_report_condition: {prompt: 输出持续追加 Eval、CI、机器人与合码事实的 acceptance-report.md；每项记录精确 candidate_head。, skills: []}
+  candidate_head_condition: {prompt: 仅在全部本地验证和审查通过且工作树干净时输出完整候选提交 SHA；下游必须只读该 SHA。, skills: []}
+  agent_acceptance_condition: {prompt: 隔离安装和独立 Sub-agent 黑盒场景全部通过时输出 passed；确定产品失败输出 failed 和唯一责任回流；基础设施失败不提交。, skills: []}
+  acceptance_report_condition: {prompt: 输出持续更新候选验收、PR/门禁、合码与本地安装事实的 acceptance-report.md，每项记录精确提交 SHA。, skills: []}
+  acceptance_document_published_condition: {prompt: 输出唯一飞书验收交付报告语义回读成功后的 URL。, skills: []}
   merge_code_condition: {prompt: 回读唯一 PR 已 MERGED 且提交匹配时输出 PR URL 列表；无歧义暂时失败输出 failed。, skills: []}
+  local_cli_updated_condition: {prompt: 仅在全局 current 的 version commit 精确等于 merge commit 且 Doctor healthy 时输出该完整 SHA。, skills: []}
 
   back_to_repository_scope: {prompt: 回到工作区准备，并失效目标 Step 及下游 Outputs。, skills: []}
   back_to_requirements: {prompt: 回到需求澄清，并失效目标 Step 及下游 Outputs。, skills: []}
   back_to_technical_solution: {prompt: 回到方案设计，并失效方案及下游 Outputs。, skills: []}
-  back_to_implementation: {prompt: 回到代码实现；形成新 HEAD 后重跑验证、审查、评测、CI 与验收。, skills: []}
-  back_to_verification_skill: {prompt: 回到验证技能维护；变更后形成新 HEAD 并重跑全部下游门禁。, skills: []}
-  back_to_feature_map: {prompt: 回到功能地图维护；变更后形成新 HEAD 并重跑全部下游门禁。, skills: []}
+  back_to_implementation: {prompt: 回到代码实现；形成新 HEAD 后重跑验证、审查与 Sub-agent 验收。, skills: []}
   back_to_merge: {prompt: 只重试无歧义的自动合码动作；不得绕过 Ruleset 或创建第二个 PR。, skills: []}

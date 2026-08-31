@@ -106,7 +106,7 @@ func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(dataRoot, "current", "skills", "fanloop-maintainer", "fanloop-dev-agent-acceptance", "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(dataRoot, "current", "skills", "fanloop-maintainer", "fanloop-dev-update-local-cli", "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(os.Environ(), "HOME="+home)
 	if output, err := pinned.CombinedOutput(); err != nil {

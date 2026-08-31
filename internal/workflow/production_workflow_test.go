@@ -129,48 +129,41 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	}
 }
 
-func TestProductionMaintainerTrustCurveEndsWithAutomaticMerge(t *testing.T) {
+func TestProductionMaintainerUsesThreeStageAgentDelivery(t *testing.T) {
 	loaded, err := Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantSteps := []string{
-		"bootstrap_techdesign", "clarify_requirements", "confirm_requirements", "design_technical_solution",
-		"implement_code", "maintain_verification_skill", "maintain_feature_map", "execute_test_cases", "review_code",
-		"coordinate_eval", "execute_eval_candidates", "judge_eval", "publish_candidate", "verify_ci_gates",
-		"execute_agent_acceptance", "merge_code",
+	wants := []struct {
+		step, name, stage, job string
+	}{
+		{"bootstrap_techdesign", "工作区准备", "requirements", "requirements"},
+		{"clarify_requirements", "需求澄清", "requirements", "requirements"},
+		{"confirm_requirements", "需求确认", "requirements", "requirements"},
+		{"design_technical_solution", "方案设计", "implementation", "implementation"},
+		{"implement_code", "代码实现", "implementation", "implementation"},
+		{"review_code", "代码审查", "implementation", "implementation"},
+		{"execute_agent_acceptance", "Agent 自动化验收", "delivery", "delivery"},
+		{"merge_code", "合并 MR", "delivery", "delivery"},
+		{"update_local_cli", "更新本地 CLI", "delivery", "delivery"},
+	}
+	wantSteps := make([]string, 0, len(wants))
+	for _, want := range wants {
+		wantSteps = append(wantSteps, want.step)
+		context, _, ok := loaded.Workflow.FindStep(want.step)
+		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Name != want.name || context.Step.Executor != StepExecutorAgent {
+			t.Fatalf("maintainer Step %s = %#v, want name=%s stage=%s job=%s agent", want.step, context, want.name, want.stage, want.job)
+		}
 	}
 	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantSteps) {
 		t.Fatalf("maintainer Steps = %v, want %v", got, wantSteps)
 	}
-	for _, want := range []struct {
-		step     string
-		stage    string
-		job      string
-		executor StepExecutor
-	}{
-		{step: "confirm_requirements", stage: "local_verification", job: "requirement_design", executor: StepExecutorAgent},
-		{step: "maintain_verification_skill", stage: "local_verification", job: "verification_skill", executor: StepExecutorAgent},
-		{step: "maintain_feature_map", stage: "feature_intelligence", job: "feature_map", executor: StepExecutorAgent},
-		{step: "review_code", stage: "feature_intelligence", job: "local_quality", executor: StepExecutorAgent},
-		{step: "execute_eval_candidates", stage: "agent_evaluation", job: "eval_candidates", executor: StepExecutorAgent},
-		{step: "verify_ci_gates", stage: "hard_constraints", job: "ci_governance", executor: StepExecutorAgent},
-		{step: "execute_agent_acceptance", stage: "cloud_delivery", job: "robot_acceptance", executor: StepExecutorAgent},
-		{step: "merge_code", stage: "cloud_delivery", job: "automatic_merge", executor: StepExecutorAgent},
-	} {
-		context, _, ok := loaded.Workflow.FindStep(want.step)
-		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Executor != want.executor {
-			t.Fatalf("maintainer Step %s = %#v, want stage=%s job=%s executor=%v", want.step, context, want.stage, want.job, want.executor)
-		}
-	}
 	for _, skillID := range []string{
 		"fanloop-dev-bootstrap", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
 		"fanloop-dev-domain-modeling", "fanloop-dev-to-spec", "fanloop-dev-to-tickets",
-		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-verify",
-		"fanloop-dev-code-review", "fanloop-dev-create-verification", "fanloop-dev-maintain-verification",
-		"fanloop-dev-eval-coordinator", "fanloop-dev-eval-candidate", "fanloop-dev-eval-judge",
-		"fanloop-dev-publish-candidate", "fanloop-dev-ci-gate", "fanloop-dev-agent-acceptance",
-		"fanloop-dev-merge-code", "fanloop-dev-panorama",
+		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-code-review",
+		"fanloop-dev-agent-acceptance", "fanloop-dev-merge-code", "fanloop-dev-update-local-cli",
+		"fanloop-dev-panorama",
 	} {
 		found := false
 		for _, prompt := range loaded.Workflow.Prompts {
@@ -184,7 +177,6 @@ func TestProductionMaintainerTrustCurveEndsWithAutomaticMerge(t *testing.T) {
 	}
 	assertConditionSkill(t, loaded, "panorama_card_published", "fanloop-dev-panorama")
 	assertAgentApprovalCondition(t, loaded)
-	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed"}, "maintain_verification_skill", false)
 	assertWorkflowRouteAnyOf(t, loaded, "confirm_requirements", [][]string{
 		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"},
 		{"agent_approved", "implementation_required"},
@@ -193,40 +185,34 @@ func TestProductionMaintainerTrustCurveEndsWithAutomaticMerge(t *testing.T) {
 		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_not_required"},
 		{"agent_approved", "implementation_not_required"},
 	}, "", true)
-	assertWorkflowRoute(t, loaded, "maintain_verification_skill", []string{"verification_skill_ready"}, "maintain_feature_map", false)
-	assertWorkflowRoute(t, loaded, "maintain_feature_map", []string{"feature_map_current"}, "execute_test_cases", false)
-	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "review_report_written", "candidate_head_frozen"}, "coordinate_eval", false)
-	assertWorkflowRoute(t, loaded, "coordinate_eval", []string{"eval_playbook_frozen"}, "execute_eval_candidates", false)
-	assertWorkflowRoute(t, loaded, "execute_eval_candidates", []string{"eval_candidates_completed"}, "judge_eval", false)
-	assertWorkflowRoute(t, loaded, "judge_eval", []string{"agent_eval_passed", "acceptance_report_written"}, "publish_candidate", false)
-	assertWorkflowRoute(t, loaded, "publish_candidate", []string{"pull_request_published"}, "verify_ci_gates", false)
-	assertWorkflowRoute(t, loaded, "verify_ci_gates", []string{"repository_guardrails_verified", "ci_gates_passed"}, "execute_agent_acceptance", false)
-	assertWorkflowRoute(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_passed", "acceptance_report_written"}, "merge_code", false)
-	assertWorkflowRoute(t, loaded, "merge_code", []string{"code_merged", "acceptance_report_written"}, "", true)
-	assertWorkflowLoop(t, loaded, "execute_test_cases", []string{"local_validation_failed"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"requirements_changed", "review_report_written"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"technical_solution_changes_requested", "review_report_written"}, "design_technical_solution")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed", "review_report_written"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "maintain_verification_skill", []string{"verification_skill_changes_requested"}, "maintain_verification_skill")
-	assertWorkflowLoop(t, loaded, "maintain_feature_map", []string{"feature_map_changes_requested"}, "maintain_feature_map")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"feature_map_changes_requested", "review_report_written"}, "maintain_feature_map")
-	assertWorkflowLoop(t, loaded, "judge_eval", []string{"agent_eval_failed", "verification_skill_changes_requested", "acceptance_report_written"}, "maintain_verification_skill")
-	assertWorkflowLoop(t, loaded, "verify_ci_gates", []string{"ci_gates_failed", "feature_map_changes_requested", "acceptance_report_written"}, "maintain_feature_map")
-	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "technical_solution_changes_requested", "acceptance_report_written"}, "design_technical_solution")
-	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "implementation_changes_requested", "acceptance_report_written"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "merge_code", []string{"requirements_changed", "acceptance_report_written"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "merge_code", []string{"implementation_changes_requested", "acceptance_report_written"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "merge_code", []string{"code_merge_failed", "acceptance_report_written"}, "merge_code")
+	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed", "implementation_report_written", "implementation_document_published"}, "review_code", false)
+	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "implementation_report_written", "implementation_document_published", "candidate_head_frozen"}, "execute_agent_acceptance", false)
+	assertWorkflowRoute(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_passed", "acceptance_report_written", "acceptance_document_published"}, "merge_code", false)
+	assertWorkflowRoute(t, loaded, "merge_code", []string{"code_merged", "acceptance_report_written", "acceptance_document_published"}, "update_local_cli", false)
+	assertWorkflowRoute(t, loaded, "update_local_cli", []string{"local_cli_updated", "acceptance_report_written", "acceptance_document_published"}, "", true)
+	assertWorkflowLoop(t, loaded, "review_code", []string{"requirements_changed", "implementation_report_written", "implementation_document_published"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"technical_solution_changes_requested", "implementation_report_written", "implementation_document_published"}, "design_technical_solution")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed", "implementation_report_written", "implementation_document_published"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written", "acceptance_document_published"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "technical_solution_changes_requested", "acceptance_report_written", "acceptance_document_published"}, "design_technical_solution")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "implementation_changes_requested", "acceptance_report_written", "acceptance_document_published"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "merge_code", []string{"requirements_changed", "acceptance_report_written", "acceptance_document_published"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "merge_code", []string{"implementation_changes_requested", "acceptance_report_written", "acceptance_document_published"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "merge_code", []string{"code_merge_failed", "acceptance_report_written", "acceptance_document_published"}, "merge_code")
+	assertWorkflowLoop(t, loaded, "update_local_cli", []string{"requirements_changed", "acceptance_report_written", "acceptance_document_published"}, "clarify_requirements")
 
-	for _, removed := range []string{"confirm_human_acceptance", "handoff_merge_request"} {
+	for _, removed := range []string{
+		"maintain_verification_skill", "maintain_feature_map", "execute_test_cases", "coordinate_eval",
+		"execute_eval_candidates", "judge_eval", "publish_candidate", "verify_ci_gates",
+	} {
 		if _, _, ok := loaded.Workflow.FindStep(removed); ok {
 			t.Fatalf("maintainer Workflow still contains removed Step %s", removed)
 		}
 	}
 	for _, removed := range []string{
-		"human_acceptance_passed", "human_acceptance_skipped", "human_acceptance_result_recorded",
-		"merge_request_created", "merge_request_handed_off", "merge_request_handoff_failed", "handoff_record_written",
+		"verification_skill_ready", "feature_map_current", "validation_profile_selected", "local_test_report_written",
+		"eval_playbook_frozen", "eval_candidates_completed", "agent_eval_passed", "pull_request_published",
+		"repository_guardrails_verified", "ci_gates_passed",
 	} {
 		if _, ok := loaded.Workflow.Condition(removed); ok {
 			t.Fatalf("maintainer Workflow still contains removed Condition %s", removed)
@@ -239,11 +225,21 @@ func TestProductionMaintainerTrustCurveEndsWithAutomaticMerge(t *testing.T) {
 	for _, routes := range loaded.Workflow.Loops {
 		loopRoutes += len(routes)
 	}
-	if got := len(loaded.Workflow.Conditions); got != 45 {
-		t.Fatalf("maintainer Conditions = %d, want 45", got)
+	for conditionID, want := range map[string]struct{ key, description string }{
+		"requirements_document_published":   {"requirement_document_url", "需求确认报告"},
+		"implementation_document_published": {"implementation_document_url", "研发实现报告"},
+		"acceptance_document_published":     {"acceptance_document_url", "验收交付报告"},
+	} {
+		condition, _ := loaded.Workflow.Condition(conditionID)
+		if condition.Output.Key != want.key || condition.Output.Description != want.description {
+			t.Fatalf("Condition %s Output = %#v", conditionID, condition.Output)
+		}
 	}
-	if flowRoutes != 17 || loopRoutes != 44 || len(loaded.Workflow.Prompts) != 56 {
-		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 17/44/56", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
+	if got := len(loaded.Workflow.Conditions); got != 31 {
+		t.Fatalf("maintainer Conditions = %d, want 31", got)
+	}
+	if flowRoutes != 10 || loopRoutes != 18 || len(loaded.Workflow.Prompts) != 39 {
+		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 10/18/39", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
 	}
 }
 

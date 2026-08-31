@@ -52,10 +52,10 @@ func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
 	}
 }
 
-func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
+func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	repo := repositoryRoot(t)
 	if _, err := os.Stat(filepath.Join(repo, "FEATURE_MAP.md")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("root FEATURE_MAP.md must not duplicate the project verification map: %v", err)
+		t.Fatalf("retired root FEATURE_MAP.md remains: %v", err)
 	}
 	contracts := map[string][]string{
 		"entrypoints/fanloop-workflow/SKILL.md": {
@@ -67,59 +67,29 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 		".goreleaser.yml": {
 			`"skills/**/*"`,
 		},
-		".agents/skills/verify-fanloop/SKILL.md": {
-			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID",
-		},
-		".agents/skills/verify-fanloop/features/README.md": {
-			"Fanloop 功能地图", "Requirement 与 Flow", "Output 与 State", "安装、Release 与 Skills",
-		},
-		".agents/skills/verify-fanloop/features/card.md": {
-			"dry-run 成功时只返回渲染内容，不返回 `snapshot_path`", "单独执行一次非 dry-run 的本地渲染", "不得同时要求只执行 dry-run 和必须返回 `snapshot_path`",
-		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
-			".agents/skills/verify-fanloop/features/README.md", "baseline",
+			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
-			".agents/skills/verify-fanloop/features/README.md", "baseline", "candidate", "./tests/run-unit", "./tests/run-e2e", "local-test-report.md",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-create-verification/SKILL.md": {
-			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", ".agents/skills/verify-fanloop",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-maintain-verification/SKILL.md": {
-			".agents/skills/verify-fanloop", "用户入口", "真实操作", "可观察结果", "clean", "updated", "blocked",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator/SKILL.md": {
-			"恰好两个", "10 分", "Rubric", "随机", "不同模型", "eval-playbook.<sha256>.md", "brief_sha256", "rubric_sha256",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-eval-candidate/SKILL.md": {
-			"并行", "独立随机目录", "candidate_head", "eval-candidates-report.md",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-eval-judge/SKILL.md": {
-			"不同于候选模型", "10/10", "最多三轮", "acceptance-report.md",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-publish-candidate/SKILL.md": {
-			"candidate_head", "base=main", "唯一", "pull_request_url",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-ci-gate/SKILL.md": {
-			"Ruleset", "strict", "squash", "linear", "./tests/run-unit", "./tests/run-e2e", "candidate_head",
+		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
+			"implementation-report.md", "当前 HEAD", "唯一飞书研发实现报告", "语义回读",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"candidate_head", "pin-controller-release.sh", "bound-release-home", "controller_binary", "env \\", "-u FANLOOP_DATA_HOME", "npm run install:local", "$HOME/.fanloop/current/bin/fanloop", "readlink", "禁止用 `go build -o`", "不恢复旧版本", "ref/lark-agent-e2e.md", "acceptance-report.md", "brief_sha256", "rubric_sha256", "--brief-file", "禁止生成", "Card Binding", "Trace Integration", "governance_failed",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh": {
-			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
-		},
-		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md": {
-			"cli_aafadbc67e799cdc", "cli_a9245f0fddf8dbc8", "oc_d532c3a5eda84c60728ab174b0ef671a", "pin-controller-release.sh", "bound-release-home", "botmux dispatch", "FROZEN_BRIEF_PATH", "brief_sha256", "rubric_sha256", "不得再生成", "用户 token", "lark-cli whoami --as bot", "env -u FANLOOP_DATA_HOME", "npm run install:local", "$HOME/.fanloop/current/bin/fanloop version", "禁止用临时候选 bin", "env -u BOTMUX_CHAT_ID -u BOTMUX_SESSION_ID", "trace_document_bound",
+			"candidate_head", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "npm run install:local", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书验收交付报告", "基础设施失败保持 blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "expectedApprover", "cli_aaf6cd8160b89bda", "ou_3b0b9cf8364168c5eb999bd6c5a33b95", "Stage/Job/Step", "目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界", "精确授权口令", "turn boundary", "senderType=user", "botmux quoted", "批准进入 需求实现", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
-			"Review 之后", "reviewed HEAD", "technical_solution_changes_requested",
+			"reviewed HEAD", "./tests/run-unit", "./tests/run-e2e", "implementation-report.md", "同一飞书研发实现报告", "candidate_head_frozen",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-merge-code/SKILL.md": {
-			"acceptance-report.md", "gh pr merge", "--auto", "--squash", "--match-head-commit", "code_merged",
+			"唯一", "Ruleset", "required checks", "candidate_head", "acceptance-report.md", "同一飞书验收交付报告", "gh pr merge", "--auto", "--squash", "--match-head-commit", "code_merged",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/SKILL.md": {
+			"pin-controller-release.sh", "bound-release-home", "origin/main", "detached worktree", "npm run install:local", "version commit", "Doctor", "acceptance-report.md", "飞书验收交付报告", "local_cli_updated",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/scripts/pin-controller-release.sh": {
+			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 	}
 	for relative, snippets := range contracts {
@@ -141,13 +111,32 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 	if strings.Contains(string(entrypoint), "issue-workspace/bound-release-home") {
 		t.Error("fanloop-workflow trusts a candidate-writable controller path")
 	}
-	verify, err := os.ReadFile(filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-verify", "SKILL.md"))
+	maintainerEntry, err := os.ReadFile(filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, forbidden := range []string{"botmux dispatch", "ref/eval-playbook.md", "npm run install:local"} {
-		if strings.Contains(string(verify), forbidden) {
-			t.Errorf("fanloop-dev-verify still owns Agent acceptance detail %q", forbidden)
+	approval := string(maintainerEntry)
+	panorama := strings.Index(approval, "先按 `panorama_card_published`")
+	card := strings.Index(approval, "再从最新 `requirements.md`")
+	boundary := strings.Index(approval, "确认卡发送成功为 turn boundary")
+	if panorama < 0 || card <= panorama || boundary <= card {
+		t.Errorf("human approval order must be Panorama -> full card -> turn boundary")
+	}
+	for _, retired := range []string{
+		".agents/skills/verify-fanloop",
+		"skills/fanloop-maintainer/fanloop-dev-create-verification",
+		"skills/fanloop-maintainer/fanloop-dev-maintain-verification",
+		"skills/fanloop-maintainer/fanloop-dev-verify",
+		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator",
+		"skills/fanloop-maintainer/fanloop-dev-eval-candidate",
+		"skills/fanloop-maintainer/fanloop-dev-eval-judge",
+		"skills/fanloop-maintainer/fanloop-dev-publish-candidate",
+		"skills/fanloop-maintainer/fanloop-dev-ci-gate",
+		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md",
+		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh",
+	} {
+		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(retired))); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("retired maintainer asset remains: %s", retired)
 		}
 	}
 }
