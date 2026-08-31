@@ -1,3 +1,4 @@
+---
 status: accepted
 date: 2026-08-31
 amends: ADR-0089
