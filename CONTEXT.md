@@ -69,20 +69,22 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 是 5 Stage / 12 Job / 16 Step 的信任曲线：本地验证机制、功能图谱、Agent 评测、
-硬性门禁、云端交付。需求确认由 Agent 自主复核；缺少真实产品决策时保持 blocked。Review 冻结
-`candidate_head`，随后只读完成三角色 Eval、唯一 PR、Ruleset/CI、两机器人验收和自动 squash 合码。
-Runtime 同一时刻仍只有一个活动 Step；隔离 Eval Case、CI Jobs 和两个机器人 Case 在各自边界并行。
+`fanloop-maintainer` 是 3 Stage / 3 Job / 9 Step 的单线闭环：需求确认、研发实现、验收交付。需求确认
+由 Agent 自主复核，也可委托一个无实现上下文的 Sub-agent 检查材料；缺少真实产品决策时仍保持
+blocked 并走保留的人工 Panorama Route。Review 在同一最终工作树运行聚焦测试、`run-unit` 与
+`run-e2e` 后冻结 `candidate_head`。
 
-**Feature Map / Verification Maintenance**
-唯一项目验证真值位于 `.agents/skills/verify-fanloop/`，中文 Skill 覆盖 Launch、Doctor、Drive、Evidence、
-Cleanup，`features/` 按用户 Feature 保存入口、操作、证据与隔离边界。Create 只在缺失时创建，Maintain
-随用户表面变化校准；验证资产变化形成新 HEAD 并使全部下游门禁失效。
+**Agent Acceptance / Delivery**
+冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current；恰好一个全新 Sub-agent 只使用隔离
+CLI、叶子 Help 和需求中 1 至 3 个公开场景做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户
+凭据。通过后 `merge_code` 发布唯一 PR、回读 Ruleset/required checks 并自动 squash 合并；最后
+`update_local_cli` 从精确 merge commit 的干净 detached worktree 安装全局 current。
 
 **Maintainer Reports**
-`local-test-report.md` 保存 Review 前的确定性本地验证，`review-report.md` 保存独立代码审查；唯一新增的
-`acceptance-report.md` 从独立裁判开始，连续记录 Eval、PR/CI、同 HEAD Release、两机器人黑盒和
-最终合码回读。三份报告都必须绑定同一 `candidate_head`；候选变化使下游事实失效。
+需求阶段维护 `requirements.md` 和唯一飞书需求文档；研发阶段维护 `implementation-report.md` 和唯一
+飞书研发实现报告；交付阶段维护 `acceptance-report.md` 和唯一飞书验收交付报告。每份飞书文档使用
+Requirement 稳定标题，零命中创建、唯一命中更新、多命中阻塞，并在上报 URL 前语义回读。Panorama
+按 YAML Output description 自动展示三阶段报告 URL；候选变化使下游事实失效。
 
 ## 公开契约
 

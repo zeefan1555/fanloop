@@ -29,12 +29,20 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 			"requirement_document_url": {
 				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/requirements"`), ProducerStepID: "clarify_requirements",
 			},
+			"implementation_document_url": {
+				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/implementation"`), ProducerStepID: "implement_code",
+			},
+			"acceptance_document_url": {
+				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/acceptance"`), ProducerStepID: "execute_agent_acceptance",
+			},
 		},
 	}
 	markdown := renderMarkdown(cardidl.CardView_current, current, loaded.Workflow)
 	for _, want := range []string{
-		"本地验证机制 · 需求确认",
+		"需求确认 · 需求确认",
 		"[需求确认报告](https://bytedance.larkoffice.com/docx/requirements)",
+		"[研发实现报告](https://bytedance.larkoffice.com/docx/implementation)",
+		"[验收交付报告](https://bytedance.larkoffice.com/docx/acceptance)",
 		"waiting for approval",
 	} {
 		if !strings.Contains(markdown, want) {
@@ -93,16 +101,14 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
 	for _, want := range []string{
 		"# 后端研发交付 · Compact card `Ready` `0%`",
-		"本地验证机制 · 工作区准备",
+		"需求确认 · 工作区准备",
 		"## 状态全景",
-		"本地验证机制：需求与方案【**工作区准备（Ready）** → 需求澄清 → 需求确认 → 方案设计】 ｜ 候选实现【代码实现】 ｜ 验证能力【验证技能维护】",
-		"功能图谱：产品导航能力【功能地图维护】 ｜ 本地质量闭环【本地验证 → 代码审查】",
-		"Agent 评测：评测设计【评测编排】 ｜ 并行候选评测【子 Agent 执行】 ｜ 独立裁判【独立裁判】",
-		"硬性门禁：候选发布【发布候选 PR】 ｜ Dune 代码库门禁【CI 硬门禁】",
-		"云端交付：并行机器人验收【机器人端到端验收】 ｜ 自动交付【自动合码】",
+		"需求确认：**工作区准备（Ready）** → 需求澄清 → 需求确认",
+		"研发实现：方案设计 → 代码实现 → 代码审查",
+		"验收交付：Agent 自动化验收 → 合并 MR → 更新本地 CLI",
 		"整体进度：0%",
 		"## 各阶段 Output",
-		"| 本地验证机制 | 功能图谱 | Agent 评测 | 硬性门禁 | 云端交付 |",
+		"| 需求确认 | 研发实现 | 验收交付 |",
 		"> **当前执行证据**",
 		"**🚧 当前进行中**",
 	} {

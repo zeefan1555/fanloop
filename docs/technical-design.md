@@ -15,7 +15,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 当前发布两套 Bundle：
 
 - `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
-- `fanloop-maintainer`：Fanloop 的 5 Stage / 12 Job / 16 Step 信任曲线；验证技能、功能地图、独立 Eval、CI、机器人验收与自动合码职责分离。
+- `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；需求确认、研发实现、独立 Sub-agent 验收、唯一 PR 合并与本地 CLI 更新顺序推进。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
 Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建拒绝缺失同名 Skill
@@ -54,7 +54,8 @@ Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
 [ADR-0086](./adr/0086-align-panorama-with-treeloop.md) 与
 [ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)、
-[ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)。
+[ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)、
+[ADR-0094](./adr/0094-simplify-maintainer-to-three-stage-agent-delivery.md)。
 
 ## 当前配置实例
 
@@ -67,17 +68,17 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 目标、调研、总体方案、难点、收益、落地或呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
-`fanloop-maintainer` 使用 5 Stage / 12 Job / 16 Step：本地验证机制完成需求、方案、实现和中文验证
-技能；功能图谱维护 `.agents/skills/verify-fanloop/features/`，再执行本地验证与 Review；Agent 评测
-冻结 Case、并行运行隔离候选并由不同模型裁判；硬性门禁发布唯一 PR 并校验 Ruleset/CI；云端交付
-并行运行两个机器人 Case 后自动合码。Runtime 仍是单活动 Step，Job 负责职责与展示，真正无依赖的
-候选、CI 和机器人批次在对应边界并行。
+`fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：需求确认包含工作区准备、需求澄清、Agent 需求确认；
+研发实现包含方案设计、代码实现、代码审查；验收交付包含 Agent 自动化验收、合并 MR、更新本地 CLI。
+Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
-本地验证与审查分别写 `local-test-report.md` 和 `review-report.md`；Review 冻结 `candidate_head`，
-`acceptance-report.md` 连续记录 Eval、PR/CI、两机器人隔离与合码事实。机器人外层使用 Botmux，内层
-CLI 清除 Botmux 环境且不生成 Card Binding、Trace Integration、远端 Trace Event 或用户文档。
-`merge_code` 使用 `--auto --squash --match-head-commit`，不发送 MR 交接、不要求人工端到端验收、
-不使用 `--admin` 或直接 push main。
+需求、研发、交付分别维护 `requirements.md`、`implementation-report.md`、`acceptance-report.md`，并以
+Requirement 稳定标题创建或更新唯一飞书文档，语义回读后把 URL 作为 YAML Output 交给 Panorama。
+Review 在同一最终工作树运行聚焦测试、`./tests/run-unit` 与 `./tests/run-e2e` 后冻结 `candidate_head`。
+验收在一次性数据目录安装该候选，由恰好一个无实现上下文的全新 Sub-agent 使用 1 至 3 个公开 CLI
+场景做黑盒测试，全程不改全局 current。`merge_code` 发布唯一 PR、校验精确 HEAD 的 Ruleset 与
+required checks，并使用 `--auto --squash --match-head-commit` 合并；`update_local_cli` 最后从精确
+merge commit 的干净 detached worktree 执行本地安装。
 
 ## 当前持久化版本
 
