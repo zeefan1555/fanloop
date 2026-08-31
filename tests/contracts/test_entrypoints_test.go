@@ -73,6 +73,9 @@ func TestMaintainerVerificationAndDeliveryAssetsAreComplete(t *testing.T) {
 		".agents/skills/verify-fanloop/features/README.md": {
 			"Fanloop 功能地图", "Requirement 与 Flow", "Output 与 State", "安装、Release 与 Skills",
 		},
+		".agents/skills/verify-fanloop/features/card.md": {
+			"dry-run 成功时只返回渲染内容，不返回 `snapshot_path`", "单独执行一次非 dry-run 的本地渲染", "不得同时要求只执行 dry-run 和必须返回 `snapshot_path`",
+		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
 			".agents/skills/verify-fanloop/features/README.md", "baseline",
 		},
