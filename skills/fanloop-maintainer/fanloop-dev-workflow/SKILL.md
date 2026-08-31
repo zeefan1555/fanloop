@@ -22,6 +22,16 @@ description: 维护 zeefan1555/fanloop 自身的入口，沿需求确认、研�
 5. 三个 Stage 的稳定产物分别是需求飞书文档、研发实现飞书文档、验收交付飞书文档；回流只更新同一文档，不重复创建。
 6. Review 冻结 candidate_head；Agent 验收使用一个无实现上下文的 Sub-agent 与隔离候选 CLI；merge_code 负责唯一 PR、Ruleset、required checks 和 squash 合并；update_local_cli 安装精确 merge commit。
 
+## 需求确认的人工补充路径
+
+只有当前 Agent 或独立 Sub-agent 无法消除真实产品决策 frontier 时才进入人工路径；这不是端到端人工验收。
+
+1. 在 `requirements.md` 记录 `expectedApprover`：当前 `fanloop-dev` 应用 `cli_aaf6cd8160b89bda` 作用域下的张菲帆 OpenID `ou_3b0b9cf8364168c5eb999bd6c5a33b95`。
+2. 生成自包含需求审核卡并用 `botmux send --mention-back` 发送，记录返回 messageId；再按 `panorama_card_published` 绑定 Skill 展示最新 Panorama，保存本次精确 `panorama_snapshot_path`。两者都成功后建立 turn boundary。
+3. 只接受此后到达的全新用户消息。用 `botmux quoted <message_id> --raw` 或当前话题 history 回读元数据；必须同时满足 `senderType=user` 且 `senderId` 精确等于上述 OpenID，显示名不能代替身份校验。
+4. 需要实现时，正文去除首尾空白后必须精确等于 `批准进入 需求实现`。`同意`、泛化授权、同时含需求修改的消息、机器人结论或 turn boundary 之前的消息都不构成批准。
+5. 有效批准先写入审核卡 messageId、Panorama 路径、批准消息 ID、senderType、senderId、正文与实现必要性，再上报完整人工 Route。其余反馈记录真实证据并回需求澄清；不得伪造或复用旧批准。
+
 ## 最终回复
 
 遵循通用 `fanloop-workflow` 的 renderer-owned 最终回复契约。结束一轮普通回复前紧邻执行：

@@ -77,7 +77,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"candidate_head", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "npm run install:local", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书验收交付报告", "基础设施失败保持 blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "expectedApprover", "cli_aaf6cd8160b89bda", "ou_3b0b9cf8364168c5eb999bd6c5a33b95", "turn boundary", "senderType=user", "botmux quoted", "批准进入 需求实现", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"reviewed HEAD", "./tests/run-unit", "./tests/run-e2e", "implementation-report.md", "同一飞书研发实现报告", "candidate_head_frozen",
