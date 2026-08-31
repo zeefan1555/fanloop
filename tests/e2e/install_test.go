@@ -117,6 +117,11 @@ func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges
 	if result := runInstaller(t, repository, newRelease, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install candidate release: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
+	repinned := exec.Command(pinner, oldRoot)
+	repinned.Env = append(os.Environ(), "HOME="+home)
+	if output, err := repinned.CombinedOutput(); err != nil {
+		t.Fatalf("reuse pinned controller after current changed: %v\n%s", err, output)
+	}
 	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "status", "--root", oldRoot)
 	if globalOldStatus.err == nil || !strings.Contains(globalOldStatus.stderr, "WORKFLOW_MISMATCH") {
 		t.Fatalf("candidate current unexpectedly controlled old Requirement: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)

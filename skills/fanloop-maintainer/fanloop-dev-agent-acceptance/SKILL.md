@@ -25,8 +25,9 @@ ref/lark-agent-e2e.md；Eval 阶段内容寻址的 Playbook、原始 brief/Rubri
 
    脚本必须先证明旧 current 能读取当前 State，再使用现有 `__install` 原子安装到
    `bound-release-home`，最后证明固定副本的 Status 与安装级 Doctor 成立。失败保持 `blocked`，不得
-   安装候选、猜测 Release、扫描 Git 历史或修改 State。把固定控制器路径、`version`、Workflow digest
-   和 Doctor 写入验收报告。
+   安装候选、猜测 Release、扫描 Git 历史或修改 State。后续回流重入时若固定副本仍健康，脚本必须
+   直接幂等复用它，不再读取已经切换的全局 current。把固定控制器路径、`version`、Workflow digest 和
+   Doctor 写入验收报告。
 3. 只对候选安装子进程清除所有隔离覆盖，然后从候选工作树执行真实本地安装：
 
    ~~~bash

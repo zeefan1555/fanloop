@@ -13,8 +13,9 @@ amends: ADR-0091
 切换前必须先把仍能读取当前 State 的初始化 Release 原子安装到该 Requirement 的
 `bound-release-home`。现有 Requirement 此后只通过该固定控制器执行 Status、Progress、Result、Card 与
 Doctor；候选 current 只供两个机器人及其全新 Requirement 使用。两条路径不能互相回退，也不扫描
-Release、Git 历史或猜测 digest，更不能改写 State。这样同时保持 ADR-0019 的 Workflow 内容绑定和
-ADR-0053 的“已有 State 继续当前 Release”，而不回滚本机 current。
+Release、Git 历史或猜测 digest，更不能改写 State。验收回流重入时幂等复用已固定且健康的控制器，不再
+读取已经切换的全局 current。这样同时保持 ADR-0019 的 Workflow 内容绑定和 ADR-0053 的“已有 State
+继续当前 Release”，而不回滚本机 current。
 
 验收继续前必须回读 `current` 链接、`$HOME/.fanloop/current/bin/fanloop version` 与 `doctor`：commit
 精确等于 `candidate_head` 且 Doctor 为 healthy。安装成功后保留候选为本机 current，不自动恢复旧版本；
