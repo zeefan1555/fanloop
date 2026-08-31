@@ -27,10 +27,11 @@ description: 维护 zeefan1555/fanloop 自身的入口，沿需求确认、研�
 只有当前 Agent 或独立 Sub-agent 无法消除真实产品决策 frontier 时才进入人工路径；这不是端到端人工验收。
 
 1. 在 `requirements.md` 记录 `expectedApprover`：当前 `fanloop-dev` 应用 `cli_aaf6cd8160b89bda` 作用域下的张菲帆 OpenID `ou_3b0b9cf8364168c5eb999bd6c5a33b95`。
-2. 生成自包含需求审核卡并用 `botmux send --mention-back` 发送，记录返回 messageId；再按 `panorama_card_published` 绑定 Skill 展示最新 Panorama，保存本次精确 `panorama_snapshot_path`。两者都成功后建立 turn boundary。
-3. 只接受此后到达的全新用户消息。用 `botmux quoted <message_id> --raw` 或当前话题 history 回读元数据；必须同时满足 `senderType=user` 且 `senderId` 精确等于上述 OpenID，显示名不能代替身份校验。
-4. 需要实现时，正文去除首尾空白后必须精确等于 `批准进入 需求实现`。`同意`、泛化授权、同时含需求修改的消息、机器人结论或 turn boundary 之前的消息都不构成批准。
-5. 有效批准先写入审核卡 messageId、Panorama 路径、批准消息 ID、senderType、senderId、正文与实现必要性，再上报完整人工 Route。其余反馈记录真实证据并回需求澄清；不得伪造或复用旧批准。
+2. 先按 `panorama_card_published` 绑定 Skill 展示最新 Panorama，保存本次精确 `panorama_snapshot_path`；展示失败保持 blocked。
+3. 再从最新 `requirements.md` 生成一张自包含 Markdown 确认卡。卡内依次完整展示当前 Stage/Job/Step、目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界和精确授权口令；不得只给摘要、只贴链接或要求审批人回翻上下文。使用 `botmux send --mention-back` 发送并记录 messageId，确认卡发送成功为 turn boundary。
+4. 只接受 turn boundary 此后到达的全新用户消息。用 `botmux quoted <message_id> --raw` 或当前话题 history 回读元数据；必须同时满足 `senderType=user` 且 `senderId` 精确等于上述 OpenID，显示名不能代替身份校验。
+5. 需要实现时，正文去除首尾空白后必须精确等于 `批准进入 需求实现`。`同意`、泛化授权、同时含需求修改的消息、机器人结论或 turn boundary 之前的消息都不构成批准。
+6. 有效批准先写入审核卡 messageId、Panorama 路径、批准消息 ID、senderType、senderId、正文与实现必要性，再上报完整人工 Route。其余反馈记录真实证据并回需求澄清；不得伪造或复用旧批准。
 
 ## 最终回复
 
