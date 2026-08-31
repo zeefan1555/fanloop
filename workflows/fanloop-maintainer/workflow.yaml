@@ -2,74 +2,32 @@ schema_version: 7
 id: fanloop-maintainer
 
 stages:
-  - id: local_verification
-    name: 本地验证机制
+  - id: requirements
+    name: 需求确认
     jobs:
-      - id: requirement_design
-        name: 需求与方案
+      - id: requirements
+        name: 需求闭环
         steps:
           - {id: bootstrap_techdesign, name: 工作区准备, executor: agent}
           - {id: clarify_requirements, name: 需求澄清, executor: agent}
           - {id: confirm_requirements, name: 需求确认, executor: agent}
-          - {id: design_technical_solution, name: 方案设计, executor: agent}
-      - id: implementation
-        name: 候选实现
-        steps:
-          - {id: implement_code, name: 代码实现, executor: agent}
-      - id: verification_skill
-        name: 验证能力
-        steps:
-          - {id: maintain_verification_skill, name: 验证技能维护, executor: agent}
 
-  - id: feature_intelligence
-    name: 功能图谱
+  - id: implementation
+    name: 研发实现
     jobs:
-      - id: feature_map
-        name: 产品导航能力
+      - id: implementation
+        name: 实现闭环
         steps:
-          - {id: maintain_feature_map, name: 功能地图维护, executor: agent}
-      - id: local_quality
-        name: 本地质量闭环
-        steps:
-          - {id: execute_test_cases, name: 本地验证, executor: agent}
+          - {id: design_technical_solution, name: 方案设计, executor: agent}
+          - {id: implement_code, name: 代码实现, executor: agent}
           - {id: review_code, name: 代码审查, executor: agent}
 
-  - id: agent_evaluation
-    name: Agent 评测
+  - id: delivery
+    name: 验收交付
     jobs:
-      - id: eval_design
-        name: 评测设计
+      - id: delivery
+        name: 交付闭环
         steps:
-          - {id: coordinate_eval, name: 评测编排, executor: agent}
-      - id: eval_candidates
-        name: 并行候选评测
-        steps:
-          - {id: execute_eval_candidates, name: 子 Agent 执行, executor: agent}
-      - id: eval_judgement
-        name: 独立裁判
-        steps:
-          - {id: judge_eval, name: 独立裁判, executor: agent}
-
-  - id: hard_constraints
-    name: 硬性门禁
-    jobs:
-      - id: candidate_publication
-        name: 候选发布
-        steps:
-          - {id: publish_candidate, name: 发布候选 PR, executor: agent}
-      - id: ci_governance
-        name: Dune 代码库门禁
-        steps:
-          - {id: verify_ci_gates, name: CI 硬门禁, executor: agent}
-
-  - id: cloud_delivery
-    name: 云端交付
-    jobs:
-      - id: robot_acceptance
-        name: 并行机器人验收
-        steps:
-          - {id: execute_agent_acceptance, name: 机器人端到端验收, executor: agent}
-      - id: automatic_merge
-        name: 自动交付
-        steps:
-          - {id: merge_code, name: 自动合码, executor: agent}
+          - {id: execute_agent_acceptance, name: Agent 自动化验收, executor: agent}
+          - {id: merge_code, name: 合并 MR, executor: agent}
+          - {id: update_local_cli, name: 更新本地 CLI, executor: agent}

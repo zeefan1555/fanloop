@@ -38,135 +38,40 @@ loop:
       when: {any_of: [[implementation_changes_requested]]}
       back_step_id: implement_code
 
-  maintain_verification_skill:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
-      back_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[implementation_changes_requested]]}
-      back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[verification_skill_changes_requested]]}
-      back_step_id: maintain_verification_skill
-
-  maintain_feature_map:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
-      back_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[verification_skill_changes_requested]]}
-      back_step_id: maintain_verification_skill
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[feature_map_changes_requested]]}
-      back_step_id: maintain_feature_map
-
-  execute_test_cases:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
-      back_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when:
-        any_of:
-          - [local_validation_failed]
-          - [implementation_changes_requested]
-      back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[feature_map_changes_requested]]}
-      back_step_id: maintain_feature_map
-
   review_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed, review_report_written]]}
+      when: {any_of: [[requirements_changed, implementation_report_written, implementation_document_published]]}
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[technical_solution_changes_requested, review_report_written]]}
+      when: {any_of: [[technical_solution_changes_requested, implementation_report_written, implementation_document_published]]}
       back_step_id: design_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[review_failed, review_report_written]]}
+      when: {any_of: [[review_failed, implementation_report_written, implementation_document_published]]}
       back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[verification_skill_changes_requested, review_report_written]]}
-      back_step_id: maintain_verification_skill
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[feature_map_changes_requested, review_report_written]]}
-      back_step_id: maintain_feature_map
-
-  coordinate_eval:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
-      back_step_id: clarify_requirements
-
-  execute_eval_candidates:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[verification_skill_changes_requested]]}
-      back_step_id: maintain_verification_skill
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[feature_map_changes_requested]]}
-      back_step_id: maintain_feature_map
-
-  judge_eval:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[agent_eval_failed, requirements_changed, acceptance_report_written]]}
-      back_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[agent_eval_failed, technical_solution_changes_requested, acceptance_report_written]]}
-      back_step_id: design_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[agent_eval_failed, implementation_changes_requested, acceptance_report_written]]}
-      back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[agent_eval_failed, verification_skill_changes_requested, acceptance_report_written]]}
-      back_step_id: maintain_verification_skill
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[agent_eval_failed, feature_map_changes_requested, acceptance_report_written]]}
-      back_step_id: maintain_feature_map
-
-  publish_candidate:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[implementation_changes_requested]]}
-      back_step_id: implement_code
-
-  verify_ci_gates:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[ci_gates_failed, requirements_changed, acceptance_report_written]]}
-      back_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[ci_gates_failed, technical_solution_changes_requested, acceptance_report_written]]}
-      back_step_id: design_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[ci_gates_failed, implementation_changes_requested, acceptance_report_written]]}
-      back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[ci_gates_failed, verification_skill_changes_requested, acceptance_report_written]]}
-      back_step_id: maintain_verification_skill
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[ci_gates_failed, feature_map_changes_requested, acceptance_report_written]]}
-      back_step_id: maintain_feature_map
 
   execute_agent_acceptance:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[agent_acceptance_failed, requirements_changed, acceptance_report_written]]}
+      when: {any_of: [[agent_acceptance_failed, requirements_changed, acceptance_report_written, acceptance_document_published]]}
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[agent_acceptance_failed, technical_solution_changes_requested, acceptance_report_written]]}
+      when: {any_of: [[agent_acceptance_failed, technical_solution_changes_requested, acceptance_report_written, acceptance_document_published]]}
       back_step_id: design_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[agent_acceptance_failed, implementation_changes_requested, acceptance_report_written]]}
+      when: {any_of: [[agent_acceptance_failed, implementation_changes_requested, acceptance_report_written, acceptance_document_published]]}
       back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_verification_skill}
-      when: {any_of: [[agent_acceptance_failed, verification_skill_changes_requested, acceptance_report_written]]}
-      back_step_id: maintain_verification_skill
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_feature_map}
-      when: {any_of: [[agent_acceptance_failed, feature_map_changes_requested, acceptance_report_written]]}
-      back_step_id: maintain_feature_map
 
   merge_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed, acceptance_report_written]]}
+      when: {any_of: [[requirements_changed, acceptance_report_written, acceptance_document_published]]}
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[implementation_changes_requested, acceptance_report_written]]}
+      when: {any_of: [[implementation_changes_requested, acceptance_report_written, acceptance_document_published]]}
       back_step_id: implement_code
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_merge}
-      when: {any_of: [[code_merge_failed, acceptance_report_written]]}
+      when: {any_of: [[code_merge_failed, acceptance_report_written, acceptance_document_published]]}
       back_step_id: merge_code
+
+  update_local_cli:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when: {any_of: [[requirements_changed, acceptance_report_written, acceptance_document_published]]}
+      back_step_id: clarify_requirements

@@ -49,12 +49,10 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	}
 	wantSkills := []string{
 		"fanloop-workflow",
-		"fanloop-dev-agent-acceptance", "fanloop-dev-bootstrap", "fanloop-dev-ci-gate", "fanloop-dev-code-review",
-		"fanloop-dev-create-verification", "fanloop-dev-domain-modeling", "fanloop-dev-eval-candidate",
-		"fanloop-dev-eval-coordinator", "fanloop-dev-eval-judge", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
-		"fanloop-dev-implement", "fanloop-dev-maintain-verification", "fanloop-dev-merge-code", "fanloop-dev-panorama",
-		"fanloop-dev-publish-candidate", "fanloop-dev-tdd", "fanloop-dev-to-spec",
-		"fanloop-dev-to-tickets", "fanloop-dev-verify", "fanloop-dev-workflow",
+		"fanloop-dev-agent-acceptance", "fanloop-dev-bootstrap", "fanloop-dev-code-review",
+		"fanloop-dev-domain-modeling", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
+		"fanloop-dev-implement", "fanloop-dev-merge-code", "fanloop-dev-panorama", "fanloop-dev-tdd",
+		"fanloop-dev-to-spec", "fanloop-dev-to-tickets", "fanloop-dev-update-local-cli", "fanloop-dev-workflow",
 		"technical-background-framing", "technical-direction-approval", "technical-key-solutions",
 		"technical-objective-setting", "technical-overall-solution", "technical-problem-analysis",
 		"technical-problem-approval", "technical-solution-approval", "technical-solution-benefits",

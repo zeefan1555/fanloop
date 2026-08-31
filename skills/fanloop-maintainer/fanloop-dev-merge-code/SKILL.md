@@ -1,16 +1,15 @@
 ---
 name: fanloop-dev-merge-code
-description: 在 Ruleset、CI 和两机器人验收通过后，对精确 candidate_head 启用 GitHub 自动 squash 合码。
+description: 发布唯一 GitHub PR，校验 candidate_head 的 Ruleset 与 required checks，并自动 squash 合并后更新验收交付报告。
 ---
 
-# 自动合码
+# 合并 MR
 
-只接收 acceptance-report.md 中同一 candidate_head 的 Eval 通过、Ruleset ID、全部必需 CI checks 和
-两机器人验收事实。PR 必须唯一、base=main、open、非 draft，head OID 精确匹配；当前工作树只读。
+只接收同一 `candidate_head` 的本地验证、Review、隔离安装与 Sub-agent 验收通过事实。当前工作树必须干净且 HEAD 不漂移。
 
-## 执行
-
-回读 PR 和 main Ruleset 后执行：
+1. 验证 origin 为 `zeefan1555/fanloop`、当前分支非 main；幂等 push candidate_head。查找该 head 分支到 main 的 PR：零命中创建，唯一命中更新，多命中 blocked；不得创建第二个 PR。
+2. 回读 PR 的 base、head、head OID、draft/state 和 main Ruleset。required checks 必须在精确 candidate_head 成功，至少包含 Ubuntu/macOS test、requirement-e2e、install-doctor 与 governance；等待中保持 blocked，确定实现失败回流。
+3. 全部门禁成功后执行：
 
 ~~~bash
 gh pr merge "$PR_URL" \
@@ -20,12 +19,6 @@ gh pr merge "$PR_URL" \
   --match-head-commit "$CANDIDATE_HEAD"
 ~~~
 
-禁止 --admin、直接 push main、merge commit、rebase、第二个 PR、人工端到端验收或绕过 required
-checks。命令返回后持续回读同一 PR；只有 state=MERGED、base/head/head OID 仍匹配且 mergeCommit.oid
-非空才成功。自动合并仍在等待 checks 时保持 blocked，不把已启用 auto-merge 记为已合并。
+禁止 `--admin`、直接 push main、merge commit、rebase、人工端到端验收或绕过 required checks。只有回读 `state=MERGED`、base/head 仍匹配且 `mergeCommit.oid` 非空才成功。
 
-## 结果
-
-把 PR URL、candidate_head、Ruleset ID、checks、mergedAt 和 merge commit 追加并回读
-acceptance-report.md，随后上报 code_merged 与 acceptance_report_written。候选或 base 漂移回到实现；
-平台暂时失败时先回读 PR，只有能证明未发生歧义合并才上报 code_merge_failed 原地重试。
+把 PR URL、candidate_head、Ruleset、checks、mergedAt 和 merge commit 更新到 `acceptance-report.md` 与同一飞书验收交付报告；语义回读非空且事实一致后上报 `code_merged`、`acceptance_report_written`、`acceptance_document_published`。候选漂移回实现；平台暂时失败先回读 PR，只有确认没有歧义合并时才上报 `code_merge_failed` 原地重试。
