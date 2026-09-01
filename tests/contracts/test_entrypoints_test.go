@@ -176,6 +176,7 @@ func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
 			"只依据系统或开发者上下文中已经声明的当前 Agent 人设", "Botmux Agent：`botmux`",
 			"AIME Agent：`aime`", "Aiden Agent：`aiden`", "Codex、Claude Code 和 Trae：`local_agent`",
 			"botmux send --card-file", "本轮最终普通回复必须完整展示同一份 Panorama", "不自行拼装内容",
+			`--content "$(cat -- "$card_file")"`, "Current Evidence 只包含经隐私门禁的通用相对路径、SHA-256、固定问题分类和最小非敏感摘要",
 			"卡片正文", "个人细节", "来源内容", "findings", "反馈",
 		},
 		"entrypoints/fanloop-workflow/routes.yaml": {

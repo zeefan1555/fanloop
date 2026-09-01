@@ -9,7 +9,7 @@ description: 在 material-flashcards 的 Human Step 原样展示 renderer-owned 
 
 ## 隐私前置门禁
 
-只在精确卡片预览已经通过另一路径投递，且最新 `flow status` 当前 Condition 包含 `panorama_card_published` 时执行。渲染前确认 Current Evidence 为空，Requirement 标题通用且不敏感，Summary 的材料派生字段只包含 progress、card_count、已确认可展示的 Vault 相对 target_path 和 review_status。
+只在精确卡片预览已经通过另一路径投递，且最新 `flow status` 当前 Condition 包含 `panorama_card_published` 时执行。渲染前确认 Current Evidence 只包含经隐私门禁的通用相对路径、SHA-256、固定问题分类和最小非敏感摘要，不含正文、个人细节、消息身份、私密 URL 或详细错误；Requirement 标题通用且不敏感，Summary 的材料派生字段只包含 progress、card_count、已确认可展示的 Vault 相对 target_path 和 review_status。
 
 Panorama 不得包含卡片正文、个人细节、来源内容、排除细节、findings、反馈、消息 ID、sender identity、投递位置、私密 URL 或详细错误。平台固定的流程层级和 Trace/CLI 链接可以保留，但链接指向的信息也必须通过同一隐私门禁。失败时 `blocked`，不得降级为手工拼卡。
 
@@ -49,7 +49,7 @@ fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format 
 
 ```bash
 fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
-lark-cli im +messages-reply --message-id <CURRENT_THREAD_ROOT_MESSAGE_ID> --msg-type interactive --content "$(cat -- \"$card_file\")" --reply-in-thread --as bot --format json
+lark-cli im +messages-reply --message-id <CURRENT_THREAD_ROOT_MESSAGE_ID> --msg-type interactive --content "$(cat -- "$card_file")" --reply-in-thread --as bot --format json
 ```
 
 `card_file` 必须由本次 `data.snapshot_path` 在 Requirement Root 下解析；不得修改内容。
