@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "material-flashcards-zero-and-blocked",
+  "private_files": ["blocked/artifacts/private-source.md"],
+  "commands": [
+    {"args": ["flow", "init", "--root", "{{ROOT}}/zero", "--workflow", "material-flashcards", "--title", "Material Flashcards Zero Contract"]},
+    {"args": ["flow", "report", "result", "--root", "{{ROOT}}/zero", "--step-id", "frame_review_goal", "--condition-result", "{\"condition_id\":\"review_goal_framed\",\"output\":{\"type\":\"path\",\"value\":\"artifacts/review-goal.md\"}}", "--next-step-id", "understand_source", "--summary", "review goal ready"]},
+    {"args": ["flow", "report", "result", "--root", "{{ROOT}}/zero", "--step-id", "understand_source", "--condition-result", "{\"condition_id\":\"source_understood\",\"output\":{\"type\":\"path\",\"value\":\"artifacts/source-understanding.md\"}}", "--next-step-id", "select_knowledge", "--summary", "source understood"]},
+    {"args": ["flow", "report", "result", "--root", "{{ROOT}}/zero", "--step-id", "select_knowledge", "--condition-result", "{\"condition_id\":\"no_valuable_knowledge\",\"output\":{\"type\":\"path\",\"value\":\"artifacts/knowledge-selection.md\"}}", "--terminal", "--summary", "zero cards; category-only exclusions shown; vault unchanged; create a new Requirement to change the review goal"]},
+    {"args": ["flow", "status", "--root", "{{ROOT}}/zero"]},
+    {"args": ["flow", "init", "--root", "{{ROOT}}/blocked", "--workflow", "material-flashcards", "--title", "Material Flashcards Unknown Contract"]},
+    {"args": ["flow", "report", "result", "--root", "{{ROOT}}/blocked", "--step-id", "frame_review_goal", "--condition-result", "{\"condition_id\":\"review_goal_framed\",\"output\":{\"type\":\"path\",\"value\":\"artifacts/review-goal.md\"}}", "--next-step-id", "understand_source", "--summary", "review goal ready"]},
+    {"args": ["flow", "report", "progress", "--root", "{{ROOT}}/blocked", "--step-id", "understand_source", "--status", "blocked", "--summary", "blocking evidence gap", "--evidence", "{\"source\":\"file\",\"content\":\"artifacts/private-source.md\",\"ref\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"]},
+    {"args": ["flow", "status", "--root", "{{ROOT}}/blocked"]}
+  ]
+}

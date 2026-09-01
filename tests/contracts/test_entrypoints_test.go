@@ -141,6 +141,87 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	}
 }
 
+func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
+	repo := repositoryRoot(t)
+	contracts := map[string][]string{
+		"workflows/material-flashcards/prompt.yaml": {
+			"候选数量由材料决定，不设固定数量或类型配额", "create-exclusive/no-replace", "不得自动创建第二个目标",
+		},
+		"skills/material-flashcards/flashcard/SKILL.md": {
+			"Decks", "references/term-concept-card.md", "文件级校验",
+			`r"^##\s+"`, `r"^#{3,6}\s+"`, `r"decks/[^\s]+"`,
+		},
+		"skills/material-flashcards/flashcard/references/term-concept-card.md": {
+			"定义型概念卡", "区分型概念卡", "运作型概念卡", "【Why", "【What", "【How",
+		},
+		"skills/material-flashcards/flashcard-goal-framing/SKILL.md": {
+			"write_mode=create_new_only", "预览投递位置", "Vault 相对", "create-exclusive/no-replace", "blocked",
+		},
+		"skills/material-flashcards/flashcard-source-understanding/SKILL.md": {
+			"来源事实", "被归因的判断", "用户理解", "unknown", "私密材料不得进入 Event / Trace / CLI 日志或未确认的群聊",
+		},
+		"skills/material-flashcards/flashcard-knowledge-selection/SKILL.md": {
+			"0..N", "长期价值", "现实适用性", "分类级排除理由", "Vault 零写入", "新 Requirement",
+		},
+		"skills/material-flashcards/flashcard-card-planning/SKILL.md": {
+			"一张卡一个", "集合", "长枚举", "8 adopted / 8 partial / 4 non-goal", "term-concept-card.md",
+		},
+		"skills/material-flashcards/flashcard-quality-review/SKILL.md": {
+			"pass / fail / not-applicable", "不得修改任何输入", "最早受影响层", "20 rules", "不复制其规则",
+		},
+		"skills/material-flashcards/flashcard-preview-approval/SKILL.md": {
+			"quality_review", "preview_record", "approval_record", "sender_type=human", "不得自行批准", "新的明确人类批准",
+		},
+		"skills/material-flashcards/material-flashcards-panorama/SKILL.md": {
+			"只依据系统或开发者上下文中已经声明的当前 Agent 人设", "Botmux Agent：`botmux`",
+			"AIME Agent：`aime`", "Aiden Agent：`aiden`", "Codex、Claude Code 和 Trae：`local_agent`",
+			"botmux send --card-file", "本轮最终普通回复必须完整展示同一份 Panorama", "不自行拼装内容",
+			`--content "$(cat -- "$card_file")"`, "渲染前确认 Current Evidence 为空",
+			"卡片正文", "个人细节", "来源内容", "findings", "反馈",
+		},
+		"entrypoints/fanloop-workflow/routes.yaml": {
+			"material-flashcards:", "workflow: material-flashcards", "description: 从材料生成经人工确认的长期复习闪卡组",
+		},
+	}
+	for relative, snippets := range contracts {
+		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Errorf("read %s: %v", relative, err)
+			continue
+		}
+		for _, snippet := range snippets {
+			if !strings.Contains(string(content), snippet) {
+				t.Errorf("%s is missing %q", relative, snippet)
+			}
+		}
+	}
+
+	for _, root := range []string{
+		filepath.Join(repo, "workflows", "material-flashcards"),
+		filepath.Join(repo, "skills", "material-flashcards"),
+	} {
+		err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if strings.Contains(string(content), "/Users/") {
+				t.Errorf("%s contains a machine-specific absolute path", path)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Errorf("walk %s: %v", root, err)
+		}
+	}
+}
+
 func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
 	repo := repositoryRoot(t)
 	required := map[string][]string{

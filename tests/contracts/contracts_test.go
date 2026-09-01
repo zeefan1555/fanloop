@@ -29,6 +29,7 @@ type contractCase struct {
 	SchemaVersion int               `json:"schema_version"`
 	ID            string            `json:"id"`
 	Environment   map[string]string `json:"environment,omitempty"`
+	PrivateFiles  []string          `json:"private_files,omitempty"`
 	Commands      []contractCommand `json:"commands"`
 }
 
@@ -214,6 +215,61 @@ func TestContractCommandParserCoversTopLevelOperations(t *testing.T) {
 	}
 }
 
+func TestPrivateLeakDetectionChecksEachSnapshot(t *testing.T) {
+	privateFiles := map[string]string{"artifacts/private.md": "SENSITIVE_BODY_MARKER"}
+	files := map[string]fileResult{
+		"artifacts/private.md":    {Content: "SENSITIVE_BODY_MARKER"},
+		".fanloop/transient.json": {Content: "prefix SENSITIVE_BODY_MARKER suffix"},
+	}
+	if err := detectPrivateLeak(privateFiles, commandResult{}, files); err == nil {
+		t.Fatal("transient generated-file leak was not detected")
+	}
+	delete(files, ".fanloop/transient.json")
+	if err := detectPrivateLeak(privateFiles, commandResult{}, files); err != nil {
+		t.Fatalf("private fixture itself must be ignored: %v", err)
+	}
+}
+
+func TestMaterialFlashcardsPrivacyCaseCoversLocalSurfaces(t *testing.T) {
+	repo := repositoryRoot(t)
+	value := loadCase(t, filepath.Join(repo, "tests", "contracts", "testdata", "final-flow", "material-flashcards-recovery", "case.json"))
+	for _, path := range []string{
+		"artifacts/private-source.md",
+		"artifacts/review-goal.md",
+		"artifacts/knowledge-selection.md",
+		"artifacts/card-plan.md",
+		"artifacts/cards.md",
+		"artifacts/quality-review.md",
+		"artifacts/draft-integrity.json",
+		"artifacts/preview.md",
+		"artifacts/preview-record.json",
+		"artifacts/approval-record.json",
+		"artifacts/persistence-error.json",
+		"artifacts/post-write-error.json",
+		"artifacts/post-write-validation.md",
+	} {
+		if !slices.Contains(value.PrivateFiles, path) {
+			t.Errorf("privacy contract is missing private fixture %q", path)
+		}
+	}
+	for index, command := range value.Commands {
+		if len(command.Args) >= 2 && command.Args[0] == "card" && command.Args[1] == "render" && !slices.Contains(command.Args, "--dry-run") {
+			if index == 0 {
+				t.Fatal("Panorama render has no preceding Evidence-clearing command")
+			}
+			previous := value.Commands[index-1].Args
+			if len(previous) < 3 || !slices.Equal(previous[:3], []string{"flow", "report", "progress"}) ||
+				!slices.Contains(previous, "confirm_card_preview") ||
+				!slices.Contains(previous, "in_progress") ||
+				slices.Contains(previous, "--evidence") {
+				t.Error("privacy contract does not clear Current Evidence immediately before Panorama render")
+			}
+			return
+		}
+	}
+	t.Error("privacy contract does not render a non-dry-run Panorama with private fixtures present")
+}
+
 func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 	t.Setenv("BOTMUX_CHAT_ID", "oc_real_chat_must_not_escape")
 	t.Setenv("BOTMUX_SESSION_ID", "real_session_must_not_escape")
@@ -238,8 +294,10 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 	} else if !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
+	privateFiles := loadPrivateFiles(t, root, value.PrivateFiles)
 	results := make([]commandResult, 0, len(value.Commands))
-	for _, step := range value.Commands {
+	var files map[string]fileResult
+	for index, step := range value.Commands {
 		args := expandAll(step.Args, root)
 		command := exec.Command(binary, args...)
 		command.Dir = root
@@ -255,13 +313,35 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 				t.Fatal(err)
 			}
 		}
-		results = append(results, commandResult{
+		result := commandResult{
 			ExitCode: exitCode,
 			Stdout:   normalizeText(stdout.String(), root),
 			Stderr:   normalizeText(stderr.String(), root),
-		})
+		}
+		results = append(results, result)
+		files = snapshot(t, root)
+		if err := detectPrivateLeak(privateFiles, result, files); err != nil {
+			t.Fatalf("command %d: %v", index, err)
+		}
+		for path := range privateFiles {
+			delete(files, path)
+		}
 	}
-	return contractResult{SchemaVersion: 1, ID: value.ID, Commands: results, Files: snapshot(t, root)}
+	return contractResult{SchemaVersion: 1, ID: value.ID, Commands: results, Files: files}
+}
+
+func detectPrivateLeak(privateFiles map[string]string, result commandResult, files map[string]fileResult) error {
+	for path, content := range privateFiles {
+		if strings.Contains(result.Stdout, content) || strings.Contains(result.Stderr, content) {
+			return fmt.Errorf("private fixture %q escaped through command output", path)
+		}
+		for generatedPath, generated := range files {
+			if generatedPath != path && strings.Contains(generated.Content, content) {
+				return fmt.Errorf("private fixture %q escaped into %q", path, generatedPath)
+			}
+		}
+	}
+	return nil
 }
 
 func loadCase(t *testing.T, path string) contractCase {
@@ -339,6 +419,30 @@ func copyTree(t *testing.T, source, destination string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func loadPrivateFiles(t *testing.T, root string, paths []string) map[string]string {
+	t.Helper()
+	result := make(map[string]string, len(paths))
+	for _, path := range paths {
+		clean := filepath.Clean(filepath.FromSlash(path))
+		if clean == "." || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+			t.Fatalf("invalid private fixture path %q", path)
+		}
+		content, err := os.ReadFile(filepath.Join(root, clean))
+		if err != nil {
+			t.Fatalf("read private fixture %q: %v", path, err)
+		}
+		secret := strings.TrimSpace(string(content))
+		if secret == "" || strings.ContainsAny(secret, "\r\n") {
+			t.Fatalf("private fixture %q must contain one non-empty sentinel line", path)
+		}
+		if err := os.Chmod(filepath.Join(root, clean), 0o600); err != nil {
+			t.Fatalf("restrict private fixture %q: %v", path, err)
+		}
+		result[filepath.ToSlash(clean)] = secret
+	}
+	return result
 }
 
 func snapshot(t *testing.T, root string) map[string]fileResult {

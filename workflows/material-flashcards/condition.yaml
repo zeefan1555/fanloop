@@ -1,0 +1,99 @@
+schema_version: 2
+
+conditions:
+  review_goal_framed:
+    prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
+    output: {key: review_goal_path, type: path}
+    exclusive_group: flashcard_outcome
+  review_goal_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: flashcard_revision_scope, type: enum_value, values: [goal]}
+    exclusive_group: flashcard_outcome
+
+  source_understood:
+    prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
+    output: {key: source_understanding_path, type: path}
+    exclusive_group: flashcard_outcome
+  source_understanding_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: flashcard_revision_scope, type: enum_value, values: [source]}
+    exclusive_group: flashcard_outcome
+
+  knowledge_selected:
+    prompt_ref: {file: prompt.yaml, prompt_id: selection_condition}
+    output: {key: knowledge_selection_path, type: path}
+    exclusive_group: flashcard_outcome
+  no_valuable_knowledge:
+    prompt_ref: {file: prompt.yaml, prompt_id: selection_condition}
+    output: {key: knowledge_selection_path, type: path}
+    exclusive_group: flashcard_outcome
+  knowledge_selection_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: flashcard_revision_scope, type: enum_value, values: [selection]}
+    exclusive_group: flashcard_outcome
+
+  card_plan_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
+    output: {key: card_plan_path, type: path}
+    exclusive_group: flashcard_outcome
+  card_plan_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: flashcard_revision_scope, type: enum_value, values: [plan]}
+    exclusive_group: flashcard_outcome
+
+  card_draft_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: draft_condition}
+    output: {key: card_draft_path, type: path}
+    exclusive_group: flashcard_outcome
+  card_draft_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: flashcard_revision_scope, type: enum_value, values: [draft]}
+    exclusive_group: flashcard_outcome
+
+  quality_review_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: quality_review_condition}
+    output: {key: quality_review_path, type: path}
+  card_quality_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: quality_outcome_condition}
+    output: {key: card_quality_result, type: enum_value, values: [passed]}
+    exclusive_group: flashcard_outcome
+
+  preview_draft_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: preview_integrity_condition}
+    output: {key: preview_integrity_result, type: enum_value, values: [draft_changed]}
+    exclusive_group: flashcard_outcome
+  card_preview_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: preview_publication_condition}
+    output: {key: card_preview_publication, type: object}
+  panorama_card_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: panorama_card_published_condition}
+    output: {key: panorama_snapshot_path, type: path, description: 仅含隐私安全材料派生字段的最新 renderer-owned Panorama 快照}
+  card_preview_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: human_decision_condition}
+    output: {key: card_preview_decision, type: object}
+    exclusive_group: flashcard_outcome
+
+  cards_persisted:
+    prompt_ref: {file: prompt.yaml, prompt_id: persistence_condition}
+    output: {key: persisted_cards, type: object}
+    exclusive_group: flashcard_outcome
+  persistence_retry_required:
+    prompt_ref: {file: prompt.yaml, prompt_id: persistence_condition}
+    output: {key: persistence_result, type: object}
+    exclusive_group: flashcard_outcome
+  approved_draft_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: persistence_condition}
+    output: {key: persistence_result, type: object}
+    exclusive_group: flashcard_outcome
+
+  post_write_validation_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: validation_condition}
+    output: {key: post_write_validation_path, type: path}
+  persisted_cards_validated:
+    prompt_ref: {file: prompt.yaml, prompt_id: validation_condition}
+    output: {key: post_write_validation_result, type: enum_value, values: [passed]}
+    exclusive_group: flashcard_outcome
+  post_write_validation_retry_required:
+    prompt_ref: {file: prompt.yaml, prompt_id: validation_condition}
+    output: {key: post_write_validation_retry, type: object}
+    exclusive_group: flashcard_outcome

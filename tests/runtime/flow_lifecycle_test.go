@@ -108,6 +108,112 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	}
 }
 
+func TestMaterialFlashcardsHumanGateAndRecoveryRoutes(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "material-flashcards", "--title", "Material flashcards lifecycle"), "flow.init")
+	advance := func(step, next string, conditions ...string) result {
+		t.Helper()
+		args := []string{"flow", "report", "result", "--root", root, "--step-id", step, "--next-step-id", next, "--summary", "ready"}
+		for _, condition := range conditions {
+			args = append(args, "--condition-result", condition)
+		}
+		got := run(binary, args...)
+		assertSuccess(t, got, "flow.report.result")
+		assertFlowEffect(t, got.stdout, "advanced", next)
+		return got
+	}
+	sha := "sha256:" + strings.Repeat("a", 64)
+	previewObject := `{"preview_path":"artifacts/preview.md","preview_sha256":"` + sha + `","quality_review_path":"artifacts/quality-review.md","quality_review_sha256":"` + sha + `","draft_path":"artifacts/cards.md","draft_sha256":"` + sha + `","target_path":"Decks/material.md","preview_record_path":"artifacts/preview-record.json","preview_record_sha256":"` + sha + `"}`
+	approvalObject := `{"decision":"approved","quality_review_path":"artifacts/quality-review.md","quality_review_sha256":"` + sha + `","draft_path":"artifacts/cards.md","draft_sha256":"` + sha + `","target_path":"Decks/material.md","preview_record_path":"artifacts/preview-record.json","preview_record_sha256":"` + sha + `","approval_record_path":"artifacts/approval-record.json","approval_record_sha256":"` + sha + `","sender_type":"human"}`
+	persistedObject := `{"approved_draft_sha256":"` + sha + `","target_path":"Decks/material.md","written_path":"Decks/material.md","written_sha256":"` + sha + `","card_count":2}`
+
+	advance("frame_review_goal", "understand_source",
+		conditionResult("review_goal_framed", "path", `"artifacts/review-goal.md"`))
+	advance("understand_source", "select_knowledge",
+		conditionResult("source_understood", "path", `"artifacts/source-understanding.md"`))
+	advance("select_knowledge", "plan_card_set",
+		conditionResult("knowledge_selected", "path", `"artifacts/knowledge-selection.md"`))
+	advance("plan_card_set", "draft_cards",
+		conditionResult("card_plan_ready", "path", `"artifacts/card-plan.md"`))
+	advance("draft_cards", "review_card_quality",
+		conditionResult("card_draft_ready", "path", `"artifacts/cards.md"`))
+	advance("review_card_quality", "confirm_card_preview",
+		conditionResult("quality_review_written", "path", `"artifacts/quality-review.md"`),
+		conditionResult("card_quality_passed", "enum_value", `"passed"`))
+
+	preview := conditionResult("card_preview_published", "object", previewObject)
+	panorama := conditionResult("panorama_card_published", "path", `".fanloop/card/material-flashcards.json"`)
+	approval := conditionResult("card_preview_approved", "object", approvalObject)
+	for name, incomplete := range map[string][]string{
+		"preview-and-approval":  {preview, approval},
+		"preview-and-panorama":  {preview, panorama},
+		"panorama-and-approval": {panorama, approval},
+	} {
+		t.Run(name, func(t *testing.T) {
+			args := []string{"flow", "report", "result", "--root", root, "--step-id", "confirm_card_preview", "--next-step-id", "persist_approved_cards", "--summary", "incomplete gate"}
+			for _, condition := range incomplete {
+				args = append(args, "--condition-result", condition)
+			}
+			got := run(binary, args...)
+			if got.exitCode == 0 || !strings.Contains(got.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
+				t.Fatalf("incomplete Human Gate was accepted:\nstdout: %s\nstderr: %s", got.stdout, got.stderr)
+			}
+			status := run(binary, "flow", "status", "--root", root)
+			assertSuccess(t, status, "flow.status")
+			if !strings.Contains(status.stdout, `"step_id": "confirm_card_preview"`) {
+				t.Fatalf("rejected Human Gate changed current Step: %s", status.stdout)
+			}
+		})
+	}
+	advance("confirm_card_preview", "persist_approved_cards", preview, panorama, approval)
+
+	changed := run(binary, "flow", "report", "result", "--root", root,
+		"--step-id", "persist_approved_cards",
+		"--condition-result", conditionResult("approved_draft_changed", "object", `{"status":"approved_draft_changed","reason":"draft_digest_mismatch","target_path":"Decks/material.md"}`),
+		"--back-step-id", "draft_cards", "--summary", "approved draft changed")
+	assertSuccess(t, changed, "flow.report.result")
+	assertFlowEffect(t, changed.stdout, "looped", "draft_cards")
+	for _, key := range []string{
+		"card_draft_path", "quality_review_path", "card_quality_result", "card_preview_publication",
+		"panorama_snapshot_path", "card_preview_decision", "persistence_result",
+	} {
+		assertOutputAbsent(t, changed.stdout, key)
+	}
+	for _, key := range []string{"review_goal_path", "source_understanding_path", "knowledge_selection_path", "card_plan_path"} {
+		if !strings.Contains(changed.stdout, `"`+key+`"`) {
+			t.Fatalf("draft loop removed approved Output %s: %s", key, changed.stdout)
+		}
+	}
+
+	advance("draft_cards", "review_card_quality",
+		conditionResult("card_draft_ready", "path", `"artifacts/cards.md"`))
+	advance("review_card_quality", "confirm_card_preview",
+		conditionResult("quality_review_written", "path", `"artifacts/quality-review.md"`),
+		conditionResult("card_quality_passed", "enum_value", `"passed"`))
+	advance("confirm_card_preview", "persist_approved_cards", preview, panorama, approval)
+	advance("persist_approved_cards", "validate_persisted_cards",
+		conditionResult("cards_persisted", "object", persistedObject))
+
+	retry := run(binary, "flow", "report", "result", "--root", root,
+		"--step-id", "validate_persisted_cards",
+		"--condition-result", conditionResult("post_write_validation_retry_required", "object", `{"status":"retry_required","reason":"lock_unavailable","target_path":"Decks/material.md"}`),
+		"--back-step-id", "validate_persisted_cards", "--summary", "read lock unavailable")
+	assertSuccess(t, retry, "flow.report.result")
+	assertFlowEffect(t, retry.stdout, "looped", "validate_persisted_cards")
+	assertOutputAbsent(t, retry.stdout, "post_write_validation_retry")
+	if !strings.Contains(retry.stdout, `"persisted_cards"`) {
+		t.Fatalf("Step 9 retry removed persistence Output: %s", retry.stdout)
+	}
+
+	blocked := run(binary, "flow", "report", "progress", "--root", root,
+		"--step-id", "validate_persisted_cards", "--status", "blocked", "--summary", "target requires human review")
+	assertSuccess(t, blocked, "flow.report.progress")
+	assertFlowEffect(t, blocked.stdout, "status_updated", "validate_persisted_cards")
+	if !strings.Contains(blocked.stdout, `"persisted_cards"`) || !strings.Contains(blocked.stdout, `"target_path": "Decks/material.md"`) {
+		t.Fatalf("Step 9 blocked progress lost the created target: %s", blocked.stdout)
+	}
+}
+
 func TestFlowResultAcceptsExplicitTechnicalSolutionRoute(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Explicit route"), "flow.init")
