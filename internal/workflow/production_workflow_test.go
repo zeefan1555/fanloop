@@ -129,6 +129,97 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	}
 }
 
+func TestProductionMaterialFlashcardsWorkflow(t *testing.T) {
+	loaded, err := Load("material-flashcards")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Ref.Digest != "sha256:f2e45489b2959cdfe04947017f42feb40791c38b13c31dae132fdc0ac75001dc" {
+		t.Fatalf("material-flashcards digest = %s", loaded.Ref.Digest)
+	}
+	wants := []struct {
+		step, name, stage, job string
+		executor               StepExecutor
+	}{
+		{"frame_review_goal", "确认复习目标", "framing", "framing", StepExecutorAgent},
+		{"understand_source", "理解原始材料", "framing", "framing", StepExecutorAgent},
+		{"select_knowledge", "筛选高价值知识", "curation", "curation", StepExecutorAgent},
+		{"plan_card_set", "选择类型并原子拆卡", "curation", "curation", StepExecutorAgent},
+		{"draft_cards", "生成或修订卡片草稿", "drafting", "drafting", StepExecutorAgent},
+		{"review_card_quality", "独立质量审核", "drafting", "drafting", StepExecutorAgent},
+		{"confirm_card_preview", "预览并确认卡片", "approval", "approval", StepExecutorHuman},
+		{"persist_approved_cards", "写入已批准卡片", "delivery", "delivery", StepExecutorAgent},
+		{"validate_persisted_cards", "落盘后校验", "delivery", "delivery", StepExecutorAgent},
+	}
+	wantIDs := make([]string, 0, len(wants))
+	jobs := 0
+	for _, stage := range loaded.Workflow.Stages {
+		jobs += len(stage.Jobs)
+	}
+	for _, want := range wants {
+		wantIDs = append(wantIDs, want.step)
+		context, _, ok := loaded.Workflow.FindStep(want.step)
+		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Name != want.name || context.Step.Executor != want.executor {
+			t.Fatalf("material-flashcards Step %s = %#v, want name=%s stage=%s job=%s executor=%s", want.step, context, want.name, want.stage, want.job, want.executor)
+		}
+	}
+	if len(loaded.Workflow.Stages) != 5 || jobs != 5 || !reflect.DeepEqual(loaded.Workflow.OrderedStepIDs(), wantIDs) || len(loaded.Workflow.Conditions) != 23 || len(loaded.Workflow.Prompts) != 24 {
+		t.Fatalf("material-flashcards shape = stages:%d jobs:%d steps:%v conditions:%d prompts:%d", len(loaded.Workflow.Stages), jobs, loaded.Workflow.OrderedStepIDs(), len(loaded.Workflow.Conditions), len(loaded.Workflow.Prompts))
+	}
+
+	wantSkills := map[string][]struct {
+		id       string
+		optional bool
+	}{
+		"frame_review_goal_flow":        {{"flashcard-goal-framing", false}},
+		"understand_source_flow":        {{"flashcard-source-understanding", false}},
+		"select_knowledge_flow":         {{"flashcard-knowledge-selection", false}},
+		"plan_card_set_flow":            {{"flashcard-card-planning", false}, {"flashcard", true}},
+		"draft_cards_flow":              {{"flashcard", false}},
+		"review_card_quality_flow":      {{"flashcard-quality-review", false}, {"flashcard", false}},
+		"confirm_card_preview_flow":     {{"flashcard-preview-approval", false}},
+		"persist_approved_cards_flow":   {{"flashcard", false}},
+		"validate_persisted_cards_flow": {{"flashcard", false}},
+	}
+	for promptID, want := range wantSkills {
+		got := loaded.Workflow.Prompts[promptID].Skills
+		if len(got) != len(want) {
+			t.Fatalf("Prompt %s Skills = %#v", promptID, got)
+		}
+		for index := range want {
+			if got[index].ID != want[index].id || got[index].Optional == nil || *got[index].Optional != want[index].optional {
+				t.Fatalf("Prompt %s Skill %d = %#v, want %#v", promptID, index, got[index], want[index])
+			}
+		}
+	}
+	assertConditionSkill(t, loaded, "panorama_card_published", "material-flashcards-panorama")
+
+	assertWorkflowRoute(t, loaded, "frame_review_goal", []string{"review_goal_framed"}, "understand_source", false)
+	assertWorkflowRoute(t, loaded, "understand_source", []string{"source_understood"}, "select_knowledge", false)
+	assertWorkflowRoute(t, loaded, "select_knowledge", []string{"knowledge_selected"}, "plan_card_set", false)
+	assertWorkflowRoute(t, loaded, "select_knowledge", []string{"no_valuable_knowledge"}, "", true)
+	assertWorkflowRoute(t, loaded, "plan_card_set", []string{"card_plan_ready"}, "draft_cards", false)
+	assertWorkflowRoute(t, loaded, "draft_cards", []string{"card_draft_ready"}, "review_card_quality", false)
+	assertWorkflowRoute(t, loaded, "review_card_quality", []string{"quality_review_written", "card_quality_passed"}, "confirm_card_preview", false)
+	assertWorkflowRoute(t, loaded, "confirm_card_preview", []string{"card_preview_published", "panorama_card_published", "card_preview_approved"}, "persist_approved_cards", false)
+	assertWorkflowRoute(t, loaded, "persist_approved_cards", []string{"cards_persisted"}, "validate_persisted_cards", false)
+	assertWorkflowRoute(t, loaded, "validate_persisted_cards", []string{"post_write_validation_written", "persisted_cards_validated"}, "", true)
+
+	assertWorkflowLoop(t, loaded, "review_card_quality", []string{"quality_review_written", "review_goal_changed"}, "frame_review_goal")
+	assertWorkflowLoop(t, loaded, "review_card_quality", []string{"quality_review_written", "source_understanding_changed"}, "understand_source")
+	assertWorkflowLoop(t, loaded, "review_card_quality", []string{"quality_review_written", "knowledge_selection_changed"}, "select_knowledge")
+	assertWorkflowLoop(t, loaded, "review_card_quality", []string{"quality_review_written", "card_plan_changed"}, "plan_card_set")
+	assertWorkflowLoop(t, loaded, "review_card_quality", []string{"quality_review_written", "card_draft_changed"}, "draft_cards")
+	assertWorkflowLoop(t, loaded, "confirm_card_preview", []string{"preview_draft_changed"}, "draft_cards")
+	assertWorkflowLoop(t, loaded, "confirm_card_preview", []string{"card_preview_published", "panorama_card_published", "source_understanding_changed"}, "understand_source")
+	assertWorkflowLoop(t, loaded, "persist_approved_cards", []string{"persistence_retry_required"}, "persist_approved_cards")
+	assertWorkflowLoop(t, loaded, "persist_approved_cards", []string{"approved_draft_changed"}, "draft_cards")
+	assertWorkflowLoop(t, loaded, "validate_persisted_cards", []string{"post_write_validation_retry_required"}, "validate_persisted_cards")
+	if _, ok := loaded.Workflow.Condition("persisted_cards_invalid"); ok {
+		t.Fatal("real post-write mismatch must remain blocked instead of routing")
+	}
+}
+
 func TestProductionMaintainerUsesThreeStageAgentDelivery(t *testing.T) {
 	loaded, err := Load("fanloop-maintainer")
 	if err != nil {

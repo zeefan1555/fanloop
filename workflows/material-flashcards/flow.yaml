@@ -1,0 +1,50 @@
+schema_version: 4
+
+flow:
+  frame_review_goal:
+    - prompt_ref: {file: prompt.yaml, prompt_id: frame_review_goal_flow}
+      when: {any_of: [[review_goal_framed]]}
+      next_step_id: understand_source
+
+  understand_source:
+    - prompt_ref: {file: prompt.yaml, prompt_id: understand_source_flow}
+      when: {any_of: [[source_understood]]}
+      next_step_id: select_knowledge
+
+  select_knowledge:
+    - prompt_ref: {file: prompt.yaml, prompt_id: select_knowledge_flow}
+      when: {any_of: [[knowledge_selected]]}
+      next_step_id: plan_card_set
+    - prompt_ref: {file: prompt.yaml, prompt_id: select_knowledge_flow}
+      when: {any_of: [[no_valuable_knowledge]]}
+      terminal: true
+
+  plan_card_set:
+    - prompt_ref: {file: prompt.yaml, prompt_id: plan_card_set_flow}
+      when: {any_of: [[card_plan_ready]]}
+      next_step_id: draft_cards
+
+  draft_cards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: draft_cards_flow}
+      when: {any_of: [[card_draft_ready]]}
+      next_step_id: review_card_quality
+
+  review_card_quality:
+    - prompt_ref: {file: prompt.yaml, prompt_id: review_card_quality_flow}
+      when: {any_of: [[quality_review_written, card_quality_passed]]}
+      next_step_id: confirm_card_preview
+
+  confirm_card_preview:
+    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_card_preview_flow}
+      when: {any_of: [[card_preview_published, panorama_card_published, card_preview_approved]]}
+      next_step_id: persist_approved_cards
+
+  persist_approved_cards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: persist_approved_cards_flow}
+      when: {any_of: [[cards_persisted]]}
+      next_step_id: validate_persisted_cards
+
+  validate_persisted_cards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: validate_persisted_cards_flow}
+      when: {any_of: [[post_write_validation_written, persisted_cards_validated]]}
+      terminal: true
