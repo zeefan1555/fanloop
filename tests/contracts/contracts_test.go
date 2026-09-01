@@ -252,8 +252,18 @@ func TestMaterialFlashcardsPrivacyCaseCoversLocalSurfaces(t *testing.T) {
 			t.Errorf("privacy contract is missing private fixture %q", path)
 		}
 	}
-	for _, command := range value.Commands {
+	for index, command := range value.Commands {
 		if len(command.Args) >= 2 && command.Args[0] == "card" && command.Args[1] == "render" && !slices.Contains(command.Args, "--dry-run") {
+			if index == 0 {
+				t.Fatal("Panorama render has no preceding Evidence-clearing command")
+			}
+			previous := value.Commands[index-1].Args
+			if len(previous) < 3 || !slices.Equal(previous[:3], []string{"flow", "report", "progress"}) ||
+				!slices.Contains(previous, "confirm_card_preview") ||
+				!slices.Contains(previous, "in_progress") ||
+				slices.Contains(previous, "--evidence") {
+				t.Error("privacy contract does not clear Current Evidence immediately before Panorama render")
+			}
 			return
 		}
 	}

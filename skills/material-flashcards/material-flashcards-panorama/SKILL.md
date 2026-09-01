@@ -9,7 +9,7 @@ description: 在 material-flashcards 的 Human Step 原样展示 renderer-owned 
 
 ## 隐私前置门禁
 
-只在精确卡片预览已经通过另一路径投递，且最新 `flow status` 当前 Condition 包含 `panorama_card_published` 时执行。渲染前确认 Current Evidence 只包含经隐私门禁的通用相对路径、SHA-256、固定问题分类和最小非敏感摘要，不含正文、个人细节、消息身份、私密 URL 或详细错误；Requirement 标题通用且不敏感，Summary 的材料派生字段只包含 progress、card_count、已确认可展示的 Vault 相对 target_path 和 review_status。
+只在精确卡片预览已经通过另一路径投递，且最新 `flow status` 当前 Condition 包含 `panorama_card_published` 时执行。渲染前确认 Current Evidence 为空；若仍有上游 locator，先在当前 Step 使用不带 Evidence、且 Summary 仅含 progress、card_count、已确认可展示的 Vault 相对 target_path 和 review_status 的 `flow report progress --status in_progress` 清空，再读取最新 `flow status` 确认。Requirement 标题必须通用且不敏感。
 
 Panorama 不得包含卡片正文、个人细节、来源内容、排除细节、findings、反馈、消息 ID、sender identity、投递位置、私密 URL 或详细错误。平台固定的流程层级和 Trace/CLI 链接可以保留，但链接指向的信息也必须通过同一隐私门禁。失败时 `blocked`，不得降级为手工拼卡。
 
