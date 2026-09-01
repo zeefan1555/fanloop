@@ -6,3 +6,6 @@ scenarios:
   fanloop-maintenance:
     workflow: fanloop-maintainer
     description: 维护 Fanloop 自身代码、Workflow 与 Release
+  material-flashcards:
+    workflow: material-flashcards
+    description: 从材料生成经人工确认的长期复习闪卡组

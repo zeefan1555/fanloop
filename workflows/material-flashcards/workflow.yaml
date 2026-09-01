@@ -1,0 +1,47 @@
+schema_version: 7
+id: material-flashcards
+
+stages:
+  - id: framing
+    name: 目标与理解
+    jobs:
+      - id: framing
+        name: 目标与理解
+        steps:
+          - {id: frame_review_goal, name: 确认复习目标, executor: agent}
+          - {id: understand_source, name: 理解原始材料, executor: agent}
+
+  - id: curation
+    name: 选材与拆卡
+    jobs:
+      - id: curation
+        name: 选材与拆卡
+        steps:
+          - {id: select_knowledge, name: 筛选高价值知识, executor: agent}
+          - {id: plan_card_set, name: 选择类型并原子拆卡, executor: agent}
+
+  - id: drafting
+    name: 生成与质检
+    jobs:
+      - id: drafting
+        name: 生成与质检
+        steps:
+          - {id: draft_cards, name: 生成或修订卡片草稿, executor: agent}
+          - {id: review_card_quality, name: 独立质量审核, executor: agent}
+
+  - id: approval
+    name: 用户确认
+    jobs:
+      - id: approval
+        name: 预览与确认
+        steps:
+          - {id: confirm_card_preview, name: 预览并确认卡片, executor: human}
+
+  - id: delivery
+    name: 落盘交付
+    jobs:
+      - id: delivery
+        name: 写入与复核
+        steps:
+          - {id: persist_approved_cards, name: 写入已批准卡片, executor: agent}
+          - {id: validate_persisted_cards, name: 落盘后校验, executor: agent}

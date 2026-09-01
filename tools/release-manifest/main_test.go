@@ -53,6 +53,8 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 		"fanloop-dev-domain-modeling", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
 		"fanloop-dev-implement", "fanloop-dev-merge-code", "fanloop-dev-panorama", "fanloop-dev-tdd",
 		"fanloop-dev-to-spec", "fanloop-dev-to-tickets", "fanloop-dev-update-local-cli", "fanloop-dev-workflow",
+		"flashcard-card-planning", "flashcard-goal-framing", "flashcard-knowledge-selection",
+		"flashcard-preview-approval", "flashcard-quality-review", "flashcard-source-understanding", "flashcard", "material-flashcards-panorama",
 		"technical-background-framing", "technical-direction-approval", "technical-key-solutions",
 		"technical-objective-setting", "technical-overall-solution", "technical-problem-analysis",
 		"technical-problem-approval", "technical-solution-approval", "technical-solution-benefits",
@@ -73,7 +75,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 			t.Fatalf("Workflow is not pinned: %#v", item)
 		}
 	}
-	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "technical-solution-design"}) || len(manifest.Assets) != 4 {
+	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "material-flashcards", "technical-solution-design"}) || len(manifest.Assets) != 4 {
 		t.Fatalf("Workflows = %v, Assets = %d", gotWorkflows, len(manifest.Assets))
 	}
 	content, err := json.Marshal(manifest)
@@ -106,6 +108,7 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 	}
 	for _, relative := range []string{
 		"fanloop-maintainer/fanloop-dev-panorama/SKILL.md",
+		"material-flashcards/material-flashcards-panorama/SKILL.md",
 		"technical-solution-design/technical-solution-panorama/SKILL.md",
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
@@ -137,9 +140,9 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 			!strings.Contains(delivery, "选择 `agent_approved` Route 时不得渲染或发送") {
 			t.Fatalf("%s does not preserve the maintainer Agent approval path", relative)
 		}
-		if relative == "technical-solution-design/technical-solution-panorama/SKILL.md" &&
+		if relative != "fanloop-maintainer/fanloop-dev-panorama/SKILL.md" &&
 			strings.Contains(delivery, "agent_approved") {
-			t.Fatalf("%s still documents the retired Agent approval path", relative)
+			t.Fatalf("%s documents the maintainer-only Agent approval path", relative)
 		}
 		for _, forbidden := range []string{"command -v", "BOTMUX_CHAT_ID:-", "BOTMUX_SESSION_ID:-", "<CURRENT_BOTMUX_SESSION_ID>"} {
 			if strings.Contains(delivery, forbidden) {
@@ -335,7 +338,7 @@ func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
 		}
 	}
 	path := filepath.Join(filepath.Dir(entrypoint), "routes.yaml")
-	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "fanloop-maintainer"}, {Id: "technical-solution-design"}}}
+	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "fanloop-maintainer"}, {Id: "material-flashcards"}, {Id: "technical-solution-design"}}}
 	if err := validateSelectorRoutes(path, manifest); err != nil {
 		t.Fatalf("production selector is invalid: %v", err)
 	}

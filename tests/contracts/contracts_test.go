@@ -29,6 +29,7 @@ type contractCase struct {
 	SchemaVersion int               `json:"schema_version"`
 	ID            string            `json:"id"`
 	Environment   map[string]string `json:"environment,omitempty"`
+	PrivateFiles  []string          `json:"private_files,omitempty"`
 	Commands      []contractCommand `json:"commands"`
 }
 
@@ -238,6 +239,7 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 	} else if !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
+	privateFiles := loadPrivateFiles(t, root, value.PrivateFiles)
 	results := make([]commandResult, 0, len(value.Commands))
 	for _, step := range value.Commands {
 		args := expandAll(step.Args, root)
@@ -261,7 +263,21 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 			Stderr:   normalizeText(stderr.String(), root),
 		})
 	}
-	return contractResult{SchemaVersion: 1, ID: value.ID, Commands: results, Files: snapshot(t, root)}
+	files := snapshot(t, root)
+	for path, content := range privateFiles {
+		delete(files, path)
+		for index, result := range results {
+			if strings.Contains(result.Stdout, content) || strings.Contains(result.Stderr, content) {
+				t.Fatalf("private fixture %q escaped through command %d", path, index)
+			}
+		}
+		for generatedPath, result := range files {
+			if strings.Contains(result.Content, content) {
+				t.Fatalf("private fixture %q escaped into %q", path, generatedPath)
+			}
+		}
+	}
+	return contractResult{SchemaVersion: 1, ID: value.ID, Commands: results, Files: files}
 }
 
 func loadCase(t *testing.T, path string) contractCase {
@@ -339,6 +355,30 @@ func copyTree(t *testing.T, source, destination string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func loadPrivateFiles(t *testing.T, root string, paths []string) map[string]string {
+	t.Helper()
+	result := make(map[string]string, len(paths))
+	for _, path := range paths {
+		clean := filepath.Clean(filepath.FromSlash(path))
+		if clean == "." || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+			t.Fatalf("invalid private fixture path %q", path)
+		}
+		content, err := os.ReadFile(filepath.Join(root, clean))
+		if err != nil {
+			t.Fatalf("read private fixture %q: %v", path, err)
+		}
+		secret := strings.TrimSpace(string(content))
+		if secret == "" || strings.ContainsAny(secret, "\r\n") {
+			t.Fatalf("private fixture %q must contain one non-empty sentinel line", path)
+		}
+		if err := os.Chmod(filepath.Join(root, clean), 0o600); err != nil {
+			t.Fatalf("restrict private fixture %q: %v", path, err)
+		}
+		result[filepath.ToSlash(clean)] = secret
+	}
+	return result
 }
 
 func snapshot(t *testing.T, root string) map[string]fileResult {

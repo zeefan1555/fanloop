@@ -93,8 +93,8 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if err := json.Unmarshal([]byte(version.stdout), &response); err != nil {
 		t.Fatal(err)
 	}
-	if len(response.Data.Workflows) != 2 {
-		t.Fatalf("Workflow releases = %#v, want two", response.Data.Workflows)
+	if len(response.Data.Workflows) != 3 {
+		t.Fatalf("Workflow releases = %#v, want three", response.Data.Workflows)
 	}
 	for _, item := range response.Data.Workflows {
 		id, idOK := item["id"].(string)

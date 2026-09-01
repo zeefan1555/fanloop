@@ -195,6 +195,19 @@ func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(
 			t.Fatalf("packaged %s Skill: %v", skillID, err)
 		}
 	}
+	for _, skillID := range []string{
+		"flashcard", "flashcard-card-planning", "flashcard-goal-framing", "flashcard-knowledge-selection",
+		"flashcard-preview-approval", "flashcard-quality-review", "flashcard-source-understanding",
+		"material-flashcards-panorama",
+	} {
+		path := filepath.Join(dataRoot, "releases", fixture.Version, "skills", "material-flashcards", skillID, "SKILL.md")
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("packaged %s Skill: %v", skillID, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dataRoot, "releases", fixture.Version, "skills", "material-flashcards", "flashcard", "references", "term-concept-card.md")); err != nil {
+		t.Fatalf("packaged flashcard concept-card reference: %v", err)
+	}
 	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
 		marker := filepath.Join(root, "techdesign", "owned-by-user")
 		if content, err := os.ReadFile(marker); err != nil || string(content) != "preserve me\n" {
@@ -226,6 +239,13 @@ func TestNPMInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectories(
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 	assertFlowSkillPaths(t, initialized.stdout, filepath.Join(dataRoot, "releases", fixture.Version))
+
+	flashcardRoot := t.TempDir()
+	flashcards := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "init", "--root", flashcardRoot, "--workflow", "material-flashcards", "--title", "Material flashcards Skill path E2E")
+	if flashcards.err != nil {
+		t.Fatalf("initialize installed material-flashcards release: %v\nstdout: %s\nstderr: %s", flashcards.err, flashcards.stdout, flashcards.stderr)
+	}
+	assertFlowSkillPaths(t, flashcards.stdout, filepath.Join(dataRoot, "releases", fixture.Version))
 }
 
 func TestNPMInstallerUpgradesFromLegacyCurrentManifest(t *testing.T) {

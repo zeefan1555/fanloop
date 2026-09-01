@@ -1,0 +1,110 @@
+schema_version: 4
+
+loop:
+  frame_review_goal:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+
+  understand_source:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[source_understanding_changed]]}
+      back_step_id: understand_source
+
+  select_knowledge:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[source_understanding_changed]]}
+      back_step_id: understand_source
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[knowledge_selection_changed]]}
+      back_step_id: select_knowledge
+
+  plan_card_set:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[source_understanding_changed]]}
+      back_step_id: understand_source
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[knowledge_selection_changed]]}
+      back_step_id: select_knowledge
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[card_plan_changed]]}
+      back_step_id: plan_card_set
+
+  draft_cards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[source_understanding_changed]]}
+      back_step_id: understand_source
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[knowledge_selection_changed]]}
+      back_step_id: select_knowledge
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[card_plan_changed]]}
+      back_step_id: plan_card_set
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_card_drafting}
+      when: {any_of: [[card_draft_changed]]}
+      back_step_id: draft_cards
+
+  review_card_quality:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[quality_review_written, review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[quality_review_written, source_understanding_changed]]}
+      back_step_id: understand_source
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[quality_review_written, knowledge_selection_changed]]}
+      back_step_id: select_knowledge
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[quality_review_written, card_plan_changed]]}
+      back_step_id: plan_card_set
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_card_drafting}
+      when: {any_of: [[quality_review_written, card_draft_changed]]}
+      back_step_id: draft_cards
+
+  confirm_card_preview:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_card_drafting}
+      when: {any_of: [[preview_draft_changed]]}
+      back_step_id: draft_cards
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[card_preview_published, panorama_card_published, source_understanding_changed]]}
+      back_step_id: understand_source
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[card_preview_published, panorama_card_published, knowledge_selection_changed]]}
+      back_step_id: select_knowledge
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[card_preview_published, panorama_card_published, card_plan_changed]]}
+      back_step_id: plan_card_set
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_card_drafting}
+      when: {any_of: [[card_preview_published, panorama_card_published, card_draft_changed]]}
+      back_step_id: draft_cards
+
+  persist_approved_cards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_layer}
+      when: {any_of: [[review_goal_changed]]}
+      back_step_id: frame_review_goal
+    - prompt_ref: {file: prompt.yaml, prompt_id: retry_persistence}
+      when: {any_of: [[persistence_retry_required]]}
+      back_step_id: persist_approved_cards
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_card_drafting}
+      when: {any_of: [[approved_draft_changed]]}
+      back_step_id: draft_cards
+
+  validate_persisted_cards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: validate_persisted_cards_flow}
+      when: {any_of: [[post_write_validation_retry_required]]}
+      back_step_id: validate_persisted_cards
