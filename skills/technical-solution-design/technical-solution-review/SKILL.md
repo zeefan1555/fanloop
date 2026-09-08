@@ -5,13 +5,16 @@ description: 以陌生评委视角审校九个语义章节的因果、取舍、�
 
 # 独立审校技术方案
 
+先读[推导标准](references/reasoning.md)，按重要判断检查 What–Why–How，并分别判断局部论证、全文推导、
+证据与验证。固定三问标题、章节齐全或文字相似均不能代替这些检查。
+
 读取[图文范文与标准](references/exemplars.md)，按导读查看完整正文和本地图片，按其中的对照表记录范文与当前文档的具体差距。
 相对路径以本 `SKILL.md` 所在目录解析。范文材料或看图能力缺失时报告缺口，补齐前不提交审校 Result，
 也不把材料故障当作当前方案的内容反馈。
 
-把自己视为没有聊天上下文的首次读者。读取 `01-background.md` 至 `09-appendix.md`、
-`technical-solution.md`、`.technical-solution/architecture.mmd` 和正文明确引用的辅助图，不得修改
-这些输入。
+把自己视为没有聊天上下文的首次读者。先冷读 `technical-solution.md` 和正文明确引用的图及附录，
+定位每个重要判断的 What、Why、How 与上下游关系，再读 `01-background.md` 至 `09-appendix.md`、
+`.technical-solution/architecture.mmd` 和引用证据核对来源。上游材料不能替最终正文补答案；不得修改这些输入。
 
 逐项检查：
 
@@ -28,7 +31,8 @@ description: 以陌生评委视角审校九个语义章节的因果、取舍、�
 - 价值是否回扣目标，是否明确适用边界、方案代价，并区分已测、估算、目标和待确认，是否存在
   编造、跳步或隐藏风险。
 
-将发现写入 `.technical-solution/review.md`。每条包含严重级别、位置、证据、影响、建议方向和最早
+按推导标准的表格记录重要判断与范文对照，并给出局部论证、全文推导、证据与验证三项独立结论，
+全部写入 `.technical-solution/review.md`。每条发现包含严重级别、位置、证据、影响、建议方向和最早
 受影响层。分层只允许：`background`、`problem`、`objectives`、`research`、`overall_solution`、
 `key_solutions`、`benefits`、`delivery`、`presentation`、`minor`。
 

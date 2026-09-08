@@ -5,6 +5,9 @@ description: 将已批准方案映射为可验证效果、业务价值、技术�
 
 # 评估方案收益
 
+开始前读取 [What–Why–How 推导标准](../technical-solution-review/references/reasoning.md)。收益判断须
+说明具体机制如何影响目标及证据为何支持该判断，并交代验证结果或验证计划。
+
 读取已批准的 `01-background.md` 至 `06-key-solutions.md`。逐项目标建立“基线—手段—验证—结果”
 映射，并区分：
 

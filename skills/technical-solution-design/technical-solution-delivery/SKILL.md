@@ -5,6 +5,9 @@ description: 为已批准技术方案制定迁移、发布验证、风险回滚�
 
 # 规划方案落地
 
+开始前读取 [What–Why–How 推导标准](../technical-solution-review/references/reasoning.md)。每个关键落地
+决策说明要完成什么、为何采用该顺序或止损边界，以及如何执行和验证，依据必须来自已批准方案。
+
 读取已批准的 `01-background.md` 至 `07-benefits.md` 和架构图，把方案转为可执行计划：
 
 1. 迁移计划：阶段、范围、依赖、数据处理、兼容边界、负责人和完成信号；

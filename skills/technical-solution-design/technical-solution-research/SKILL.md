@@ -5,6 +5,9 @@ description: 按统一维度调研不改基线、公司内部与业界同类方�
 
 # 调研候选方案
 
+开始前读取 [What–Why–How 推导标准](../technical-solution-review/references/reasoning.md)。每项候选说明
+解决什么、机制如何满足目标，以及为何在当前约束下成立或不成立；总体架构留给下一步确定。
+
 只以已批准的 `01-background.md`、`02-problem.md`、`03-objectives.md` 为边界。先从问题、指标和约束
 导出同一组评价维度，再调查：
 

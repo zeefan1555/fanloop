@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -259,5 +260,40 @@ func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
 				t.Errorf("%s still contains obsolete flat-heading rule %q", relative, forbidden)
 			}
 		}
+	}
+}
+
+func TestTechnicalSolutionReasoningReferences(t *testing.T) {
+	group := filepath.Join(repositoryRoot(t), "skills", "technical-solution-design")
+	want := filepath.Join(group, "technical-solution-review", "references", "reasoning.md")
+	info, err := os.Stat(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.Mode().IsRegular() || info.Size() == 0 {
+		t.Fatalf("reasoning reference is not a nonempty file: %s", want)
+	}
+	link := regexp.MustCompile(`\[[^\]]+\]\(([^)]+reasoning\.md)\)`)
+	for _, name := range []string{
+		"technical-background-framing", "technical-problem-analysis", "technical-objective-setting",
+		"technical-solution-research", "technical-overall-solution", "technical-key-solutions",
+		"technical-solution-benefits", "technical-solution-delivery", "technical-solution-writing",
+		"technical-solution-review",
+	} {
+		t.Run(name, func(t *testing.T) {
+			directory := filepath.Join(group, name)
+			content, err := os.ReadFile(filepath.Join(directory, "SKILL.md"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			matches := link.FindAllSubmatch(content, -1)
+			if len(matches) != 1 {
+				t.Fatalf("want one reasoning reference, got %d", len(matches))
+			}
+			got := filepath.Clean(filepath.Join(directory, string(matches[0][1])))
+			if got != want {
+				t.Fatalf("reasoning reference resolves to %s, want %s", got, want)
+			}
+		})
 	}
 }
