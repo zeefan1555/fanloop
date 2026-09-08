@@ -297,3 +297,48 @@ func TestTechnicalSolutionReasoningReferences(t *testing.T) {
 		})
 	}
 }
+
+func TestTechnicalSolutionStepArtifactLists(t *testing.T) {
+	group := filepath.Join(repositoryRoot(t), "skills", "technical-solution-design")
+	rows := regexp.MustCompile(`(?m)^\|\s*([^|]+?)\s*\|`)
+	for _, want := range []struct {
+		skill     string
+		artifacts []string
+	}{
+		{"technical-background-framing", []string{"背景与现状", "业务特点", "关键事实与证据"}},
+		{"technical-problem-analysis", []string{"核心问题", "根因与影响", "关键矛盾"}},
+		{"technical-objective-setting", []string{"目标", "约束与非目标", "取舍顺序", "验收标准"}},
+		{"technical-problem-approval", []string{"汇总的问题定义文档", "审核结论与反馈"}},
+		{"technical-solution-research", []string{"候选方案对比", "适用条件", "优势与代价"}},
+		{"technical-overall-solution", []string{"选型结论与依据", "总体架构图", "组件职责", "关键链路"}},
+		{"technical-key-solutions", []string{"关键机制设计", "必要接口与数据模型", "异常与恢复设计"}},
+		{"technical-direction-approval", []string{"汇总的方案设计文档", "审核结论与反馈"}},
+		{"technical-solution-benefits", []string{"目标与收益映射", "验证计划", "已有结果及证据状态"}},
+		{"technical-solution-delivery", []string{"实施阶段", "依赖与责任", "发布验证", "风险与回滚"}},
+		{"technical-solution-writing", []string{"完整技术方案文档", "必要附录"}},
+		{"technical-solution-review", []string{"What–Why–How 与范文对照报告", "问题清单", "审校结论"}},
+		{"technical-solution-approval", []string{"最终发布文档", "人的审核结论与反馈"}},
+	} {
+		t.Run(want.skill, func(t *testing.T) {
+			content, err := os.ReadFile(filepath.Join(group, want.skill, "SKILL.md"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, list, ok := strings.Cut(string(content), "\n## 产物列表\n")
+			if !ok {
+				t.Fatal("missing step artifact list")
+			}
+			list, _, _ = strings.Cut(list, "\n## ")
+			var got []string
+			for _, row := range rows.FindAllStringSubmatch(list, -1) {
+				label := strings.TrimSpace(row[1])
+				if label != "逻辑产物" && strings.Trim(label, "-: ") != "" {
+					got = append(got, label)
+				}
+			}
+			if strings.Join(got, "\n") != strings.Join(want.artifacts, "\n") {
+				t.Fatalf("artifacts = %v, want %v", got, want.artifacts)
+			}
+		})
+	}
+}
