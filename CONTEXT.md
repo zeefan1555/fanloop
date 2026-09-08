@@ -89,7 +89,7 @@ Requirement 稳定标题，零命中创建、唯一命中更新、多命中阻�
 ## 公开契约
 
 **CommandSpec**
-11 个公开命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以五份 YAML 为真值。`fanloop update` 是 npm launcher 安装控制，不属于该 Thrift 目录。
+11 个公开命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以五份 YAML 为真值。本地更新从选定源码执行 `./scripts/install-local.sh`；npm launcher 与 `fanloop update` 分发入口已移除。
 
 **统一结果信封**
 成功写 stdout，使用 `ok/data/meta/_notice`；错误写 stderr，包含稳定 type、code、message、hint 和 retryable。

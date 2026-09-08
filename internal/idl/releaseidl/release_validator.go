@@ -26,6 +26,10 @@ func (p *CLIRelease) IsValid() error {
 	if ok, _ := regexp.MatchString(_src, p.Version); !ok {
 		return fmt.Errorf("field Version pattern rule failed, current value: %v", p.Version)
 	}
+	_src1 := "^sha256:[0-9a-f]{64}$"
+	if ok, _ := regexp.MatchString(_src1, p.BinarySha256); !ok {
+		return fmt.Errorf("field BinarySha256 pattern rule failed, current value: %v", p.BinarySha256)
+	}
 	return nil
 }
 func (p *SkillArtifact) IsValid() error {
@@ -60,30 +64,8 @@ func (p *WorkflowArtifact) IsValid() error {
 	}
 	return nil
 }
-func (p *PlatformAsset) IsValid() error {
-	_src := "^(darwin|linux)$"
-	if ok, _ := regexp.MatchString(_src, p.Os); !ok {
-		return fmt.Errorf("field Os pattern rule failed, current value: %v", p.Os)
-	}
-	_src1 := "^(amd64|arm64)$"
-	if ok, _ := regexp.MatchString(_src1, p.Arch); !ok {
-		return fmt.Errorf("field Arch pattern rule failed, current value: %v", p.Arch)
-	}
-	if len(p.File) < int(1) {
-		return fmt.Errorf("field File min_len rule failed, current value: %d", len(p.File))
-	}
-	_src2 := "^sha256:[0-9a-f]{64}$"
-	if ok, _ := regexp.MatchString(_src2, p.Sha256); !ok {
-		return fmt.Errorf("field Sha256 pattern rule failed, current value: %v", p.Sha256)
-	}
-	_src3 := "^sha256:[0-9a-f]{64}$"
-	if ok, _ := regexp.MatchString(_src3, p.BinarySha256); !ok {
-		return fmt.Errorf("field BinarySha256 pattern rule failed, current value: %v", p.BinarySha256)
-	}
-	return nil
-}
 func (p *ReleaseManifest) IsValid() error {
-	if p.SchemaVersion != int32(2) {
+	if p.SchemaVersion != int32(3) {
 		return fmt.Errorf("field SchemaVersion not match const value, current value: %v", p.SchemaVersion)
 	}
 	_src := "^[0-9A-Za-z][0-9A-Za-z._+-]*$"
@@ -107,12 +89,6 @@ func (p *ReleaseManifest) IsValid() error {
 	}
 	if len(p.Workflows) < int(1) {
 		return fmt.Errorf("field Workflows MinLen rule failed, current value: %v", p.Workflows)
-	}
-	if len(p.Assets) < int(4) {
-		return fmt.Errorf("field Assets MinLen rule failed, current value: %v", p.Assets)
-	}
-	if len(p.Assets) > int(4) {
-		return fmt.Errorf("field Assets MaxLen rule failed, current value: %v", p.Assets)
 	}
 	return nil
 }

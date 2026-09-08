@@ -12,9 +12,9 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-当前发布两套 Bundle：
+当前携带两套 Bundle：
 
-- `technical-solution-design`：独立七步技术方案流程，每个 Step 绑定一个专用 Skill，按问题定义、方案推导和方案成文三阶段推进。
+- `technical-solution-design`：十三步技术方案流程，各 Step 通过 Skill 产出和审核材料，按问题定义、方案设计和方案成文三阶段推进。
 - `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；需求确认、研发实现、独立 Sub-agent 验收、唯一 PR 合并与本地 CLI 更新顺序推进。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
@@ -89,10 +89,19 @@ merge commit 的干净 detached worktree 执行本地安装。
 Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命令、文件位置和恢复提示均不
 提供旧产品身份的兼容入口。
 
-## Release 与验证
+## 本地构建与验证
 
-一个 Release 原子携带 `bin/fanloop`、统一入口、两套 Workflow 和它们引用的 Skills。Release
-Manifest 固定版本、组件路径与 SHA-256；安装验证成功后才切换 `~/.fanloop/current`。
+`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、统一入口、
+两套 Workflow、它们引用的 Skills 和范文的本地目录；标准输出是构建目录的绝对路径。显式输出
+目录必须尚不存在，默认在 `dist/` 下新建唯一 `local-*` 目录。
+
+Release Manifest schema 3 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、组件路径及
+Skill/Workflow SHA-256；没有平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后复用
+目录安装，验证和 Doctor 成功才切换 `~/.fanloop/current`。更新仍从选定源码重新构建安装，
+已有 Requirement 的绑定内容及固定控制器不随 `current` 隐式改变。
+
+GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发布；构建不依赖 Node.js、GoReleaser
+或 tar/xz。完整决定见 [ADR-0095](./adr/0095-local-source-builds.md)。
 
 新增 Workflow 的发布改动只包含五份 YAML、同名 Skill 组和场景路由。配置-only 契约测试会临时
 构造第三套 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。
@@ -104,5 +113,5 @@ Manifest 固定版本、组件路径与 SHA-256；安装验证成功后才切换
 ./tests/run-e2e
 ```
 
-前者覆盖格式、IDL 新鲜度、静态检查、Go/npm 测试与 Contract；后者从当前工作树构建一次 CLI，
+前者覆盖格式、IDL 新鲜度、静态检查、Go 测试与 Contract；后者从当前工作树构建一次 CLI，
 执行技术方案完整生命周期，并为两套生产 Workflow 动态遍历全部 Flow/Loop Route。
