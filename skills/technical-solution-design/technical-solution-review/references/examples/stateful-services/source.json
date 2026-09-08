@@ -1,0 +1,822 @@
+{
+  "title": "从多人游戏到云 Agent：有状态服务的统一架构设计实践",
+  "url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh",
+  "document_id": "WKg2dQEJDoUf43xZOl5c0QVsndh",
+  "document_revision": 4065,
+  "retrieved_at_utc": "2026-09-08T04:24:48.860081+00:00",
+  "text_source": "lark-cli docs +fetch --doc-format markdown; checked against simple XML and --detail full XML at document revision 4065",
+  "source_markdown_sha256": "ece59c8a54a65d2bfcf9cad47f33169d31d55f66ebf0c5f110b0df8c284a6696",
+  "source_xml_sha256": "6b69293a730b7e4ca2fed737aae6d2ac6264a110f5c7c173c8e1c8146d793e4a",
+  "article_sha256": "289cb6ffd1f6d7cfeba2e3c0d0d28795e46fabc12ac88ce2362def8d9f37a822",
+  "media_note": "Original downloaded bytes. Whiteboard previews capture current board content independently of the document revision. Two PlantUML sources are retained inline; other whiteboard node/source data is not archived. A synced-source board is from its separately recorded source revision.",
+  "archive_status": "text_and_images_with_declared_unavailable_synced_reference",
+  "media": [
+    {
+      "path": "images/01-game-map.png",
+      "source_type": "media",
+      "source_token": "KRLibGBWDoZdgZxrEnycZOkknBg",
+      "caption": "游戏地图探索与打卡截图",
+      "media_type": "image/png",
+      "width": 1179,
+      "height": 2556,
+      "size_bytes": 2564921,
+      "sha256": "c7528ac334e1dc5ed80c22e7d2ef9c49ff3d23f9fead53a8957c1d95939c463e",
+      "retrieved_at_utc": "2026-09-08T04:26:44.821855+00:00",
+      "source_attributes": {
+        "id": "Gzd3dU7Ltoeg75xMfSPcoiE6nXb",
+        "name": "IMG_5815.PNG",
+        "alt": "图片展示的是多人网络游戏场景中的地图探索画面。画面中有一个粉色冰淇淋车，车旁有小羊，车旁文字介绍冰淇淋车为渐变蓝色的海盐冰淇淋，清凉海风配这抹甜。画面右上角显示打卡进度为12/12，还有“节日烟花秀”等图标。画面下方有“冰淇淋车”“泳池”“气球车”“水滑梯”等图标，以及“追踪”按钮。该图与文档中多人网络游戏的业务场景介绍相关，直观呈现了游戏中的地图探索元素。",
+        "height": "2556",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "KRLibGBWDoZdgZxrEnycZOkknBg",
+        "width": "1179"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Gzd3dU7Ltoeg75xMfSPcoiE6nXb"
+    },
+    {
+      "path": "images/02-game-interaction.png",
+      "source_type": "media",
+      "source_token": "CdCtbBYvooxCLJxArv9c9y63nLc",
+      "caption": "场景物交互：售货机截图",
+      "media_type": "image/png",
+      "width": 692,
+      "height": 1244,
+      "size_bytes": 1673416,
+      "sha256": "ca2fa25ae7754d420e7733c8b66e73103f80e53a176c87e6d568a8dcbd66deee",
+      "retrieved_at_utc": "2026-09-08T04:26:45.929160+00:00",
+      "source_attributes": {
+        "id": "Nn1ndS6uNoBxugxAAP4cTgTsnTh",
+        "name": "image.png",
+        "alt": "图片展示的是多人网络游戏场景中的一处界面。画面中有一个自动售货机，左侧售货机上写着“实力可爱宝”，右侧售货机上有“重燃未来”的宣传语。售货机前有一个卡通形象，底部有“购票”按钮。左上角显示“在玩好友12”，右上角有三个图标。画面左上角还有“送周边”的标识。该图片与文档中多人网络游戏场景的描述相关，展示了游戏中可能的互动元素。",
+        "height": "1244",
+        "mime": "image/png",
+        "scale": "1.054913",
+        "src": "CdCtbBYvooxCLJxArv9c9y63nLc",
+        "width": "692"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Nn1ndS6uNoBxugxAAP4cTgTsnTh"
+    },
+    {
+      "path": "images/03-game-lounge.png",
+      "source_type": "media",
+      "source_token": "S7h7bQUJOor0VJxN56FcPc2rn3d",
+      "caption": "场景物交互：躺椅截图",
+      "media_type": "image/png",
+      "width": 1179,
+      "height": 2556,
+      "size_bytes": 3735293,
+      "sha256": "2306f7317fee88377edbe5809e3cfb7ca077a166fdde49cf37dcde203d009b97",
+      "retrieved_at_utc": "2026-09-08T04:26:47.206749+00:00",
+      "source_attributes": {
+        "id": "AQiRdiIsWocco4xa71Mck3VCnOy",
+        "name": "snapshot_1770903639272.PNG",
+        "alt": "图片展示的是游戏《蛋仔派对》中的场景。画面中，一只穿着白色衣服、头戴蓝色发饰的卡通角色坐在蓝色格子躺椅上，背景是带有彩色灯饰的拱形门廊，远处有椰子树和海景。画面中央上方有“咪咕”字样。该图片与文档中多人网络游戏场景介绍相关，直观呈现了游戏中的一个场景，体现了游戏的社交互动体验。",
+        "height": "2556",
+        "mime": "image/png",
+        "scale": "0.619169",
+        "src": "S7h7bQUJOor0VJxN56FcPc2rn3d",
+        "width": "1179"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#AQiRdiIsWocco4xa71Mck3VCnOy"
+    },
+    {
+      "path": "images/04-game-chat.png",
+      "source_type": "media",
+      "source_token": "ZvzgbGnFdolHFVxIgaJc0C01nQm",
+      "caption": "多人游戏聊天截图",
+      "media_type": "image/png",
+      "width": 1179,
+      "height": 2556,
+      "size_bytes": 2549291,
+      "sha256": "3ec93fd55ac03dac63903bbc22da3a601c7da9bb6588d75dcb82fc563a6775b2",
+      "retrieved_at_utc": "2026-09-08T04:26:48.518990+00:00",
+      "source_attributes": {
+        "id": "Vb2wdsf8YoWWErxFanVcPCwZnqe",
+        "name": "IMG_5806.PNG",
+        "alt": "图片展示的是多人网络游戏场景，画面中有一个穿着白色礼服、头戴白色头饰、带有翅膀的卡通猫咪角色。背景有红色和蓝色的装饰物，左侧有“提马盲盒”“海岛地图”“每日钓鱼”等图标。画面右上角显示“在玩好友9”，右下角有“更多世界”“分享”“聊天”等图标。底部有输入框，显示“诈骗。希望你在这里度过愉快时光。”和“咪咕（哇哦哇）：快要过年啦”。该图片与文档中多人网络游戏业务场景的描述相契合。",
+        "height": "2556",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "ZvzgbGnFdolHFVxIgaJc0C01nQm",
+        "width": "1179"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Vb2wdsf8YoWWErxFanVcPCwZnqe"
+    },
+    {
+      "path": "images/05-douluo-world.png",
+      "source_type": "media",
+      "source_token": "CMtxbxbjWogk0lx5hH0cCRDGnwd",
+      "caption": "斗罗大陆活动宣传图",
+      "media_type": "image/png",
+      "width": 1216,
+      "height": 1112,
+      "size_bytes": 2515108,
+      "sha256": "e49366689306f43cb6808bcf7cea1ab0a7c3698115cf0a83b60be0024517930c",
+      "retrieved_at_utc": "2026-09-08T04:26:50.183623+00:00",
+      "source_attributes": {
+        "id": "L3k2dWyaXo335Lx0WLCcrxvNnMf",
+        "name": "image.png",
+        "alt": "图片是抖音斗罗大陆的活动宣传图，背景为紫色渐变，左上角有抖音和斗罗大陆标志。画面中，一位蓝发角色手持武器，前方有黄色小鸡图案，右侧有身穿白色盔甲的女性角色。下方文字显示活动时间为12.16 - 12.22，带崽领酷炫装扮，限定背饰可转动。该图片与文档中多人网络游戏业务场景相关，展示了游戏内活动宣传内容。",
+        "height": "1112",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "CMtxbxbjWogk0lx5hH0cCRDGnwd",
+        "width": "1216"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#L3k2dWyaXo335Lx0WLCcrxvNnMf"
+    },
+    {
+      "path": "images/06-nishuihan-world.png",
+      "source_type": "media",
+      "source_token": "SqFLbygHUo8IV2xEzqmcmj8anqc",
+      "caption": "逆水寒新春活动宣传图",
+      "media_type": "image/png",
+      "width": 890,
+      "height": 1254,
+      "size_bytes": 2342853,
+      "sha256": "dcbe374c7cdf76c60e59cf1f0178ade0a7ca51f3f10c6651e32253f1fdbd844f",
+      "retrieved_at_utc": "2026-09-08T04:26:51.401306+00:00",
+      "source_attributes": {
+        "id": "QXz0d8vlLolO6zxrdhlcZTj4nWh",
+        "name": "image.png",
+        "alt": "图片是抖音逆水寒新春游乐园活动宣传图。背景为夜晚的游乐园场景，有传统建筑、灯笼等装饰。画面中有三只卡通形象，左侧是橙色的狐狸，中间是黄色的卡通形象，右侧是粉色头发的猫。下方有文字“关注后进入世界即送装扮”，右侧有“活动规则”标识。图片与文档中多人网络游戏业务场景相关，展示了游戏内活动的宣传内容。",
+        "height": "1254",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "SqFLbygHUo8IV2xEzqmcmj8anqc",
+        "width": "890"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#QXz0d8vlLolO6zxrdhlcZTj4nWh"
+    },
+    {
+      "path": "images/07-overwatch-world.png",
+      "source_type": "media",
+      "source_token": "B2r2bVo3VoydlFxs0L2cn7jvnJf",
+      "caption": "守望先锋活动宣传图",
+      "media_type": "image/png",
+      "width": 804,
+      "height": 1010,
+      "size_bytes": 1213977,
+      "sha256": "ef6c6e6aaca0a78c5f53f062cb519a73d86cb6ea81ce3851409b1b04bce44e1d",
+      "retrieved_at_utc": "2026-09-08T04:26:52.610410+00:00",
+      "source_attributes": {
+        "id": "O8j1drhuAoEBAjx60s1cwYDHn5d",
+        "name": "image.png",
+        "alt": "图片展示了抖音与《守望先锋》合作的宣传内容。画面中，守望先锋角色“拉普拉斯”和“温斯顿”在城市背景中飞行，下方有“守望先锋 漓江聚光 进世界赢限定形象”的文字。图片与上下文紧密相关，上下文提到多人网络游戏场景，此图可能是该游戏与抖音合作的宣传海报，展示了合作角色形象，契合游戏主题。",
+        "height": "1010",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "B2r2bVo3VoydlFxs0L2cn7jvnJf",
+        "width": "804"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#O8j1drhuAoEBAjx60s1cwYDHn5d"
+    },
+    {
+      "path": "images/08-managed-agents.png",
+      "source_type": "media",
+      "source_token": "GbjZbuS0toUNZsxvY4scDjaRnah",
+      "caption": "Managed Agents 组件关系",
+      "media_type": "image/png",
+      "width": 2032,
+      "height": 2032,
+      "size_bytes": 140588,
+      "sha256": "cdb0eeeea8be8024a8e4a535020a125453b7794dd117333cc5a14f75df295504",
+      "retrieved_at_utc": "2026-09-08T04:26:53.568461+00:00",
+      "source_attributes": {
+        "id": "CMOQdruWPoeo9cxWv9Hc7llhnsk",
+        "name": "image.png",
+        "alt": "图片展示了有状态服务的统一架构设计实践中的架构图。图中包含Session、Harness、Sandbox、Orchestration、Tools + Resources / MCP五个部分。Harness位于中心，Session、Sandbox分别与其双向箭头连接，Orchestration与Harness有双向箭头，Tools + Resources / MCP与Harness有双向箭头。该图与上下文介绍的有状态服务架构设计相关，直观呈现了各部分的交互关系。",
+        "height": "2032",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "GbjZbuS0toUNZsxvY4scDjaRnah",
+        "width": "2032"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#CMOQdruWPoeo9cxWv9Hc7llhnsk"
+    },
+    {
+      "path": "images/09-aime-architecture.jpg",
+      "source_type": "whiteboard",
+      "source_token": "OQTvwv4L7hCX0hbLUmLcgq5inAb",
+      "caption": "AIME Assistant 全景架构",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 570167,
+      "sha256": "671d77f34202398ecffb20eb181eb9e4599fdc60800676e3320a8ba07b7605f0",
+      "retrieved_at_utc": "2026-09-08T04:26:54.533707+00:00",
+      "source_attributes": {
+        "id": "I0irdyIqEo2JLcx7fK2cYh2Snfh",
+        "token": "OQTvwv4L7hCX0hbLUmLcgq5inAb"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#I0irdyIqEo2JLcx7fK2cYh2Snfh"
+    },
+    {
+      "path": "images/10-agent-platform.jpg",
+      "source_type": "whiteboard",
+      "source_token": "J63tw9bxfhe5R3boLyvcKh4jnzc",
+      "caption": "Agent Platform 分层架构",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 415746,
+      "sha256": "76f54a9dba96823d1e960101fef77bdffbd20b55bd1e0425c1c157a025e18c1e",
+      "retrieved_at_utc": "2026-09-08T04:26:55.302310+00:00",
+      "source_attributes": {
+        "id": "BUAcd7sy4oOwmuxpMZmcwTnynMf",
+        "token": "J63tw9bxfhe5R3boLyvcKh4jnzc"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#BUAcd7sy4oOwmuxpMZmcwTnynMf"
+    },
+    {
+      "path": "images/11-lambda-scheduling.png",
+      "source_type": "media",
+      "source_token": "UrLvbbJx1oYHdnxBfdPc57ZFnZb",
+      "caption": "Lambda 资源调度与执行池",
+      "media_type": "image/png",
+      "width": 2124,
+      "height": 1242,
+      "size_bytes": 237935,
+      "sha256": "7953e8643b9e6ae2188f763aaa1907f8515ec361b33e6c9986f606833be80c77",
+      "retrieved_at_utc": "2026-09-08T04:26:56.266318+00:00",
+      "source_attributes": {
+        "id": "GZE7dWIuUofgiaxO4X1cU5PQnJb",
+        "name": "image.png",
+        "alt": "该图展示了有状态服务的统一调度服务架构，分为L1和L2两层调度的相关流程与模块。L1调度场景为服务于TCE，通过Scheduler匹配资源池的资源，涉及Task Queues、Store Service、Callback Service、Event Dispatcher等模块，且标注了Quote preference相关内容，左侧还列出该架构具备高可扩展性、高可用性的特性。L2调度场景分为两类：客户端部署于TCE或裸金属的情况，以及cosmos Pod部署于虚拟机/容器的情况，两类场景均包含Event Dispatcher，分别对应资源服务、执行器池、本地存储等模块，还标注了recovery、lambda dependency autoprogram等相关内容，左侧也标注了客户端的负载均衡与自动迁移功能。",
+        "height": "1242",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "UrLvbbJx1oYHdnxBfdPc57ZFnZb",
+        "width": "2124"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#GZE7dWIuUofgiaxO4X1cU5PQnJb"
+    },
+    {
+      "path": "images/12-rtc-postprocessing.jpg",
+      "source_type": "whiteboard",
+      "source_token": "UbVvwaMMxhBiHNb5p6ecqQ9Anff",
+      "caption": "RTC 后处理架构",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 216083,
+      "sha256": "647ebe4d0c85945d1df16ead66b41196410450c641c35d30315bf5f509d834c9",
+      "retrieved_at_utc": "2026-09-08T04:26:57.044077+00:00",
+      "source_attributes": {
+        "id": "VcS8dhWXxoOr15xOFrtcNWbgn3e",
+        "token": "UbVvwaMMxhBiHNb5p6ecqQ9Anff"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#VcS8dhWXxoOr15xOFrtcNWbgn3e"
+    },
+    {
+      "path": "images/13-doubao-rtc.jpg",
+      "source_type": "whiteboard",
+      "source_token": "TjM5ws9k6hk5VEbZ2FHcveCOnEe",
+      "caption": "豆包音视频架构",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 178462,
+      "sha256": "4d9661823bf6535b8dcbc0995e1760df798e04b496e47ff1d6127f29c3d8faee",
+      "retrieved_at_utc": "2026-09-08T04:26:57.745117+00:00",
+      "source_attributes": {
+        "id": "DiFadokeuozdywxs1Anc54hJn9t",
+        "token": "TjM5ws9k6hk5VEbZ2FHcveCOnEe"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#DiFadokeuozdywxs1Anc54hJn9t"
+    },
+    {
+      "path": "images/14-nomad-architecture.jpg",
+      "source_type": "whiteboard",
+      "source_token": "FylqwTJjAhv4b8blVW8cWUl1nQg",
+      "caption": "Roblox 底层 Nomad 架构",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 149621,
+      "sha256": "5f206035100512ca3e40f5cca520ddf3e71ab923d512a8b97ea8da61d86539b6",
+      "retrieved_at_utc": "2026-09-08T04:26:58.645697+00:00",
+      "source_attributes": {
+        "id": "MjFmd2fPkovXxfxjx7WcEl4bnJg",
+        "token": "FylqwTJjAhv4b8blVW8cWUl1nQg"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#MjFmd2fPkovXxfxjx7WcEl4bnJg"
+    },
+    {
+      "path": "images/15-wds-storage.png",
+      "source_type": "media",
+      "source_token": "DiwPb10hSoG9gCxm2XEczZHenIg",
+      "caption": "WDS 存储分片架构",
+      "media_type": "image/png",
+      "width": 1133,
+      "height": 693,
+      "size_bytes": 62773,
+      "sha256": "bd19b83a7d76e0b72b7236bd2974214c146bde3bab7d1787ff5ab77085d756fe",
+      "retrieved_at_utc": "2026-09-08T04:26:59.754378+00:00",
+      "source_attributes": {
+        "id": "Qy4pdvrxgoI5KpxkoaFcSdWjnxd",
+        "name": "image.png",
+        "alt": "该图片呈现的是有状态服务相关的架构图，架构包含客户端、代理、分片缓存集群等层级。顶部设有三个带有SDK标识的Client，连接中间层的三个Proxy；Proxy向下对接三个缓存分片，分别为shard-0、shard-1、shard-2，每个分片内均有CacheServer，右侧标注“invalid 处理”。MetaServer位于架构左侧，为左侧纵置的模块，各分片的CacheServer最终对接Storage存储层，底部还设有DTS/binlog变更通知模块。",
+        "height": "693",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "DiwPb10hSoG9gCxm2XEczZHenIg",
+        "width": "1133"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Qy4pdvrxgoI5KpxkoaFcSdWjnxd"
+    },
+    {
+      "path": "images/16-unified-architecture.jpg",
+      "source_type": "whiteboard",
+      "source_token": "QOfSwPzF5hEdFWbJ4wocT4Xonkg",
+      "caption": "CPU 型有状态服务统一架构",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 382289,
+      "sha256": "5c7b08f379e4a780dbe6e4eda79a5ded1d326c95d881f84ce8986eb1ed9ba90d",
+      "retrieved_at_utc": "2026-09-08T04:27:00.476841+00:00",
+      "source_attributes": {
+        "id": "E6aodqafRoUi64xWGX8clnIsnrb",
+        "token": "QOfSwPzF5hEdFWbJ4wocT4Xonkg"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#E6aodqafRoUi64xWGX8clnIsnrb"
+    },
+    {
+      "path": "images/17-adapter-routing.jpg",
+      "source_type": "whiteboard",
+      "source_token": "QnGbw24Zah0ykZbiKqacqg5lnKb",
+      "caption": "Adapter 调度与任务路由",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 184282,
+      "sha256": "5c5cc041beb347dcae5ec31dede69af73340b3a7595b0e014142e935f8bdeee5",
+      "retrieved_at_utc": "2026-09-08T04:27:01.284655+00:00",
+      "source_attributes": {
+        "id": "SgjhdrXihosDk3xWgSUcaYgHn5g",
+        "token": "QnGbw24Zah0ykZbiKqacqg5lnKb"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#SgjhdrXihosDk3xWgSUcaYgHn5g"
+    },
+    {
+      "path": "images/18-instance-service-sequence.jpg",
+      "source_type": "whiteboard",
+      "source_token": "RbVjwG3clh2HD1b30DOc4Jn7nBh",
+      "caption": "实例服务化时序",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 232459,
+      "sha256": "953648596cc79a8e6e19ce6474dbe497ef356f7d2349f6f84bee9e6cdc176760",
+      "retrieved_at_utc": "2026-09-08T04:27:02.001081+00:00",
+      "source_attributes": {
+        "id": "UHjYdB5AAoArV4xz6xCcgtlFnlc",
+        "token": "RbVjwG3clh2HD1b30DOc4Jn7nBh",
+        "type": "plantuml"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#UHjYdB5AAoArV4xz6xCcgtlFnlc"
+    },
+    {
+      "path": "images/19-warm-process.jpg",
+      "source_type": "whiteboard",
+      "source_token": "CozAwMiGoh9H08boFBtcoKkYnQc",
+      "caption": "进程预启动与请求执行",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 181441,
+      "sha256": "d5d1c6d708ef9799f10b5cb0037d781611165c97a920bafbfe04ae59c781a24f",
+      "retrieved_at_utc": "2026-09-08T04:27:02.752657+00:00",
+      "source_attributes": {
+        "id": "WHrSdPEMIol9SixdBmscjWEHn7f",
+        "token": "CozAwMiGoh9H08boFBtcoKkYnQc"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#WHrSdPEMIol9SixdBmscjWEHn7f"
+    },
+    {
+      "path": "images/20-latency-breakdown.jpg",
+      "source_type": "whiteboard",
+      "source_token": "PWrcwlPC8haDBHbSjuPcCt2Sn1f",
+      "caption": "任务调度延迟分解",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 102161,
+      "sha256": "43db307191c6f91de496395537f401d03c92b781a13f5d71ff4c19083d4aa8c6",
+      "retrieved_at_utc": "2026-09-08T04:27:03.618052+00:00",
+      "source_attributes": {
+        "id": "BB65dKxycoQ0NLx2ja3c5L3ynMh",
+        "token": "PWrcwlPC8haDBHbSjuPcCt2Sn1f"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#BB65dKxycoQ0NLx2ja3c5L3ynMh"
+    },
+    {
+      "path": "images/21-version-release.jpg",
+      "source_type": "whiteboard",
+      "source_token": "A8T8wpr1hhiwmUbrXGXcw60Tnaf",
+      "caption": "多版本发布与任务调度",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 86871,
+      "sha256": "af2b7824cee13651424729ac58ef9ca5f17092def7536b92730cd0cbedaebf42",
+      "retrieved_at_utc": "2026-09-08T04:27:04.397542+00:00",
+      "source_attributes": {
+        "id": "ABded0VJKoUyE1x6QfWcARsbn5c",
+        "token": "A8T8wpr1hhiwmUbrXGXcw60Tnaf"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#ABded0VJKoUyE1x6QfWcARsbn5c"
+    },
+    {
+      "path": "images/22-startup-confirmation.jpg",
+      "source_type": "whiteboard",
+      "source_token": "FtN1wR486hkTDCb0jSQcZ2ZLnzh",
+      "caption": "任务启动确认时序",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 224007,
+      "sha256": "2b2fbe7bd90daa0fc8697e38326c76b318d6c98a521ef1f1949491d9bbdea1b6",
+      "retrieved_at_utc": "2026-09-08T04:27:05.091656+00:00",
+      "source_attributes": {
+        "id": "OKhNdgtaToysdZxCmQ2cNQeunyf",
+        "token": "FtN1wR486hkTDCb0jSQcZ2ZLnzh",
+        "type": "plantuml"
+      },
+      "viewed_with": "view_image",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#OKhNdgtaToysdZxCmQ2cNQeunyf"
+    },
+    {
+      "path": "images/23-hamlet-synced-architecture.jpg",
+      "source_type": "whiteboard",
+      "source_token": "Y3C4wfD39hEijvblpXBcJjsgnIe",
+      "caption": "Hamlet 有状态游戏服务架构（同步引用）",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 304537,
+      "sha256": "8d176a9b84624578d66c85f47063b51d3f4cf5eba4c3482d6f2f24f0c3e65569",
+      "retrieved_at_utc": "2026-09-08T04:27:53.345080+00:00",
+      "source_attributes": {
+        "token": "Y3C4wfD39hEijvblpXBcJjsgnIe"
+      },
+      "viewed_with": "view_image",
+      "synced_source_document_id": "XEmHdK7hXocW8JxuUikctUTZn7e",
+      "synced_source_revision": 7962
+    }
+  ],
+  "synced_references": [
+    {
+      "source_type": "synced_reference",
+      "source_document_id": "FYxWd9Xq5op8VMxn1TncWGrJnKg",
+      "source_block_id": "W0KudVUhysjPBgbDRpoclRHonkd",
+      "source_url": "https://bytedance.larkoffice.com/docx/FYxWd9Xq5op8VMxn1TncWGrJnKg#W0KudVUhysjPBgbDRpoclRHonkd",
+      "status": "not_archived",
+      "error_code": 3380004,
+      "reason": "Source document read denied: current user lacks view or edit access."
+    },
+    {
+      "source_type": "synced_reference",
+      "source_document_id": "XEmHdK7hXocW8JxuUikctUTZn7e",
+      "source_block_id": "Gn5wdyHYssMfZKbskIccrPHwnWc",
+      "source_url": "https://bytedance.larkoffice.com/docx/XEmHdK7hXocW8JxuUikctUTZn7e#Gn5wdyHYssMfZKbskIccrPHwnWc",
+      "status": "archived",
+      "source_revision": 7962,
+      "source_content_sha256": "9c977183792f20700cd537235b1701d04b42616a2f2a337024db081e726f8069",
+      "media_paths": [
+        "images/23-hamlet-synced-architecture.jpg"
+      ]
+    }
+  ],
+  "unarchived_resources": [
+    {
+      "source_type": "video",
+      "name": "山城小艾和杠上花.mp4",
+      "source_token": "IEKQbUPP3oxANyxWDr8cuhyhnvd",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#W8tgdcJ01oQrfixFQvNc4gDznDg",
+      "source_attributes": {
+        "id": "W8tgdcJ01oQrfixFQvNc4gDznDg",
+        "name": "山城小艾和杠上花.mp4",
+        "height": "339.566650",
+        "mime": "video/mp4",
+        "origin-height": "1167.000000",
+        "origin-width": "540.000000",
+        "size": "18866823",
+        "token": "IEKQbUPP3oxANyxWDr8cuhyhnvd",
+        "width": "157.125961"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "克莱因-文乐2.mp4",
+      "source_token": "XQyzbl80LoPoURxUH5UcGgRinpg",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#JCoYdtwDvoCZ22xFTxqc5TyNnyf",
+      "source_attributes": {
+        "id": "JCoYdtwDvoCZ22xFTxqc5TyNnyf",
+        "name": "克莱因-文乐2.mp4",
+        "height": "335.833344",
+        "mime": "video/mp4",
+        "origin-height": "1170.000000",
+        "origin-width": "540.000000",
+        "size": "17202816",
+        "token": "XQyzbl80LoPoURxUH5UcGgRinpg",
+        "width": "155.000000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "244633131.mp4",
+      "source_token": "Gf3KbNv88oes6CxM3bec4bVinEn",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#FSXxdDwKXoqg98xpYqAc2Ekmn1f",
+      "source_attributes": {
+        "id": "FSXxdDwKXoqg98xpYqAc2Ekmn1f",
+        "name": "244633131.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "640.000000",
+        "origin-width": "291.000000",
+        "size": "55519211",
+        "token": "Gf3KbNv88oes6CxM3bec4bVinEn",
+        "width": "254.625000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "想你时风起 片段.mp4",
+      "source_token": "FC29bVLoKo7ojnxz7KUcyznGnVb",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#FpqDdaUt2oWetSxOjwrcjRf0njg",
+      "source_attributes": {
+        "id": "FpqDdaUt2oWetSxOjwrcjRf0njg",
+        "name": "想你时风起 片段.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "1558.000000",
+        "origin-width": "720.000000",
+        "size": "18794182",
+        "token": "FC29bVLoKo7ojnxz7KUcyznGnVb",
+        "width": "258.793335"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "pk过程聊天拱火.mp4",
+      "source_token": "Omg6bRediorWJfxHGwuclSxAnZd",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#HPIKdDQ4ooMFhbxTMZwcnNhCnjc",
+      "source_attributes": {
+        "id": "HPIKdDQ4ooMFhbxTMZwcnNhCnjc",
+        "name": "pk过程聊天拱火.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "1560.000000",
+        "origin-width": "720.000000",
+        "size": "16057622",
+        "token": "Omg6bRediorWJfxHGwuclSxAnZd",
+        "width": "258.461548"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "ai抛问题给对方主播.mp4",
+      "source_token": "FGB1b4PWyo4fysxveETck7c0ndd",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#EjyNdVHVZojnhkxzjjUc4H4gnJb",
+      "source_attributes": {
+        "id": "EjyNdVHVZojnhkxzjjUc4H4gnJb",
+        "name": "ai抛问题给对方主播.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "1560.000000",
+        "origin-width": "720.000000",
+        "size": "5813359",
+        "token": "FGB1b4PWyo4fysxveETck7c0ndd",
+        "width": "258.461548"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "3d6990131bd23e1bbfbb94eb9c743cf0.mp4",
+      "source_token": "H0Zmbpe1NoTJz1x8ieNcFWcgnlb",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#N6c5dZrDSog3lbxaNF9cJhACn2b",
+      "source_attributes": {
+        "id": "N6c5dZrDSog3lbxaNF9cJhACn2b",
+        "name": "3d6990131bd23e1bbfbb94eb9c743cf0.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "781.000000",
+        "origin-width": "360.000000",
+        "size": "1067266",
+        "token": "H0Zmbpe1NoTJz1x8ieNcFWcgnlb",
+        "width": "258.130615"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "826135100.mp4",
+      "source_token": "WWfZb3AeDoHxVnxnOUscnqGwnMg",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#SskFd1itwo1DtQx8KLUcaauGnpc",
+      "source_attributes": {
+        "id": "SskFd1itwo1DtQx8KLUcaauGnpc",
+        "name": "826135100.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "695.000000",
+        "origin-width": "360.000000",
+        "size": "2792014",
+        "token": "WWfZb3AeDoHxVnxnOUscnqGwnMg",
+        "width": "290.071930"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "fb875ab893fdfa1c69ee619dca68f4ac.mp4",
+      "source_token": "Omf1blLZWoCPzoxMjWRcFz15ngb",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#AEq6dCKSAoCnkOxGwSYc5KZHn3b",
+      "source_attributes": {
+        "id": "AEq6dCKSAoCnkOxGwSYc5KZHn3b",
+        "name": "fb875ab893fdfa1c69ee619dca68f4ac.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "781.000000",
+        "origin-width": "360.000000",
+        "size": "3445551",
+        "token": "Omf1blLZWoCPzoxMjWRcFz15ngb",
+        "width": "258.130615"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "c0ad3b9caed50625faa86c02900dd92e.mp4",
+      "source_token": "EVRkbcMOmosAq6xyZD1c9EFpngG",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#HaUbdM673oreufxAj7qc2fadngg",
+      "source_attributes": {
+        "id": "HaUbdM673oreufxAj7qc2fadngg",
+        "name": "c0ad3b9caed50625faa86c02900dd92e.mp4",
+        "height": "560.000000",
+        "mime": "video/mp4",
+        "origin-height": "781.000000",
+        "origin-width": "360.000000",
+        "size": "1352808",
+        "token": "EVRkbcMOmosAq6xyZD1c9EFpngG",
+        "width": "258.130615"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "214b63aa1e2e725112e60f7a7341b743.MP4",
+      "source_token": "Ud0db4ar0oH3QnxmTB4cawvXnrb",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#XRVVdN57noYY1mxIC4oc47sEnIh",
+      "source_attributes": {
+        "id": "XRVVdN57noYY1mxIC4oc47sEnIh",
+        "name": "214b63aa1e2e725112e60f7a7341b743.MP4",
+        "height": "377.968750",
+        "mime": "video/mp4",
+        "origin-height": "590.000000",
+        "origin-width": "1280.000000",
+        "size": "2985720",
+        "token": "Ud0db4ar0oH3QnxmTB4cawvXnrb",
+        "width": "820.000000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "5b6021b0ebad229b0f8de650dadb822e.MP4",
+      "source_token": "WvyRbup0ao11F9xPkyAcDMz1nMf",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#DhSsd09y3oHRS7xY1dxc2vRQnSh",
+      "source_attributes": {
+        "id": "DhSsd09y3oHRS7xY1dxc2vRQnSh",
+        "name": "5b6021b0ebad229b0f8de650dadb822e.MP4",
+        "height": "377.968750",
+        "mime": "video/mp4",
+        "origin-height": "590.000000",
+        "origin-width": "1280.000000",
+        "size": "2441016",
+        "token": "WvyRbup0ao11F9xPkyAcDMz1nMf",
+        "width": "820.000000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "be7d44843fa2e1cd8d5340e4ced57fa2.MP4",
+      "source_token": "M6SUbYhAWoFPkdxgIHocNTypnNb",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#DKqedfi1qo32plx3YOZc44nFnwd",
+      "source_attributes": {
+        "id": "DKqedfi1qo32plx3YOZc44nFnwd",
+        "name": "be7d44843fa2e1cd8d5340e4ced57fa2.MP4",
+        "height": "377.968750",
+        "mime": "video/mp4",
+        "origin-height": "590.000000",
+        "origin-width": "1280.000000",
+        "size": "7351083",
+        "token": "M6SUbYhAWoFPkdxgIHocNTypnNb",
+        "width": "820.000000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "c068d9c8a7098dd40fc4f66b3b67fd98.MP4",
+      "source_token": "Ex0Dbea2YoY2F7xLoWwckKEtn49",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Y1fudpQoqoPJNqxuX1acVYdhnBb",
+      "source_attributes": {
+        "id": "Y1fudpQoqoPJNqxuX1acVYdhnBb",
+        "name": "c068d9c8a7098dd40fc4f66b3b67fd98.MP4",
+        "height": "377.968750",
+        "mime": "video/mp4",
+        "origin-height": "590.000000",
+        "origin-width": "1280.000000",
+        "size": "5963995",
+        "token": "Ex0Dbea2YoY2F7xLoWwckKEtn49",
+        "width": "820.000000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "video",
+      "name": "5a007f8c8365c3f0729cfc95fb853b0d.MP4",
+      "source_token": "LOo4b8Qveoca3gx5CGychgEwnZd",
+      "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Ngr9drKfFoHk1Bx9E7IcPExGnrf",
+      "source_attributes": {
+        "id": "Ngr9drKfFoHk1Bx9E7IcPExGnrf",
+        "name": "5a007f8c8365c3f0729cfc95fb853b0d.MP4",
+        "height": "377.968750",
+        "mime": "video/mp4",
+        "origin-height": "590.000000",
+        "origin-width": "1280.000000",
+        "size": "11193631",
+        "token": "LOo4b8Qveoca3gx5CGychgEwnZd",
+        "width": "820.000000"
+      },
+      "status": "not_archived",
+      "reason": "User requested text and images; video binaries are outside this archive scope."
+    },
+    {
+      "source_type": "synced_reference",
+      "source_document_id": "FYxWd9Xq5op8VMxn1TncWGrJnKg",
+      "source_block_id": "W0KudVUhysjPBgbDRpoclRHonkd",
+      "source_url": "https://bytedance.larkoffice.com/docx/FYxWd9Xq5op8VMxn1TncWGrJnKg#W0KudVUhysjPBgbDRpoclRHonkd",
+      "status": "not_archived",
+      "error_code": 3380004,
+      "reason": "Source document read denied: current user lacks view or edit access."
+    }
+  ],
+  "external_links_note": "Ordinary external links and citations are preserved as links and were not recursively archived.",
+  "offline_transformations": [
+    "Convert title to Markdown heading and add archive notice.",
+    "Replace original image and whiteboard references in place with local HTML img elements, including inside HTML tables; source image alt metadata remains in source_attributes and display captions are archive annotations.",
+    "Keep two PlantUML code blocks and insert their downloaded whiteboard previews immediately before them.",
+    "Convert Lark grid/column layout wrappers to div and callout wrappers to Markdown block quotes without dropping contents.",
+    "Convert cite wrappers to readable canonical links preserving source titles.",
+    "Resolve the accessible Hamlet synced reference to its source board at revision 7962; replace the inaccessible RTC synced reference with a labeled source link.",
+    "Replace video source elements with readable names and source-document links; preserve complete source attributes without downloading video binaries.",
+    "trim trailing line whitespace for repository whitespace checks; preserve leading indentation and code content"
+  ],
+  "source_simple_xml_sha256": "a39d5cf3b583a14972d72f53e771d56613a58f15bee1a3f3e85f94407ac689eb"
+}

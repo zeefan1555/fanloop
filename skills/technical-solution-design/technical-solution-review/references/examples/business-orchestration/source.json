@@ -1,0 +1,567 @@
+{
+  "title": "多人服务架构治理-极致的业务编排",
+  "url": "https://bytedance.larkoffice.com/wiki/CHGRwZpNbiUslvkFiiEctRZpntf",
+  "wiki_id": "CHGRwZpNbiUslvkFiiEctRZpntf",
+  "document_id": "PUPHdCyDTo494cxmb6Nciv5Pnhe",
+  "document_revision": 15803,
+  "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00",
+  "source_markdown_sha256": "851b78cd63a78989b451e445df3b8f97eedb4cb6dd74a55a854a231808281682",
+  "source_xml_sha256": "f2bdf45bd844537cdbb573e01d4ab42b5be7623e86a5e93a148377529e883b57",
+  "media_note": "Images are original downloaded bytes; whiteboard previews and embedded sheet are independently retrieved current resources, not pinned by the document revision. No editable whiteboard node data is included.",
+  "media": [
+    {
+      "path": "images/01-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "CsuhwU8y1h2yzXbZj8rc9185nMb",
+      "caption": "原文画板 01",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 122878,
+      "sha256": "faf60c2c3ed11dbf4cf2c6126af2af04882875cb48444349788625eee3a8c899",
+      "source_attributes": {
+        "token": "CsuhwU8y1h2yzXbZj8rc9185nMb"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/02-media.jpg",
+      "source_type": "media",
+      "source_token": "FOsfbx7Y0okf6kxH9qVcxdcWnSf",
+      "caption": "原文图片 02",
+      "media_type": "image/jpeg",
+      "width": 1058,
+      "height": 1706,
+      "size_bytes": 559334,
+      "sha256": "6b1084eea6cf1e0a23ea8b8c5f4b448494dfaa96437e21c8d72ba6d97ec6132c",
+      "source_attributes": {
+        "name": "img_v3_02al_193f4488-7293-4074-a4c2-821ccda4cf8g.jpg",
+        "alt": "图片展示了多人服务架构治理中连麦流程中权限校验的部分代码及文件列表。代码中包含多个校验规则文件，如action_audit_rule.go、anchor_device_rule.go等，还有apply_freq_rule.go、block_pk_audience_rule.go等。这些文件对应不同的权限校验规则，如申请连麦有33个校验规则、init有17个校验规则、invite邀请有25个校验规则。图片与上下文紧密相关，直观呈现了连麦流程中权限校验的文件构成。",
+        "mime": "image/jpeg",
+        "scale": "0.689981",
+        "src": "FOsfbx7Y0okf6kxH9qVcxdcWnSf"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/03-media.jpg",
+      "source_type": "media",
+      "source_token": "Hgs8bhEPJoiZysxH6iecIqzenUa",
+      "caption": "原文图片 03",
+      "media_type": "image/jpeg",
+      "width": 2668,
+      "height": 1778,
+      "size_bytes": 860253,
+      "sha256": "3c1326b4eed0bcf8f97358fb12f6eb3b6647f1a547da03b436f6ae20de49548a",
+      "source_attributes": {
+        "name": "img_v3_02al_c8db39e6-9f4f-4ec7-9b29-48f347b99c8g.jpg",
+        "alt": "图片展示了一段代码，用于判断连麦权限。代码中使用if语句判断LinkerInfo.GetScene()是否为int64(core.Scene_VideoChatRoom)且LinkerInfo.GetLayout()是否为int64(linker_info_bip.LinkerInfoLayout_LinkerInfoLayout_VideoChat_Dynamic)，以及LinkerInfo.GetScene()是否为int64(core.Scene_VideoChatRoom)且slice.Int64Contains(LinkerInfo.GetPlayModes(), int64(data.LinkInfoPlayMode_LinkInfoPlayMode_Dynamic)等条件，若满足则执行sendVideoChatByManualLayout(Lctx, msg)等操作。该代码与文档中连麦权限校验内容相关，是连麦流程中校验规则的一部分。",
+        "mime": "image/jpeg",
+        "scale": "0.273613",
+        "src": "Hgs8bhEPJoiZysxH6iecIqzenUa"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/04-media.png",
+      "source_type": "media",
+      "source_token": "AatmbfpJko87Wox9PJ3c1YaGnsc",
+      "caption": "原文图片 04",
+      "media_type": "image/png",
+      "width": 2002,
+      "height": 1714,
+      "size_bytes": 638698,
+      "sha256": "aaf97f312ad638369b9ae2a4beb873cb6b222906279af92a495a201262edb814",
+      "source_attributes": {
+        "name": "image.png",
+        "alt": "图片展示的是多人服务架构治理中连麦流程中各类权限校验的代码片段。代码中包含多个函数调用，如after_aware_wait.NewLinkerSessionIDAware、after_aware_wait.NewLinkerFace等，涉及房间信息、房间管理员列表权限、主播信息、主播设置、房间营收PK信息等获取，以及各类权限校验、功能校验等操作。该图片与上下文紧密相关，直观呈现了连麦流程中复杂的权限校验环节，是对上文连麦流程中权限校验步骤的代码示例说明。",
+        "mime": "image/png",
+        "scale": "0.364635",
+        "src": "AatmbfpJko87Wox9PJ3c1YaGnsc"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/05-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "RgnEwmyjZhWCq8bDG3WcuLcZnQb",
+      "caption": "原文画板 05",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 110951,
+      "sha256": "e2b129e8be6b98de00db4bb4d428a4827e78af6f51f4d854c4bf16e15fee9e28",
+      "source_attributes": {
+        "token": "RgnEwmyjZhWCq8bDG3WcuLcZnQb"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/06-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "CTE3wlh1Thk1hdbSUnxcWIWInyf",
+      "caption": "原文画板 06",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 92283,
+      "sha256": "15b7a528b24dd8f950a676db3d33abe7c6bf0387698aaaadfff36ccf19e492fc",
+      "source_attributes": {
+        "token": "CTE3wlh1Thk1hdbSUnxcWIWInyf"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/07-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "ZBCmw9HmnhapUnbdKPtcVYsxnce",
+      "caption": "原文画板 07",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 199266,
+      "sha256": "c31ca9c4e366381c25d1d6a1a1ff85fbb837bca0f73d8d55362c54916e461106",
+      "source_attributes": {
+        "token": "ZBCmw9HmnhapUnbdKPtcVYsxnce"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/08-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "Jq2swcloMhVBtAbPCxScy5dDnTq",
+      "caption": "原文画板 08",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 87011,
+      "sha256": "a9c4d233c3e354940d2ec65466035a4d1d6755c8360cb3a80fc733d230a07249",
+      "source_attributes": {
+        "token": "Jq2swcloMhVBtAbPCxScy5dDnTq"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/09-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "O6hqwW8dlhTLCeb4UQHcGPdWnJf",
+      "caption": "原文画板 09",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 139616,
+      "sha256": "938e347f228826897400484553783140452f0e92d2eb608edb11689d8d511a92",
+      "source_attributes": {
+        "token": "O6hqwW8dlhTLCeb4UQHcGPdWnJf"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/10-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "B9WiwMRkjh2JiZb5tc1ckLKVnxh",
+      "caption": "原文画板 10",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 152984,
+      "sha256": "d1912ea922d80456d663dd8345649d810703e973ae8f3c2a3cda2284136392c2",
+      "source_attributes": {
+        "token": "B9WiwMRkjh2JiZb5tc1ckLKVnxh"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/11-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "Gnu6w7e3qhdunUbRY9bcjYuZnId",
+      "caption": "原文画板 11",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 145916,
+      "sha256": "a9ec1ffbddccdde396e8c997fdb0532f0e5a38c7648c4b6d649715670608eb30",
+      "source_attributes": {
+        "token": "Gnu6w7e3qhdunUbRY9bcjYuZnId"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/12-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "UuwZw0r2KhUT9DbvV65cBXibnCb",
+      "caption": "原文画板 12",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 290864,
+      "sha256": "5040ddd8ca829dd884638b825592393da7fed873e2e39fd3b599a0ef4c953559",
+      "source_attributes": {
+        "token": "UuwZw0r2KhUT9DbvV65cBXibnCb"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/13-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "SpTQwJgKUhRyCzbrUhMcp6bVnMc",
+      "caption": "原文画板 13",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 102523,
+      "sha256": "ceaf65fe89a80d8ccb58e75a14797bf13b49cf57a5e729a5fa6391f58f6ed45e",
+      "source_attributes": {
+        "token": "SpTQwJgKUhRyCzbrUhMcp6bVnMc"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/14-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "EJgPwiKFKhjPWPbRzrac0mIVnlf",
+      "caption": "原文画板 14",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 89082,
+      "sha256": "4ffabd176f4865ecaa4b734f5f027c55894e50d82dd6aa8be2e7eaa3a4f3ccca",
+      "source_attributes": {
+        "token": "EJgPwiKFKhjPWPbRzrac0mIVnlf"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/15-whiteboard.jpg",
+      "source_type": "whiteboard",
+      "source_token": "ZEq8wdDmthJ8gXbU19ic9RxcnOd",
+      "caption": "原文画板 15",
+      "media_type": "image/jpeg",
+      "width": 2560,
+      "height": 2560,
+      "size_bytes": 275768,
+      "sha256": "28deaa10380431fe781ef7e4e66dcb12fe5b961b35099180850c3710c4fbfe66",
+      "source_attributes": {
+        "token": "ZEq8wdDmthJ8gXbU19ic9RxcnOd"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/16-media.jpg",
+      "source_type": "media",
+      "source_token": "Mo2Ab5GUAob6PbxPOVhcrMyVnGf",
+      "caption": "原文图片 16",
+      "media_type": "image/jpeg",
+      "width": 997,
+      "height": 6784,
+      "size_bytes": 1610908,
+      "sha256": "85e2cc73067077e5a3e0247935102e8b4b0144a8828d3db356a3b8bbe6b0381b",
+      "source_attributes": {
+        "name": "apply1.jpeg",
+        "alt": "图片展示了多人文档中多人申请连麦接口改造前的代码。上方标注“改造前”，代码内容包含多个if、else if语句，用于判断用户身份、权限等条件，执行相应操作，如获取用户0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "mime": "image/jpeg",
+        "scale": "0.237713",
+        "src": "Mo2Ab5GUAob6PbxPOVhcrMyVnGf"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/17-media.jpg",
+      "source_type": "media",
+      "source_token": "DGztbyofKoFPcJx9hkscpYd8nic",
+      "caption": "原文图片 17",
+      "media_type": "image/jpeg",
+      "width": 1296,
+      "height": 2484,
+      "size_bytes": 803640,
+      "sha256": "202c980ac0db8f4e8a6b69e2564d425c8bcb78f4b609d56d0b5dbf964a7051c6",
+      "source_attributes": {
+        "name": "apply3.jpeg",
+        "alt": "图片展示了多人服务架构改造后的代码示例，位于文档中“改造Case样例”部分。代码中包含多个`PL`变量定义，如`PL = RealTimeAppApplyPL`等，以及`PL`变量的相关操作，如`PL = RealTimeAppApplyPL`、`",
+        "mime": "image/jpeg",
+        "scale": "0.431327",
+        "src": "DGztbyofKoFPcJx9hkscpYd8nic"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/18-media.jpg",
+      "source_type": "media",
+      "source_token": "GKFtbPlnyon5uvxpgaOcCG4enAe",
+      "caption": "原文图片 18",
+      "media_type": "image/jpeg",
+      "width": 2092,
+      "height": 1976,
+      "size_bytes": 601036,
+      "sha256": "918ddf2eec8ec5ec0c8c38a4a48dcd16369ed91fbbe4896be78144b43ae813c4",
+      "source_attributes": {
+        "name": "img_v3_02bo_3ca42cca-f569-475a-a428-fece13b9df4g.jpg",
+        "alt": "图片展示的是一段代码内容，其中包含多种函数定义，如`ArrivalRoom`相关的`Name`、`Exec`、`Declare`等函数，以及`NewArrivalRoom`函数。代码中出现了多个变量和结构体，如`rplInfo`、`rplInfo`类型的`flow.Reference`以及`LiveMicContext`结构体等。结合上下文可知，这是多人服务架构治理中多人申请连麦接口改造Case样例相关内容，可能是用于实现连麦接口功能的部分代码。",
+        "mime": "image/jpeg",
+        "scale": "0.267208",
+        "src": "GKFtbPlnyon5uvxpgaOcCG4enAe"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/19-media.jpg",
+      "source_type": "media",
+      "source_token": "JT4MbgOmIow5bpx2Yy9cDhtwnbf",
+      "caption": "原文图片 19",
+      "media_type": "image/jpeg",
+      "width": 3546,
+      "height": 1340,
+      "size_bytes": 755865,
+      "sha256": "0f7abbcdd13556ac4a44e50060dcc51f7d99fd7213c6099df0d740707b547e70",
+      "source_attributes": {
+        "name": "img_v3_02bo_4df8ff19-9895-4a50-a18e-2aa950173d7g.jpg",
+        "alt": "图片展示的是多人申请连麦接口改造相关的数据图表。图表左侧是指标筛选区域，可对TagKvs等指标进行细分筛选。右侧是折线图，呈现数据随时间的变化趋势。折线图下方是数据列表，包含最小值、最大值、平均值等信息，其中平均值数据被蓝色框突出显示。此图表与上文接口耗时优化相关，可能用于展示接口耗时等性能指标的变化情况，辅助分析接口优化效果。",
+        "mime": "image/jpeg",
+        "scale": "1.000000",
+        "src": "JT4MbgOmIow5bpx2Yy9cDhtwnbf"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    },
+    {
+      "path": "images/20-media.png",
+      "source_type": "media",
+      "source_token": "Vv6LbaI8ZoH8SWxBDy1cii2Xnid",
+      "caption": "原文图片 20",
+      "media_type": "image/png",
+      "width": 3570,
+      "height": 1188,
+      "size_bytes": 597901,
+      "sha256": "459ecfe3b6c491148f76e277f6eac8ecb8bab44c7ad4e8101b2eee488b68d527",
+      "source_attributes": {
+        "name": "image.png",
+        "alt": "图片展示中是申请连麦Apply接口的接口架构图，展示了该接口包含的77个节点、几百条边的复杂关系。图中节点以蓝色框标注，部分节点有红色指向线，指向关键耗时路径。节点间有箭头连接，表示依赖关系。右侧有红色框突出显示的节点，其耗时为100ms。该图与文档中接口架构图分析上下文对应，用于直观呈现接口耗时优化时可直接基于图分析完成。",
+        "mime": "image/png",
+        "scale": "1.000000",
+        "src": "Vv6LbaI8ZoH8SWxBDy1cii2Xnid"
+      },
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
+    }
+  ],
+  "unarchived_resources": [],
+  "external_citations": [
+    {
+      "doc-id": "OrGBwNkpOiRrJRk3yyhcnuyfnbf",
+      "file-type": "wiki",
+      "title": "评论链路耗时优化"
+    },
+    {
+      "doc-id": "SA1ZwcLOQiXIvGkgc2uccJbmnnd",
+      "file-type": "wiki",
+      "title": "接口成功率&耗时优化实践"
+    },
+    {
+      "doc-id": "Epvrdcw1Eo6C2VxEZy4cA5zanMg",
+      "file-type": "docx",
+      "title": "送礼自见端到端延迟优化——指标可行性分析"
+    },
+    {
+      "doc-id": "N9RKdeshZoYyGjxsDMZcscxKnih",
+      "file-type": "docx",
+      "title": "送礼延时优化KickOff"
+    },
+    {
+      "doc-id": "wikcnHASfFdMkXYg6X55ykWDHfd",
+      "file-type": "wiki",
+      "title": "room.pack打包框架演进"
+    },
+    {
+      "doc-id": "wikcnuab0BjsMdwVkCPheIDAMac",
+      "file-type": "wiki",
+      "title": "UserPack选型方案"
+    },
+    {
+      "doc-id": "wikcnrt2QhNw4qlsZW704MfZste",
+      "file-type": "wiki",
+      "title": "【技术需求】开播链路耗时优化V2"
+    },
+    {
+      "doc-id": "DbJBdLizFopvGOxG2VMcr8JYnMd",
+      "file-type": "docx",
+      "title": "连线 PK 链路性能优化&治理"
+    },
+    {
+      "doc-id": "KyyydOHTGoDZIyxdlaBcSJ55nzQ",
+      "file-type": "docx",
+      "title": "榜单性能优化专项"
+    },
+    {
+      "doc-id": "M29zdPhVcoRv8YxVHfhcKyrMnMc",
+      "file-type": "docx",
+      "title": "用户平台链路稳定性治理"
+    },
+    {
+      "doc-id": "wikcn0pFgpjKLRU2dk4JKWfDhte",
+      "file-type": "wiki",
+      "title": "room.pack稳定性保障"
+    },
+    {
+      "doc-id": "wikcnYXBFcxd2ZZtxBmcKjMhgRd",
+      "file-type": "wiki",
+      "title": "开播链路容灾技术方案"
+    },
+    {
+      "doc-id": "TWxWd4gc3oBv8cxU1zgcGSaTn0c",
+      "file-type": "docx",
+      "title": "23年Q4 抖音直播多人性能竞品评测报告"
+    },
+    {
+      "doc-id": "KDoRw7LdgidDmZkec3RcS02unah",
+      "file-type": "wiki",
+      "title": "多人核心接口性能优化专项-2024"
+    },
+    {
+      "doc-id": "MrOQw281ji69ypkyltwcXSkSnvd",
+      "file-type": "wiki",
+      "title": "多人场景稳定性"
+    },
+    {
+      "doc-id": "A6AKdB3N0oWmYKx8JmucIEisn2e",
+      "file-type": "docx",
+      "title": "聊天室端到端全链路稳定性建设"
+    },
+    {
+      "doc-id": "H6l0dHz00oZgx8x8fz4css8vndf",
+      "file-type": "docx",
+      "title": "2024——多人营收端到端稳定性建设"
+    },
+    {
+      "doc-id": "doxcnNTzekR7pOBJCfSoMSzCsuN",
+      "file-type": "docx",
+      "title": "新人串讲-观众连麦业务重构总结及思考"
+    },
+    {
+      "doc-id": "doxcnYRO6Cg4Grt06DxpSv4wr7c",
+      "file-type": "docx",
+      "title": "社交连麦业务rpc大量重复调用问题"
+    },
+    {
+      "doc-id": "doxcnvCxIWGoRlQNfFq317Qebgh",
+      "file-type": "docx",
+      "title": "观众连麦接口latency技术优化方案"
+    },
+    {
+      "doc-id": "DhrGwdRnFiQRznk7yLfci4W7nCg",
+      "file-type": "wiki",
+      "title": "观众连线切存储架构技术方案"
+    },
+    {
+      "doc-id": "doccnfT8qNqLafuqJrVIef155Gh",
+      "file-type": "doc",
+      "title": "连麦 LinkedList 打包重构"
+    },
+    {
+      "doc-id": "wikcnxR683TOGvxsHWPqkX3ihqe",
+      "file-type": "wiki",
+      "title": "Dsync简介"
+    },
+    {
+      "doc-id": "N3Swd0eNjoDcFCxgK2rcqUy6nnt",
+      "file-type": "docx",
+      "title": "Qin平台介绍"
+    },
+    {
+      "doc-id": "doccneB3vJGItnIuxnn6r1wE7Hl",
+      "file-type": "doc",
+      "title": "DAG 任务执行引擎(SDK版)"
+    },
+    {
+      "doc-id": "wikcnqsvhiFlF6fuukdU9RJ7SLc",
+      "file-type": "wiki",
+      "title": "DAG相关分享"
+    },
+    {
+      "doc-id": "wikcnVIQCjN0jRvsfiT77z0xqWc",
+      "file-type": "wiki",
+      "title": "GECC-服务端组件化OnePage"
+    },
+    {
+      "doc-id": "wikcniqDNQPXBzTLWqEpR2RYAtb",
+      "file-type": "wiki",
+      "title": "Dsync简介"
+    },
+    {
+      "doc-id": "wikcnHASfFdMkXYg6X55ykWDHfd",
+      "file-type": "wiki",
+      "title": "room.pack打包框架演进"
+    },
+    {
+      "doc-id": "wikcnuab0BjsMdwVkCPheIDAMac",
+      "file-type": "wiki",
+      "title": "UserPack选型方案"
+    },
+    {
+      "doc-id": "wikcnYyTMQNDdXE1oM9rgMvUjWb",
+      "file-type": "wiki",
+      "title": "交易模式整体设计方案"
+    },
+    {
+      "doc-id": "WokedwNk1oTIEAxwOKxcPtZOnBc",
+      "file-type": "docx",
+      "title": "QinPack平台一期技术方案WIP"
+    },
+    {
+      "doc-id": "wikcnYd0XEmGgrTmEkhtoDxOyDf",
+      "file-type": "wiki",
+      "title": "新老链路对比"
+    },
+    {
+      "doc-id": "shtcncpfoZFcswgmkcU0Wto8hFc",
+      "file-type": "sheets",
+      "sheet-id": "36sG6S",
+      "title": "room.pack基准测试"
+    },
+    {
+      "doc-id": "WSmOwVbUiiAk4LkBnOrcZCEonr3",
+      "file-type": "wiki",
+      "title": "dsync问题分析"
+    },
+    {
+      "doc-id": "wikcnK5SOhosiRxm1WtykZIhsFe",
+      "file-type": "wiki",
+      "title": "代码编写"
+    },
+    {
+      "doc-id": "boxcnVzTMVeGt3eC5qmK9YCWzgh",
+      "file-type": "file",
+      "title": "直播房间打包.pptx"
+    },
+    {
+      "doc-id": "FwiqwthIki1KGSk0L76cftyln6f",
+      "file-type": "wiki",
+      "title": "[240329][notice]【补录】房间依赖的Bytedoc扩容，在数据搬迁过程中发生异常 复盘文档"
+    },
+    {
+      "doc-id": "N3Swd0eNjoDcFCxgK2rcqUy6nnt",
+      "file-type": "docx",
+      "title": "Qin平台介绍"
+    }
+  ],
+  "embedded_resources": [
+    {
+      "type": "sheet",
+      "path": "embedded-sheet.md",
+      "data_path": "embedded-sheet.json",
+      "source_token": "ZpfyslSQ1hKLPLtjbs0cCkBbntg",
+      "sheet_id": "6gvrk9",
+      "range": "A1:F10",
+      "structure_revision": 2,
+      "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00",
+      "sha256": "423c8893ce9a079af14085eb4aa25ac9fbbe724df745787ccc051709edb29e59"
+    }
+  ],
+  "article_sha256": "c7fcf4851510dd903cb24c3aba8c5684b813db1660d4ce2c945677fe52e3cd6c",
+  "transformations": [
+    "replace downloaded media references at original positions",
+    "neutral numbered image alt; source alt retained in media metadata",
+    "render cite titles and user display names visibly",
+    "remove Lark callout/grid/column layout wrappers",
+    "convert title to Markdown heading",
+    "inline complete embedded sheet A1:F10 with original merge cells; retain typed data separately",
+    "trim trailing line whitespace for repository whitespace checks; preserve leading indentation and code content"
+  ]
+}
