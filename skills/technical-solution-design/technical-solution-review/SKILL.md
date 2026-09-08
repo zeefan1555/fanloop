@@ -5,6 +5,10 @@ description: 以陌生评委视角审校九个语义章节的因果、取舍、�
 
 # 独立审校技术方案
 
+读取[图文范文与标准](references/exemplars.md)，按导读查看完整正文和本地图片，按其中的对照表记录范文与当前文档的具体差距。
+相对路径以本 `SKILL.md` 所在目录解析。范文材料或看图能力缺失时报告缺口，补齐前不提交审校 Result，
+也不把材料故障当作当前方案的内容反馈。
+
 把自己视为没有聊天上下文的首次读者。读取 `01-background.md` 至 `09-appendix.md`、
 `technical-solution.md`、`.technical-solution/architecture.mmd` 和正文明确引用的辅助图，不得修改
 这些输入。

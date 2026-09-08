@@ -5,6 +5,10 @@ description: 将八个已确认片段和附录组装为保留九个语义章节�
 
 # 组装正式技术方案
 
+成文前先读取[图文范文与标准](../technical-solution-review/references/exemplars.md)，按导读查看完整正文和本地图片，
+学习结论、推导、对比与图文组织。相对路径以本 `SKILL.md` 所在目录解析。范文用于改善呈现，
+当前九章结构及已确认事实、决策仍按下文执行；不把历史范文内容作为当前项目的证据。
+
 读取已确认的 `.technical-solution/sections/01-background.md` 至 `08-delivery.md`、主架构图、各片段
 明确引用的辅助图及引用证据。
 先把数据口径、容量测算、对比明细、接口明细、补充时序和开放问题整理到
