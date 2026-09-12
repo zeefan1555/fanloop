@@ -9,11 +9,12 @@ import (
 )
 
 const (
-	RELEASE_MANIFEST_SCHEMA_VERSION = 2
+	RELEASE_MANIFEST_SCHEMA_VERSION = 3
 )
 
 type CLIRelease struct {
-	Version string `thrift:"version,1,required" json:"version"`
+	Version      string `thrift:"version,1,required" json:"version"`
+	BinarySha256 string `thrift:"binary_sha256,2,required" json:"binary_sha256"`
 }
 
 func NewCLIRelease() *CLIRelease {
@@ -25,6 +26,10 @@ func (p *CLIRelease) InitDefault() {
 
 func (p *CLIRelease) GetVersion() (v string) {
 	return p.Version
+}
+
+func (p *CLIRelease) GetBinarySha256() (v string) {
+	return p.BinarySha256
 }
 
 func (p *CLIRelease) String() string {
@@ -43,6 +48,9 @@ func (p *CLIRelease) DeepEqual(ano *CLIRelease) bool {
 	if !p.Field1DeepEqual(ano.Version) {
 		return false
 	}
+	if !p.Field2DeepEqual(ano.BinarySha256) {
+		return false
+	}
 	return true
 }
 
@@ -53,9 +61,17 @@ func (p *CLIRelease) Field1DeepEqual(src string) bool {
 	}
 	return true
 }
+func (p *CLIRelease) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.BinarySha256, src) != 0 {
+		return false
+	}
+	return true
+}
 
 var fieldIDToName_CLIRelease = map[int16]string{
 	1: "version",
+	2: "binary_sha256",
 }
 
 type SkillArtifact struct {
@@ -231,116 +247,6 @@ var fieldIDToName_WorkflowArtifact = map[int16]string{
 	5: "sha256",
 }
 
-type PlatformAsset struct {
-	Os           string `thrift:"os,1,required" json:"os"`
-	Arch         string `thrift:"arch,2,required" json:"arch"`
-	File         string `thrift:"file,3,required" json:"file"`
-	Sha256       string `thrift:"sha256,4,required" json:"sha256"`
-	BinarySha256 string `thrift:"binary_sha256,5,required" json:"binary_sha256"`
-}
-
-func NewPlatformAsset() *PlatformAsset {
-	return &PlatformAsset{}
-}
-
-func (p *PlatformAsset) InitDefault() {
-}
-
-func (p *PlatformAsset) GetOs() (v string) {
-	return p.Os
-}
-
-func (p *PlatformAsset) GetArch() (v string) {
-	return p.Arch
-}
-
-func (p *PlatformAsset) GetFile() (v string) {
-	return p.File
-}
-
-func (p *PlatformAsset) GetSha256() (v string) {
-	return p.Sha256
-}
-
-func (p *PlatformAsset) GetBinarySha256() (v string) {
-	return p.BinarySha256
-}
-
-func (p *PlatformAsset) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("PlatformAsset(%+v)", *p)
-}
-
-func (p *PlatformAsset) DeepEqual(ano *PlatformAsset) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.Os) {
-		return false
-	}
-	if !p.Field2DeepEqual(ano.Arch) {
-		return false
-	}
-	if !p.Field3DeepEqual(ano.File) {
-		return false
-	}
-	if !p.Field4DeepEqual(ano.Sha256) {
-		return false
-	}
-	if !p.Field5DeepEqual(ano.BinarySha256) {
-		return false
-	}
-	return true
-}
-
-func (p *PlatformAsset) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.Os, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *PlatformAsset) Field2DeepEqual(src string) bool {
-
-	if strings.Compare(p.Arch, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *PlatformAsset) Field3DeepEqual(src string) bool {
-
-	if strings.Compare(p.File, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *PlatformAsset) Field4DeepEqual(src string) bool {
-
-	if strings.Compare(p.Sha256, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *PlatformAsset) Field5DeepEqual(src string) bool {
-
-	if strings.Compare(p.BinarySha256, src) != 0 {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_PlatformAsset = map[int16]string{
-	1: "os",
-	2: "arch",
-	3: "file",
-	4: "sha256",
-	5: "binary_sha256",
-}
-
 type ReleaseManifest struct {
 	SchemaVersion  int32                      `thrift:"schema_version,1,required" json:"schema_version"`
 	ReleaseVersion string                     `thrift:"release_version,2,required" json:"release_version"`
@@ -348,7 +254,6 @@ type ReleaseManifest struct {
 	StateSchema    *opsidl.StateSchemaSupport `thrift:"state_schema,4,required" json:"state_schema"`
 	Skills         []*SkillArtifact           `thrift:"skills,5,required,list<SkillArtifact>" json:"skills"`
 	Workflows      []*WorkflowArtifact        `thrift:"workflows,6,required,list<WorkflowArtifact>" json:"workflows"`
-	Assets         []*PlatformAsset           `thrift:"assets,7,required,list<PlatformAsset>" json:"assets"`
 }
 
 func NewReleaseManifest() *ReleaseManifest {
@@ -392,10 +297,6 @@ func (p *ReleaseManifest) GetWorkflows() (v []*WorkflowArtifact) {
 	return p.Workflows
 }
 
-func (p *ReleaseManifest) GetAssets() (v []*PlatformAsset) {
-	return p.Assets
-}
-
 func (p *ReleaseManifest) IsSetCli() bool {
 	return p.Cli != nil
 }
@@ -433,9 +334,6 @@ func (p *ReleaseManifest) DeepEqual(ano *ReleaseManifest) bool {
 		return false
 	}
 	if !p.Field6DeepEqual(ano.Workflows) {
-		return false
-	}
-	if !p.Field7DeepEqual(ano.Assets) {
 		return false
 	}
 	return true
@@ -495,19 +393,6 @@ func (p *ReleaseManifest) Field6DeepEqual(src []*WorkflowArtifact) bool {
 	}
 	return true
 }
-func (p *ReleaseManifest) Field7DeepEqual(src []*PlatformAsset) bool {
-
-	if len(p.Assets) != len(src) {
-		return false
-	}
-	for i, v := range p.Assets {
-		_src := src[i]
-		if !v.DeepEqual(_src) {
-			return false
-		}
-	}
-	return true
-}
 
 var fieldIDToName_ReleaseManifest = map[int16]string{
 	1: "schema_version",
@@ -516,5 +401,4 @@ var fieldIDToName_ReleaseManifest = map[int16]string{
 	4: "state_schema",
 	5: "skills",
 	6: "workflows",
-	7: "assets",
 }

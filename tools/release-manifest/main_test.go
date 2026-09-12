@@ -1,48 +1,23 @@
 package main
 
 import (
-	"archive/tar"
 	"encoding/json"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
-	"github.com/ulikunitz/xz"
 	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
-	if _, err := exec.LookPath("xz"); err != nil {
-		if _, statErr := os.Stat("/opt/homebrew/bin/xz"); statErr == nil {
-			t.Setenv("PATH", "/opt/homebrew/bin:"+os.Getenv("PATH"))
-		} else {
-			t.Skip("xz is required")
-		}
-	}
 	source, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
 	dist := t.TempDir()
-	template := filepath.Join(dist, "template.tar")
-	writeTestReleaseArchive(t, source, template, []byte("test binary"))
-	archiveContent, err := os.ReadFile(template)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, target := range []struct{ os, arch string }{
-		{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"},
-	} {
-		name := "fanloop-1.2.3-" + target.os + "-" + target.arch + ".tar"
-		if err := os.WriteFile(filepath.Join(dist, name), archiveContent, 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
+	writeTestReleaseDirectory(t, source, dist)
 	manifest, err := build("1.2.3", source, dist)
 	if err != nil {
 		t.Fatal(err)
@@ -75,29 +50,37 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 			t.Fatalf("Workflow is not pinned: %#v", item)
 		}
 	}
-	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "material-flashcards", "technical-solution-design"}) || len(manifest.Assets) != 4 {
-		t.Fatalf("Workflows = %v, Assets = %d", gotWorkflows, len(manifest.Assets))
+	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "material-flashcards", "technical-solution-design"}) {
+		t.Fatalf("Workflows = %v", gotWorkflows)
 	}
 	content, err := json.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifestPath := filepath.Join(t.TempDir(), "release.json")
-	if err := os.WriteFile(manifestPath, content, 0o600); err != nil {
-		t.Fatal(err)
+	if _, err := release.Decode(content); err != nil {
+		t.Fatalf("local manifest rejected: %v", err)
 	}
-	installer, err := filepath.Abs(filepath.Join("..", "..", "scripts", "install.js"))
+	digest, err := release.FileDigest(filepath.Join(dist, "bin", "fanloop"))
+	if err != nil || manifest.Cli.BinarySha256 != digest {
+		t.Fatalf("binary digest = %q, want %q: %v", manifest.Cli.BinarySha256, digest, err)
+	}
+	if strings.Contains(string(content), `"assets"`) {
+		t.Fatal("local manifest contains distribution assets")
+	}
+	workflowPath := filepath.Join(dist, "workflows", "technical-solution-design", "workflow.yaml")
+	workflowContent, err := os.ReadFile(workflowPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := `const fs = require("node:fs");
-const { assertMatchedVersion, selectedAsset } = require(process.argv[1]);
-const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-assertMatchedVersion(manifest, "1.2.3");
-const asset = selectedAsset(manifest);
-if (!asset.sha256.startsWith("sha256:") || !asset.binary_sha256.startsWith("sha256:")) throw new Error("incomplete platform asset");`
-	if output, err := exec.Command("node", "-e", script, installer, manifestPath).CombinedOutput(); err != nil {
-		t.Fatalf("Node installer rejected manifest: %v\n%s", err, output)
+	changed := strings.Replace(string(workflowContent), "name: 问题定义", "name: 不同的问题定义", 1)
+	if changed == string(workflowContent) {
+		t.Fatal("test did not change Workflow")
+	}
+	if err := os.WriteFile(workflowPath, []byte(changed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := build("1.2.3", source, dist); err == nil || !strings.Contains(err.Error(), "checksum mismatch") {
+		t.Fatalf("valid but changed Workflow accepted: %v", err)
 	}
 }
 
@@ -413,134 +396,89 @@ func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 	}
 }
 
-func TestArchiveVerificationRejectsMissingPackagedComponents(t *testing.T) {
-	archive := filepath.Join(t.TempDir(), "release.tar.xz")
-	writeTestArchive(t, archive, []byte("binary"))
-	manifest := release.Manifest{
-		Skills:    []*release.Skill{{Name: "atom", Path: "skills/flow/atom", Sha256: testDigest("1")}},
-		Workflows: []*release.Workflow{{Id: "flow", Path: "workflows/flow", Sha256: testDigest("2")}},
-	}
-	if _, err := verifyArchive(archive, manifest); err == nil || !strings.Contains(err.Error(), "skills/flow/atom") {
-		t.Fatalf("missing Skill was accepted: %v", err)
-	}
-}
-
-func TestArchiveVerificationRejectsExtraWorkflowYAML(t *testing.T) {
-	repository, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	bundleRoot := filepath.Join(repository, "workflows", "technical-solution-design")
-	loaded, err := workflow.LoadDirectory(bundleRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	entries := map[string][]byte{}
-	for _, name := range workflow.BundleFileNames() {
-		content, err := os.ReadFile(filepath.Join(bundleRoot, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		entries["workflows/technical-solution-design/"+name] = content
-	}
-	entries["workflows/technical-solution-design/guard.yaml"] = []byte("schema_version: 1\n")
-	archive := filepath.Join(t.TempDir(), "release.tar.xz")
-	writeTestArchive(t, archive, []byte("binary"), entries)
-	manifest := release.Manifest{Workflows: []*release.Workflow{{
-		Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: loaded.Ref.Digest,
-	}}}
-	if _, err := verifyArchive(archive, manifest); err == nil || !strings.Contains(err.Error(), "guard.yaml") {
-		t.Fatalf("extra Workflow YAML was accepted: %v", err)
-	}
-}
-
-func TestArchiveVerificationRejectsUnmanifestedWorkflowFiles(t *testing.T) {
-	archive := filepath.Join(t.TempDir(), "release.tar.xz")
-	writeTestArchive(t, archive, []byte("binary"), map[string][]byte{
-		"workflows/orphan/README.md": []byte("orphan\n"),
-	})
-	if _, err := verifyArchive(archive, release.Manifest{}); err == nil || !strings.Contains(err.Error(), "workflows/orphan/README.md") {
-		t.Fatalf("unmanifested Workflow file was accepted: %v", err)
+func TestDirectoryVerificationRejectsIncompleteOrChangedBuild(t *testing.T) {
+	for _, test := range []struct {
+		name, path, content, want string
+		remove, symlink           bool
+	}{
+		{name: "missing binary", path: "bin/fanloop", remove: true, want: "bin/fanloop"},
+		{name: "missing Skill", path: "skills/technical-solution-design/example/SKILL.md", remove: true, want: "checksum mismatch"},
+		{name: "changed Skill", path: "skills/technical-solution-design/example/SKILL.md", content: "changed", want: "checksum mismatch"},
+		{name: "missing Workflow", path: "workflows/technical-solution-design/flow.yaml", remove: true, want: "flow.yaml"},
+		{name: "invalid Workflow", path: "workflows/technical-solution-design/flow.yaml", content: "invalid: true", want: "Workflow"},
+		{name: "extra Workflow file", path: "workflows/technical-solution-design/guard.yaml", content: "extra", want: "guard.yaml"},
+		{name: "unmanifested Workflow", path: "workflows/orphan/README.md", content: "extra", want: "workflows/orphan/README.md"},
+		{name: "unmanifested Skill", path: "skills/orphan/SKILL.md", content: "extra", want: "skills/orphan/SKILL.md"},
+		{name: "symlink", path: "skills/technical-solution-design/example/link.md", symlink: true, want: "unsupported entry"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			root := t.TempDir()
+			writeTestFile(t, root, "bin/fanloop", []byte("binary"))
+			skillPath := "skills/technical-solution-design/example"
+			writeTestFile(t, root, skillPath+"/SKILL.md", []byte("example Skill"))
+			digest, err := release.DirectoryDigest(filepath.Join(root, skillPath))
+			if err != nil {
+				t.Fatal(err)
+			}
+			bundlePath := "workflows/technical-solution-design"
+			for _, name := range workflow.BundleFileNames() {
+				content, err := os.ReadFile(filepath.Join("..", "..", bundlePath, name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				writeTestFile(t, root, bundlePath+"/"+name, content)
+			}
+			loaded, err := workflow.LoadDirectory(filepath.Join(root, bundlePath))
+			if err != nil {
+				t.Fatal(err)
+			}
+			manifest := release.Manifest{
+				Skills:    []*release.Skill{{Name: "example", Path: skillPath, Sha256: digest}},
+				Workflows: []*release.Workflow{{Id: loaded.Ref.ID, Path: bundlePath, Sha256: loaded.Ref.Digest}},
+			}
+			if _, err := verifyDirectory(root, manifest); err != nil {
+				t.Fatalf("valid directory rejected: %v", err)
+			}
+			path := filepath.Join(root, test.path)
+			switch {
+			case test.remove:
+				if err := os.Remove(path); err != nil {
+					t.Fatal(err)
+				}
+			case test.symlink:
+				if err := os.Symlink("SKILL.md", path); err != nil {
+					t.Fatal(err)
+				}
+			default:
+				writeTestFile(t, root, test.path, []byte(test.content))
+			}
+			if _, err := verifyDirectory(root, manifest); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("verification error = %v, want %q", err, test.want)
+			}
+		})
 	}
 }
 
 func equalStrings(got, want []string) bool { return strings.Join(got, "|") == strings.Join(want, "|") }
 
-func testDigest(value string) string { return "sha256:" + strings.Repeat(value, 64) }
-
-func writeTestArchive(t *testing.T, path string, binary []byte, extra ...map[string][]byte) {
+func writeTestFile(t *testing.T, root, relative string, content []byte) {
 	t.Helper()
-	file, err := os.Create(path)
-	if err != nil {
+	path := filepath.Join(root, filepath.FromSlash(relative))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	xzWriter, err := xz.NewWriter(file)
-	if err != nil {
-		_ = file.Close()
-		t.Fatal(err)
-	}
-	tarWriter := tar.NewWriter(xzWriter)
-	if err := tarWriter.WriteHeader(&tar.Header{Name: "bin/fanloop", Mode: 0o755, Size: int64(len(binary))}); err == nil {
-		_, err = tarWriter.Write(binary)
-	}
-	if err == nil && len(extra) > 0 {
-		names := make([]string, 0, len(extra[0]))
-		for name := range extra[0] {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		for _, name := range names {
-			content := extra[0][name]
-			if err = tarWriter.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(content))}); err != nil {
-				break
-			}
-			if _, err = tarWriter.Write(content); err != nil {
-				break
-			}
-		}
-	}
-	if closeErr := tarWriter.Close(); err == nil {
-		err = closeErr
-	}
-	if closeErr := xzWriter.Close(); err == nil {
-		err = closeErr
-	}
-	if closeErr := file.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
+	if err := os.WriteFile(path, content, 0o755); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func writeTestReleaseArchive(t *testing.T, source, destination string, binary []byte) {
+func writeTestReleaseDirectory(t *testing.T, source, destination string) {
 	t.Helper()
-	file, err := os.Create(destination)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tarWriter := tar.NewWriter(file)
-	write := func(name string, mode int64, input io.Reader, size int64) {
-		t.Helper()
-		if err := tarWriter.WriteHeader(&tar.Header{Name: filepath.ToSlash(name), Mode: mode, Size: size}); err != nil {
-			t.Fatal(err)
-		}
-		if input != nil {
-			if _, err := io.Copy(tarWriter, input); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	write("bin/fanloop", 0o755, strings.NewReader(string(binary)), int64(len(binary)))
+	writeTestFile(t, destination, "bin/fanloop", []byte("test binary"))
 	for _, top := range []string{"entrypoints", "skills", "workflows"} {
-		root := filepath.Join(source, top)
-		if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if err := filepath.WalkDir(filepath.Join(source, top), func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil || entry.IsDir() {
 				return walkErr
-			}
-			info, err := entry.Info()
-			if err != nil || !info.Mode().IsRegular() {
-				return err
 			}
 			relative, err := filepath.Rel(source, path)
 			if err != nil {
@@ -549,24 +487,14 @@ func writeTestReleaseArchive(t *testing.T, source, destination string, binary []
 			if top == "workflows" && strings.Count(filepath.ToSlash(relative), "/") != 2 {
 				return nil
 			}
-			input, err := os.Open(path)
+			content, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
-			defer input.Close()
-			write(relative, int64(info.Mode().Perm()), input, info.Size())
+			writeTestFile(t, destination, relative, content)
 			return nil
 		}); err != nil {
 			t.Fatal(err)
 		}
-	}
-	if closeErr := tarWriter.Close(); err == nil {
-		err = closeErr
-	}
-	if closeErr := file.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		t.Fatal(err)
 	}
 }

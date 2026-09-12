@@ -23,19 +23,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Install pinned Thrift generators
         run: |
           go install github.com/cloudwego/thriftgo@v0.4.3
           go install github.com/cloudwego/thrift-gen-validator@v0.2.5
-      - if: matrix.os == 'ubuntu-latest'
-        uses: goreleaser/goreleaser-action@v7
-        with:
-          distribution: goreleaser
-          version: "v2.5.1"
-          args: check
       - run: ./tests/run-unit
 
   requirement-e2e:
@@ -49,9 +40,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Run Requirement E2E and Route Matrix
         run: ./tests/run-e2e
 
@@ -66,9 +54,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Install current candidate in isolation
         run: |
           verify_root="$(mktemp -d)"
@@ -78,7 +63,7 @@ jobs:
           export FANLOOP_TRAE_SKILLS_ROOT="$verify_root/skills/trae"
           export FANLOOP_CLAUDE_SKILLS_ROOT="$verify_root/skills/claude"
           unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
-          npm run install:local
+          ./scripts/install-local.sh
           "$FANLOOP_DATA_HOME/current/bin/fanloop" version | tee "$verify_root/version.json"
           grep -q "\"commit_sha\": \"$CANDIDATE_HEAD\"" "$verify_root/version.json"
           "$FANLOOP_DATA_HOME/current/bin/fanloop" doctor | tee "$verify_root/doctor.json"

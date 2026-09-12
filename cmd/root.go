@@ -163,17 +163,6 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 	root.SetErr(stderr)
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.PersistentFlags().StringVar(&requirementRoot, "root", "", "absolute requirement directory")
-	update := &cobra.Command{
-		Use:         "update",
-		Short:       "Install the latest coordinated release",
-		Args:        cobra.NoArgs,
-		Annotations: map[string]string{"bootstrap_control": "true"},
-		RunE: func(*cobra.Command, []string) error {
-			return errors.New("fanloop update requires the npm launcher; reinstall Fanloop with the official npm command")
-		},
-	}
-	update.Flags().String("root", "", "")
-	_ = update.Flags().MarkHidden("root")
 
 	root.AddCommand(
 		newFlowCommand(ioStreams, &requirementRoot),
@@ -181,7 +170,6 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		newCardCommand(ioStreams, &requirementRoot),
 		newVersionCommand(ioStreams),
 		newDoctorCommand(ioStreams, &requirementRoot),
-		update,
 		newInstallCommand(stdout, stderr),
 	)
 	return root
