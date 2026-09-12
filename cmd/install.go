@@ -28,7 +28,7 @@ func newInstallCommand(stdout, stderr io.Writer) *cobra.Command {
 			return nil
 		},
 	}
-	command.Flags().StringVar(&request.Source, "source", "", "extracted release directory")
+	command.Flags().StringVar(&request.Source, "source", "", "local build directory")
 	command.Flags().StringVar(&request.DataRoot, "data-root", "", "Fanloop user data directory")
 	command.Flags().StringVar(&request.SkillRoots.Codex, "codex-skills-root", "", "Codex Skills directory")
 	command.Flags().StringVar(&request.SkillRoots.Agent, "agent-skills-root", "", "Agent Skills directory")

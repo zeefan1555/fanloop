@@ -40,7 +40,7 @@ prompts:
       - {id: fanloop-dev-code-review, prompt: 验证并审查最终 Diff，更新研发实现报告并冻结 reviewed HEAD。, optional: false}
   execute_agent_acceptance_flow:
     prompt: |
-      只读冻结候选。在隔离的 FANLOOP_DATA_HOME 与四类 Skill Root 中从 candidate_head 执行 npm run install:local，回读版本与 Doctor；随后派发恰好一个无实现上下文的全新 Sub-agent，使用该绝对 CLI 路径和 requirements.md 中 1 至 3 个公开场景创建全新 Requirement 做真实黑盒验收。Sub-agent 只能使用公开 CLI 和叶子 --help，不得读源码、调用私有 helper、修改候选、使用机器人/Botmux/用户凭证或触碰全局 current。记录命令、输出、状态、清理和全局 current 未变证据到 acceptance-report.md；创建或更新唯一飞书验收交付报告并语义回读。产品失败上报 agent_acceptance_failed、报告、文档与唯一最早责任回流；基础设施失败保持 blocked；全部通过上报 agent_acceptance_passed、acceptance_report_written 与 acceptance_document_published。
+      只读冻结候选。在隔离的 FANLOOP_DATA_HOME 与四类 Skill Root 中从 candidate_head 执行 ./scripts/install-local.sh，回读版本与 Doctor；随后派发恰好一个无实现上下文的全新 Sub-agent，使用该绝对 CLI 路径和 requirements.md 中 1 至 3 个公开场景创建全新 Requirement 做真实黑盒验收。Sub-agent 只能使用公开 CLI 和叶子 --help，不得读源码、调用私有 helper、修改候选、使用机器人/Botmux/用户凭证或触碰全局 current。记录命令、输出、状态、清理和全局 current 未变证据到 acceptance-report.md；创建或更新唯一飞书验收交付报告并语义回读。产品失败上报 agent_acceptance_failed、报告、文档与唯一最早责任回流；基础设施失败保持 blocked；全部通过上报 agent_acceptance_passed、acceptance_report_written 与 acceptance_document_published。
     skills:
       - {id: fanloop-dev-agent-acceptance, prompt: 用隔离候选 CLI 和一个独立 Sub-agent 完成真实黑盒验收。, optional: false}
   merge_code_flow:
@@ -50,7 +50,7 @@ prompts:
       - {id: fanloop-dev-merge-code, prompt: 发布唯一 PR、校验精确 HEAD 的门禁并自动 squash 合码。, optional: false}
   update_local_cli_terminal:
     prompt: |
-      先把本 Requirement 的控制器固定到 bound-release-home，再在精确 merge commit 的干净 detached worktree 中清除 FANLOOP 与 Botmux 覆盖并执行 npm run install:local。回读全局 current、version commit 与 Doctor；成功后把安装证据更新到 acceptance-report.md 和同一飞书验收交付报告并语义回读，上报 local_cli_updated、acceptance_report_written、acceptance_document_published 后终止。任何失败保持 blocked，不伪造成功，也不在成功后回滚 current。
+      先把本 Requirement 的控制器固定到 bound-release-home，再在精确 merge commit 的干净 detached worktree 中清除 FANLOOP 与 Botmux 覆盖并执行 ./scripts/install-local.sh。回读全局 current、version commit 与 Doctor；成功后把安装证据更新到 acceptance-report.md 和同一飞书验收交付报告并语义回读，上报 local_cli_updated、acceptance_report_written、acceptance_document_published 后终止。任何失败保持 blocked，不伪造成功，也不在成功后回滚 current。
     skills:
       - {id: fanloop-dev-update-local-cli, prompt: 固定旧控制器并把精确合并提交安装为本地全局 current。, optional: false}
 

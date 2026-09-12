@@ -1,21 +1,15 @@
 package main
 
 import (
-	"archive/tar"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	pathpkg "path"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/ulikunitz/xz"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/idl/releaseidl"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -27,7 +21,7 @@ import (
 func main() {
 	version := flag.String("version", "", "release version")
 	source := flag.String("source", ".", "repository root")
-	dist := flag.String("dist", "dist", "GoReleaser output directory")
+	dist := flag.String("dist", "dist", "local build directory containing bin/fanloop, entrypoints, skills and workflows")
 	output := flag.String("output", "release.json", "manifest output path")
 	flag.Parse()
 	if *version == "" {
@@ -52,7 +46,7 @@ func build(version, source, dist string) (release.Manifest, error) {
 		StateSchema: &opsidl.StateSchemaSupport{
 			ReadVersions: []int32{int32(state.CurrentStateSchemaVersion)}, WriteVersion: int32(state.CurrentStateSchemaVersion),
 		},
-		Skills: []*release.Skill{}, Workflows: []*release.Workflow{}, Assets: []*release.Asset{},
+		Skills: []*release.Skill{}, Workflows: []*release.Workflow{},
 	}
 	if err := validateWorkflowSkillDirectories(source); err != nil {
 		return manifest, err
@@ -95,27 +89,11 @@ func build(version, source, dist string) (release.Manifest, error) {
 		return manifest, err
 	}
 
-	for _, target := range []struct{ os, arch string }{
-		{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"},
-	} {
-		sourceName := fmt.Sprintf("fanloop-%s-%s-%s.tar", version, target.os, target.arch)
-		name := fmt.Sprintf("fanloop-%s-%s-%s.tar.xz", version, target.os, target.arch)
-		path := filepath.Join(dist, name)
-		if err := compressArchive(filepath.Join(dist, sourceName), path); err != nil {
-			return manifest, err
-		}
-		archiveDigest, err := release.FileDigest(path)
-		if err != nil {
-			return manifest, err
-		}
-		binaryDigest, err := verifyArchive(path, manifest)
-		if err != nil {
-			return manifest, err
-		}
-		manifest.Assets = append(manifest.Assets, &release.Asset{
-			Os: target.os, Arch: target.arch, File: name, Sha256: archiveDigest, BinarySha256: binaryDigest,
-		})
+	binaryDigest, err := verifyDirectory(dist, manifest)
+	if err != nil {
+		return manifest, err
 	}
+	manifest.Cli.BinarySha256 = binaryDigest
 	if err := manifest.Validate(); err != nil {
 		return manifest, err
 	}
@@ -298,183 +276,72 @@ func discoverSkills(source, version string) ([]*release.Skill, error) {
 	return result, nil
 }
 
-func compressArchive(source, destination string) (err error) {
-	input, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer input.Close()
-	output, err := os.CreateTemp(filepath.Dir(destination), "."+filepath.Base(destination)+".*")
-	if err != nil {
-		return err
-	}
-	temporary := output.Name()
-	defer os.Remove(temporary)
-	command := exec.Command("xz", "-6", "--stdout")
-	command.Stdin = input
-	command.Stdout = output
-	var stderr strings.Builder
-	command.Stderr = &stderr
-	commandErr := command.Run()
-	closeErr := output.Close()
-	if commandErr != nil {
-		return fmt.Errorf("compress %s: %w: %s", source, commandErr, strings.TrimSpace(stderr.String()))
-	}
-	if closeErr != nil {
-		return closeErr
-	}
-	return os.Rename(temporary, destination)
-}
-
-type archivedFile struct {
-	digest  string
-	content []byte
-}
-
-func verifyArchive(archivePath string, manifest release.Manifest) (string, error) {
-	file, err := os.Open(archivePath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-	xzReader, err := xz.ReaderConfig{DictCap: release.ArchiveXZDictionarySize}.NewReader(file)
-	if err != nil {
-		return "", err
-	}
-	reader := tar.NewReader(xzReader)
-	files := map[string]archivedFile{}
-	for {
-		header, err := reader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
-		name := strings.TrimSuffix(strings.TrimPrefix(filepath.ToSlash(header.Name), "./"), "/")
-		if name == "" || name == "." {
-			continue
-		}
-		if pathpkg.IsAbs(name) || pathpkg.Clean(name) != name || name == ".." || strings.HasPrefix(name, "../") {
-			return "", fmt.Errorf("%s contains unsafe path %q", archivePath, header.Name)
-		}
-		if header.Typeflag == tar.TypeDir {
-			continue
-		}
-		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA {
-			return "", fmt.Errorf("%s contains unsupported entry %q", archivePath, name)
-		}
-		if _, duplicate := files[name]; duplicate {
-			return "", fmt.Errorf("%s contains duplicate entry %q", archivePath, name)
-		}
-		content, err := io.ReadAll(reader)
-		if err != nil {
-			return "", err
-		}
-		hash := sha256.Sum256(content)
-		files[name] = archivedFile{digest: "sha256:" + hex.EncodeToString(hash[:]), content: content}
-	}
-	binary, ok := files["bin/fanloop"]
-	if !ok {
-		return "", fmt.Errorf("%s does not contain bin/fanloop", archivePath)
-	}
-	binaryDigest := binary.digest
-	wantedSkills := map[string]bool{}
+// Verify the copied build against the source manifest before writing release.json.
+func verifyDirectory(root string, manifest release.Manifest) (string, error) {
+	allowedFiles := map[string]bool{"bin/fanloop": true, "release.json": true}
+	skillRoots := make([]string, 0, len(manifest.Skills))
 	for _, skill := range manifest.Skills {
-		wantedSkills[skill.Path] = true
-		digest, err := archivedDirectoryDigest(files, skill.Path)
+		skillRoots = append(skillRoots, skill.Path+"/")
+	}
+	for _, item := range manifest.Workflows {
+		for _, name := range workflow.BundleFileNames() {
+			allowedFiles[item.Path+"/"+name] = true
+		}
+	}
+	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		if !entry.Type().IsRegular() {
+			return fmt.Errorf("local build contains unsupported entry %s", path)
+		}
+		relative, err := filepath.Rel(root, path)
 		if err != nil {
-			return "", fmt.Errorf("%s: %w", archivePath, err)
+			return err
+		}
+		name := filepath.ToSlash(relative)
+		if allowedFiles[name] {
+			return nil
+		}
+		for _, prefix := range skillRoots {
+			if strings.HasPrefix(name, prefix) {
+				return nil
+			}
+		}
+		return fmt.Errorf("local build contains unmanifested file %s", name)
+	}); err != nil {
+		return "", err
+	}
+	binaryPath := filepath.Join(root, "bin", "fanloop")
+	binary, err := os.Stat(binaryPath)
+	if err != nil {
+		return "", err
+	}
+	if !binary.Mode().IsRegular() || binary.Mode().Perm()&0o111 == 0 {
+		return "", fmt.Errorf("%s is not an executable regular file", binaryPath)
+	}
+	for _, skill := range manifest.Skills {
+		digest, err := release.DirectoryDigest(filepath.Join(root, filepath.FromSlash(skill.Path)))
+		if err != nil {
+			return "", err
 		}
 		if digest != skill.Sha256 {
-			return "", fmt.Errorf("%s Skill %s checksum mismatch", archivePath, skill.Path)
+			return "", fmt.Errorf("local build Skill %s checksum mismatch", skill.Path)
 		}
 	}
-	for name := range files {
-		if !strings.HasPrefix(name, "skills/") && !strings.HasPrefix(name, "entrypoints/") {
-			continue
-		}
-		manifested := false
-		for root := range wantedSkills {
-			if strings.HasPrefix(name, root+"/") {
-				manifested = true
-				break
-			}
-		}
-		if !manifested {
-			return "", fmt.Errorf("%s contains unmanifested Skill %q", archivePath, name)
-		}
-	}
-	wantedWorkflows := map[string]bool{}
 	for _, item := range manifest.Workflows {
-		wantedWorkflows[item.Path] = true
-		allowedFiles := map[string]bool{}
-		for _, name := range workflow.BundleFileNames() {
-			allowedFiles[name] = true
+		loaded, err := workflow.LoadDirectory(filepath.Join(root, filepath.FromSlash(item.Path)))
+		if err != nil {
+			return "", fmt.Errorf("local build Workflow %s: %w", item.Path, err)
 		}
-		prefix := item.Path + "/"
-		for name := range files {
-			if strings.HasPrefix(name, prefix) && !allowedFiles[strings.TrimPrefix(name, prefix)] {
-				return "", fmt.Errorf("%s Workflow %s contains unexpected file %s", archivePath, item.Path, name)
-			}
-		}
-		bundle := map[string]archivedFile{}
-		for _, name := range workflow.BundleFileNames() {
-			file, ok := files[item.Path+"/"+name]
-			if !ok {
-				return "", fmt.Errorf("%s Workflow %s is incomplete", archivePath, item.Path)
-			}
-			bundle[name] = file
-		}
-		loaded, err := workflow.DecodeBundle(
-			bundle["workflow.yaml"].content,
-			bundle["flow.yaml"].content,
-			bundle["condition.yaml"].content,
-			bundle["loop.yaml"].content,
-			bundle["prompt.yaml"].content,
-		)
-		if err != nil || loaded.Ref.ID != item.Id || loaded.Ref.Digest != item.Sha256 {
-			return "", fmt.Errorf("%s Workflow %s checksum mismatch or invalid Bundle", archivePath, item.Path)
+		if loaded.Ref.ID != item.Id || loaded.Ref.Digest != item.Sha256 {
+			return "", fmt.Errorf("local build Workflow %s checksum mismatch", item.Path)
 		}
 	}
-	for name := range files {
-		if !strings.HasPrefix(name, "workflows/") {
-			continue
-		}
-		manifested := false
-		for root := range wantedWorkflows {
-			if strings.HasPrefix(name, root+"/") {
-				manifested = true
-				break
-			}
-		}
-		if !manifested {
-			return "", fmt.Errorf("%s contains unmanifested Workflow %q", archivePath, name)
-		}
-	}
-	return binaryDigest, nil
-}
-
-func archivedDirectoryDigest(files map[string]archivedFile, root string) (string, error) {
-	prefix := strings.TrimSuffix(root, "/") + "/"
-	paths := []string{}
-	for name := range files {
-		if strings.HasPrefix(name, prefix) {
-			paths = append(paths, strings.TrimPrefix(name, prefix))
-		}
-	}
-	if len(paths) == 0 {
-		return "", fmt.Errorf("missing %s", root)
-	}
-	sort.Strings(paths)
-	hash := sha256.New()
-	for _, relative := range paths {
-		_, _ = hash.Write([]byte(relative))
-		_, _ = hash.Write([]byte{0})
-		_, _ = hash.Write([]byte(strings.TrimPrefix(files[prefix+relative].digest, "sha256:")))
-		_, _ = hash.Write([]byte{'\n'})
-	}
-	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
+	return release.FileDigest(binaryPath)
 }
 
 func fatal(err error) {

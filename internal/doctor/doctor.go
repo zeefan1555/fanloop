@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	gort "runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -104,12 +103,8 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 }
 
 func (runtime Runtime) binaryCheck(manifest release.Manifest) *idl.DoctorCheck {
-	asset, ok := manifest.Asset(gort.GOOS, gort.GOARCH)
-	if !ok {
-		return check("binary_checksum", statusFail, "Release has no asset for this platform.", "Install a release built for this OS and architecture.")
-	}
 	digest, err := release.FileDigest(runtime.BinaryPath)
-	if err != nil || digest != asset.BinarySha256 {
+	if err != nil || digest != manifest.Cli.BinarySha256 {
 		return check("binary_checksum", statusFail, "CLI binary checksum does not match the release manifest.", "Reinstall this Fanloop release.")
 	}
 	return check("binary_checksum", statusPass, "CLI binary checksum matches.", "")

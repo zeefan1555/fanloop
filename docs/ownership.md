@@ -9,7 +9,7 @@ orchestration directory.
 | Workflow | `workflows/`, `internal/workflow/` | Stage, Step, output, gate, failure target and feedback policy |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec}/`, `errs/` | Command behavior, state changes and Lark execution |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts and E2E gates |
-| Release | `internal/{buildinfo,doctor,release}/`, `scripts/{install,run,package-release,prepare-release}.*`, `.goreleaser.yml`, `package.json` | Matched packaging, installation, diagnosis, update and rollback |
+| Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh` | Matched source builds, directory installation, diagnosis and atomic current switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
 flags, State or Event schemas, release manifests, or reviewed contract Goldens

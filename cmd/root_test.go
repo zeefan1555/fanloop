@@ -67,10 +67,10 @@ func TestHiddenInstallFailureKeepsItsPrivateExitContract(t *testing.T) {
 	}
 }
 
-func TestPayloadUpdateRequiresNPMLauncher(t *testing.T) {
+func TestDistributionUpdateControlsAreRetired(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := Execute(context.Background(), []string{"update"}, strings.NewReader(""), &stdout, &stderr)
-	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "update requires the npm launcher") {
+	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), `"message": "command is not supported"`) {
 		t.Fatalf("exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
 	stderr.Reset()
@@ -178,7 +178,6 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		"card":    true,
 		"version": true,
 		"doctor":  true,
-		"update":  true,
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("domains = %#v, want %#v", got, want)
@@ -188,14 +187,6 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "schema") {
 		t.Fatalf("root help exposed the retired schema domain:\n%s", stdout.String())
-	}
-	stdout.Reset()
-	root.SetArgs([]string{"update", "--help"})
-	if err := root.ExecuteContext(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(stdout.String(), "--root") {
-		t.Fatalf("launcher update help exposed a Requirement flag:\n%s", stdout.String())
 	}
 	stdout.Reset()
 	root.SetArgs([]string{"trace", "--help"})

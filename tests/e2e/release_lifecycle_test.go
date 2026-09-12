@@ -12,7 +12,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	repository := repositoryRoot(t)
 	releaseFixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
-	if result := runInstaller(t, repository, releaseFixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
+	if result := runInstaller(t, releaseFixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install release: %v\n%s", result.err, result.stderr)
 	}
 
@@ -26,7 +26,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	root := t.TempDir()
 	run := func(args ...string) cliResult {
 		t.Helper()
-		result := runCurrent(dataRoot, codexRoot, agentsRoot, "", args...)
+		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
 		if result.err != nil || result.stderr != "" {
 			t.Fatalf("fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
 		}
@@ -40,7 +40,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	}
 	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"analyze_core_problem","condition_results":[{"condition_id":"core_problem_defined","output":{"type":"path","value":".technical-solution/sections/02-problem.md"}}],"route":{"next_step_id":"define_design_objectives"},"summary":"problem defined","evidence":[]}`)
 	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"define_design_objectives","condition_results":[{"condition_id":"design_objectives_defined","output":{"type":"path","value":".technical-solution/sections/03-objectives.md"}}],"route":{"next_step_id":"confirm_technical_problem"},"summary":"objectives defined","evidence":[]}`)
-	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "", "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
+	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
 	if incomplete.err == nil || !strings.Contains(incomplete.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
 		t.Fatalf("approval without Panorama receipt bypassed review gate:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
 	}

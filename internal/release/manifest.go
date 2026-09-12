@@ -17,18 +17,17 @@ import (
 )
 
 const (
-	ArchiveXZDictionarySize = 8 * 1024 * 1024
-	ExposedSkillName        = "fanloop-workflow"
-	ExposedSkillPath        = "entrypoints/fanloop-workflow"
+	ExposedSkillName = "fanloop-workflow"
+	ExposedSkillPath = "entrypoints/fanloop-workflow"
 )
 
 var skillGroupPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+var versionPattern = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z._+-]*$`)
 
 type Manifest releaseidl.ReleaseManifest
 type CLIRelease = releaseidl.CLIRelease
 type Skill = releaseidl.SkillArtifact
 type Workflow = releaseidl.WorkflowArtifact
-type Asset = releaseidl.PlatformAsset
 
 func Load(root string) (Manifest, error) {
 	content, err := os.ReadFile(filepath.Join(root, "release.json"))
@@ -112,26 +111,7 @@ func (value Manifest) Validate() error {
 			return fmt.Errorf("Workflow %q is missing matching skills/%s group", workflowID, workflowID)
 		}
 	}
-	platforms := map[string]bool{}
-	for _, asset := range value.Assets {
-		if asset == nil {
-			return fmt.Errorf("release contains nil asset")
-		}
-		if err := asset.IsValid(); err != nil {
-			return fmt.Errorf("invalid asset %q: %w", asset.File, err)
-		}
-		key := asset.Os + "/" + asset.Arch
-		file := fmt.Sprintf("fanloop-%s-%s-%s.tar.xz", value.ReleaseVersion, asset.Os, asset.Arch)
-		if asset.File != file || platforms[key] {
-			return fmt.Errorf("invalid or duplicate asset %q", key)
-		}
-		platforms[key] = true
-	}
-	for _, key := range []string{"darwin/amd64", "darwin/arm64", "linux/amd64", "linux/arm64"} {
-		if !platforms[key] {
-			return fmt.Errorf("release is missing asset %q", key)
-		}
-	}
+
 	return nil
 }
 
@@ -141,15 +121,6 @@ func ValidSkillPath(path, name string) bool {
 	}
 	parts := strings.Split(path, "/")
 	return len(parts) == 3 && parts[0] == "skills" && skillGroupPattern.MatchString(parts[1]) && parts[2] == name
-}
-
-func (value Manifest) Asset(osName, arch string) (Asset, bool) {
-	for _, asset := range value.Assets {
-		if asset != nil && asset.Os == osName && asset.Arch == arch {
-			return *asset, true
-		}
-	}
-	return Asset{}, false
 }
 
 func (value Manifest) Skill(name string) (Skill, bool) {
@@ -232,7 +203,7 @@ func validPath(path string) bool {
 }
 
 func ValidVersion(value string) bool {
-	return (&releaseidl.CLIRelease{Version: value}).IsValid() == nil
+	return versionPattern.MatchString(value)
 }
 
 func contains[T comparable](values []T, target T) bool {

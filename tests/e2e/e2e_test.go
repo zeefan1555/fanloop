@@ -84,7 +84,7 @@ func withoutBotmuxBinding(environment []string) []string {
 	return filtered
 }
 
-func runCurrent(dataRoot, codexRoot, agentsRoot, registryURL string, args ...string) cliResult {
+func runCurrent(dataRoot, codexRoot, agentsRoot string, args ...string) cliResult {
 	command := exec.Command(filepath.Join(dataRoot, "current", "bin", "fanloop"), args...)
 	command.Env = append(withoutBotmuxBinding(os.Environ()),
 		"FANLOOP_DATA_HOME="+dataRoot,
@@ -92,7 +92,6 @@ func runCurrent(dataRoot, codexRoot, agentsRoot, registryURL string, args ...str
 		"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
 		"FANLOOP_TRAE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".trae-skills"),
 		"FANLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".claude-skills"),
-		"FANLOOP_NPM_REGISTRY="+registryURL,
 	)
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr

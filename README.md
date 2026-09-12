@@ -10,7 +10,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-当前发布两套五文件 Workflow Bundle，不设置默认 Workflow：
+当前携带两套五文件 Workflow Bundle，不设置默认 Workflow：
 
 - `technical-solution-design`：完成问题定义、方向推导、正式方案写作、独立审校和三级人工确认。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
@@ -21,36 +21,32 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 新增一套流程只需要增加同名 Workflow/Skill 目录和一条场景映射；不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
 
-## 使用 npx 安装
+## 本地构建与安装
 
-Fanloop 作为私有包 `@zeefan1555/fanloop-cli` 发布到 GitHub Packages。先创建具备
-`read:packages` 权限的 GitHub classic PAT，再安装匹配的 CLI、Workflow 与 Skills。执行
-`npm login` 后，`Password` 必须粘贴这个 PAT，不能使用 GitHub 密码或 npmjs token：
+从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、Skills、
+范文和校验清单的可运行目录；GitHub 托管源码。
 
-每次变更进入 `main` 后，Release Workflow 自动发布下一个 patch 版本并提升 `latest`。
-
-```bash
-npm login --scope=@zeefan1555 --auth-type=legacy --registry=https://npm.pkg.github.com
-NPM_CONFIG_REGISTRY=https://npm.pkg.github.com \
-  npx --yes --prefer-online --package=@zeefan1555/fanloop-cli@latest -- fanloop install
-fanloop version
-fanloop doctor
-```
-
-后续升级执行 `fanloop update`。从源码安装需要 Node.js 18+、Go 1.23+，系统 `tar` 支持 XZ：
+只构建、直接运行：
 
 ```bash
-npm run install:local
-fanloop version
-fanloop doctor
+fanloop_build_dir="$(./scripts/build-local.sh)"
+"$fanloop_build_dir/bin/fanloop" version
 ```
 
-安装结果位于 `~/.fanloop/current`。如只需开发二进制：
+构建脚本的标准输出只有目录路径，默认位于 `dist/local-*`。可传入一个尚不存在的输出目录：
+`./scripts/build-local.sh /absolute/path/to/new-build`。
+
+构建并安装到本机：
 
 ```bash
-go build -o ./bin/fanloop .
-./bin/fanloop version
+./scripts/install-local.sh
+"$HOME/.fanloop/current/bin/fanloop" version
+"$HOME/.fanloop/current/bin/fanloop" doctor
+export PATH="$HOME/.fanloop/current/bin:$PATH"
 ```
+
+安装先校验二进制及配套内容，通过 Doctor 后原子切换 `~/.fanloop/current`。更新时在选定源码
+提交上重新执行 `./scripts/install-local.sh`；已有 Requirement 继续使用与其绑定内容匹配的本地版本。
 
 ## 使用
 
@@ -77,7 +73,7 @@ Agent 的统一入口是 `fanloop-workflow` Skill。它按以下闭环推进：
 flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow status
 ```
 
-`technical-solution-design` 的七个 Step 各绑定一个独立 Skill，领域产物写在 Requirement Root：
+`technical-solution-design` 的十三个 Step 按问题定义、方案设计和方案成文三阶段推进，各步产物写在 Requirement Root：
 
 - `.technical-solution/problem.md`
 - `.technical-solution/proposal.md`
@@ -131,12 +127,11 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 完整 Requirement E2E 报告保留在 `tests/requirement_e2e/runs/`。
 
-## 发布边界
+## 源码边界
 
-源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。每次变更进入 `main` 后，GitHub Actions
-`Release` Workflow 会执行完整测试、构建四个平台配套制品、发布 `candidate`、验证后提升 `latest`；
-发布使用当前仓库的 `GITHUB_TOKEN`，不需要额外 npm secret。代码目前为 `UNLICENSED`，
-选择许可证和公开前资料审计应在首次公开前单独完成。
+源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。现有 CI 验证代码和本地安装，使用者自行从源码
+构建；不发布 npm 包、跨平台归档或 GitHub 二进制制品。构建与安装边界见
+[ADR-0095](./docs/adr/0095-local-source-builds.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

@@ -5,6 +5,17 @@ description: 发布完整飞书技术方案，等待人工终审并把反馈精�
 
 # 终审技术方案
 
+## 产物列表
+
+| 逻辑产物 | 承载与完整性要求 |
+|---|---|
+| 最终发布文档 | 稳定飞书文档 `<项目>｜技术方案`；与当前通过审校的 `technical-solution.md`、架构图、明确引用的辅助图及必要附录一致，发布后回读 |
+| 人的审核结论与反馈 | 人在本次终审中的明确回复；批准或修改意见按既有 Condition 上报，完整原文与影响分析保存在 Evidence；等待时没有终审结论 |
+
+Panorama 是既有审核展示事实。最终方案应推导完整、可以实施和验证；发布和 Agent 审校均不能代替人的终审。
+
+## 执行
+
 读取 `technical-solution.md`、`.technical-solution/architecture.mmd` 和最新
 `.technical-solution/review.md`。先确认审校已通过，正文保留九个规定语义章节且图文一致。
 

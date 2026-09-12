@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -52,6 +53,26 @@ func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
 	}
 }
 
+func TestLocalBuildReplacesDistributionEntrypoints(t *testing.T) {
+	repo := repositoryRoot(t)
+	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh"} {
+		info, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
+			t.Fatalf("local entrypoint %s is not executable: %v", relative, err)
+		}
+	}
+	for _, relative := range []string{
+		"package.json", ".goreleaser.yml", ".github/workflows/release.yml",
+		"scripts/build-release.sh", "scripts/prepare-release.sh", "scripts/package-release.sh",
+		"scripts/package-release.js", "scripts/resolve-release-version.js",
+		"scripts/verify-published-package.sh", "scripts/install.js", "scripts/run.js",
+	} {
+		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative))); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("retired distribution entrypoint remains: %s (%v)", relative, err)
+		}
+	}
+}
+
 func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	repo := repositoryRoot(t)
 	if _, err := os.Stat(filepath.Join(repo, "FEATURE_MAP.md")); !errors.Is(err, os.ErrNotExist) {
@@ -64,9 +85,6 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
 		},
-		".goreleaser.yml": {
-			`"skills/**/*"`,
-		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
 			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读",
 		},
@@ -74,7 +92,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"implementation-report.md", "当前 HEAD", "唯一飞书研发实现报告", "语义回读",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"candidate_head", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "npm run install:local", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书验收交付报告", "基础设施失败保持 blocked",
+			"candidate_head", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书验收交付报告", "基础设施失败保持 blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
 			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "expectedApprover", "cli_aaf6cd8160b89bda", "ou_3b0b9cf8364168c5eb999bd6c5a33b95", "Stage/Job/Step", "目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界", "精确授权口令", "turn boundary", "senderType=user", "botmux quoted", "批准进入 需求实现", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
@@ -86,7 +104,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"唯一", "Ruleset", "required checks", "candidate_head", "acceptance-report.md", "同一飞书验收交付报告", "gh pr merge", "--auto", "--squash", "--match-head-commit", "code_merged",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/SKILL.md": {
-			"pin-controller-release.sh", "bound-release-home", "origin/main", "detached worktree", "npm run install:local", "version commit", "Doctor", "acceptance-report.md", "飞书验收交付报告", "local_cli_updated",
+			"pin-controller-release.sh", "bound-release-home", "origin/main", "detached worktree", "./scripts/install-local.sh", "version commit", "Doctor", "acceptance-report.md", "飞书验收交付报告", "local_cli_updated",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/scripts/pin-controller-release.sh": {
 			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
@@ -259,5 +277,85 @@ func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
 				t.Errorf("%s still contains obsolete flat-heading rule %q", relative, forbidden)
 			}
 		}
+	}
+}
+
+func TestTechnicalSolutionReasoningReferences(t *testing.T) {
+	group := filepath.Join(repositoryRoot(t), "skills", "technical-solution-design")
+	want := filepath.Join(group, "technical-solution-review", "references", "reasoning.md")
+	info, err := os.Stat(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.Mode().IsRegular() || info.Size() == 0 {
+		t.Fatalf("reasoning reference is not a nonempty file: %s", want)
+	}
+	link := regexp.MustCompile(`\[[^\]]+\]\(([^)]+reasoning\.md)\)`)
+	for _, name := range []string{
+		"technical-background-framing", "technical-problem-analysis", "technical-objective-setting",
+		"technical-solution-research", "technical-overall-solution", "technical-key-solutions",
+		"technical-solution-benefits", "technical-solution-delivery", "technical-solution-writing",
+		"technical-solution-review",
+	} {
+		t.Run(name, func(t *testing.T) {
+			directory := filepath.Join(group, name)
+			content, err := os.ReadFile(filepath.Join(directory, "SKILL.md"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			matches := link.FindAllSubmatch(content, -1)
+			if len(matches) != 1 {
+				t.Fatalf("want one reasoning reference, got %d", len(matches))
+			}
+			got := filepath.Clean(filepath.Join(directory, string(matches[0][1])))
+			if got != want {
+				t.Fatalf("reasoning reference resolves to %s, want %s", got, want)
+			}
+		})
+	}
+}
+
+func TestTechnicalSolutionStepArtifactLists(t *testing.T) {
+	group := filepath.Join(repositoryRoot(t), "skills", "technical-solution-design")
+	rows := regexp.MustCompile(`(?m)^\|\s*([^|]+?)\s*\|`)
+	for _, want := range []struct {
+		skill     string
+		artifacts []string
+	}{
+		{"technical-background-framing", []string{"背景与现状", "业务特点", "关键事实与证据"}},
+		{"technical-problem-analysis", []string{"核心问题", "根因与影响", "关键矛盾"}},
+		{"technical-objective-setting", []string{"目标", "约束与非目标", "取舍顺序", "验收标准"}},
+		{"technical-problem-approval", []string{"汇总的问题定义文档", "审核结论与反馈"}},
+		{"technical-solution-research", []string{"候选方案对比", "适用条件", "优势与代价"}},
+		{"technical-overall-solution", []string{"选型结论与依据", "总体架构图", "组件职责", "关键链路"}},
+		{"technical-key-solutions", []string{"关键机制设计", "必要接口与数据模型", "异常与恢复设计"}},
+		{"technical-direction-approval", []string{"汇总的方案设计文档", "审核结论与反馈"}},
+		{"technical-solution-benefits", []string{"目标与收益映射", "验证计划", "已有结果及证据状态"}},
+		{"technical-solution-delivery", []string{"实施阶段", "依赖与责任", "发布验证", "风险与回滚"}},
+		{"technical-solution-writing", []string{"完整技术方案文档", "必要附录"}},
+		{"technical-solution-review", []string{"What–Why–How 与范文对照报告", "问题清单", "审校结论"}},
+		{"technical-solution-approval", []string{"最终发布文档", "人的审核结论与反馈"}},
+	} {
+		t.Run(want.skill, func(t *testing.T) {
+			content, err := os.ReadFile(filepath.Join(group, want.skill, "SKILL.md"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, list, ok := strings.Cut(string(content), "\n## 产物列表\n")
+			if !ok {
+				t.Fatal("missing step artifact list")
+			}
+			list, _, _ = strings.Cut(list, "\n## ")
+			var got []string
+			for _, row := range rows.FindAllStringSubmatch(list, -1) {
+				label := strings.TrimSpace(row[1])
+				if label != "逻辑产物" && strings.Trim(label, "-: ") != "" {
+					got = append(got, label)
+				}
+			}
+			if strings.Join(got, "\n") != strings.Join(want.artifacts, "\n") {
+				t.Fatalf("artifacts = %v, want %v", got, want.artifacts)
+			}
+		})
 	}
 }

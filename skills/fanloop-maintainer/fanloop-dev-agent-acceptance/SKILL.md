@@ -10,7 +10,7 @@ description: 从冻结 candidate_head 做隔离安装，再由恰好一个无实
 ## 隔离候选
 
 1. 记录全局 `$HOME/.fanloop/current` 的真实目标、版本与 commit；运行 `./tests/run-unit`、`./tests/run-e2e`，并证明测试前后源码状态不变。
-2. 创建临时目录，把 `FANLOOP_DATA_HOME`、`FANLOOP_CODEX_SKILLS_ROOT`、`FANLOOP_AGENT_SKILLS_ROOT`、`FANLOOP_TRAE_SKILLS_ROOT`、`FANLOOP_CLAUDE_SKILLS_ROOT` 全部指向其中的独立路径；清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID` 后，从 candidate_head 执行 `npm run install:local`。
+2. 创建临时目录，把 `FANLOOP_DATA_HOME`、`FANLOOP_CODEX_SKILLS_ROOT`、`FANLOOP_AGENT_SKILLS_ROOT`、`FANLOOP_TRAE_SKILLS_ROOT`、`FANLOOP_CLAUDE_SKILLS_ROOT` 全部指向其中的独立路径；清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID` 后，从 candidate_head 执行 `./scripts/install-local.sh`。
 3. 只使用隔离 `current/bin/fanloop` 回读 release 目标、version commit 和 Doctor。commit 必须精确等于 candidate_head，Doctor 必须 healthy。禁止修改或切换全局 current。
 
 ## 单个 Sub-agent 黑盒
