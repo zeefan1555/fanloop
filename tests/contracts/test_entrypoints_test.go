@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/idl"
 )
 
 func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
@@ -193,6 +195,7 @@ func TestVerificationFeatureMapIsNavigable(t *testing.T) {
 		t.Fatal("Feature Map index has no feature links")
 	}
 	wanted := map[string]bool{"README.md": true}
+	catalog := string(index)
 	for _, match := range links {
 		name := match[1]
 		if filepath.Base(name) != name || wanted[name] {
@@ -203,6 +206,7 @@ func TestVerificationFeatureMapIsNavigable(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read Feature Map entry %s: %v", name, err)
 		}
+		catalog += "\n" + string(content)
 		for _, heading := range []string{
 			"## Sub-features",
 			"## How to get to it (user POV)",
@@ -225,6 +229,23 @@ func TestVerificationFeatureMapIsNavigable(t *testing.T) {
 	for _, file := range files {
 		if !wanted[filepath.Base(file)] {
 			t.Errorf("Feature Map file is not indexed: %s", filepath.Base(file))
+		}
+	}
+
+	for _, spec := range idl.CommandSpecs() {
+		command := strings.ReplaceAll(spec.ID, ".", " ")
+		if !strings.Contains(catalog, command) {
+			t.Errorf("Feature Map does not cover public command %q", spec.ID)
+		}
+	}
+	workflowFiles, err := filepath.Glob(filepath.Join(repo, "workflows", "*", "workflow.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range workflowFiles {
+		workflowID := filepath.Base(filepath.Dir(file))
+		if !strings.Contains(catalog, workflowID) {
+			t.Errorf("Feature Map does not cover production Workflow %q", workflowID)
 		}
 	}
 }
