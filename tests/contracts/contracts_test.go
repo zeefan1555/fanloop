@@ -18,6 +18,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/idl"
@@ -77,6 +78,9 @@ func TestGeneratedIDLGoPackagesStayUnderInternalIDL(t *testing.T) {
 }
 
 func TestPublicContracts(t *testing.T) {
+	previousUmask := syscall.Umask(0o022)
+	t.Cleanup(func() { syscall.Umask(previousUmask) })
+
 	repo := repositoryRoot(t)
 	binary := filepath.Join(t.TempDir(), "fanloop")
 	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
@@ -415,7 +419,14 @@ func copyTree(t *testing.T, source, destination string) {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(target, content, info.Mode().Perm())
+		mode := fs.FileMode(0o644)
+		if info.Mode().Perm()&0o111 != 0 {
+			mode = 0o755
+		}
+		if err := os.WriteFile(target, content, mode); err != nil {
+			return err
+		}
+		return os.Chmod(target, mode)
 	}); err != nil {
 		t.Fatal(err)
 	}

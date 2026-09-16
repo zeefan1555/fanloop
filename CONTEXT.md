@@ -58,7 +58,7 @@ Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root`
 Loop 根据 State 中 `producer_step_id` 失效由 back Step 及其下游生产的有效 Output，保留更早 Step 的事实。
 
 **Panorama 发布**
-Human Step 通过 YAML 的 `panorama_card_published` Condition 声明 renderer 生成的紧凑 Panorama 已由当前宿主成功展示或发送，Output 原样保存本次 non-dry-run render 返回的 Requirement Root 相对 `panorama_snapshot_path`。该 Condition 必须与人工结论在同一 Route 组合中上报；CLI 只校验类型与 Route，不自动发送。Panorama Skill 只做宿主分流和原样展示，不二次拼装审核材料。
+Workflow 通过 YAML 的 `panorama_card_published` 或 `panorama_presented` Condition 声明 renderer 生成的紧凑 Panorama 已由当前宿主成功展示或发送，Output 原样保存本次 non-dry-run render 返回的 Requirement Root 相对 `panorama_snapshot_path`。该 Condition 必须与对应 Route 事实在同一组合中上报；CLI 只校验类型与 Route，不自动发送。Panorama Skill 只做宿主分流和原样展示，不二次拼装审核材料。
 
 **Trace / Card**
 Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Registry endpoint、字段名、CLI 日志要求和 Workflow Output 字段映射由严格加载的 `internal/traceconfig/registry.yaml` 决定；Runtime 不比较具体 Workflow 或 Output ID。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`，URL Output 使用 YAML 中的 `output.description` 或 key 展示，渲染时不读取或写入 Trace；显式 `card render` 生成快照，Flow Runtime 不负责远端发送。
@@ -69,22 +69,19 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 是 3 Stage / 3 Job / 9 Step 的单线闭环：需求确认、研发实现、验收交付。需求确认
-由 Agent 自主复核，也可委托一个无实现上下文的 Sub-agent 检查材料；缺少真实产品决策时仍保持
-blocked 并走保留的人工 Panorama Route。Review 在同一最终工作树运行聚焦测试、`run-unit` 与
-`run-e2e` 后冻结 `candidate_head`。
+`fanloop-maintainer` 是 TechDesign / Implement / Test 三阶段九步单线闭环。需求澄清保留真实 human 决定，
+方案确认由 Agent 自主评审。实现阶段运行聚焦测试、`run-unit`、`run-e2e` 和独立整体 CR；Review 核验后冻结 `review_base` / `reviewed_head`。
 
 **Agent Acceptance / Delivery**
 冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current；恰好一个全新 Sub-agent 只使用隔离
 CLI、叶子 Help 和需求中 1 至 3 个公开场景做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户
-凭据。通过后 `merge_code` 发布唯一 PR、回读 Ruleset/required checks 并自动 squash 合并；最后
-`update_local_cli` 从精确 merge commit 的干净 detached worktree 安装全局 current。
+凭据。通过后进入 human 端到端验收；最后 `handoff_merge_request` 发布唯一 PR、回读 final pair 和 required checks、同步 Review 并交接。不自动合并、发布或更新全局 CLI。
 
 **Maintainer Reports**
-需求阶段维护 `requirements.md` 和唯一飞书需求文档；研发阶段维护 `implementation-report.md` 和唯一
-飞书研发实现报告；交付阶段维护 `acceptance-report.md` 和唯一飞书验收交付报告。每份飞书文档使用
-Requirement 稳定标题，零命中创建、唯一命中更新、多命中阻塞，并在上报 URL 前语义回读。Panorama
-按 YAML Output description 自动展示三阶段报告 URL；候选变化使下游事实失效。
+需求、方案、Review、Agent 验收和 human 验收分别维护 `requirements.md`、`spec.md`、
+`review-report.md`、`acceptance-report.md` 和 `human-review.md`；交接另写 `handoff-record.md`。需求、方案、
+Review 和 Agent 验收使用 Requirement 稳定标题的唯一飞书文档，并在上报 URL 前语义回读。
+Panorama 按 YAML Output description 展示 URL；候选变化使下游事实失效。
 
 ## 公开契约
 

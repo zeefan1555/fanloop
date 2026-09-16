@@ -253,7 +253,7 @@ func validateWhen(owner string, when When, conditions map[string]ConditionDefini
 func validateFlowAmbiguity(stepID string, routes []FlowRoute, conditions map[string]ConditionDefinition) error {
 	for left := range routes {
 		for right := left + 1; right < len(routes); right++ {
-			if whensOverlap(routes[left].When, routes[right].When, conditions) {
+			if routes[left].Terminal == routes[right].Terminal && routes[left].NextStepID == routes[right].NextStepID && whensOverlap(routes[left].When, routes[right].When, conditions) {
 				return fmt.Errorf("Flow %q has statically ambiguous Routes %d and %d", stepID, left, right)
 			}
 		}

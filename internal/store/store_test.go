@@ -180,9 +180,9 @@ func TestMaintainerTracePanoramaShowsThreeStageDelivery(t *testing.T) {
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"需求确认：**工作区准备（Ready）** → 需求澄清 → 需求确认",
-		"研发实现：方案设计 → 代码实现 → 代码审查",
-		"验收交付：Agent 自动化验收 → 合并 MR → 更新本地 CLI",
+		"TechDesign：**仓库范围确定（Ready）** → 需求澄清 → 方案设计 → 方案自主评审",
+		"Implement：代码实现与过程 CR → 整体 Code Review",
+		"Test：Agent 端到端测试 → 人类端到端测试 → MR 门禁与交接",
 	} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)

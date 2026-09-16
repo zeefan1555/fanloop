@@ -2,32 +2,32 @@ schema_version: 7
 id: fanloop-maintainer
 
 stages:
-  - id: requirements
-    name: 需求确认
+  - id: techdesign
+    name: TechDesign
     jobs:
-      - id: requirements
-        name: 需求闭环
+      - id: techdesign
+        name: TechDesign
         steps:
-          - {id: bootstrap_techdesign, name: 工作区准备, executor: agent}
+          - {id: bootstrap_techdesign, name: 仓库范围确定, executor: agent}
           - {id: clarify_requirements, name: 需求澄清, executor: agent}
-          - {id: confirm_requirements, name: 需求确认, executor: agent}
-
-  - id: implementation
-    name: 研发实现
-    jobs:
-      - id: implementation
-        name: 实现闭环
-        steps:
           - {id: design_technical_solution, name: 方案设计, executor: agent}
-          - {id: implement_code, name: 代码实现, executor: agent}
-          - {id: review_code, name: 代码审查, executor: agent}
+          - {id: confirm_technical_solution, name: 方案自主评审, executor: agent}
 
-  - id: delivery
-    name: 验收交付
+  - id: implement
+    name: Implement
     jobs:
-      - id: delivery
-        name: 交付闭环
+      - id: implement
+        name: Implement
         steps:
-          - {id: execute_agent_acceptance, name: Agent 自动化验收, executor: agent}
-          - {id: merge_code, name: 合并 MR, executor: agent}
-          - {id: update_local_cli, name: 更新本地 CLI, executor: agent}
+          - {id: implement_code, name: 代码实现与过程 CR, executor: agent}
+          - {id: review_code, name: 整体 Code Review, executor: agent}
+
+  - id: test
+    name: Test
+    jobs:
+      - id: test
+        name: Test
+        steps:
+          - {id: execute_agent_acceptance, name: Agent 端到端测试, executor: agent}
+          - {id: confirm_human_acceptance, name: 人类端到端测试, executor: human}
+          - {id: handoff_merge_request, name: MR 门禁与交接, executor: agent}

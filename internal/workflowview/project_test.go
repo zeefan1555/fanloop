@@ -61,7 +61,7 @@ func TestFormatPanoramaStageShowsMaintainerSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := FormatPanoramaStage(loaded.Workflow.Stages[0], func(step workflow.Step) string { return step.Name })
-	want := "需求确认：工作区准备 → 需求澄清 → 需求确认"
+	want := "TechDesign：仓库范围确定 → 需求澄清 → 方案设计 → 方案自主评审"
 	if got != want {
 		t.Fatalf("Panorama Stage = %q, want %q", got, want)
 	}

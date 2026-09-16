@@ -85,14 +85,13 @@ class RouteMatrixTest(unittest.TestCase):
 
         self.assertEqual(primary["scenario_id"], "flow-clarify-r01-a01")
 
-    def test_rejects_multiple_non_terminal_baseline_targets(self):
+    def test_selects_first_non_terminal_baseline_for_graph_workflow(self):
         flow_cases = [
-            {"expected_effect": "advanced", "target_step_id": "design"},
+            {"scenario_id": "normal", "expected_effect": "advanced", "target_step_id": "design"},
             {"expected_effect": "advanced", "target_step_id": "implement"},
         ]
 
-        with self.assertRaisesRegex(AssertionError, "graph traversal"):
-            route_matrix.select_baseline_flow_case(flow_cases)
+        self.assertEqual(route_matrix.select_baseline_flow_case(flow_cases)["scenario_id"], "normal")
 
     def test_printed_agent_request_matches_cli_arguments(self):
         case = {

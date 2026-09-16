@@ -100,7 +100,6 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 			"aiden-bot-cli send-card --card-file",
 			"本轮最终普通回复必须完整展示同一份 Panorama",
 			"不自行拼装内容",
-			`{"condition_id":"panorama_card_published","output":{"type":"path","value":"<data.snapshot_path>"}}`,
 			"不得跨模式 fallback、双发、扫描旧快照",
 		} {
 			if !strings.Contains(delivery, value) {
@@ -108,12 +107,12 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 			}
 		}
 		if relative == "fanloop-maintainer/fanloop-dev-panorama/SKILL.md" &&
-			!strings.Contains(delivery, "选择 `agent_approved` Route 时不得渲染或发送") {
-			t.Fatalf("%s does not preserve the maintainer Agent approval path", relative)
+			!strings.Contains(delivery, `{"condition_id":"panorama_presented"`) {
+			t.Fatalf("%s does not return the maintainer panorama condition", relative)
 		}
 		if relative != "fanloop-maintainer/fanloop-dev-panorama/SKILL.md" &&
-			strings.Contains(delivery, "agent_approved") {
-			t.Fatalf("%s documents the maintainer-only Agent approval path", relative)
+			!strings.Contains(delivery, `{"condition_id":"panorama_card_published"`) {
+			t.Fatalf("%s does not return the standard panorama condition", relative)
 		}
 		for _, forbidden := range []string{"command -v", "BOTMUX_CHAT_ID:-", "BOTMUX_SESSION_ID:-", "<CURRENT_BOTMUX_SESSION_ID>"} {
 			if strings.Contains(delivery, forbidden) {

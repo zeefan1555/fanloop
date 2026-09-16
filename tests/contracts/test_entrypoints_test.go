@@ -83,7 +83,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"--config-source", "FANLOOP_CONFIG_SOURCE", "$HOME/.fanloop",
 		},
 		"entrypoints/fanloop-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
 		},
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
@@ -92,25 +92,37 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
-			"implementation-report.md", "当前 HEAD", "唯一飞书研发实现报告", "语义回读",
+			"implementation-report.md", "review_base", "./tests/run-unit", "./tests/run-e2e", "独立 Reviewer", "implementation_completed=<完整 HEAD>",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"candidate_head", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书验收交付报告", "基础设施失败保持 blocked",
+			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "expectedApprover", "cli_aaf6cd8160b89bda", "ou_3b0b9cf8364168c5eb999bd6c5a33b95", "Stage/Job/Step", "目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界", "精确授权口令", "turn boundary", "senderType=user", "botmux quoted", "批准进入 需求实现", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "handoff_merge_request", "不自动合并", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
+			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-workflow/scripts/pin-controller-release.sh": {
+			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
-			"reviewed HEAD", "./tests/run-unit", "./tests/run-e2e", "implementation-report.md", "同一飞书研发实现报告", "candidate_head_frozen",
+			"review_base", "implementation_head", "./tests/run-unit", "./tests/run-e2e", "review-report.md", "reviewed_head_frozen",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-merge-code/SKILL.md": {
-			"唯一", "Ruleset", "required checks", "candidate_head", "acceptance-report.md", "同一飞书验收交付报告", "gh pr merge", "--auto", "--squash", "--match-head-commit", "code_merged",
+		"skills/fanloop-maintainer/fanloop-dev-decision-receipt/SKILL.md": {
+			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=human", "host_turn", "Developer 不得自批",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/SKILL.md": {
-			"pin-controller-release.sh", "bound-release-home", "origin/main", "detached worktree", "./scripts/install-local.sh", "version commit", "Doctor", "acceptance-report.md", "飞书验收交付报告", "local_cli_updated",
+		"skills/fanloop-maintainer/fanloop-dev-human-step-jump/SKILL.md": {
+			"human_step_jump_requested", "available_routes", "source", "target", "fanloop-dev-decision-receipt", "不伪造被跨过",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/scripts/pin-controller-release.sh": {
-			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
+		"skills/fanloop-maintainer/fanloop-dev-mr-gate/SKILL.md": {
+			"origin/main", "review_base", "reviewed_head", "final base", "required checks", "test (ubuntu)", "requirement-e2e", "不 approve", "不 merge",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-mr-handoff/SKILL.md": {
+			"handoff-record.md", "PR URL", "final base/head", "required checks", "不 approve", "不 merge", "不更新本地 CLI",
+		},
+		"skills/fanloop-maintainer/resolving-merge-conflicts/SKILL.md": {
+			"两个 parent", "保留已批准需求行为", "不发明新功能", "blocked",
 		},
 	}
 	for relative, snippets := range contracts {
@@ -139,12 +151,9 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	approval := string(maintainerEntry)
-	panorama := strings.Index(approval, "先按 `panorama_card_published`")
-	card := strings.Index(approval, "再从最新 `requirements.md`")
-	boundary := strings.Index(approval, "确认卡发送成功为 turn boundary")
-	if panorama < 0 || card <= panorama || boundary <= card {
-		t.Errorf("human approval order must be Panorama -> full card -> turn boundary")
+	workflowContract := string(maintainerEntry)
+	if strings.Contains(workflowContract, "agent_approved") || strings.Contains(workflowContract, "gh pr merge") {
+		t.Error("maintainer entry still documents retired approval or auto-merge behavior")
 	}
 	for _, retired := range []string{
 		".agents/skills/verify-fanloop",
@@ -158,6 +167,8 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		"skills/fanloop-maintainer/fanloop-dev-ci-gate",
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md",
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh",
+		"skills/fanloop-maintainer/fanloop-dev-merge-code",
+		"skills/fanloop-maintainer/fanloop-dev-update-local-cli",
 	} {
 		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(retired))); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("retired maintainer asset remains: %s", retired)

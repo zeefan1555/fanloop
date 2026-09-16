@@ -178,6 +178,23 @@ func TestBundleRejectsInvalidFiveFileRelationships(t *testing.T) {
 	}
 }
 
+func TestFlowAllowsExplicitlySelectedTargetsWithSharedConditions(t *testing.T) {
+	conditions := map[string]ConditionDefinition{
+		"jump": {ExclusiveGroup: "decision"},
+	}
+	routes := []FlowRoute{
+		{When: When{AnyOf: [][]string{{"jump"}}}, NextStepID: "second"},
+		{When: When{AnyOf: [][]string{{"jump"}}}, NextStepID: "third"},
+	}
+	if err := validateFlowAmbiguity("first", routes, conditions); err != nil {
+		t.Fatalf("explicitly selected targets rejected: %v", err)
+	}
+	routes[1].NextStepID = "second"
+	if err := validateFlowAmbiguity("first", routes, conditions); err == nil {
+		t.Fatal("overlapping Routes to the same target were accepted")
+	}
+}
+
 func TestRuntimeWorkflowModelDoesNotOwnYAMLTags(t *testing.T) {
 	for _, value := range []any{
 		Stage{}, Job{}, Step{}, PromptRef{}, When{}, FlowRoute{}, LoopRoute{},

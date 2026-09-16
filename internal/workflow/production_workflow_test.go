@@ -236,30 +236,31 @@ func TestProductionMaterialFlashcardsWorkflow(t *testing.T) {
 	}
 }
 
-func TestProductionMaintainerUsesThreeStageAgentDelivery(t *testing.T) {
+func TestProductionMaintainerMatchesReviewedTreeloopTopology(t *testing.T) {
 	loaded, err := Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
 	}
 	wants := []struct {
 		step, name, stage, job string
+		executor               StepExecutor
 	}{
-		{"bootstrap_techdesign", "工作区准备", "requirements", "requirements"},
-		{"clarify_requirements", "需求澄清", "requirements", "requirements"},
-		{"confirm_requirements", "需求确认", "requirements", "requirements"},
-		{"design_technical_solution", "方案设计", "implementation", "implementation"},
-		{"implement_code", "代码实现", "implementation", "implementation"},
-		{"review_code", "代码审查", "implementation", "implementation"},
-		{"execute_agent_acceptance", "Agent 自动化验收", "delivery", "delivery"},
-		{"merge_code", "合并 MR", "delivery", "delivery"},
-		{"update_local_cli", "更新本地 CLI", "delivery", "delivery"},
+		{"bootstrap_techdesign", "仓库范围确定", "techdesign", "techdesign", StepExecutorAgent},
+		{"clarify_requirements", "需求澄清", "techdesign", "techdesign", StepExecutorAgent},
+		{"design_technical_solution", "方案设计", "techdesign", "techdesign", StepExecutorAgent},
+		{"confirm_technical_solution", "方案自主评审", "techdesign", "techdesign", StepExecutorAgent},
+		{"implement_code", "代码实现与过程 CR", "implement", "implement", StepExecutorAgent},
+		{"review_code", "整体 Code Review", "implement", "implement", StepExecutorAgent},
+		{"execute_agent_acceptance", "Agent 端到端测试", "test", "test", StepExecutorAgent},
+		{"confirm_human_acceptance", "人类端到端测试", "test", "test", StepExecutorHuman},
+		{"handoff_merge_request", "MR 门禁与交接", "test", "test", StepExecutorAgent},
 	}
 	wantSteps := make([]string, 0, len(wants))
 	for _, want := range wants {
 		wantSteps = append(wantSteps, want.step)
 		context, _, ok := loaded.Workflow.FindStep(want.step)
-		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Name != want.name || context.Step.Executor != StepExecutorAgent {
-			t.Fatalf("maintainer Step %s = %#v, want name=%s stage=%s job=%s agent", want.step, context, want.name, want.stage, want.job)
+		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Name != want.name || context.Step.Executor != want.executor {
+			t.Fatalf("maintainer Step %s = %#v, want name=%s stage=%s job=%s executor=%s", want.step, context, want.name, want.stage, want.job, want.executor)
 		}
 	}
 	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantSteps) {
@@ -267,10 +268,11 @@ func TestProductionMaintainerUsesThreeStageAgentDelivery(t *testing.T) {
 	}
 	for _, skillID := range []string{
 		"fanloop-dev-bootstrap", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
-		"fanloop-dev-domain-modeling", "fanloop-dev-to-spec", "fanloop-dev-to-tickets",
+		"fanloop-dev-domain-modeling", "fanloop-dev-decision-receipt", "fanloop-dev-human-step-jump",
+		"fanloop-dev-to-spec", "fanloop-dev-to-tickets",
 		"fanloop-dev-implement", "fanloop-dev-tdd", "fanloop-dev-code-review",
-		"fanloop-dev-agent-acceptance", "fanloop-dev-merge-code", "fanloop-dev-update-local-cli",
-		"fanloop-dev-panorama",
+		"fanloop-dev-agent-acceptance", "fanloop-dev-mr-gate", "resolving-merge-conflicts",
+		"fanloop-dev-mr-handoff", "fanloop-dev-panorama",
 	} {
 		found := false
 		for _, prompt := range loaded.Workflow.Prompts {
@@ -282,44 +284,40 @@ func TestProductionMaintainerUsesThreeStageAgentDelivery(t *testing.T) {
 			t.Fatalf("maintainer Workflow does not bind %s", skillID)
 		}
 	}
-	assertConditionSkill(t, loaded, "panorama_card_published", "fanloop-dev-panorama")
-	assertAgentApprovalCondition(t, loaded)
-	assertWorkflowRouteAnyOf(t, loaded, "confirm_requirements", [][]string{
-		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_required"},
-		{"agent_approved", "implementation_required"},
+	assertConditionSkill(t, loaded, "panorama_presented", "fanloop-dev-panorama")
+	jump := []string{"human_step_jump_requested", "human_step_jump_context_written", "human_step_jump_recorded", "panorama_presented"}
+	assertWorkflowRouteAnyOf(t, loaded, "clarify_requirements", [][]string{
+		{"requirements_grilled", "requirements_document_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "panorama_presented"},
+		jump,
 	}, "design_technical_solution", false)
-	assertWorkflowRouteAnyOf(t, loaded, "confirm_requirements", [][]string{
-		{"panorama_card_published", "requirements_approved", "requirements_approval_recorded", "requirements_evidence_written", "implementation_not_required"},
-		{"agent_approved", "implementation_not_required"},
+	assertWorkflowRoute(t, loaded, "clarify_requirements", []string{"requirements_grilled", "requirements_document_published", "requirements_rejected", "requirements_approval_recorded", "requirements_evidence_written", "panorama_presented"}, "", true)
+	assertWorkflowRouteAnyOf(t, loaded, "design_technical_solution", [][]string{{"spec_written", "tickets_written", "technical_solution_document_published", "panorama_presented"}, jump}, "confirm_technical_solution", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_technical_solution", [][]string{{"technical_solution_review_passed", "panorama_presented"}, jump}, "implement_code", false)
+	assertWorkflowRouteAnyOf(t, loaded, "implement_code", [][]string{{"implementation_completed", "implementation_report_written", "panorama_presented"}, jump}, "review_code", false)
+	assertWorkflowRouteAnyOf(t, loaded, "execute_agent_acceptance", [][]string{{"agent_acceptance_passed", "acceptance_report_written", "acceptance_document_published", "panorama_presented"}, jump}, "confirm_human_acceptance", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_human_acceptance", [][]string{{"human_acceptance_passed", "human_acceptance_result_recorded", "human_review_written", "panorama_presented"}, {"human_acceptance_skipped", "human_acceptance_result_recorded", "human_review_written", "panorama_presented"}, jump}, "handoff_merge_request", false)
+	assertWorkflowRouteAnyOf(t, loaded, "handoff_merge_request", [][]string{
+		{"handoff_main_unchanged", "merge_request_published", "remote_checks_passed", "review_comment_synced", "merge_request_handed_off", "handoff_record_written", "panorama_presented"},
+		{"handoff_main_integrated", "handoff_integration_review_passed", "handoff_integration_tests_passed", "handoff_integration_human_verified", "merge_request_published", "remote_checks_passed", "review_comment_synced", "merge_request_handed_off", "handoff_record_written", "panorama_presented"},
 	}, "", true)
-	assertWorkflowRoute(t, loaded, "implement_code", []string{"implementation_completed", "implementation_report_written", "implementation_document_published"}, "review_code", false)
-	assertWorkflowRoute(t, loaded, "review_code", []string{"review_passed", "implementation_report_written", "implementation_document_published", "candidate_head_frozen"}, "execute_agent_acceptance", false)
-	assertWorkflowRoute(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_passed", "acceptance_report_written", "acceptance_document_published"}, "merge_code", false)
-	assertWorkflowRoute(t, loaded, "merge_code", []string{"code_merged", "acceptance_report_written", "acceptance_document_published"}, "update_local_cli", false)
-	assertWorkflowRoute(t, loaded, "update_local_cli", []string{"local_cli_updated", "acceptance_report_written", "acceptance_document_published"}, "", true)
-	assertWorkflowLoop(t, loaded, "review_code", []string{"requirements_changed", "implementation_report_written", "implementation_document_published"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"technical_solution_changes_requested", "implementation_report_written", "implementation_document_published"}, "design_technical_solution")
-	assertWorkflowLoop(t, loaded, "review_code", []string{"review_failed", "implementation_report_written", "implementation_document_published"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written", "acceptance_document_published"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "technical_solution_changes_requested", "acceptance_report_written", "acceptance_document_published"}, "design_technical_solution")
-	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "implementation_changes_requested", "acceptance_report_written", "acceptance_document_published"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "merge_code", []string{"requirements_changed", "acceptance_report_written", "acceptance_document_published"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "merge_code", []string{"implementation_changes_requested", "acceptance_report_written", "acceptance_document_published"}, "implement_code")
-	assertWorkflowLoop(t, loaded, "merge_code", []string{"code_merge_failed", "acceptance_report_written", "acceptance_document_published"}, "merge_code")
-	assertWorkflowLoop(t, loaded, "update_local_cli", []string{"requirements_changed", "acceptance_report_written", "acceptance_document_published"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"technical_solution_review_failed", "panorama_presented"}, "design_technical_solution")
+	assertWorkflowLoop(t, loaded, "review_code", []string{"code_review_blocked", "review_report_written", "code_review_document_published", "panorama_presented"}, "implement_code")
+	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written", "acceptance_document_published", "panorama_presented"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "confirm_human_acceptance", []string{"requirements_changed", "human_acceptance_result_recorded", "human_review_written", "panorama_presented"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "handoff_merge_request", []string{"merge_request_published", "remote_checks_failed", "panorama_presented"}, "implement_code")
 
 	for _, removed := range []string{
-		"maintain_verification_skill", "maintain_feature_map", "execute_test_cases", "coordinate_eval",
-		"execute_eval_candidates", "judge_eval", "publish_candidate", "verify_ci_gates",
+		"confirm_requirements", "merge_code", "update_local_cli", "maintain_verification_skill",
+		"maintain_feature_map", "execute_test_cases", "coordinate_eval", "execute_eval_candidates",
+		"judge_eval", "publish_candidate", "verify_ci_gates",
 	} {
 		if _, _, ok := loaded.Workflow.FindStep(removed); ok {
 			t.Fatalf("maintainer Workflow still contains removed Step %s", removed)
 		}
 	}
 	for _, removed := range []string{
-		"verification_skill_ready", "feature_map_current", "validation_profile_selected", "local_test_report_written",
-		"eval_playbook_frozen", "eval_candidates_completed", "agent_eval_passed", "pull_request_published",
-		"repository_guardrails_verified", "ci_gates_passed",
+		"agent_approved", "implementation_required", "implementation_not_required", "review_passed",
+		"review_failed", "candidate_head_frozen", "code_merged", "code_merge_failed", "local_cli_updated",
 	} {
 		if _, ok := loaded.Workflow.Condition(removed); ok {
 			t.Fatalf("maintainer Workflow still contains removed Condition %s", removed)
@@ -333,29 +331,21 @@ func TestProductionMaintainerUsesThreeStageAgentDelivery(t *testing.T) {
 		loopRoutes += len(routes)
 	}
 	for conditionID, want := range map[string]struct{ key, description string }{
-		"requirements_document_published":   {"requirement_document_url", "需求确认报告"},
-		"implementation_document_published": {"implementation_document_url", "研发实现报告"},
-		"acceptance_document_published":     {"acceptance_document_url", "验收交付报告"},
+		"requirements_document_published":       {"requirement_document_url", "需求确认报告"},
+		"technical_solution_document_published": {"technical_design_document_url", "技术方案文档"},
+		"code_review_document_published":        {"code_review_document_url", "Code Review 报告"},
+		"acceptance_document_published":         {"acceptance_document_url", "Agent 验收报告"},
 	} {
 		condition, _ := loaded.Workflow.Condition(conditionID)
 		if condition.Output.Key != want.key || condition.Output.Description != want.description {
 			t.Fatalf("Condition %s Output = %#v", conditionID, condition.Output)
 		}
 	}
-	if got := len(loaded.Workflow.Conditions); got != 31 {
-		t.Fatalf("maintainer Conditions = %d, want 31", got)
+	if got := len(loaded.Workflow.Conditions); got != 51 {
+		t.Fatalf("maintainer Conditions = %d, want 51", got)
 	}
-	if flowRoutes != 10 || loopRoutes != 18 || len(loaded.Workflow.Prompts) != 39 {
-		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 10/18/39", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
-	}
-}
-
-func assertAgentApprovalCondition(t *testing.T, loaded Loaded) {
-	t.Helper()
-	condition, ok := loaded.Workflow.Condition("agent_approved")
-	if !ok || condition.Output.Key != "agent_approval_decision" || condition.Output.Type != OutputEnum ||
-		!reflect.DeepEqual(condition.Output.Values, []string{"approved"}) {
-		t.Fatalf("agent_approved = %#v", condition)
+	if flowRoutes != 38 || loopRoutes != 45 || len(loaded.Workflow.Prompts) != 56 {
+		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 38/45/56", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
 	}
 }
 
