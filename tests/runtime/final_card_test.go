@@ -61,8 +61,8 @@ set -eu
 		"--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "framing"), "flow.report.progress")
 	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "frame_requirement_background",
-		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`),
-		"--next-step-id", "analyze_core_problem", "--summary", "background framed"), "flow.report.result")
+		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),
+		"--next-step-id", "define_goals_and_problems", "--summary", "background framed"), "flow.report.result")
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
 		t.Fatalf("flow report unexpectedly invoked botmux: %v", err)
 	}
@@ -211,11 +211,11 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 
 	reported := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "frame_requirement_background",
-		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`),
-		"--next-step-id", "analyze_core_problem", "--summary", "background defined")
+		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),
+		"--next-step-id", "define_goals_and_problems", "--summary", "background defined")
 	assertSuccess(t, reported, "flow.report.result")
 	projection = readFile(t, projectionPath)
-	for _, want := range []string{`"current_step_id": "analyze_core_problem"`, `"background_section_path"`} {
+	for _, want := range []string{`"current_step_id": "define_goals_and_problems"`, `"background_section_path"`} {
 		if !bytes.Contains(projection, []byte(want)) {
 			t.Fatalf("updated Card projection does not contain %s:\n%s", want, projection)
 		}
@@ -300,7 +300,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 	}
 	if value.Schema != "2.0" || value.Header.Template != "default" ||
 		value.Header.Title.Content != "后端研发交付 · Driver layout" ||
-		value.Header.Subtitle.Content != "问题定义 · 需求背景" || len(value.Header.TextTagList) != 2 {
+		value.Header.Subtitle.Content != "业务问题 · 业务背景" || len(value.Header.TextTagList) != 2 {
 		t.Fatalf("Driver header contract was lost: %s", content)
 	}
 	if len(value.Body.Elements) != 5 {
@@ -322,7 +322,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 			t.Fatalf("Output heading = %q", element.Content)
 		}
 	}
-	for _, want := range []string{"状态全景", "需求背景", "总体方案", "方案终审", "当前执行证据", "当前进行中"} {
+	for _, want := range []string{"状态全景", "业务背景", "总体方案设计", "文档终审", "当前执行证据", "当前进行中"} {
 		if !bytes.Contains(content, []byte(want)) {
 			t.Fatalf("Driver panorama does not contain %q: %s", want, content)
 		}

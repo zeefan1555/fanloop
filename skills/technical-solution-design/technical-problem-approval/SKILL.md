@@ -1,53 +1,45 @@
 ---
 name: technical-problem-approval
-description: 将需求背景、核心问题和设计目标发布为飞书问题定义文档，等待人工审核并按最早受影响层回流。用于 technical-solution-design 的问题审核 Step；不得代替人批准或修改片段。
+description: 将业务背景、目标问题和业务技术约束发布为飞书业务问题文档，等待人工审核并按最早受影响章回流。用于 technical-solution-design 的问题与约束审核 Step；不得代替人批准或修改章节。
 ---
 
-# 审核问题定义
+# 审核业务问题与约束
 
 ## 产物列表
 
 | 逻辑产物 | 承载与完整性要求 |
 |---|---|
-| 汇总的问题定义文档 | 稳定飞书文档 `<项目>｜问题定义`；完整承载背景与现状、问题定义、目标与边界，内容来自当前有效的 01–03 片段，发布后回读 |
-| 审核结论与反馈 | 人在本次审核中的明确回复；批准或修改意见按既有 Condition 上报，完整原文与影响分析保存在 Evidence；等待时没有审核结论 |
+| 汇总的业务问题文档 | 稳定飞书文档 `<项目>｜业务问题`；完整承载第 1 至第 3 章并在发布后回读 |
+| 审核结论与反馈 | 人的本轮明确回复；完整原文与影响分析保存在 Evidence |
 
-Panorama 是既有审核展示事实。文档产出不代表人工批准；背景可信、问题成立、目标明确且人确认后，本阶段才能结束。
-
-## 执行
-
-读取 `01-background.md`、`02-problem.md`、`03-objectives.md`，组装为只含以下三个正文标题的审核稿：
+读取 `01-business-background.md`、`02-goals-and-problems.md` 和
+`03-business-constraints.md`，组装为：
 
 ```markdown
-# <项目>｜问题定义
-## 1. 需求背景
-## 2. 核心问题
-## 3. 设计目标
+# <项目>｜业务问题
+## 1. 业务背景
+## 2. 目标与问题定义
+## 3. 业务特点与技术约束
 ```
 
-`<项目>` 取最新 `flow status` 中的 Requirement 标题。每个 `##` 下允许 `###` 按真实内容组织，但
-禁止 `####` 和手工 `1.1` 编号。使用当前宿主的 `lark-doc` 能力发布：按稳定标题
-`<项目>｜问题定义` 精确查找，唯一命中则更新，零命中才创建，多命中立即阻塞；创建结果不确定时
-先重新查找，不得重复创建。使用返回 URL 回读，确认正文非空、三个 `##` 顺序正确、`###` 均归属
-当前语义章节且内容与本地片段一致。失败时报告 blocked，不返回成功 Condition。
+各 `##` 下允许 `###` 按真实内容组织，禁止 `####` 和手工 `1.1` 编号。
 
-向人展示已验证 URL、三个核心结论、开放项和最新 Panorama，然后等待本次进入该 Step 后的全新
-明确回复。不得把沉默、“看过”“继续讨论”或补充材料解释为批准，也不得自行改写输入。
+使用当前宿主的 `lark-doc` 能力按稳定标题 `<项目>｜业务问题` 精确查找：唯一命中更新、零命中
+创建、多命中阻塞。发布后用返回 URL 回读，确认三个章节顺序正确、内容与本地片段一致。文档发布
+不代表人工批准。
 
-收到修改意见时先做整体影响分析，只选最早受影响层：
+向人展示已验证 URL、核心问题、目标、约束、开放项和最新 Panorama，然后等待本次进入该 Step 后
+的全新明确回复。修改意见只选最早受影响章：
 
 | 最早变化 | Condition | 回流 Step |
 |---|---|---|
-| 业务形态、现状架构、演进诉求 | `background_changed` | `frame_requirement_background` |
-| 现状评估、瓶颈、根因、取舍 | `problem_changed` | `analyze_core_problem` |
-| 指标、约束、非目标 | `objectives_changed` | `define_design_objectives` |
+| 业务背景 | `background_changed` | `frame_requirement_background` |
+| 目标与问题 | `goals_and_problems_changed` | `define_goals_and_problems` |
+| 业务特点与技术约束 | `business_constraints_changed` | `define_business_constraints` |
 
-在回流前向人明确展示：反馈原文、最早受影响层、继续保留的内容、将失效的全部下游产物、回流
-Step。反馈同时触及多层时只选表中最靠上的一层。
-
-- 明确批准：同时上报 `problem_document_published=<已回读 URL>`、`panorama_card_published`、
+- 明确批准：同时上报 `problem_document_published`、`panorama_card_published` 和
   `technical_problem_approved`；
-- 明确修改：同时上报同一文档 URL、`panorama_card_published` 和一项 feedback Condition；
-- 含糊或仍在讨论：继续等待。
+- 明确修改：同时上报同一文档 URL、Panorama 和一项 feedback Condition；
+- 含糊、沉默或继续讨论：继续等待。
 
-Evidence 保存人的完整原始回复、飞书 URL、本地三个片段路径和影响分析，不使用摘要替代原文。
+Evidence 保存完整原始回复、飞书 URL、三个片段路径、保留内容、失效产物和回流 Step。

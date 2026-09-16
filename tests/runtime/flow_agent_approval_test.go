@@ -16,9 +16,9 @@ func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 		conditions []string
 		next       string
 	}{
-		{step: "frame_requirement_background", conditions: []string{conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`)}, next: "analyze_core_problem"},
-		{step: "analyze_core_problem", conditions: []string{conditionResult("core_problem_defined", "path", `".technical-solution/sections/02-problem.md"`)}, next: "define_design_objectives"},
-		{step: "define_design_objectives", conditions: []string{conditionResult("design_objectives_defined", "path", `".technical-solution/sections/03-objectives.md"`)}, next: "confirm_technical_problem"},
+		{step: "frame_requirement_background", conditions: []string{conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`)}, next: "define_goals_and_problems"},
+		{step: "define_goals_and_problems", conditions: []string{conditionResult("goals_and_problems_defined", "path", `".technical-solution/sections/02-goals-and-problems.md"`)}, next: "define_business_constraints"},
+		{step: "define_business_constraints", conditions: []string{conditionResult("business_constraints_defined", "path", `".technical-solution/sections/03-business-constraints.md"`)}, next: "confirm_technical_problem"},
 	} {
 		args := []string{"flow", "report", "result", "--root", root, "--step-id", report.step, "--next-step-id", report.next, "--summary", "accepted"}
 		for _, condition := range report.conditions {

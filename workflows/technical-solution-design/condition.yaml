@@ -9,17 +9,17 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
     output: {key: background_section_path, type: path}
     exclusive_group: technical_decision_outcome
-  core_problem_defined:
+  goals_and_problems_defined:
     prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
-    output: {key: problem_section_path, type: path}
+    output: {key: goals_and_problems_section_path, type: path}
     exclusive_group: technical_decision_outcome
-  design_objectives_defined:
+  business_constraints_defined:
     prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
-    output: {key: objectives_section_path, type: path}
+    output: {key: business_constraints_section_path, type: path}
     exclusive_group: technical_decision_outcome
   problem_document_published:
     prompt_ref: {file: prompt.yaml, prompt_id: stage_document_condition}
-    output: {key: problem_document_url, type: url, description: 问题定义文档}
+    output: {key: problem_document_url, type: url, description: 业务问题文档}
   technical_problem_approved:
     prompt_ref: {file: prompt.yaml, prompt_id: human_approval_condition}
     output: {key: problem_approval_decision, type: enum_value, values: [approved]}
@@ -36,25 +36,37 @@ conditions:
   architecture_diagram_written:
     prompt_ref: {file: prompt.yaml, prompt_id: architecture_diagram_condition}
     output: {key: architecture_diagram_path, type: path}
-  key_solutions_designed:
+  key_modules_designed:
     prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
-    output: {key: key_solutions_section_path, type: path}
+    output: {key: key_modules_section_path, type: path}
+    exclusive_group: technical_decision_outcome
+  technical_decisions_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
+    output: {key: technical_decisions_section_path, type: path}
     exclusive_group: technical_decision_outcome
   solution_document_published:
     prompt_ref: {file: prompt.yaml, prompt_id: stage_document_condition}
-    output: {key: solution_document_url, type: url, description: 方案设计文档}
+    output: {key: solution_document_url, type: url, description: 技术判断文档}
   solution_direction_approved:
     prompt_ref: {file: prompt.yaml, prompt_id: human_approval_condition}
     output: {key: solution_direction_decision, type: enum_value, values: [approved]}
     exclusive_group: technical_decision_outcome
 
-  solution_benefits_defined:
-    prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
-    output: {key: benefits_section_path, type: path}
-    exclusive_group: technical_decision_outcome
   delivery_plan_defined:
     prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
     output: {key: delivery_section_path, type: path}
+    exclusive_group: technical_decision_outcome
+  results_and_benefits_defined:
+    prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
+    output: {key: results_section_path, type: path}
+    exclusive_group: technical_decision_outcome
+  retrospective_and_roadmap_defined:
+    prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
+    output: {key: retrospective_section_path, type: path}
+    exclusive_group: technical_decision_outcome
+  summary_defined:
+    prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
+    output: {key: summary_section_path, type: path}
     exclusive_group: technical_decision_outcome
   technical_solution_written:
     prompt_ref: {file: prompt.yaml, prompt_id: section_artifact_condition}
@@ -69,7 +81,7 @@ conditions:
     output: {key: technical_solution_review_path, type: path}
   technical_solution_document_published:
     prompt_ref: {file: prompt.yaml, prompt_id: stage_document_condition}
-    output: {key: technical_solution_document_url, type: url, description: 完整技术方案文档}
+    output: {key: technical_solution_document_url, type: url, description: 完整技术文档}
   technical_solution_approved:
     prompt_ref: {file: prompt.yaml, prompt_id: human_approval_condition}
     output: {key: technical_solution_decision, type: enum_value, values: [approved]}
@@ -79,13 +91,13 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
     output: {key: technical_feedback_scope, type: enum_value, values: [background]}
     exclusive_group: technical_decision_outcome
-  problem_changed:
+  goals_and_problems_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
-    output: {key: technical_feedback_scope, type: enum_value, values: [problem]}
+    output: {key: technical_feedback_scope, type: enum_value, values: [goals_and_problems]}
     exclusive_group: technical_decision_outcome
-  objectives_changed:
+  business_constraints_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
-    output: {key: technical_feedback_scope, type: enum_value, values: [objectives]}
+    output: {key: technical_feedback_scope, type: enum_value, values: [business_constraints]}
     exclusive_group: technical_decision_outcome
   research_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
@@ -95,17 +107,29 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
     output: {key: technical_feedback_scope, type: enum_value, values: [overall_solution]}
     exclusive_group: technical_decision_outcome
-  key_solutions_changed:
+  key_modules_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
-    output: {key: technical_feedback_scope, type: enum_value, values: [key_solutions]}
+    output: {key: technical_feedback_scope, type: enum_value, values: [key_modules]}
     exclusive_group: technical_decision_outcome
-  benefits_changed:
+  technical_decisions_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
-    output: {key: technical_feedback_scope, type: enum_value, values: [benefits]}
+    output: {key: technical_feedback_scope, type: enum_value, values: [technical_decisions]}
     exclusive_group: technical_decision_outcome
   delivery_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
     output: {key: technical_feedback_scope, type: enum_value, values: [delivery]}
+    exclusive_group: technical_decision_outcome
+  results_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
+    output: {key: technical_feedback_scope, type: enum_value, values: [results]}
+    exclusive_group: technical_decision_outcome
+  retrospective_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
+    output: {key: technical_feedback_scope, type: enum_value, values: [retrospective]}
+    exclusive_group: technical_decision_outcome
+  summary_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}
+    output: {key: technical_feedback_scope, type: enum_value, values: [summary]}
     exclusive_group: technical_decision_outcome
   presentation_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: feedback_scope_condition}

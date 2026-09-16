@@ -166,19 +166,22 @@ type routeEvent struct {
 }
 
 var linearLoopConditions = map[string][][]string{
-	"frame_requirement_background": {{"background_changed"}},
-	"analyze_core_problem":         {{"background_changed"}},
-	"define_design_objectives":     {{"problem_changed"}},
-	"confirm_technical_problem":    {{"problem_document_published", "panorama_card_published", "objectives_changed"}},
-	"research_solution_options":    {{"objectives_changed"}},
-	"design_overall_solution":      {{"research_changed"}},
-	"design_key_solutions":         {{"overall_solution_changed"}},
-	"confirm_solution_direction":   {{"solution_document_published", "panorama_card_published", "key_solutions_changed"}},
-	"evaluate_solution_benefits":   {{"key_solutions_changed"}},
-	"plan_solution_delivery":       {{"benefits_changed"}},
-	"write_technical_solution":     {{"delivery_changed"}},
-	"review_technical_solution":    {{"technical_solution_review_written", "presentation_changed"}},
-	"confirm_technical_solution":   {{"technical_solution_document_published", "panorama_card_published", "presentation_changed"}},
+	"frame_requirement_background":    {{"background_changed"}},
+	"define_goals_and_problems":       {{"background_changed"}},
+	"define_business_constraints":     {{"goals_and_problems_changed"}},
+	"confirm_technical_problem":       {{"problem_document_published", "panorama_card_published", "business_constraints_changed"}},
+	"research_solution_options":       {{"business_constraints_changed"}},
+	"design_overall_solution":         {{"research_changed"}},
+	"design_key_solutions":            {{"overall_solution_changed"}},
+	"record_technical_decisions":      {{"key_modules_changed"}},
+	"confirm_solution_direction":      {{"solution_document_published", "panorama_card_published", "technical_decisions_changed"}},
+	"plan_solution_delivery":          {{"technical_decisions_changed"}},
+	"evaluate_solution_benefits":      {{"delivery_changed"}},
+	"write_retrospective_and_roadmap": {{"results_changed"}},
+	"write_summary":                   {{"retrospective_changed"}},
+	"write_technical_solution":        {{"summary_changed"}},
+	"review_technical_solution":       {{"technical_solution_review_written", "presentation_changed"}},
+	"confirm_technical_solution":      {{"technical_solution_document_published", "panorama_card_published", "presentation_changed"}},
 }
 
 var linearFlowConditions = map[string][][]string{}
@@ -394,7 +397,7 @@ func verifyFinalWorkflowDemo(t *testing.T, binary string, paths workflowDemoPath
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"100%", "流程已完成", "问题定义", "方案设计", "方案成文"} {
+	for _, want := range []string{"100%", "流程已完成", "业务问题", "技术判断", "结果与规划"} {
 		if !bytes.Contains(latest, []byte(want)) {
 			t.Fatalf("final Card omitted %q", want)
 		}

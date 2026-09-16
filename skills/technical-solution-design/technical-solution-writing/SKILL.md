@@ -1,66 +1,68 @@
 ---
 name: technical-solution-writing
-description: 将八个已确认片段和附录组装为保留九个语义章节、并按内容展开三级标题的正式技术方案。用于 technical-solution-design 的方案成文 Step；不得重新推导或静默修改上游结论。
+description: 将十一个已确认章节组装为按读者理解路径展开的正式技术文档。用于 technical-solution-design 的文档组装 Step；不得重新推导或静默修改上游结论。
 ---
 
-# 组装正式技术方案
+# 组装正式技术文档
 
 ## 产物列表
 
 | 逻辑产物 | 承载与完整性要求 |
 |---|---|
-| 完整技术方案文档 | `technical-solution.md`；九个语义章节完整承载当前已确认的 01–08 片段，重要判断形成 What–Why–How 闭环，图文和证据可追溯 |
-| 必要附录 | `.technical-solution/sections/09-appendix.md`；保存支撑判断的数据口径、对比或接口明细、补充图与开放项，并在正文对应位置引用 |
+| 完整技术文档 | `technical-solution.md`；完整承载 00 至 10 章、主架构图、章节明确引用的辅助图与证据 |
 
-这些是逻辑产物，不要求按每条事实另建文件。组装后逐项回读清单，不能以正文文件已创建代替内容完成。
+开始前读取[推导标准](../technical-solution-review/references/reasoning.md)和
+[范文与标准](../technical-solution-review/references/exemplars.md)。范文只用于学习结论、推导、对比和
+图文组织，不是当前项目证据，也不能覆盖当前十一章契约。
 
-## 执行
+读取以下已确认产物：
 
-先读[推导标准](../technical-solution-review/references/reasoning.md)，以重要判断组织可承接的 What–Why–How，
-保持局部论证、全文取舍和证据一致；三问用于检查内容，不作为固定标题模板。
-
-成文前先读取[范文与标准](../technical-solution-review/references/exemplars.md)，按导读查看完整正文，
-学习结论、推导、对比与图文组织。范文图片是源码仓库中的可选视觉资料，不随 CLI Release 安装；
-普通成文不依赖这些图片。范文用于改善呈现，当前九章结构及已确认事实、决策仍按下文执行；
-不把历史范文内容作为当前项目的证据。
-
-读取已确认的 `.technical-solution/sections/01-background.md` 至 `08-delivery.md`、主架构图、各片段
-明确引用的辅助图及引用证据。
-先把数据口径、容量测算、对比明细、接口明细、补充时序和开放问题整理到
-`.technical-solution/sections/09-appendix.md`；附录片段不得出现 `#` 或 `##`，允许按真实内容使用
-`###`。
+```text
+.technical-solution/sections/00-summary.md
+.technical-solution/sections/01-business-background.md
+.technical-solution/sections/02-goals-and-problems.md
+.technical-solution/sections/03-business-constraints.md
+.technical-solution/sections/04-research.md
+.technical-solution/sections/05-overall-solution.md
+.technical-solution/sections/06-key-modules.md
+.technical-solution/sections/07-decisions.md
+.technical-solution/sections/08-delivery-and-risk.md
+.technical-solution/sections/09-results.md
+.technical-solution/sections/10-retrospective-and-roadmap.md
+.technical-solution/architecture.mmd
+```
 
 组装 `technical-solution.md`，结构必须精确为：
 
 ```markdown
-# <能表达方案核心结论的项目标题>
-## 1. 需求背景
-## 2. 核心问题
-## 3. 设计目标
-## 4. 方案调研
-## 5. 总体方案
-## 6. 难点解法
-## 7. 方案收益
-## 8. 落地规划
-## 9. 附录
+# <能表达核心结论的项目标题>
+## 0. 摘要
+## 1. 业务背景
+## 2. 目标与问题定义
+## 3. 业务特点与技术约束
+## 4. 业界/业内方案调研
+## 5. 总体方案设计
+## 6. 关键模块设计
+## 7. 核心技术决策与取舍
+## 8. 落地路径与风险控制
+## 9. 结果收益
+## 10. 复盘与后续规划
 ```
 
-一个项目标题和九个 Markdown 二级标题是稳定的九个语义章节。允许 `###` 按项目的真实内容动态
-命名和组织，但必须归属当前 `##`；禁止 `####` 及手工 `1.1` 式可见标题。章节内部用加粗结论、
-短段落、表格、列表、图片、Mermaid 和引用组织细节，不为凑模板制造空标题。每一屏内容都应有
-明确结论、事实与推导，避免大幅留白。
+允许 `###` 按项目真实内容组织，但必须归属当前 `##`；禁止 `####` 及更深标题、手工 `1.1` 式
+子编号、空模板标题和附录章节。总体架构图嵌入第五章并解释边界、上下游、组件、依赖和箭头含义；
+辅助图只组装章节明确引用且与正文一致的文件。
 
-标题要短、具体、有吸引点，使用“描述性定语 + 通俗后台术语”，避免“可用性”“性能”一类空词。
-关键数据标明来源、时间、口径和证据状态；现状事实/已测、估算、目标与待确认必须区分。总体架构
-图嵌入第五节并解释边界、上下游、组件、依赖、数据流和箭头含义。辅助图只组装片段明确引用且
-与正文一致的文件，不扫描或猜测其他文件。
+按用户用途调整表达重心，但不改变章节：
 
-本 Step 组装已确认材料，可以去重、调整同一语义章节内的呈现顺序、修改过渡句，并显式串联片段中
-已有且可定位的因果关系。保留 What、Why、How 及其证据的对应关系，不把解释依据裁掉而只留下措施。
-不得新建因果关系、补造选型理由或改变片段结论、目标承诺与章节归属。发现依据缺失或语义冲突时，
-按最早受影响层上报 `background_changed` 至 `delivery_changed` 中的一项，并在 Evidence 写明冲突、
-保留内容、失效产物和回流 Step。
+- 晋升：突出业务价值、技术深度、个人 owner 范围、影响力和规划能力；
+- 分享：突出问题抽象、方案复用、关键经验、适用边界和踩坑清单；
+- 融合：同时保留两类证据，仍按评委或听众的理解路径而非时间线组织。
 
-写入后回读并验证：恰好一个项目标题、九个规定 `##` 且顺序正确，所有 `###` 均嵌套在所属语义
-章节中，不含 `####` 或手工 `1.1`，九节均非空，重要判断的三问可定位、前后取舍一致，证据状态完整，图文链接有效。成功时上报
-`technical_solution_written` 和 `technical-solution.md` 路径。
+本 Step 可以去重、调整同一章节内的呈现顺序和过渡句，但不得新建因果关系、补造选型理由、改变
+事实状态、目标承诺或贡献归属。发现依据缺失或语义冲突时，按最早受影响章上报
+`background_changed` 至 `summary_changed` 中的一项；仅标题、顺序或图文呈现问题留在本 Step 修复。
+
+写入后回读验证：恰好一个项目标题、十一个规定 `##` 且顺序正确、所有章节非空、没有附录、所有
+`###` 合法、关键事实有证据状态、图文链接有效。成功时上报 `technical_solution_written` 和
+`technical-solution.md` 路径。

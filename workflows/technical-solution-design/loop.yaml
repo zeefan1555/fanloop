@@ -6,51 +6,51 @@ loop:
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
 
-  analyze_core_problem:
+  define_goals_and_problems:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
 
-  define_design_objectives:
+  define_business_constraints:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
 
   confirm_technical_problem:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[problem_document_published, panorama_card_published, background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_document_published, panorama_card_published, problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[problem_document_published, panorama_card_published, goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_document_published, panorama_card_published, objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[problem_document_published, panorama_card_published, business_constraints_changed]]}
+      back_step_id: define_business_constraints
 
   research_solution_options:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
 
   design_overall_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[research_changed]]}
       back_step_id: research_solution_options
@@ -60,11 +60,11 @@ loop:
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[research_changed]]}
       back_step_id: research_solution_options
@@ -72,16 +72,36 @@ loop:
       when: {any_of: [[overall_solution_changed]]}
       back_step_id: design_overall_solution
 
+  record_technical_decisions:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_modules_changed]]}
+      back_step_id: design_key_solutions
+
   confirm_solution_direction:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[solution_document_published, panorama_card_published, background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[solution_document_published, panorama_card_published, problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[solution_document_published, panorama_card_published, goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[solution_document_published, panorama_card_published, objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[solution_document_published, panorama_card_published, business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[solution_document_published, panorama_card_published, research_changed]]}
       back_step_id: research_solution_options
@@ -89,39 +109,22 @@ loop:
       when: {any_of: [[solution_document_published, panorama_card_published, overall_solution_changed]]}
       back_step_id: design_overall_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[solution_document_published, panorama_card_published, key_solutions_changed]]}
+      when: {any_of: [[solution_document_published, panorama_card_published, key_modules_changed]]}
       back_step_id: design_key_solutions
-
-  evaluate_solution_benefits:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[background_changed]]}
-      back_step_id: frame_requirement_background
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[objectives_changed]]}
-      back_step_id: define_design_objectives
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[research_changed]]}
-      back_step_id: research_solution_options
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[overall_solution_changed]]}
-      back_step_id: design_overall_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[key_solutions_changed]]}
-      back_step_id: design_key_solutions
+      when: {any_of: [[solution_document_published, panorama_card_published, technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
 
   plan_solution_delivery:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[research_changed]]}
       back_step_id: research_solution_options
@@ -129,22 +132,109 @@ loop:
       when: {any_of: [[overall_solution_changed]]}
       back_step_id: design_overall_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[key_solutions_changed]]}
+      when: {any_of: [[key_modules_changed]]}
       back_step_id: design_key_solutions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[benefits_changed]]}
+      when: {any_of: [[technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
+
+  evaluate_solution_benefits:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_modules_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[delivery_changed]]}
+      back_step_id: plan_solution_delivery
+
+  write_retrospective_and_roadmap:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_modules_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[delivery_changed]]}
+      back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[results_changed]]}
       back_step_id: evaluate_solution_benefits
+
+  write_summary:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[background_changed]]}
+      back_step_id: frame_requirement_background
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[research_changed]]}
+      back_step_id: research_solution_options
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[overall_solution_changed]]}
+      back_step_id: design_overall_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[key_modules_changed]]}
+      back_step_id: design_key_solutions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[delivery_changed]]}
+      back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[results_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[retrospective_changed]]}
+      back_step_id: write_retrospective_and_roadmap
 
   write_technical_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[research_changed]]}
       back_step_id: research_solution_options
@@ -152,25 +242,34 @@ loop:
       when: {any_of: [[overall_solution_changed]]}
       back_step_id: design_overall_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[key_solutions_changed]]}
+      when: {any_of: [[key_modules_changed]]}
       back_step_id: design_key_solutions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[benefits_changed]]}
-      back_step_id: evaluate_solution_benefits
+      when: {any_of: [[technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[delivery_changed]]}
       back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[results_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[retrospective_changed]]}
+      back_step_id: write_retrospective_and_roadmap
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[summary_changed]]}
+      back_step_id: write_summary
 
   review_technical_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_review_written, background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_review_written, problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[technical_solution_review_written, goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_review_written, objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[technical_solution_review_written, business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_review_written, research_changed]]}
       back_step_id: research_solution_options
@@ -178,14 +277,23 @@ loop:
       when: {any_of: [[technical_solution_review_written, overall_solution_changed]]}
       back_step_id: design_overall_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_review_written, key_solutions_changed]]}
+      when: {any_of: [[technical_solution_review_written, key_modules_changed]]}
       back_step_id: design_key_solutions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_review_written, benefits_changed]]}
-      back_step_id: evaluate_solution_benefits
+      when: {any_of: [[technical_solution_review_written, technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_review_written, delivery_changed]]}
       back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, results_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, retrospective_changed]]}
+      back_step_id: write_retrospective_and_roadmap
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_review_written, summary_changed]]}
+      back_step_id: write_summary
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_review_written, presentation_changed]]}
       back_step_id: write_technical_solution
@@ -195,11 +303,11 @@ loop:
       when: {any_of: [[technical_solution_document_published, panorama_card_published, background_changed]]}
       back_step_id: frame_requirement_background
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_document_published, panorama_card_published, problem_changed]]}
-      back_step_id: analyze_core_problem
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, goals_and_problems_changed]]}
+      back_step_id: define_goals_and_problems
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_document_published, panorama_card_published, objectives_changed]]}
-      back_step_id: define_design_objectives
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, business_constraints_changed]]}
+      back_step_id: define_business_constraints
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_document_published, panorama_card_published, research_changed]]}
       back_step_id: research_solution_options
@@ -207,14 +315,23 @@ loop:
       when: {any_of: [[technical_solution_document_published, panorama_card_published, overall_solution_changed]]}
       back_step_id: design_overall_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_document_published, panorama_card_published, key_solutions_changed]]}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, key_modules_changed]]}
       back_step_id: design_key_solutions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
-      when: {any_of: [[technical_solution_document_published, panorama_card_published, benefits_changed]]}
-      back_step_id: evaluate_solution_benefits
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, technical_decisions_changed]]}
+      back_step_id: record_technical_decisions
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_document_published, panorama_card_published, delivery_changed]]}
       back_step_id: plan_solution_delivery
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, results_changed]]}
+      back_step_id: evaluate_solution_benefits
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, retrospective_changed]]}
+      back_step_id: write_retrospective_and_roadmap
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
+      when: {any_of: [[technical_solution_document_published, panorama_card_published, summary_changed]]}
+      back_step_id: write_summary
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_earliest_affected_section}
       when: {any_of: [[technical_solution_document_published, panorama_card_published, presentation_changed]]}
       back_step_id: write_technical_solution
