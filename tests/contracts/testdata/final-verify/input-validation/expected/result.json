@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "final-verify-input-validation",
+  "commands": [
+    {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"validation\",\n    \"code\": \"INVALID_INPUT_JSON\",\n    \"message\": \"json: unknown field \\\"unexpected\\\"\",\n    \"hint\": \"Pass one JSON object matching the command Request.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"verify.doctor\"\n  },\n  \"_notice\": {}\n}\n"
+    },
+    {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"validation\",\n    \"code\": \"INVALID_INPUT_JSON\",\n    \"message\": \"json: unknown field \\\"unexpected\\\"\",\n    \"hint\": \"Pass one JSON object matching the command Request.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"verify.smoke\"\n  },\n  \"_notice\": {}\n}\n"
+    },
+    {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"validation\",\n    \"code\": \"INVALID_INPUT_JSON\",\n    \"message\": \"json: unknown field \\\"unexpected\\\"\",\n    \"hint\": \"Pass one JSON object matching the command Request.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"verify.snapshot\",\n    \"requirement_root\": \"\u003cROOT\u003e\"\n  },\n  \"_notice\": {}\n}\n"
+    },
+    {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"validation\",\n    \"code\": \"INVALID_INPUT_JSON\",\n    \"message\": \"json: unknown field \\\"unexpected\\\"\",\n    \"hint\": \"Pass one JSON object matching the command Request.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"verify.cleanup\"\n  },\n  \"_notice\": {}\n}\n"
+    }
+  ],
+  "files": {
+    ".fanloop/log/cli.jsonl": {
+      "mode": "0600",
+      "sha256": "485a0efb125225e8fdc4c9e3d13327b2d5f054569e289f604ef590b4cdc9f565",
+      "content": "{\"schema_version\":2,\"invocation_id\":\"\u003cINVOCATION_ID\u003e\",\"started_at\":\"\u003cTIMESTAMP\u003e\",\"duration_ms\":0,\"command_id\":\"verify.snapshot\",\"cli_version\":\"dev\",\"release_version\":\"dev\",\"commit_sha\":\"unknown\",\"dry_run\":false,\"exit_code\":2,\"error_code\":\"INVALID_INPUT_JSON\",\"arguments\":[\"verify\",\"snapshot\",\"--root\",\"\u003cROOT\u003e\",\"--input\",\"{\\\"unexpected\\\":true}\"],\"stdin\":\"\",\"stdout\":\"\",\"stderr\":\"{\\n  \\\"ok\\\": false,\\n  \\\"error\\\": {\\n    \\\"type\\\": \\\"validation\\\",\\n    \\\"code\\\": \\\"INVALID_INPUT_JSON\\\",\\n    \\\"message\\\": \\\"json: unknown field \\\\\\\"unexpected\\\\\\\"\\\",\\n    \\\"hint\\\": \\\"Pass one JSON object matching the command Request.\\\",\\n    \\\"retryable\\\": false\\n  },\\n  \\\"meta\\\": {\\n    \\\"command\\\": \\\"verify.snapshot\\\",\\n    \\\"requirement_root\\\": \\\"\u003cROOT\u003e\\\"\\n  },\\n  \\\"_notice\\\": {}\\n}\\n\"}\n"
+    }
+  }
+}
