@@ -25,6 +25,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、Skills、
 范文文本和校验清单的可运行目录；范文图片仅保留在源码仓库的 `exemplars/`，不进入构建目录。
+根级 `VERSION` 是版本真值；干净提交显示该 SemVer，未提交源码构建显示对应的 `-dev.<摘要>` 预发布版本。
 
 只构建、直接运行：
 

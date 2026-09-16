@@ -70,6 +70,19 @@ func TestLocalBuildGuardRejectsOutputInsideCopiedOrGitTrees(t *testing.T) {
 	}
 }
 
+func TestLocalBuildGuardRejectsInvalidVersion(t *testing.T) {
+	repository, environment := localBuildGuardRepository(t)
+	if err := os.WriteFile(filepath.Join(repository, "VERSION"), []byte("local-build\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(filepath.Join(repository, "scripts", "build-local.sh"))
+	command.Env = environment
+	output, err := command.CombinedOutput()
+	if err == nil || !strings.Contains(string(output), "VERSION must contain a semantic version") {
+		t.Fatalf("invalid version was not rejected: %v\n%s", err, output)
+	}
+}
+
 // Only Go is replaced: the guard runs the real script and Git against a tiny repo.
 func localBuildGuardRepository(t *testing.T) (string, []string) {
 	t.Helper()
@@ -83,6 +96,7 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 	}
 	for name, content := range map[string][]byte{
 		"scripts/build-local.sh": script,
+		"VERSION":                []byte("1.2.3\n"),
 		".gitignore":             []byte("/dist/\n"), "tracked.go": []byte("initial\n"),
 		"skills/example/SKILL.md":         []byte("example\n"),
 		"entrypoints/example/SKILL.md":    []byte("entry\n"),
