@@ -23,9 +23,10 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 ## 本地构建与安装
 
-从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、Skills、
-范文文本和校验清单的可运行目录；范文图片仅保留在源码仓库的 `exemplars/`，不进入构建目录。
-根级 `VERSION` 是版本真值；干净提交显示该 SemVer，未提交源码构建显示对应的 `-dev.<摘要>` 预发布版本。
+从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、统一入口和
+校验清单的可运行目录；`skills/` 与 `exemplars/` 是源码仓库中的 live 配置，不进入构建目录。
+根级 `VERSION` 是 CLI 版本真值；Skill/范文改动不改变 CLI 版本，其他未提交源码改动显示对应的
+`-dev.<摘要>` 预发布版本。
 
 只构建、直接运行：
 
@@ -46,8 +47,11 @@ fanloop_build_dir="$(./scripts/build-local.sh)"
 export PATH="$HOME/.fanloop/current/bin:$PATH"
 ```
 
-安装先校验二进制及配套内容，通过 Doctor 后原子切换 `~/.fanloop/current`。更新时在选定源码
-提交上重新执行 `./scripts/install-local.sh`；已有 Requirement 继续使用与其绑定内容匹配的本地版本。
+安装先校验二进制、Workflow、统一入口和 live Skill 配置，通过 Doctor 后原子切换
+`~/.fanloop/current`，并让 `~/.fanloop/config/current` 指向当前源码仓库。CLI 每次返回 Status 时都从
+该配置根解析 Skill 路径；之后只修改或拉取 `skills/`、`exemplars/` 即可立即生效，不需要重建或重装
+CLI。需要使用另一份配置仓库时，在安装时设置绝对路径 `FANLOOP_CONFIG_SOURCE`；运行时可用
+`FANLOOP_CONFIG_ROOT` 覆盖。
 
 ## 使用
 
@@ -96,8 +100,9 @@ skills/<workflow-id>/<skill-id>/SKILL.md
 entrypoints/fanloop-workflow/routes.yaml
 ```
 
-五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。构建会
-拒绝目录不一一对应、跨 Workflow SkillBinding、未知场景目标、缺失 Route 或图不变量错误。
+五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。构建和
+Doctor 会拒绝 live Skill 配置目录不一一对应、跨 Workflow SkillBinding、未知场景目标、缺失 Route
+或图不变量错误。
 
 Human Step 的审批 Skill 展示审核材料，Panorama Skill 按当前宿主原样展示 renderer 生成的紧凑
 全景，并把本次 `snapshot_path` 与审核结论一起上报。`technical-solution-design` 的三处审核还要求
@@ -134,7 +139,8 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。现有 CI 验证代码和本地安装，使用者自行从源码
 构建；不发布 npm 包、跨平台归档或 GitHub 二进制制品。构建与安装边界见
-[ADR-0095](./docs/adr/0095-local-source-builds.md)。代码授权仍为 `UNLICENSED`。
+[ADR-0095](./docs/adr/0095-local-source-builds.md)，live Skill 配置边界见
+[ADR-0099](./docs/adr/0099-load-skills-from-live-configuration.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

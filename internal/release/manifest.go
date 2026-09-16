@@ -82,7 +82,6 @@ func (value Manifest) Validate() error {
 		workflowIDs[item.Id] = true
 	}
 	names := map[string]bool{}
-	skillGroups := map[string]bool{}
 	for _, skill := range value.Skills {
 		if skill == nil {
 			return fmt.Errorf("release contains nil skill")
@@ -101,15 +100,9 @@ func (value Manifest) Validate() error {
 		if !workflowIDs[group] {
 			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, group)
 		}
-		skillGroups[group] = true
 	}
 	if !names[ExposedSkillName] {
 		return fmt.Errorf("release is missing exposed Skill %q", ExposedSkillName)
-	}
-	for workflowID := range workflowIDs {
-		if !skillGroups[workflowID] {
-			return fmt.Errorf("Workflow %q is missing matching skills/%s group", workflowID, workflowID)
-		}
 	}
 
 	return nil

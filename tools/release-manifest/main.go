@@ -13,6 +13,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/idl/releaseidl"
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 	"go.yaml.in/yaml/v3"
@@ -21,7 +22,7 @@ import (
 func main() {
 	version := flag.String("version", "", "release version")
 	source := flag.String("source", ".", "repository root")
-	dist := flag.String("dist", "dist", "local build directory containing bin/fanloop, entrypoints, skills and workflows")
+	dist := flag.String("dist", "dist", "local build directory containing bin/fanloop, entrypoints and workflows")
 	output := flag.String("output", "release.json", "manifest output path")
 	flag.Parse()
 	if *version == "" {
@@ -48,14 +49,11 @@ func build(version, source, dist string) (release.Manifest, error) {
 		},
 		Skills: []*release.Skill{}, Workflows: []*release.Workflow{},
 	}
-	if err := validateWorkflowSkillDirectories(source); err != nil {
-		return manifest, err
-	}
-	skills, err := discoverSkills(source, version)
+	entrypoint, err := discoverEntrypoint(source, version)
 	if err != nil {
 		return manifest, err
 	}
-	manifest.Skills = skills
+	manifest.Skills = []*release.Skill{entrypoint}
 
 	workflowPaths, err := filepath.Glob(filepath.Join(source, "workflows", "*", "workflow.yaml"))
 	if err != nil {
@@ -81,7 +79,7 @@ func build(version, source, dist string) (release.Manifest, error) {
 		})
 		loadedWorkflows = append(loadedWorkflows, loaded)
 	}
-	if err := validateWorkflowSkillBindings(manifest, loadedWorkflows); err != nil {
+	if _, err := skillconfig.Validate(source, loadedWorkflows); err != nil {
 		return manifest, err
 	}
 	selectorPath := filepath.Join(source, "entrypoints", release.ExposedSkillName, "routes.yaml")
@@ -98,85 +96,6 @@ func build(version, source, dist string) (release.Manifest, error) {
 		return manifest, err
 	}
 	return manifest, nil
-}
-
-func validateWorkflowSkillDirectories(source string) error {
-	groups := func(root string) ([]string, error) {
-		entries, err := os.ReadDir(filepath.Join(source, root))
-		if err != nil {
-			return nil, err
-		}
-		result := []string{}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				result = append(result, entry.Name())
-			}
-		}
-		sort.Strings(result)
-		return result, nil
-	}
-	workflows, err := groups("workflows")
-	if err != nil {
-		return fmt.Errorf("list Workflow directories: %w", err)
-	}
-	skills, err := groups("skills")
-	if err != nil {
-		return fmt.Errorf("list Skill directories: %w", err)
-	}
-	if strings.Join(workflows, "\x00") != strings.Join(skills, "\x00") {
-		return fmt.Errorf("Workflow and Skill directories must match: workflows=%v skills=%v", workflows, skills)
-	}
-	return nil
-}
-
-func validateWorkflowSkillBindings(manifest release.Manifest, loaded []workflow.Loaded) error {
-	skills := make(map[string]string, len(manifest.Skills))
-	workflowIDs := make(map[string]bool, len(manifest.Workflows))
-	workflowGroups := make(map[string]bool, len(manifest.Workflows))
-	for _, item := range manifest.Workflows {
-		workflowIDs[item.Id] = true
-	}
-	for _, skill := range manifest.Skills {
-		if _, exists := skills[skill.Name]; exists {
-			return fmt.Errorf("duplicate Skill %q", skill.Name)
-		}
-		skills[skill.Name] = skill.Path
-		if skill.Name == release.ExposedSkillName {
-			if skill.Path != release.ExposedSkillPath {
-				return fmt.Errorf("exposed Skill %q uses invalid path %q", skill.Name, skill.Path)
-			}
-			continue
-		}
-		parts := strings.Split(skill.Path, "/")
-		if len(parts) != 3 || parts[0] != "skills" {
-			return fmt.Errorf("Skill %q uses invalid group path %q", skill.Name, skill.Path)
-		}
-		group := parts[1]
-		if !workflowIDs[group] {
-			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, group)
-		}
-		workflowGroups[group] = true
-	}
-	for workflowID := range workflowIDs {
-		if !workflowGroups[workflowID] {
-			return fmt.Errorf("Workflow %q is missing matching skills/%s group", workflowID, workflowID)
-		}
-	}
-	for _, item := range loaded {
-		for promptID, prompt := range item.Workflow.Prompts {
-			for _, binding := range prompt.Skills {
-				path, ok := skills[binding.ID]
-				if !ok {
-					return fmt.Errorf("Workflow %s prompt %s uses unknown Skill %q", item.Workflow.ID, promptID, binding.ID)
-				}
-				owned := strings.HasPrefix(path, "skills/"+item.Workflow.ID+"/")
-				if !owned {
-					return fmt.Errorf("Workflow %s cannot use Skill %q from %s", item.Workflow.ID, binding.ID, path)
-				}
-			}
-		}
-	}
-	return nil
 }
 
 type selectorRoutes struct {
@@ -227,7 +146,7 @@ func validateSelectorRoutes(path string, manifest release.Manifest) error {
 	return nil
 }
 
-func discoverSkills(source, version string) ([]*release.Skill, error) {
+func discoverEntrypoint(source, version string) (*release.Skill, error) {
 	entrypoint := filepath.Join(source, release.ExposedSkillPath, "SKILL.md")
 	info, err := os.Stat(entrypoint)
 	if err != nil {
@@ -236,44 +155,12 @@ func discoverSkills(source, version string) ([]*release.Skill, error) {
 	if !info.Mode().IsRegular() {
 		return nil, fmt.Errorf("exposed Skill is not a regular file: %s", entrypoint)
 	}
-	paths := []string{entrypoint}
-	err = filepath.WalkDir(filepath.Join(source, "skills"), func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil || entry.IsDir() || entry.Name() != "SKILL.md" {
-			return walkErr
-		}
-		relative, err := filepath.Rel(source, path)
-		if err != nil {
-			return err
-		}
-		if parts := strings.Split(filepath.ToSlash(relative), "/"); len(parts) != 4 || parts[0] != "skills" {
-			return fmt.Errorf("Skill entry must use skills/<workflow-id>/<skill-id>/SKILL.md: %s", relative)
-		}
-		paths = append(paths, path)
-		return nil
-	})
+	root := filepath.Dir(entrypoint)
+	digest, err := release.DirectoryDigest(root)
 	if err != nil {
-		return nil, fmt.Errorf("find Skills: %w", err)
+		return nil, err
 	}
-	if len(paths) == 0 {
-		return nil, fmt.Errorf("no Skills found")
-	}
-	sort.Strings(paths)
-	result := make([]*release.Skill, 0, len(paths))
-	for _, skillFile := range paths {
-		root := filepath.Dir(skillFile)
-		relative, err := filepath.Rel(source, root)
-		if err != nil {
-			return nil, err
-		}
-		digest, err := release.DirectoryDigest(root)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, &release.Skill{
-			Name: filepath.Base(root), Version: version, Path: filepath.ToSlash(relative), Sha256: digest,
-		})
-	}
-	return result, nil
+	return &release.Skill{Name: release.ExposedSkillName, Version: version, Path: release.ExposedSkillPath, Sha256: digest}, nil
 }
 
 // Verify the copied build against the source manifest before writing release.json.

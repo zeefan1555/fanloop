@@ -2,16 +2,12 @@ package workflowview
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
-	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
-	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
@@ -188,58 +184,15 @@ func skills(values []workflow.SkillBinding, paths map[string]string) []*flowidl.
 }
 
 func skillPaths(workflowID string) map[string]string {
-	root, packaged := skillRoot()
-	paths := map[string]string{}
-	if packaged {
-		manifest, err := release.Load(root)
-		if err != nil {
-			return paths
-		}
-		for _, skill := range manifest.Skills {
-			directory, err := release.Resolve(root, skill.Path)
-			if err == nil {
-				addSkillPath(paths, skill.Name, filepath.Join(directory, "SKILL.md"))
-			}
-		}
-		return paths
-	}
-	group := filepath.Join(root, "skills", workflowID)
-	entries, err := os.ReadDir(group)
+	root, err := skillconfig.DefaultRoot()
 	if err != nil {
-		return paths
+		return map[string]string{}
 	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			addSkillPath(paths, entry.Name(), filepath.Join(group, entry.Name(), "SKILL.md"))
-		}
+	paths, err := skillconfig.Paths(root, workflowID)
+	if err != nil {
+		return map[string]string{}
 	}
 	return paths
-}
-
-func skillRoot() (string, bool) {
-	if buildinfo.ReleaseVersion == "dev" {
-		_, source, _, ok := runtime.Caller(0)
-		if !ok {
-			return "", false
-		}
-		return filepath.Clean(filepath.Join(filepath.Dir(source), "..", "..")), false
-	}
-	executable, err := os.Executable()
-	if err != nil {
-		return "", true
-	}
-	resolved, err := filepath.EvalSymlinks(executable)
-	if err != nil {
-		return "", true
-	}
-	return release.RootForExecutable(resolved), true
-}
-
-func addSkillPath(paths map[string]string, name, path string) {
-	info, err := os.Lstat(path)
-	if err == nil && info.Mode().IsRegular() {
-		paths[name] = path
-	}
 }
 
 func executor(value workflow.StepExecutor) flowidl.Executor {
