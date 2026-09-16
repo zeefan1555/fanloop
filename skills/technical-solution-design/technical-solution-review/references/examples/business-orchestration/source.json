@@ -10,7 +10,7 @@
   "media_note": "Images are original downloaded bytes; whiteboard previews and embedded sheet are independently retrieved current resources, not pinned by the document revision. No editable whiteboard node data is included.",
   "media": [
     {
-      "path": "images/01-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/01-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "CsuhwU8y1h2yzXbZj8rc9185nMb",
       "caption": "原文画板 01",
@@ -25,7 +25,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/02-media.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/02-media.jpg",
       "source_type": "media",
       "source_token": "FOsfbx7Y0okf6kxH9qVcxdcWnSf",
       "caption": "原文图片 02",
@@ -44,7 +44,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/03-media.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/03-media.jpg",
       "source_type": "media",
       "source_token": "Hgs8bhEPJoiZysxH6iecIqzenUa",
       "caption": "原文图片 03",
@@ -63,7 +63,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/04-media.png",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/04-media.png",
       "source_type": "media",
       "source_token": "AatmbfpJko87Wox9PJ3c1YaGnsc",
       "caption": "原文图片 04",
@@ -82,7 +82,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/05-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/05-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "RgnEwmyjZhWCq8bDG3WcuLcZnQb",
       "caption": "原文画板 05",
@@ -97,7 +97,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/06-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/06-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "CTE3wlh1Thk1hdbSUnxcWIWInyf",
       "caption": "原文画板 06",
@@ -112,7 +112,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/07-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/07-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "ZBCmw9HmnhapUnbdKPtcVYsxnce",
       "caption": "原文画板 07",
@@ -127,7 +127,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/08-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/08-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "Jq2swcloMhVBtAbPCxScy5dDnTq",
       "caption": "原文画板 08",
@@ -142,7 +142,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/09-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/09-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "O6hqwW8dlhTLCeb4UQHcGPdWnJf",
       "caption": "原文画板 09",
@@ -157,7 +157,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/10-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/10-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "B9WiwMRkjh2JiZb5tc1ckLKVnxh",
       "caption": "原文画板 10",
@@ -172,7 +172,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/11-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/11-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "Gnu6w7e3qhdunUbRY9bcjYuZnId",
       "caption": "原文画板 11",
@@ -187,7 +187,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/12-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/12-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "UuwZw0r2KhUT9DbvV65cBXibnCb",
       "caption": "原文画板 12",
@@ -202,7 +202,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/13-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/13-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "SpTQwJgKUhRyCzbrUhMcp6bVnMc",
       "caption": "原文画板 13",
@@ -217,7 +217,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/14-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/14-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "EJgPwiKFKhjPWPbRzrac0mIVnlf",
       "caption": "原文画板 14",
@@ -232,7 +232,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/15-whiteboard.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/15-whiteboard.jpg",
       "source_type": "whiteboard",
       "source_token": "ZEq8wdDmthJ8gXbU19ic9RxcnOd",
       "caption": "原文画板 15",
@@ -247,7 +247,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/16-media.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/16-media.jpg",
       "source_type": "media",
       "source_token": "Mo2Ab5GUAob6PbxPOVhcrMyVnGf",
       "caption": "原文图片 16",
@@ -266,7 +266,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/17-media.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/17-media.jpg",
       "source_type": "media",
       "source_token": "DGztbyofKoFPcJx9hkscpYd8nic",
       "caption": "原文图片 17",
@@ -285,7 +285,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/18-media.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/18-media.jpg",
       "source_type": "media",
       "source_token": "GKFtbPlnyon5uvxpgaOcCG4enAe",
       "caption": "原文图片 18",
@@ -304,7 +304,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/19-media.jpg",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/19-media.jpg",
       "source_type": "media",
       "source_token": "JT4MbgOmIow5bpx2Yy9cDhtwnbf",
       "caption": "原文图片 19",
@@ -323,7 +323,7 @@
       "retrieved_at_utc": "2026-09-08T04:32:27.624184+00:00"
     },
     {
-      "path": "images/20-media.png",
+      "path": "../../../../../../exemplars/technical-solution/business-orchestration/images/20-media.png",
       "source_type": "media",
       "source_token": "Vv6LbaI8ZoH8SWxBDy1cii2Xnid",
       "caption": "原文图片 20",

@@ -32,7 +32,7 @@
 
 <blockquote><p><a href="https://bytedance.larkoffice.com/wiki/MrOQw281ji69ypkyltwcXSkSnvd">多人场景稳定性</a><a href="https://bytedance.larkoffice.com/docx/A6AKdB3N0oWmYKx8JmucIEisn2e">聊天室端到端全链路稳定性建设</a><a href="https://bytedance.larkoffice.com/docx/H6l0dHz00oZgx8x8fz4css8vndf">2024——多人营收端到端稳定性建设</a></p></blockquote>
 
-<img src="images/01-whiteboard.jpg" alt="原文画板 01" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/01-whiteboard.jpg" alt="原文画板 01" />
 
      2024年Q1多人整体启动了鲁棒性分析，聚焦服务视角的整体分析(上游分析、内部分析、下游分析)，argos平台可辅助生成流量相关数据(如qps、latency、流量放大数据)，但类似下游依赖关系、并行度、是否异步、整体调用图结构无法自动分析（需要纯人工），当前单接口根据接口复杂度鲁棒性分析耗时2day\~4day不等，且分析结果仅对当前有效，无法应对业务迭代、架构优化等产生的劣化，无法主动发现规避增量问题的发生。
 
@@ -57,13 +57,13 @@
 >
 >
 >
-> ![原文图片 02](images/02-media.jpg)
+> ![原文图片 02](../../../../../../exemplars/technical-solution/business-orchestration/images/02-media.jpg)
 >
 >
-> ![原文图片 03](images/03-media.jpg)
+> ![原文图片 03](../../../../../../exemplars/technical-solution/business-orchestration/images/03-media.jpg)
 >
 >
-> ![原文图片 04](images/04-media.png)
+> ![原文图片 04](../../../../../../exemplars/technical-solution/business-orchestration/images/04-media.png)
 >
 >
 >
@@ -73,7 +73,7 @@
 > 4. 各类后置逻辑（更新room信息、更新toolbar、连麦心跳、连麦记忆功能、多人直播间背景、自动上麦、预上麦逻辑、连麦WRDS，5+各类低版本宿主兼容逻辑 等 ）
 > 5. 发送IM（ 如开启连麦IM、进房连麦IM， 主线IM、SaasIM、各类端+低版本兼容逻辑，如上图）
 
-<img src="images/05-whiteboard.jpg" alt="原文画板 05" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/05-whiteboard.jpg" alt="原文画板 05" />
 
 ## 业务编排现状
 
@@ -81,7 +81,7 @@
 
 <blockquote><p><a href="https://bytedance.larkoffice.com/docx/doxcnNTzekR7pOBJCfSoMSzCsuN">新人串讲-观众连麦业务重构总结及思考</a><a href="https://bytedance.larkoffice.com/docx/doxcnYRO6Cg4Grt06DxpSv4wr7c">社交连麦业务rpc大量重复调用问题</a>， exam <a href="https://code.byted.org/webcast/linkmic_audience_api/blob/d354dab3ae3a9246d48596e932eef0afc1fa62dd/internal/handlers/std_join_channel/join_channel.go">part1</a></p></blockquote>
 
-<img src="images/06-whiteboard.jpg" alt="原文画板 06" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/06-whiteboard.jpg" alt="原文画板 06" />
 
 核心思路为领域驱动设计DDD实践逻辑，对业务建模，确定上下文边界，抽象可复用的领域资产。
 
@@ -94,7 +94,7 @@
 
 <blockquote><p><a href="https://bytedance.larkoffice.com/docx/doxcnvCxIWGoRlQNfFq317Qebgh">观众连麦接口latency技术优化方案</a><a href="https://bytedance.larkoffice.com/wiki/DhrGwdRnFiQRznk7yLfci4W7nCg">观众连线切存储架构技术方案</a> exam <a href="https://code.byted.org/webcast/linkmic_controller/blob/master/internal/handlers/update_position/handler.go">part2</a></p></blockquote>
 
-<img src="images/07-whiteboard.jpg" alt="原文画板 07" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/07-whiteboard.jpg" alt="原文画板 07" />
 
 将请求逻辑拆分为独立的模块节点，可以同时把执行的node组装在一起，实际`数据依赖方`放到`数据提供方`的后置节点中，最终组装为多个step，同一个step中的模块并行执行，后置step等待前置step结束，以保障数据就绪。
 
@@ -112,13 +112,13 @@
 
 当然，我们可以把 B 放在 C 的 step 里。但，1. 理解困难；2. E/F 还是无效的在 wait C。
 
-<img src="images/08-whiteboard.jpg" alt="原文画板 08" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/08-whiteboard.jpg" alt="原文画板 08" />
 
 #### 最大并发编排初探
 
 <blockquote><p><a href="https://bytedance.larkoffice.com/docs/doccnfT8qNqLafuqJrVIef155Gh">连麦 LinkedList 打包重构</a><a href="https://bytedance.larkoffice.com/wiki/wikcnxR683TOGvxsHWPqkX3ihqe">Dsync简介</a></p></blockquote>
 
-<img src="images/09-whiteboard.jpg" alt="原文画板 09" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/09-whiteboard.jpg" alt="原文画板 09" />
 
 手动拆分节点Loader，人工维护各个节点的依赖关系，节点之间输出传递使用全局变量沟通。
 
@@ -206,7 +206,7 @@ func Init(lctx *linkmic_context.LinkMicContext, req *controller.InitRequest){
 
 基于变量依赖的方式自动构建DAG，实现最优并发执行，消除业务迭代带来的架构劣化风险；
 
-<img src="images/10-whiteboard.jpg" alt="原文画板 10" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/10-whiteboard.jpg" alt="原文画板 10" />
 
 **变量即依赖！**
 
@@ -263,7 +263,7 @@ func Init(ctx context.Context, req){
 
 ### 调度实现
 
-<img src="images/11-whiteboard.jpg" alt="原文画板 11" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/11-whiteboard.jpg" alt="原文画板 11" />
 
 **核心思路**：拓扑排序，为每个节点初始化一个入度in-degree，如节点A依赖节点B， 则节点A的入度+1；检测节点环、并发调度均如上图所示
 
@@ -342,7 +342,7 @@ func dagMerge(ctx context.Context, req){
 
 ## 自动鲁棒性分析
 
-<img src="images/12-whiteboard.jpg" alt="原文画板 12" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/12-whiteboard.jpg" alt="原文画板 12" />
 
 如上分析已经可以根据变量依赖自动推导程序执行拓扑图，服务的基础骨架已经完成，若可以知道节点中运行的实际逻辑，即可补全完整执行图。
 
@@ -390,7 +390,7 @@ func kitexClientMiddleware(next endpoint.Endpoint) endpoint.Endpoint {
 
 ### 全景图&分支图
 
-<img src="images/13-whiteboard.jpg" alt="原文画板 13" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/13-whiteboard.jpg" alt="原文画板 13" />
 
      业务开发中广泛存在if-else，单一请求几乎不可能走过接口的全部逻辑，对应到执行图上，可能一次请求走A/B/C/D节点，另外请求走A/C/E节点，即每次请求只能得到分支图，但我们在做架构分析时更希望得到的是全景图。 常规思路为基于多个请求数据，然后合并图，实现显然复杂([ByteTrace 拓扑图实现方式](https://bytedance.larkoffice.com/wiki/wikcnTQhUIVcLTFkX8m4rd9WoVc))，同时还需要保留最近N个数据用来合并，N基本无法确定且还需考虑高QPS接口问题
 
@@ -400,13 +400,13 @@ func kitexClientMiddleware(next endpoint.Endpoint) endpoint.Endpoint {
 
 ### 自动最大耗时链路分析
 
-<img src="images/14-whiteboard.jpg" alt="原文画板 14" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/14-whiteboard.jpg" alt="原文画板 14" />
 
 得益于框架的插件机制， 可以很容易得到接口总耗时以及各个节点的耗时，进而得到最大耗时链路。配合接口P99延迟，得到最大耗时链路节点，通过简单的统计计数即可知道 各个节点在最大耗时链路的时延分布、次数分布等情况，rd分别只需要治理对应节点即可。
 
 ## 技术能力一览
 
-<img src="images/15-whiteboard.jpg" alt="原文画板 15" />
+<img src="../../../../../../exemplars/technical-solution/business-orchestration/images/15-whiteboard.jpg" alt="原文画板 15" />
 
 <table><colgroup><col/><col/><col/><col/><col/></colgroup><thead><tr><th>模块</th><th>功能</th><th>方案简述</th><th>备注</th><th>进度</th></tr></thead><tbody><tr><td rowspan="3">基础能力</td><td>最优并发</td><td>基于变量自动推导、见上文</td><td></td><td>100%</td></tr><tr><td>dag调度</td><td>节点拓扑、见上文</td><td></td><td>100%</td></tr><tr><td>子图合并</td><td>基于输入变量自动合并，见上文</td><td></td><td>100%</td></tr><tr><td rowspan="3">插件模式</td><td>流程插件</td><td>职责链</td><td> 灵活感知控制 流程开始、完成</td><td>100%</td></tr><tr><td>节点插件</td><td>职责链</td><td> 灵活感知控制 节点执行</td><td>100%</td></tr><tr><td>变量插件</td><td>代理模式</td><td> 灵活感知控制 变量生成、引用传递</td><td>100%</td></tr><tr><td rowspan="4">节点控制</td><td>条件分支</td><td>每一次执行均为全景图，见上文</td><td></td><td>100%</td></tr><tr><td>轻量级节点</td><td>支持业务控制是否开启协程执行节点<blockquote><p>部分节点逻辑仅为纯内存操作、如排序、过滤、合并组装等</p></blockquote></td><td>自动方案： 配合插件能力，如框架感知某节点2分钟内，所有执行耗时均小于1ms，则逐步放量1%~100% 以轻量模式执行节点，若某次请求耗时大于1ms，则该策略失效</td><td>100%</td></tr><tr><td>超时控制</td><td>控制节点整体超时</td><td></td><td>100%</td></tr><tr><td>重试</td><td>控制节点整体重试策略</td><td></td><td>10%</td></tr><tr><td rowspan="7">稳定性&amp;架构<blockquote><p>完全基于插件模式，可拔插设计，支持一键禁用，保持基础核心能力稳定；</p><p>业务完全无感，使用该方案，支持自动分析</p></blockquote></td><td>接口架构图</td><td>见上文，鲁棒性分析</td><td></td><td>单次请求图60%<br/>聚合请求图 20%</td></tr><tr><td>流量放大、不合理调用</td><td>自动识别，可精确定位放大路径</td><td></td><td>单次请求图60%<br/>聚合请求图60%</td></tr><tr><td>同步异步</td><td>异步节点&amp;RPC自动推导</td><td><ol><li seq="1">若某几个节点为等待节点，则其父节点和间接父节点均为同步节点，其余节点均为异步，异步节点中所有RPC均为异步</li><li>若某个节点为同步节点，该节点中RPC的结束时间 大于 节点完成时间，则此RPC为异步</li></ol></td><td>30%</td></tr><tr><td>强弱依赖</td><td>基于error自动推导</td><td><ol><li seq="1">若某个RPC返回error，当前error和整体流程失败error一致（此处比较指针），则该RPC为强依赖</li><li>关键路径下的弱依赖节点耗时 大于 接口整体耗时</li></ol></td><td>0%</td></tr><tr><td>最长耗时路径</td><td>自动推导dfs、见上文</td><td></td><td>单次请求图 70%<br/>聚合请求图 20%</td></tr><tr><td>缓存分析</td><td>接口中各节点维度内部缓存请求数，命中率，回源信息等</td><td></td><td>0%</td></tr><tr><td>框架组件适配</td><td>KiteX、Redis、DB、MQ、AnyCache</td><td></td><td>KiteX 100%<br/>Redis 100%</td></tr><tr><td rowspan="3">平台化<blockquote><p>长期</p></blockquote></td><td>Mock能力</td><td>基于流程插件、节点插件、变量插件机制，来mock流程执行；mock节点执行成功失败；mock变量值</td><td>业务无需提前预埋逻辑，框架默认提供能力</td><td>0%</td></tr><tr><td>业务降级</td><td>业务无需提前预埋逻辑，框架默认提供能力</td><td><blockquote><p>如：连麦强依赖roomExtra引发事故，<a href="https://bytedance.larkoffice.com/wiki/FwiqwthIki1KGSk0L76cftyln6f">[240329][notice]【补录】房间依赖的Bytedoc扩容，在数据搬迁过程中发生异常 复盘文档</a></p></blockquote></td><td>0%</td></tr><tr><td>精细化观测</td><td></td><td></td><td>0%</td></tr></tbody></table>
 
@@ -458,10 +458,10 @@ func (n *NodeB) Declare(ctx flow.Declarer) {
 
 多人申请连麦接口(一级下游41个PSM、81个接口)，改造前（左） VS 改造后 （右）
 
-![原文图片 16](images/16-media.jpg)
+![原文图片 16](../../../../../../exemplars/technical-solution/business-orchestration/images/16-media.jpg)
 
-![原文图片 17](images/17-media.jpg)
-![原文图片 18](images/18-media.jpg)
+![原文图片 17](../../../../../../exemplars/technical-solution/business-orchestration/images/17-media.jpg)
+![原文图片 18](../../../../../../exemplars/technical-solution/business-orchestration/images/18-media.jpg)
 
 ### **接口耗时优化**
 
@@ -469,7 +469,7 @@ func (n *NodeB) Declare(ctx flow.Declarer) {
 
 > 注：因为改造节点颗粒度问题，并发度非最优， 不过根据自动生成的架构图分析，后续优化空间不大
 
-![原文图片 19](images/19-media.jpg)
+![原文图片 19](../../../../../../exemplars/technical-solution/business-orchestration/images/19-media.jpg)
 
 ### 接口架构图分析
 
@@ -477,7 +477,7 @@ func (n *NodeB) Declare(ctx flow.Declarer) {
 >
 > 注：架构图自动分析更多能力还在开发中
 
-![原文图片 20](images/20-media.png)
+![原文图片 20](../../../../../../exemplars/technical-solution/business-orchestration/images/20-media.png)
 
 如上图，我们分析即可得：
 

@@ -10,7 +10,7 @@
   "media_note": "Original downloaded bytes. Whiteboard previews capture current board content independently of the document revision; whiteboard node/source data is not archived.",
   "media": [
     {
-      "path": "images/01-agent-evolution.png",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/01-agent-evolution.png",
       "source_type": "media",
       "source_token": "FylTbtE2coTExVxNKHEct5npn8d",
       "caption": "图 1：Agent 使用方式演进",
@@ -27,7 +27,7 @@
       ]
     },
     {
-      "path": "images/02-control-architecture.jpg",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/02-control-architecture.jpg",
       "source_type": "whiteboard",
       "source_token": "Hw6Kwf55ahrELIbEKGSczD78nmf",
       "caption": "图 2：从用户视角看 Treeloop 如何工作",
@@ -38,7 +38,7 @@
       "sha256": "bb57ed5065c64202235910e0247b329acbf0ad1aa2c4b28e2f1b4bf70a4d8c40"
     },
     {
-      "path": "images/03-development-workflow.jpg",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/03-development-workflow.jpg",
       "source_type": "whiteboard",
       "source_token": "JPKiwdqeyhHRQebl9N2cGcExnOg",
       "caption": "图 3：Treeloop 主 Workflow",
@@ -49,7 +49,7 @@
       "sha256": "958b7fc957b352abf98d86554b12822f76e1297a0e70ec7ff24f474b67bc121d"
     },
     {
-      "path": "images/04-task-parallelism.png",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/04-task-parallelism.png",
       "source_type": "media",
       "source_token": "ARmUbVfZ3oyAhCxZTJCc3CsLnwg",
       "caption": "图 4：CLI 前后的任务并行",
@@ -60,7 +60,7 @@
       "sha256": "8c9f37b2678d8c3c21749f652e1525f0ab5765cf99256a001b0c71b6b1e3ec1d"
     },
     {
-      "path": "images/05-maintainer-workflow.jpg",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/05-maintainer-workflow.jpg",
       "source_type": "whiteboard",
       "source_token": "Gmhww8NaIhvV0Nb5dIZcFOg3nOh",
       "caption": "图 5：Treeloop 自迭代 Workflow",
@@ -71,7 +71,7 @@
       "sha256": "385f2873329020958c31948fb7e082c04c392a56c58d1afce09eb5fa9406a177"
     },
     {
-      "path": "images/06-design-implementation-example.png",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/06-design-implementation-example.png",
       "source_type": "media",
       "source_token": "VpwdbnhwpoHBOpxTEU5cilConZd",
       "caption": "实际任务截图：进入 MR 检查与 CodeReview",
@@ -82,7 +82,7 @@
       "sha256": "e56224dc5d2d2576e1b5ca3a773cb7d4aeaf9e0df9350729ecd3976db31db325"
     },
     {
-      "path": "images/07-review-feedback-example.png",
+      "path": "../../../../../../exemplars/technical-solution/treeloop-control/images/07-review-feedback-example.png",
       "source_type": "media",
       "source_token": "SuXDblR7poUJQ2xEoHlcQkB8nDd",
       "caption": "实际任务截图：检查失败后回流实现",

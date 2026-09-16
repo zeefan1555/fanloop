@@ -12,7 +12,7 @@
   "archive_status": "text_and_images_with_declared_unavailable_synced_reference",
   "media": [
     {
-      "path": "images/01-game-map.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/01-game-map.png",
       "source_type": "media",
       "source_token": "KRLibGBWDoZdgZxrEnycZOkknBg",
       "caption": "游戏地图探索与打卡截图",
@@ -36,7 +36,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Gzd3dU7Ltoeg75xMfSPcoiE6nXb"
     },
     {
-      "path": "images/02-game-interaction.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/02-game-interaction.png",
       "source_type": "media",
       "source_token": "CdCtbBYvooxCLJxArv9c9y63nLc",
       "caption": "场景物交互：售货机截图",
@@ -60,7 +60,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Nn1ndS6uNoBxugxAAP4cTgTsnTh"
     },
     {
-      "path": "images/03-game-lounge.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/03-game-lounge.png",
       "source_type": "media",
       "source_token": "S7h7bQUJOor0VJxN56FcPc2rn3d",
       "caption": "场景物交互：躺椅截图",
@@ -84,7 +84,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#AQiRdiIsWocco4xa71Mck3VCnOy"
     },
     {
-      "path": "images/04-game-chat.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/04-game-chat.png",
       "source_type": "media",
       "source_token": "ZvzgbGnFdolHFVxIgaJc0C01nQm",
       "caption": "多人游戏聊天截图",
@@ -108,7 +108,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Vb2wdsf8YoWWErxFanVcPCwZnqe"
     },
     {
-      "path": "images/05-douluo-world.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/05-douluo-world.png",
       "source_type": "media",
       "source_token": "CMtxbxbjWogk0lx5hH0cCRDGnwd",
       "caption": "斗罗大陆活动宣传图",
@@ -132,7 +132,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#L3k2dWyaXo335Lx0WLCcrxvNnMf"
     },
     {
-      "path": "images/06-nishuihan-world.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/06-nishuihan-world.png",
       "source_type": "media",
       "source_token": "SqFLbygHUo8IV2xEzqmcmj8anqc",
       "caption": "逆水寒新春活动宣传图",
@@ -156,7 +156,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#QXz0d8vlLolO6zxrdhlcZTj4nWh"
     },
     {
-      "path": "images/07-overwatch-world.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/07-overwatch-world.png",
       "source_type": "media",
       "source_token": "B2r2bVo3VoydlFxs0L2cn7jvnJf",
       "caption": "守望先锋活动宣传图",
@@ -180,7 +180,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#O8j1drhuAoEBAjx60s1cwYDHn5d"
     },
     {
-      "path": "images/08-managed-agents.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/08-managed-agents.png",
       "source_type": "media",
       "source_token": "GbjZbuS0toUNZsxvY4scDjaRnah",
       "caption": "Managed Agents 组件关系",
@@ -204,7 +204,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#CMOQdruWPoeo9cxWv9Hc7llhnsk"
     },
     {
-      "path": "images/09-aime-architecture.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/09-aime-architecture.jpg",
       "source_type": "whiteboard",
       "source_token": "OQTvwv4L7hCX0hbLUmLcgq5inAb",
       "caption": "AIME Assistant 全景架构",
@@ -222,7 +222,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#I0irdyIqEo2JLcx7fK2cYh2Snfh"
     },
     {
-      "path": "images/10-agent-platform.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/10-agent-platform.jpg",
       "source_type": "whiteboard",
       "source_token": "J63tw9bxfhe5R3boLyvcKh4jnzc",
       "caption": "Agent Platform 分层架构",
@@ -240,7 +240,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#BUAcd7sy4oOwmuxpMZmcwTnynMf"
     },
     {
-      "path": "images/11-lambda-scheduling.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/11-lambda-scheduling.png",
       "source_type": "media",
       "source_token": "UrLvbbJx1oYHdnxBfdPc57ZFnZb",
       "caption": "Lambda 资源调度与执行池",
@@ -264,7 +264,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#GZE7dWIuUofgiaxO4X1cU5PQnJb"
     },
     {
-      "path": "images/12-rtc-postprocessing.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/12-rtc-postprocessing.jpg",
       "source_type": "whiteboard",
       "source_token": "UbVvwaMMxhBiHNb5p6ecqQ9Anff",
       "caption": "RTC 后处理架构",
@@ -282,7 +282,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#VcS8dhWXxoOr15xOFrtcNWbgn3e"
     },
     {
-      "path": "images/13-doubao-rtc.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/13-doubao-rtc.jpg",
       "source_type": "whiteboard",
       "source_token": "TjM5ws9k6hk5VEbZ2FHcveCOnEe",
       "caption": "豆包音视频架构",
@@ -300,7 +300,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#DiFadokeuozdywxs1Anc54hJn9t"
     },
     {
-      "path": "images/14-nomad-architecture.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/14-nomad-architecture.jpg",
       "source_type": "whiteboard",
       "source_token": "FylqwTJjAhv4b8blVW8cWUl1nQg",
       "caption": "Roblox 底层 Nomad 架构",
@@ -318,7 +318,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#MjFmd2fPkovXxfxjx7WcEl4bnJg"
     },
     {
-      "path": "images/15-wds-storage.png",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/15-wds-storage.png",
       "source_type": "media",
       "source_token": "DiwPb10hSoG9gCxm2XEczZHenIg",
       "caption": "WDS 存储分片架构",
@@ -342,7 +342,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#Qy4pdvrxgoI5KpxkoaFcSdWjnxd"
     },
     {
-      "path": "images/16-unified-architecture.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/16-unified-architecture.jpg",
       "source_type": "whiteboard",
       "source_token": "QOfSwPzF5hEdFWbJ4wocT4Xonkg",
       "caption": "CPU 型有状态服务统一架构",
@@ -360,7 +360,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#E6aodqafRoUi64xWGX8clnIsnrb"
     },
     {
-      "path": "images/17-adapter-routing.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/17-adapter-routing.jpg",
       "source_type": "whiteboard",
       "source_token": "QnGbw24Zah0ykZbiKqacqg5lnKb",
       "caption": "Adapter 调度与任务路由",
@@ -378,7 +378,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#SgjhdrXihosDk3xWgSUcaYgHn5g"
     },
     {
-      "path": "images/18-instance-service-sequence.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/18-instance-service-sequence.jpg",
       "source_type": "whiteboard",
       "source_token": "RbVjwG3clh2HD1b30DOc4Jn7nBh",
       "caption": "实例服务化时序",
@@ -397,7 +397,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#UHjYdB5AAoArV4xz6xCcgtlFnlc"
     },
     {
-      "path": "images/19-warm-process.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/19-warm-process.jpg",
       "source_type": "whiteboard",
       "source_token": "CozAwMiGoh9H08boFBtcoKkYnQc",
       "caption": "进程预启动与请求执行",
@@ -415,7 +415,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#WHrSdPEMIol9SixdBmscjWEHn7f"
     },
     {
-      "path": "images/20-latency-breakdown.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/20-latency-breakdown.jpg",
       "source_type": "whiteboard",
       "source_token": "PWrcwlPC8haDBHbSjuPcCt2Sn1f",
       "caption": "任务调度延迟分解",
@@ -433,7 +433,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#BB65dKxycoQ0NLx2ja3c5L3ynMh"
     },
     {
-      "path": "images/21-version-release.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/21-version-release.jpg",
       "source_type": "whiteboard",
       "source_token": "A8T8wpr1hhiwmUbrXGXcw60Tnaf",
       "caption": "多版本发布与任务调度",
@@ -451,7 +451,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#ABded0VJKoUyE1x6QfWcARsbn5c"
     },
     {
-      "path": "images/22-startup-confirmation.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/22-startup-confirmation.jpg",
       "source_type": "whiteboard",
       "source_token": "FtN1wR486hkTDCb0jSQcZ2ZLnzh",
       "caption": "任务启动确认时序",
@@ -470,7 +470,7 @@
       "source_url": "https://bytedance.larkoffice.com/docx/WKg2dQEJDoUf43xZOl5c0QVsndh#OKhNdgtaToysdZxCmQ2cNQeunyf"
     },
     {
-      "path": "images/23-hamlet-synced-architecture.jpg",
+      "path": "../../../../../../exemplars/technical-solution/stateful-services/images/23-hamlet-synced-architecture.jpg",
       "source_type": "whiteboard",
       "source_token": "Y3C4wfD39hEijvblpXBcJjsgnIe",
       "caption": "Hamlet 有状态游戏服务架构（同步引用）",
@@ -507,7 +507,7 @@
       "source_revision": 7962,
       "source_content_sha256": "9c977183792f20700cd537235b1701d04b42616a2f2a337024db081e726f8069",
       "media_paths": [
-        "images/23-hamlet-synced-architecture.jpg"
+        "../../../../../../exemplars/technical-solution/stateful-services/images/23-hamlet-synced-architecture.jpg"
       ]
     }
   ],

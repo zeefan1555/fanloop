@@ -27,21 +27,21 @@
 
 | 图片 | 可见内容 | 论证作用 |
 |---|---|---|
-| [01](images/01-whiteboard.jpg) | 大量分组、节点与颜色图例组成的人工链路梳理图 | 先让读者看见治理对象的规模 |
-| [02](images/02-media.jpg)、[03](images/03-media.jpg)、[04](images/04-media.png) | 校验文件列表、IM 消息分发分支、同步/并行后置动作列表 | 分别展示不同代码组织中的复杂度，不能统称为权限校验 |
-| [05](images/05-whiteboard.jpg) | 人工梳理、重构、需求迭代、架构劣化形成循环 | 说明一次性治理为何会随迭代失效 |
-| [06](images/06-whiteboard.jpg)、[07](images/07-whiteboard.jpg) | 从重复数据调用归拢，到 before/validator/action/after 分层和阶段内并发 | 展示旧方案已获得的收益 |
-| [08](images/08-whiteboard.jpg) | A/B 同组，C 单独一层，D/E/F 同组；注释指出 C 无效等待 B | 用最小反例解释阶段屏障的剩余问题 |
-| [09](images/09-whiteboard.jpg) | Loader、全局变量与手动依赖图，新增关系以红色标注 | 展示维护直接与间接依赖的负担 |
-| [10](images/10-whiteboard.jpg) | 左侧为分阶段图，右侧为带 var 的节点依赖 DAG | 将核心模型变化直接可视化 |
-| [11](images/11-whiteboard.jpg) | 入度、候选队列、条件节点、插件、错误与强依赖判断、子节点更新 | 将调度正常与失败分支讲完整 |
-| [12](images/12-whiteboard.jpg) | 业务节点内列 RPC/Redis 方法与耗时，区分依赖和异步 | 说明如何从业务骨架补充实际调用观测 |
-| [13](images/13-whiteboard.jpg) | A/B 两个分支图通过加号、箭头汇合，保留各自路径 | 对应“全景图与分支图”问题，不是子图合并实现图 |
-| [14](images/14-whiteboard.jpg) | 节点标注毫秒数，红色突出 A→C→F→G→H，保留其他依赖 | 将最长耗时链路落实到具体路径 |
-| [15](images/15-whiteboard.jpg) | PIPE 基础模型、Profiler/Plugin、执行引擎、稳定性及组件适配 | 汇总前文分散机制的职责与能力范围 |
-| [16](images/16-media.jpg)、[17](images/17-media.jpg)、[18](images/18-media.jpg) | 改造前长函数、改造后 ApplyV2 编排入口、rivalRoom 单节点 Reference/Exec/Declare | 先比较整体组织，再展示开发者实际编写的局部代码 |
-| [19](images/19-media.jpg) | prod 与 ppe_link 两条 Apply 曲线，蓝框突出 Avg；指标表达式包含 weighted_avg(value=pct50,weight=counter) | 性能对照必须保留环境与聚合口径，不能把图当 P99 证据 |
-| [20](images/20-media.png) | Friends、Invited、Filter、Gift、UserPack、Sort 等列表节点及红色关键路径 | 示例展示如何用生成图定位下一处瓶颈；原文写明以 InviteList 举例 |
+| [01](../../../../../../exemplars/technical-solution/business-orchestration/images/01-whiteboard.jpg) | 大量分组、节点与颜色图例组成的人工链路梳理图 | 先让读者看见治理对象的规模 |
+| [02](../../../../../../exemplars/technical-solution/business-orchestration/images/02-media.jpg)、[03](../../../../../../exemplars/technical-solution/business-orchestration/images/03-media.jpg)、[04](../../../../../../exemplars/technical-solution/business-orchestration/images/04-media.png) | 校验文件列表、IM 消息分发分支、同步/并行后置动作列表 | 分别展示不同代码组织中的复杂度，不能统称为权限校验 |
+| [05](../../../../../../exemplars/technical-solution/business-orchestration/images/05-whiteboard.jpg) | 人工梳理、重构、需求迭代、架构劣化形成循环 | 说明一次性治理为何会随迭代失效 |
+| [06](../../../../../../exemplars/technical-solution/business-orchestration/images/06-whiteboard.jpg)、[07](../../../../../../exemplars/technical-solution/business-orchestration/images/07-whiteboard.jpg) | 从重复数据调用归拢，到 before/validator/action/after 分层和阶段内并发 | 展示旧方案已获得的收益 |
+| [08](../../../../../../exemplars/technical-solution/business-orchestration/images/08-whiteboard.jpg) | A/B 同组，C 单独一层，D/E/F 同组；注释指出 C 无效等待 B | 用最小反例解释阶段屏障的剩余问题 |
+| [09](../../../../../../exemplars/technical-solution/business-orchestration/images/09-whiteboard.jpg) | Loader、全局变量与手动依赖图，新增关系以红色标注 | 展示维护直接与间接依赖的负担 |
+| [10](../../../../../../exemplars/technical-solution/business-orchestration/images/10-whiteboard.jpg) | 左侧为分阶段图，右侧为带 var 的节点依赖 DAG | 将核心模型变化直接可视化 |
+| [11](../../../../../../exemplars/technical-solution/business-orchestration/images/11-whiteboard.jpg) | 入度、候选队列、条件节点、插件、错误与强依赖判断、子节点更新 | 将调度正常与失败分支讲完整 |
+| [12](../../../../../../exemplars/technical-solution/business-orchestration/images/12-whiteboard.jpg) | 业务节点内列 RPC/Redis 方法与耗时，区分依赖和异步 | 说明如何从业务骨架补充实际调用观测 |
+| [13](../../../../../../exemplars/technical-solution/business-orchestration/images/13-whiteboard.jpg) | A/B 两个分支图通过加号、箭头汇合，保留各自路径 | 对应“全景图与分支图”问题，不是子图合并实现图 |
+| [14](../../../../../../exemplars/technical-solution/business-orchestration/images/14-whiteboard.jpg) | 节点标注毫秒数，红色突出 A→C→F→G→H，保留其他依赖 | 将最长耗时链路落实到具体路径 |
+| [15](../../../../../../exemplars/technical-solution/business-orchestration/images/15-whiteboard.jpg) | PIPE 基础模型、Profiler/Plugin、执行引擎、稳定性及组件适配 | 汇总前文分散机制的职责与能力范围 |
+| [16](../../../../../../exemplars/technical-solution/business-orchestration/images/16-media.jpg)、[17](../../../../../../exemplars/technical-solution/business-orchestration/images/17-media.jpg)、[18](../../../../../../exemplars/technical-solution/business-orchestration/images/18-media.jpg) | 改造前长函数、改造后 ApplyV2 编排入口、rivalRoom 单节点 Reference/Exec/Declare | 先比较整体组织，再展示开发者实际编写的局部代码 |
+| [19](../../../../../../exemplars/technical-solution/business-orchestration/images/19-media.jpg) | prod 与 ppe_link 两条 Apply 曲线，蓝框突出 Avg；指标表达式包含 weighted_avg(value=pct50,weight=counter) | 性能对照必须保留环境与聚合口径，不能把图当 P99 证据 |
+| [20](../../../../../../exemplars/technical-solution/business-orchestration/images/20-media.png) | Friends、Invited、Filter、Gift、UserPack、Sort 等列表节点及红色关键路径 | 示例展示如何用生成图定位下一处瓶颈；原文写明以 InviteList 举例 |
 
 ## 使用边界
 

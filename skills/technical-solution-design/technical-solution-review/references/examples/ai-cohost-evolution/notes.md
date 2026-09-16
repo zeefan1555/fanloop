@@ -26,27 +26,27 @@
 
 | 图像 | 可见内容和写法 | 支撑的正文 |
 | --- | --- | --- |
-| [01](images/01-whiteboard.jpg) | 用横向层次区分用户、通信、业务调度、业务逻辑、评测、音频处理和模型；左侧图例区分已完成、持续优化、重点建设 | “业务架构”，帮助读者先看全景和建设范围 |
-| [02](images/02-media-preview.png)、[03](images/03-media-preview.png) | 前者围绕 MetaServer、Proxy、分片和 Storage；后者展开 Server、Client、Executor 及两级调度，并标出 gRPC 双向流 | WDS 与 Lambda 对比，比较的是不同职责和调度模型 |
-| [04](images/04-whiteboard.jpg) | 应用、业务、架构、编排、依赖分层；Adapter 与 Worker 的责任分开，底部列出 ByteRTC、FFmpeg、SAMI 等依赖，箭头写控制和回调 | 选择之后的完整 RTC 架构，承接有状态服务诉求 |
-| [05](images/05-whiteboard.jpg)、[06](images/06-whiteboard.jpg) | 图 05 从业务需求经节点抽象到编排层；图 06 把主播端、RTC 网络、对话集群和大模型输出连接起来 | “抽象节点—流程编排—模块化”如何落到 AI 对话链路 |
-| [07](images/07-media-preview.png)、[08](images/08-whiteboard.jpg)、[09](images/09-whiteboard.jpg) | 分别呈现传统语音技能调度、文本助手的意图与服务调用、豆包语音链路；图 09 用颜色区分通话级与轮次级长连接 | 同一调研表中的不同候选，不应误读为本业务已实现架构 |
-| [10](images/10-whiteboard.jpg) | 左边画音频数据流和打断路径，右边对应系统模块及耗时 | 把抽象架构和一轮对话的实际执行联系起来 |
-| [11](images/11-whiteboard.jpg) | 直播事件输入、事件队列、多个 Agent 和回复音频队列连成闭环；下方展开多路音频的顺序与打断 | “1.2.2 直播间上下文”中多事件如何获取、排序、发声 |
-| [12](images/12-whiteboard.jpg) | 左右对照级联链路与端到端融合，橙色注释标出原链路的复杂性和质量问题 | “1.2.3”交代探索另一方案的动机 |
-| [13](images/13-whiteboard.jpg) | 将真实直播画面放在输入输出中心，右侧分音频前处理和回复策略，底部业务指标、评测体系以反馈箭头回到优化 | 先解释用户体验问题怎样关联到工程模块和数据反馈 |
-| [14](images/14-whiteboard.jpg)、[15](images/15-whiteboard.jpg)、[16](images/16-media-preview.png) | 依次展示按技术阶段采集的数据、评测平台与执行端的职责、线上 badcase 到标注评测再优化的循环 | “数据资产 → 真实输入评测 → 常态化巡检”的三个动作各有一张图 |
-| [17](images/17-whiteboard.jpg) | 用主播、ASR、Agent 三条时间线区分尚未输出、准备输出、正在输出三种情况，并给出每种策略 | 把“打断僵硬”展开为可讨论的时序案例 |
-| [18](images/18-whiteboard.jpg) | 在完整音频数据流下，用黄色标记输入策略单一、输出打断僵硬两处问题 | 让问题落到链路位置，解释为何要系统优化 |
-| [19](images/19-whiteboard.jpg)、[20](images/20-whiteboard.jpg) | 用同一横向时序比较传统等待、固定提前送、Prefetch、Endpoint；显示下游生成与语音等待的关系 | 说明机制怎样影响时延，以及提前处理为什么仍需要判停 |
-| [21](images/21-whiteboard.jpg) | 上下对照改造前后，绿色说明连接到模型替换、流式输入、语义打断三处改动 | 对应解决方案的三个动作，强调上下行协同和时延／效果取舍 |
-| [22](images/22-whiteboard.jpg) | 从直播间输入分出事件与语音文本视觉，再接响应、TTS、数字人和记忆提取 | 回复链路的问题分析，显示输入质量会传到后续记忆和输出 |
-| [23](images/23-whiteboard.jpg) | 左边是事实、关系、情景、偏好定义，右边分记忆抽取和使用；连线标出连接前、对话中、关闭连线三个时机 | 对应“存什么、怎么存、怎么用、怎么用好” |
-| [24](images/24-whiteboard.jpg) | 在快链路下增加慢链路，注释说明更高质量上下文、较大模型和时序无关回复 | “快+慢思考agent”的取舍；原文标注在途 |
-| [25](images/25-whiteboard.jpg)、[26](images/26-whiteboard.jpg) | 图 25 将可复用能力和整体系统对应；图 26 用颜色区分可配基建与外部 Agent，显示多条可选流式路径 | 对外复用时哪些能力统一承担，哪些由业务提供 |
-| [27](images/27-whiteboard.jpg) | 左侧按上下游和目标服务分析依赖，右侧展开多租户指标到具体业务指标 | 多租户监控告警，说明观测维度如何从调用链导出 |
-| [28](images/28-whiteboard.jpg)、[29](images/29-whiteboard.jpg) | 分别对照音频原子能力的现状与预期、跨平台网络交互与同机部署设想；图 29 仍显示本地失败后的集群通信 | 后续规划，不能当作已交付收益 |
-| [30](images/30-synced-whiteboard.jpg)、[31](images/31-synced-whiteboard.jpg) | 图 30 对照架构现状与理想架构；图 31 结合分层全景、体验金字塔与年度演进方向 | 从原文“历史规划”的两个可访问同步块补入；各自版本见来源记录 |
+| [01](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/01-whiteboard.jpg) | 用横向层次区分用户、通信、业务调度、业务逻辑、评测、音频处理和模型；左侧图例区分已完成、持续优化、重点建设 | “业务架构”，帮助读者先看全景和建设范围 |
+| [02](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/02-media-preview.png)、[03](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/03-media-preview.png) | 前者围绕 MetaServer、Proxy、分片和 Storage；后者展开 Server、Client、Executor 及两级调度，并标出 gRPC 双向流 | WDS 与 Lambda 对比，比较的是不同职责和调度模型 |
+| [04](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/04-whiteboard.jpg) | 应用、业务、架构、编排、依赖分层；Adapter 与 Worker 的责任分开，底部列出 ByteRTC、FFmpeg、SAMI 等依赖，箭头写控制和回调 | 选择之后的完整 RTC 架构，承接有状态服务诉求 |
+| [05](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/05-whiteboard.jpg)、[06](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/06-whiteboard.jpg) | 图 05 从业务需求经节点抽象到编排层；图 06 把主播端、RTC 网络、对话集群和大模型输出连接起来 | “抽象节点—流程编排—模块化”如何落到 AI 对话链路 |
+| [07](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/07-media-preview.png)、[08](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/08-whiteboard.jpg)、[09](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/09-whiteboard.jpg) | 分别呈现传统语音技能调度、文本助手的意图与服务调用、豆包语音链路；图 09 用颜色区分通话级与轮次级长连接 | 同一调研表中的不同候选，不应误读为本业务已实现架构 |
+| [10](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/10-whiteboard.jpg) | 左边画音频数据流和打断路径，右边对应系统模块及耗时 | 把抽象架构和一轮对话的实际执行联系起来 |
+| [11](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/11-whiteboard.jpg) | 直播事件输入、事件队列、多个 Agent 和回复音频队列连成闭环；下方展开多路音频的顺序与打断 | “1.2.2 直播间上下文”中多事件如何获取、排序、发声 |
+| [12](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/12-whiteboard.jpg) | 左右对照级联链路与端到端融合，橙色注释标出原链路的复杂性和质量问题 | “1.2.3”交代探索另一方案的动机 |
+| [13](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/13-whiteboard.jpg) | 将真实直播画面放在输入输出中心，右侧分音频前处理和回复策略，底部业务指标、评测体系以反馈箭头回到优化 | 先解释用户体验问题怎样关联到工程模块和数据反馈 |
+| [14](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/14-whiteboard.jpg)、[15](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/15-whiteboard.jpg)、[16](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/16-media-preview.png) | 依次展示按技术阶段采集的数据、评测平台与执行端的职责、线上 badcase 到标注评测再优化的循环 | “数据资产 → 真实输入评测 → 常态化巡检”的三个动作各有一张图 |
+| [17](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/17-whiteboard.jpg) | 用主播、ASR、Agent 三条时间线区分尚未输出、准备输出、正在输出三种情况，并给出每种策略 | 把“打断僵硬”展开为可讨论的时序案例 |
+| [18](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/18-whiteboard.jpg) | 在完整音频数据流下，用黄色标记输入策略单一、输出打断僵硬两处问题 | 让问题落到链路位置，解释为何要系统优化 |
+| [19](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/19-whiteboard.jpg)、[20](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/20-whiteboard.jpg) | 用同一横向时序比较传统等待、固定提前送、Prefetch、Endpoint；显示下游生成与语音等待的关系 | 说明机制怎样影响时延，以及提前处理为什么仍需要判停 |
+| [21](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/21-whiteboard.jpg) | 上下对照改造前后，绿色说明连接到模型替换、流式输入、语义打断三处改动 | 对应解决方案的三个动作，强调上下行协同和时延／效果取舍 |
+| [22](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/22-whiteboard.jpg) | 从直播间输入分出事件与语音文本视觉，再接响应、TTS、数字人和记忆提取 | 回复链路的问题分析，显示输入质量会传到后续记忆和输出 |
+| [23](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/23-whiteboard.jpg) | 左边是事实、关系、情景、偏好定义，右边分记忆抽取和使用；连线标出连接前、对话中、关闭连线三个时机 | 对应“存什么、怎么存、怎么用、怎么用好” |
+| [24](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/24-whiteboard.jpg) | 在快链路下增加慢链路，注释说明更高质量上下文、较大模型和时序无关回复 | “快+慢思考agent”的取舍；原文标注在途 |
+| [25](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/25-whiteboard.jpg)、[26](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/26-whiteboard.jpg) | 图 25 将可复用能力和整体系统对应；图 26 用颜色区分可配基建与外部 Agent，显示多条可选流式路径 | 对外复用时哪些能力统一承担，哪些由业务提供 |
+| [27](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/27-whiteboard.jpg) | 左侧按上下游和目标服务分析依赖，右侧展开多租户指标到具体业务指标 | 多租户监控告警，说明观测维度如何从调用链导出 |
+| [28](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/28-whiteboard.jpg)、[29](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/29-whiteboard.jpg) | 分别对照音频原子能力的现状与预期、跨平台网络交互与同机部署设想；图 29 仍显示本地失败后的集群通信 | 后续规划，不能当作已交付收益 |
+| [30](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/30-synced-whiteboard.jpg)、[31](../../../../../../exemplars/technical-solution/ai-cohost-evolution/images/31-synced-whiteboard.jpg) | 图 30 对照架构现状与理想架构；图 31 结合分层全景、体验金字塔与年度演进方向 | 从原文“历史规划”的两个可访问同步块补入；各自版本见来源记录 |
 
 ## 借鉴边界和已知缺口
 

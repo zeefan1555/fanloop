@@ -24,13 +24,13 @@
 
 | 本地图片 | 实际可见的设计 | 可以借鉴的写法 |
 |---|---|---|
-| [图 1：演进](images/01-agent-evolution.png) | 五个阶段横向展开，沿用同一角色、任务块和轨道隐喻，少量颜色标注区别 | 演进图先让读者看见能力与边界变化；正文解释变化原因，不把阶段数量固定为五个 |
-| [图 2：工作闭环](images/02-control-architecture.jpg) | 入口、执行闭环、用户收到的内容分区；箭头标注读取、上报、判断、回流，底部有图例 | 用分区表达责任，用有含义的连线表达关系；明确这是用户视角，不把简图当作完整内部架构 |
-| [图 3：主流程](images/03-development-workflow.jpg) | 三个阶段分行，步骤标注 executor，人工节点突出；回流规则另列在下方 | 主路径保持可追踪，复杂回流单列说明，检查图与正文的 Step 数和名称一致 |
-| [图 4：并行](images/04-task-parallelism.png) | 左右对比人的参与方式和任务轨道；统一视觉隐喻 | 用前后对比解释变化，再由正文说明并行的真实边界；插画不充当吞吐量实测证据 |
-| [图 5：自迭代](images/05-maintainer-workflow.jpg) | 分阶段流程、人工测试节点、回流区和结束边界说明 | 展示主流程如何应用到另一场景，核实其阶段分组与正文一致 |
-| [截图 1：进入审查](images/06-design-implementation-example.png) | Ready 56%、MR 检查与 CodeReview、产物和执行证据 | 用实际界面说明机制落地，并让图片附近的文字说明它证明哪一件事 |
-| [截图 2：回流](images/07-review-feedback-example.png) | Ready 44%、编码实现、失败与回流原因 | 与前一截图构成状态变化案例；历史截图不等于当前项目的验收证据 |
+| [图 1：演进](../../../../../../exemplars/technical-solution/treeloop-control/images/01-agent-evolution.png) | 五个阶段横向展开，沿用同一角色、任务块和轨道隐喻，少量颜色标注区别 | 演进图先让读者看见能力与边界变化；正文解释变化原因，不把阶段数量固定为五个 |
+| [图 2：工作闭环](../../../../../../exemplars/technical-solution/treeloop-control/images/02-control-architecture.jpg) | 入口、执行闭环、用户收到的内容分区；箭头标注读取、上报、判断、回流，底部有图例 | 用分区表达责任，用有含义的连线表达关系；明确这是用户视角，不把简图当作完整内部架构 |
+| [图 3：主流程](../../../../../../exemplars/technical-solution/treeloop-control/images/03-development-workflow.jpg) | 三个阶段分行，步骤标注 executor，人工节点突出；回流规则另列在下方 | 主路径保持可追踪，复杂回流单列说明，检查图与正文的 Step 数和名称一致 |
+| [图 4：并行](../../../../../../exemplars/technical-solution/treeloop-control/images/04-task-parallelism.png) | 左右对比人的参与方式和任务轨道；统一视觉隐喻 | 用前后对比解释变化，再由正文说明并行的真实边界；插画不充当吞吐量实测证据 |
+| [图 5：自迭代](../../../../../../exemplars/technical-solution/treeloop-control/images/05-maintainer-workflow.jpg) | 分阶段流程、人工测试节点、回流区和结束边界说明 | 展示主流程如何应用到另一场景，核实其阶段分组与正文一致 |
+| [截图 1：进入审查](../../../../../../exemplars/technical-solution/treeloop-control/images/06-design-implementation-example.png) | Ready 56%、MR 检查与 CodeReview、产物和执行证据 | 用实际界面说明机制落地，并让图片附近的文字说明它证明哪一件事 |
+| [截图 2：回流](../../../../../../exemplars/technical-solution/treeloop-control/images/07-review-feedback-example.png) | Ready 44%、编码实现、失败与回流原因 | 与前一截图构成状态变化案例；历史截图不等于当前项目的验收证据 |
 
 查看图片后，应能指出区域、节点、连线或截图状态，并解释它如何支撑所在段落。
 图片按原始文件保存；画板是栅格预览，不能据此声称已有可编辑画板节点源。
