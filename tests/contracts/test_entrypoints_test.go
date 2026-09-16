@@ -100,7 +100,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
-			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "references/features/README.md",
+			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "references/features/README.md", "INVALID_ARGUMENT", ".fanloop/log/cli.jsonl", ".fanloop/trace/events.jsonl",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-maintain-verification/SKILL.md": {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",

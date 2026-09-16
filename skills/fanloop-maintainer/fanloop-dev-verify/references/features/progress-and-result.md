@@ -13,9 +13,10 @@ Route. Prefer `--input @file` or stdin for complex requests.
 
 ## Driving it with fanloop
 
-Build the request only from Status. Snapshot durable files, run the report with `--dry-run`, and prove no State/Event change.
-Run the real request, capture its effect and event ID, then read Status and durable files. Also submit one invalid current
-fact and prove its stable error code and lack of durable mutation.
+Build the request only from Status. Snapshot business durable files, run the report with `--dry-run`, and prove no
+Flow/Output/Event/Trace/Card change; `.fanloop/log/cli.jsonl` may still append its audit entry. Run the real request, capture
+its effect and event ID, then read Status and durable files. Also submit one invalid current fact and prove its stable error
+code and lack of business durable mutation.
 
 ## Gotchas
 

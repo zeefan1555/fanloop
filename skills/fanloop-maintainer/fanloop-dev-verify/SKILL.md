@@ -26,8 +26,10 @@ Doctor 不健康时先保存输出并停止驱动，不在错误实例上继续�
 
 ## Drive
 
-先读目标叶子 `--help`，再按对应 Feature 页执行用户可见入口。每次 Workflow 动作前读取最新
-`flow status`；写操作先执行 `--dry-run` 并观察其确实没有改变 durable files，再执行真实调用和只读回读。
+先读目标叶子 `--help`，再按对应 Feature 页执行用户可见入口。先创建空的绝对 Requirement Root；不存在
+的 Root 会返回 `INVALID_ARGUMENT`。每次 Workflow 动作前读取最新 `flow status`；写操作先执行
+`--dry-run` 并观察其没有改变 Flow、Output、Event、Trace 或 Card 等业务持久化文件，再执行真实调用和
+只读回读。`--dry-run` 仍可追加 `.fanloop/log/cli.jsonl` CLI 审计记录，不能把“没有任何文件写入”当作契约。
 使用稳定 command ID、Step ID、Condition ID、Output key、错误码和文件路径，不从内部实现推断成功。
 
 外部 Trace/Lark 写入只有在需求明确授权对应身份、目标和时机时才执行；否则记录具体不可达前置条件。
@@ -35,7 +37,8 @@ Doctor 不健康时先保存输出并停止驱动，不在错误实例上继续�
 ## Evidence
 
 保存候选 commit、二进制摘要、Feature/variant、argv、stdin、stdout、stderr、退出码、前后 Status、
-State、Output、Event、Trace、Card、CLI transcript 和副作用回读。证明必须同时包含触发动作和稳定终态；
+State、Output、Event、Trace、Card、CLI transcript 和副作用回读。Event 从公开 `trace status`、
+`trace render` 回读，并与 `.fanloop/trace/events.jsonl` 尾部对账。证明必须同时包含触发动作和稳定终态；
 只保存最终输出、内部调用结果或测试通过记录都不足以证明真实用户路径。
 
 证据位于 session 外的独立 evidence 目录，权限限制为当前用户。完整 transcript 可能含敏感信息；验证
