@@ -50,7 +50,7 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 开工确认 Prompt、start Route 和面向全部真实 Step 的 jump Routes；人的明确确认形成独立 Event 后，
 同一 Step 才进入 `in_progress` 并展示业务 Prompt。Jump 可在任意运行中 Step 使用，向前跨过的 Step
 进入 `skipped_step_ids`，目标及下游 Outputs 失效；Card 与 Trace 将 skipped 显示为“已跳过”。完整
-决策见 [ADR-0101](./adr/0101-add-common-step-controls.md)。
+决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
 Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_human_acceptance` 是最终
 human 验收点；需求澄清中的批准同样只接受真实 human 决定，Developer 不得自批。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
