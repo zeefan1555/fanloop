@@ -92,10 +92,16 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
-			"implementation-report.md", "review_base", "./tests/run-unit", "./tests/run-e2e", "独立 Reviewer", "implementation_completed=<完整 HEAD>",
+			"implementation-report.md", "review_base", "./tests/run-unit", "./tests/run-e2e", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
+			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
+			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "references/features/README.md",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-maintain-verification/SKILL.md": {
+			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
 			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "handoff_merge_request", "不自动合并", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
@@ -107,7 +113,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
-			"review_base", "implementation_head", "./tests/run-unit", "./tests/run-e2e", "review-report.md", "reviewed_head_frozen",
+			"review_base", "implementation_head", "./tests/run-unit", "./tests/run-e2e", "fanloop-dev-verify/references/features/", "review-report.md", "reviewed_head_frozen",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-decision-receipt/SKILL.md": {
 			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=human", "host_turn", "Developer 不得自批",
@@ -158,8 +164,6 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	for _, retired := range []string{
 		".agents/skills/verify-fanloop",
 		"skills/fanloop-maintainer/fanloop-dev-create-verification",
-		"skills/fanloop-maintainer/fanloop-dev-maintain-verification",
-		"skills/fanloop-maintainer/fanloop-dev-verify",
 		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator",
 		"skills/fanloop-maintainer/fanloop-dev-eval-candidate",
 		"skills/fanloop-maintainer/fanloop-dev-eval-judge",
@@ -172,6 +176,55 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	} {
 		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(retired))); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("retired maintainer asset remains: %s", retired)
+		}
+	}
+}
+
+func TestVerificationFeatureMapIsNavigable(t *testing.T) {
+	repo := repositoryRoot(t)
+	root := filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-verify", "references", "features")
+	index, err := os.ReadFile(filepath.Join(root, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	links := regexp.MustCompile(`\[[^\]]+\]\(([^)]+\.md)\)`).FindAllStringSubmatch(string(index), -1)
+	if len(links) == 0 {
+		t.Fatal("Feature Map index has no feature links")
+	}
+	wanted := map[string]bool{"README.md": true}
+	for _, match := range links {
+		name := match[1]
+		if filepath.Base(name) != name || wanted[name] {
+			t.Fatalf("Feature Map has invalid or duplicate link %q", name)
+		}
+		wanted[name] = true
+		content, err := os.ReadFile(filepath.Join(root, name))
+		if err != nil {
+			t.Fatalf("read Feature Map entry %s: %v", name, err)
+		}
+		for _, heading := range []string{
+			"## Sub-features",
+			"## How to get to it (user POV)",
+			"## Driving it with fanloop",
+			"## Gotchas",
+		} {
+			if strings.Count(string(content), heading) != 1 {
+				t.Errorf("Feature Map entry %s must contain exactly one %q", name, heading)
+			}
+		}
+	}
+
+	files, err := filepath.Glob(filepath.Join(root, "*.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != len(wanted) {
+		t.Fatalf("Feature Map files = %d, indexed files = %d", len(files), len(wanted))
+	}
+	for _, file := range files {
+		if !wanted[filepath.Base(file)] {
+			t.Errorf("Feature Map file is not indexed: %s", filepath.Base(file))
 		}
 	}
 }

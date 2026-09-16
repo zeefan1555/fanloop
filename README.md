@@ -125,6 +125,12 @@ fanloop flow init \
 ./tests/run-e2e
 ```
 
+项目级闭环验证说明与行为地图位于
+[`skills/fanloop-maintainer/fanloop-dev-verify/`](./skills/fanloop-maintainer/fanloop-dev-verify/)。它从当前
+候选建立隔离安装，使用公开 CLI 驱动真实路径，并在清理临时环境后保留证据。验证地图由
+`fanloop-dev-maintain-verification` 按 source + live 方式维护；产品行为失败必须作为产品问题报告，不能
+通过改写地图掩盖。
+
 Contract Golden 只在人工确认契约变化后更新：
 
 ```bash
