@@ -105,9 +105,8 @@ Doctor 会拒绝 live Skill 配置目录不一一对应、跨 Workflow SkillBind
 或图不变量错误。
 
 Human Step 的审批 Skill 展示审核材料，Panorama Skill 按当前宿主原样展示 renderer 生成的紧凑
-全景，并把本次 `snapshot_path` 与审核结论一起上报。`technical-solution-design` 的三处审核还要求
-已回读的飞书文档 URL 和人的明确决定；仅声明 `agent_approved` Route 的 Workflow 可由 Agent 独立
-批准且不展示 Panorama。Flow Runtime 只校验并推进，不自动调用发送工具；Trace provision/sync
+全景，并把本次 `snapshot_path` 与审核结论一起上报。`technical-solution-design` 的三处审核和
+`fanloop-maintainer.confirm_human_acceptance` 都要求展示后的全新、明确 human 决定；Agent 不得自批。Flow Runtime 只校验并推进，不自动调用发送工具；Trace provision/sync
 与显式 `card render` 保持独立。
 
 选择 `fanloop-maintenance` 场景后，维护 Fanloop 自身时执行：

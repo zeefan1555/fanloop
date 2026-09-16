@@ -1,17 +1,17 @@
 ---
 name: fanloop-dev-agent-acceptance
-description: 从冻结 candidate_head 做隔离安装，再由恰好一个无实现上下文的全新 Sub-agent 使用公开 CLI 完成真实黑盒验收。
+description: 从冻结 reviewed_head 做隔离安装，再由恰好一个无实现上下文的全新 Sub-agent 使用公开 CLI 完成真实黑盒验收。
 ---
 
 # Agent 自动化验收
 
-只验收工作树干净且 `HEAD == candidate_head` 的已 Review 候选。任何源码、测试或验证资产变化都使本 Step 失效。
+只验收工作树干净且 `HEAD == reviewed_head` 的已 Review 候选。同时要求 `origin/main == review_base` 且 merge-base 等于 review_base。任何源码、测试或验证资产变化都使本 Step 失效。
 
 ## 隔离候选
 
-1. 记录全局 `$HOME/.fanloop/current` 的真实目标、版本与 commit；运行 `./tests/run-unit`、`./tests/run-e2e`，并证明测试前后源码状态不变。
-2. 创建临时目录，把 `FANLOOP_DATA_HOME`、`FANLOOP_CODEX_SKILLS_ROOT`、`FANLOOP_AGENT_SKILLS_ROOT`、`FANLOOP_TRAE_SKILLS_ROOT`、`FANLOOP_CLAUDE_SKILLS_ROOT` 全部指向其中的独立路径；清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID` 后，从 candidate_head 执行 `./scripts/install-local.sh`。
-3. 只使用隔离 `current/bin/fanloop` 回读 release 目标、version commit 和 Doctor。commit 必须精确等于 candidate_head，Doctor 必须 healthy。禁止修改或切换全局 current。
+1. 记录全局 `$HOME/.fanloop/current` 的真实目标、版本与 commit。本 Step 不重复运行实现阶段已覆盖的全量测试。
+2. 创建临时目录，把 `FANLOOP_DATA_HOME`、`FANLOOP_CODEX_SKILLS_ROOT`、`FANLOOP_AGENT_SKILLS_ROOT`、`FANLOOP_TRAE_SKILLS_ROOT`、`FANLOOP_CLAUDE_SKILLS_ROOT` 全部指向其中的独立路径；清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID` 后，从 reviewed_head 执行 `./scripts/install-local.sh`。
+3. 只使用隔离 `current/bin/fanloop` 回读 release 目标、version commit 和 Doctor。commit 必须精确等于 reviewed_head，Doctor 必须 healthy。禁止修改或切换全局 current。
 
 ## 单个 Sub-agent 黑盒
 
@@ -21,8 +21,8 @@ Sub-agent 必须为每个场景创建全新 Requirement Root，只能先读相�
 
 ## 结论与产物
 
-协调 Agent 复核 Sub-agent 原始证据，清理隔离安装和所有测试 Root，再证明全局 current 未变。把 candidate_head、测试、隔离安装、version/Doctor、场景证据、cleanup 和结论写入 `acceptance-report.md`。
+协调 Agent 复核 Sub-agent 原始证据，清理隔离安装和所有测试 Root，再证明全局 current 未变。把 review_base、reviewed_head、隔离安装、version/Doctor、场景证据、cleanup 和结论写入 `acceptance-report.md`。
 
-用包含 Requirement 身份的稳定标题查找文档：零命中创建，唯一命中更新，多命中 blocked。发布唯一飞书验收交付报告，并语义回读正文非空、candidate_head、场景与结论一致。
+用包含 Requirement 身份的稳定标题查找文档：零命中创建，唯一命中更新，多命中 blocked。发布唯一飞书 Agent 验收报告，并语义回读正文非空、reviewed_head、场景与结论一致。
 
-全部场景通过才上报 `agent_acceptance_passed`、`acceptance_report_written`、`acceptance_document_published`。确定产品失败时上报 `agent_acceptance_failed`、两份报告和恰好一个最早责任回流；基础设施失败保持 blocked，不伪造产品失败或通过。
+全部场景通过才上报 `agent_acceptance_passed`、`acceptance_report_written`、`acceptance_document_published`。确定产品失败时上报 `agent_acceptance_failed`、两份报告和恰好一个最早责任回流；候选漂移上报 `candidate_changed`；基础设施失败保持 blocked。

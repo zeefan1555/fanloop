@@ -139,6 +139,32 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 	}
 }
 
+func TestResultSelectsSharedConditionsByExplicitFlowTarget(t *testing.T) {
+	loaded, err := workflow.Load("fanloop-maintainer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := FlowResultPayload{
+		ConditionResults: []ConditionResult{
+			{ConditionID: "human_step_jump_requested", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"jump_requested"`)}},
+			{ConditionID: "human_step_jump_context_written", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".scratch/human-step-jump-context.md"`)}},
+			{ConditionID: "human_step_jump_recorded", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"jump-receipt"`)}},
+			{ConditionID: "panorama_presented", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".scratch/panorama.json"`)}},
+		},
+		Summary: "human selected review",
+		Effect:  ResultAdvanced,
+		Transition: Transition{
+			Direction: TransitionFlow, FromStepID: "bootstrap_techdesign", ToStepID: "review_code",
+		},
+		OutputChanges: OutputChanges{Accepted: []string{
+			"human_step_jump_context_path", "human_step_jump_receipt_id", "human_step_jump_result", "panorama_snapshot_path",
+		}},
+	}
+	if err := validateResultAgainst(loaded.Workflow, payload); err != nil {
+		t.Fatalf("explicit Flow target rejected: %v", err)
+	}
+}
+
 func TestDecodeRejectsOldGuardState(t *testing.T) {
 	content := []byte(`{"schema_version":8,"requirement":{"title":"x"},"release":{"version":"dev","workflow":{"id":"fanloop","version":"7.0.0","digest":"sha256:x"}},"current_step_id":"confirm_repository_scope","current_step_status":"ready","current_guard_result":{"status":"failed"},"outputs":{},"integrations":{},"last_event_id":"e1","created_at":"2026-08-15T00:00:00Z","updated_at":"2026-08-15T00:00:00Z"}`)
 	if _, err := Decode(content, map[string]RegisteredOutput{}); err == nil {

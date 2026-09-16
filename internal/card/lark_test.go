@@ -16,7 +16,7 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "confirm_requirements"
+	stepID := "confirm_human_acceptance"
 	current := state.State{
 		Requirement:        state.Requirement{Title: "Flow card"},
 		CurrentStepID:      &stepID,
@@ -29,8 +29,11 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 			"requirement_document_url": {
 				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/requirements"`), ProducerStepID: "clarify_requirements",
 			},
-			"implementation_document_url": {
-				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/implementation"`), ProducerStepID: "implement_code",
+			"technical_design_document_url": {
+				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/design"`), ProducerStepID: "design_technical_solution",
+			},
+			"code_review_document_url": {
+				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/review"`), ProducerStepID: "review_code",
 			},
 			"acceptance_document_url": {
 				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/acceptance"`), ProducerStepID: "execute_agent_acceptance",
@@ -39,17 +42,18 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 	}
 	markdown := renderMarkdown(cardidl.CardView_current, current, loaded.Workflow)
 	for _, want := range []string{
-		"需求确认 · 需求确认",
+		"Test · 人类端到端测试",
 		"[需求确认报告](https://bytedance.larkoffice.com/docx/requirements)",
-		"[研发实现报告](https://bytedance.larkoffice.com/docx/implementation)",
-		"[验收交付报告](https://bytedance.larkoffice.com/docx/acceptance)",
+		"[技术方案文档](https://bytedance.larkoffice.com/docx/design)",
+		"[Code Review 报告](https://bytedance.larkoffice.com/docx/review)",
+		"[Agent 验收报告](https://bytedance.larkoffice.com/docx/acceptance)",
 		"waiting for approval",
 	} {
 		if !strings.Contains(markdown, want) {
 			t.Fatalf("card Markdown is missing %q:\n%s", want, markdown)
 		}
 	}
-	for _, internalID := range []string{"requirement_document_url", "requirements_approved", "design_technical_solution", "bootstrap_techdesign", "confirm_requirements"} {
+	for _, internalID := range []string{"requirement_document_url", "requirements_approved", "design_technical_solution", "bootstrap_techdesign", "confirm_human_acceptance"} {
 		if strings.Contains(markdown, internalID) {
 			t.Fatalf("card Markdown exposes internal ID %q:\n%s", internalID, markdown)
 		}
@@ -101,14 +105,14 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
 	for _, want := range []string{
 		"# 后端研发交付 · Compact card `Ready` `0%`",
-		"需求确认 · 工作区准备",
+		"TechDesign · 仓库范围确定",
 		"## 状态全景",
-		"需求确认：**工作区准备（Ready）** → 需求澄清 → 需求确认",
-		"研发实现：方案设计 → 代码实现 → 代码审查",
-		"验收交付：Agent 自动化验收 → 合并 MR → 更新本地 CLI",
+		"TechDesign：**仓库范围确定（Ready）** → 需求澄清 → 方案设计 → 方案自主评审",
+		"Implement：代码实现与过程 CR → 整体 Code Review",
+		"Test：Agent 端到端测试 → 人类端到端测试 → MR 门禁与交接",
 		"整体进度：0%",
 		"## 各阶段 Output",
-		"| 需求确认 | 研发实现 | 验收交付 |",
+		"| TechDesign | Implement | Test |",
 		"> **当前执行证据**",
 		"**🚧 当前进行中**",
 	} {

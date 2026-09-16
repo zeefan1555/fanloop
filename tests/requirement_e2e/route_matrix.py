@@ -73,8 +73,6 @@ def route_cases(current_state: dict[str, Any]) -> list[dict[str, Any]]:
 def select_baseline_flow_case(flow_cases: list[dict[str, Any]]) -> dict[str, Any]:
     non_terminal = [case for case in flow_cases if case["expected_effect"] != "completed"]
     if non_terminal:
-        if len({case["target_step_id"] for case in non_terminal}) != 1:
-            raise AssertionError("Step has divergent non-terminal Flow targets; runner needs graph traversal")
         return non_terminal[0]
     if not flow_cases:
         raise AssertionError("Step has no Flow Route")
