@@ -573,9 +573,9 @@ func validateResultAgainst(definition workflow.Workflow, payload FlowResultPaylo
 	for _, result := range payload.ConditionResults {
 		conditionIDs[result.ConditionID] = true
 	}
-	flowMatches := matchingFlowRoutes(definition.Flows[payload.Transition.FromStepID], conditionIDs)
-	if len(flowMatches) > 0 {
-		if len(flowMatches) != 1 || payload.Transition.Direction != TransitionFlow || len(payload.OutputChanges.Invalidated) > 0 {
+	if payload.Transition.Direction == TransitionFlow {
+		flowMatches := matchingFlowRoutes(definition.Flows[payload.Transition.FromStepID], conditionIDs, payload.Transition.ToStepID, payload.Effect == ResultCompleted)
+		if len(flowMatches) != 1 || len(payload.OutputChanges.Invalidated) > 0 {
 			return fmt.Errorf("Result does not select exactly one Flow Route")
 		}
 		route := flowMatches[0]
@@ -651,10 +651,10 @@ func invalidatedOutputs(definition workflow.Workflow, target string, outputs map
 	return result, nil
 }
 
-func matchingFlowRoutes(routes []workflow.FlowRoute, conditions map[string]bool) []workflow.FlowRoute {
+func matchingFlowRoutes(routes []workflow.FlowRoute, conditions map[string]bool, target string, terminal bool) []workflow.FlowRoute {
 	result := make([]workflow.FlowRoute, 0)
 	for _, route := range routes {
-		if route.When.Matches(conditions) {
+		if route.Terminal == terminal && (terminal || route.NextStepID == target) && route.When.Matches(conditions) {
 			result = append(result, route)
 		}
 	}

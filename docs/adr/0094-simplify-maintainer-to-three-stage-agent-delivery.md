@@ -3,6 +3,7 @@ status: accepted
 date: 2026-09-01
 amends: ADR-0063, ADR-0066, ADR-0087
 supersedes: ADR-0091, ADR-0092
+superseded_by: ADR-0100
 ---
 
 # 将维护流程收敛为三阶段 Agent 交付闭环

@@ -1,8 +1,6 @@
 package runtime_test
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -38,64 +36,7 @@ func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 	}
 }
 
-func TestAgentApprovalAdvancesOrCompletesMaintainerWorkflow(t *testing.T) {
-	binary := buildCLI(t)
-	for _, test := range []struct {
-		name      string
-		condition string
-		effect    string
-		next      string
-		terminal  bool
-	}{
-		{name: "implementation required", condition: "implementation_required", effect: "advanced", next: "design_technical_solution"},
-		{name: "implementation not required", condition: "implementation_not_required", effect: "completed", terminal: true},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			root := t.TempDir()
-			workspace := filepath.Join(root, "issue-workspace")
-			if err := os.Mkdir(workspace, 0o700); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(filepath.Join(workspace, "requirements.md"), []byte("approved requirements\n"), 0o600); err != nil {
-				t.Fatal(err)
-			}
-
-			assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Maintainer agent approval"), "flow.init")
-			assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
-				"--step-id", "bootstrap_techdesign",
-				"--condition-result", conditionResult("repository_workspace_prepared", "path", `"issue-workspace"`),
-				"--next-step-id", "clarify_requirements", "--summary", "workspace prepared"), "flow.report.result")
-			assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
-				"--step-id", "clarify_requirements",
-				"--condition-result", conditionResult("requirements_grilled", "path", `"issue-workspace/requirements.md"`),
-				"--condition-result", conditionResult("requirements_document_published", "url", `"https://example.com/requirements"`),
-				"--next-step-id", "confirm_requirements", "--summary", "requirements ready"), "flow.report.result")
-
-			args := []string{"flow", "report", "result", "--root", root,
-				"--step-id", "confirm_requirements",
-				"--condition-result", conditionResult("agent_approved", "enum_value", `"approved"`),
-				"--condition-result", conditionResult(test.condition, "boolean", `true`),
-				"--evidence", `{"source":"ai","content":"reviewed issue-workspace/requirements.md: no blockers","ref":"maintainer-agent-approval"}`,
-				"--summary", "agent approved requirements"}
-			if test.terminal {
-				args = append(args, "--terminal")
-			} else {
-				args = append(args, "--next-step-id", test.next)
-			}
-			result := run(binary, args...)
-			assertSuccess(t, result, "flow.report.result")
-			assertFlowEffect(t, result.stdout, test.effect, test.next)
-			events := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "events.jsonl")))
-			for _, want := range []string{"reviewed issue-workspace/requirements.md: no blockers", "maintainer-agent-approval"} {
-				if !strings.Contains(events, want) {
-					t.Fatalf("Flow Events do not contain %q:\n%s", want, events)
-				}
-			}
-		})
-	}
-}
-
-func TestMaintainerThreeStageLifecycleEndsAfterMergedCLIInstall(t *testing.T) {
+func TestMaintainerLifecycleEndsAfterHumanAcceptanceAndPRHandoff(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Three-stage delivery"), "flow.init")
 
@@ -108,42 +49,58 @@ func TestMaintainerThreeStageLifecycleEndsAfterMergedCLIInstall(t *testing.T) {
 		assertSuccess(t, run(binary, args...), "flow.report.result")
 	}
 	advance("bootstrap_techdesign", "clarify_requirements",
-		conditionResult("repository_workspace_prepared", "path", "\"issue-workspace\""))
-	advance("clarify_requirements", "confirm_requirements",
+		conditionResult("repository_workspace_prepared", "path", "\"issue-workspace\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/bootstrap.md\""))
+	advance("clarify_requirements", "design_technical_solution",
 		conditionResult("requirements_grilled", "path", "\"requirements.md\""),
-		conditionResult("requirements_document_published", "url", "\"https://example.com/requirements\""))
-	advance("confirm_requirements", "design_technical_solution",
-		conditionResult("agent_approved", "enum_value", "\"approved\""),
-		conditionResult("implementation_required", "boolean", "true"))
-	advance("design_technical_solution", "implement_code",
+		conditionResult("requirements_document_published", "url", "\"https://example.com/requirements\""),
+		conditionResult("requirements_approved", "enum_value", "\"approved\""),
+		conditionResult("requirements_approval_recorded", "string", "\"decision-requirements\""),
+		conditionResult("requirements_evidence_written", "path", "\"requirements.md\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/requirements.md\""))
+	advance("design_technical_solution", "confirm_technical_solution",
 		conditionResult("spec_written", "path", "\"spec.md\""),
-		conditionResult("tickets_written", "path", "\"ticket-01.md\""),
-		conditionResult("technical_solution_document_published", "url", "\"https://example.com/design\""))
+		conditionResult("tickets_written", "path", "\"issues\""),
+		conditionResult("technical_solution_document_published", "url", "\"https://example.com/design\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/design.md\""))
+	advance("confirm_technical_solution", "implement_code",
+		conditionResult("technical_solution_review_passed", "enum_value", "\"passed\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/design-review.md\""))
+	reviewBase := "1111111111111111111111111111111111111111"
+	reviewedHead := "2222222222222222222222222222222222222222"
 	advance("implement_code", "review_code",
-		conditionResult("implementation_completed", "enum_value", "\"completed\""),
+		conditionResult("implementation_completed", "string", "\""+reviewedHead+"\""),
 		conditionResult("implementation_report_written", "path", "\"implementation-report.md\""),
-		conditionResult("implementation_document_published", "url", "\"https://example.com/implementation\""))
-	candidateHead := "0123456789abcdef0123456789abcdef01234567"
+		conditionResult("panorama_presented", "path", "\".fanloop/card/implementation.md\""))
 	advance("review_code", "execute_agent_acceptance",
-		conditionResult("review_passed", "enum_value", "\"passed\""),
-		conditionResult("implementation_report_written", "path", "\"implementation-report.md\""),
-		conditionResult("implementation_document_published", "url", "\"https://example.com/implementation\""),
-		conditionResult("candidate_head_frozen", "string", "\""+candidateHead+"\""))
-	advance("execute_agent_acceptance", "merge_code",
+		conditionResult("code_review_approved", "enum_value", "\"Approve\""),
+		conditionResult("local_validation_passed", "enum_value", "\"passed\""),
+		conditionResult("review_report_written", "path", "\"review-report.md\""),
+		conditionResult("review_base_frozen", "string", "\""+reviewBase+"\""),
+		conditionResult("reviewed_head_frozen", "string", "\""+reviewedHead+"\""),
+		conditionResult("code_review_document_published", "url", "\"https://example.com/review\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/review.md\""))
+	advance("execute_agent_acceptance", "confirm_human_acceptance",
 		conditionResult("agent_acceptance_passed", "enum_value", "\"passed\""),
 		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
-		conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""))
-	advance("merge_code", "update_local_cli",
-		conditionResult("code_merged", "url_list", `["https://github.com/zeefan1555/fanloop/pull/7"]`),
-		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
-		conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""))
+		conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/acceptance.md\""))
+	advance("confirm_human_acceptance", "handoff_merge_request",
+		conditionResult("human_acceptance_passed", "enum_value", "\"passed\""),
+		conditionResult("human_acceptance_result_recorded", "string", "\"decision-acceptance\""),
+		conditionResult("human_review_written", "path", "\"human-review.md\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/human-acceptance.md\""))
 
 	completed := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "update_local_cli",
-		"--condition-result", conditionResult("local_cli_updated", "string", "\""+candidateHead+"\""),
-		"--condition-result", conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
-		"--condition-result", conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""),
-		"--terminal", "--summary", "merged CLI installed locally")
+		"--step-id", "handoff_merge_request",
+		"--condition-result", conditionResult("handoff_main_unchanged", "enum_value", "\"unchanged\""),
+		"--condition-result", conditionResult("merge_request_published", "url_list", `["https://github.com/zeefan1555/fanloop/pull/7"]`),
+		"--condition-result", conditionResult("remote_checks_passed", "enum_value", "\"passed\""),
+		"--condition-result", conditionResult("review_comment_synced", "string", "\"comment-7\""),
+		"--condition-result", conditionResult("merge_request_handed_off", "enum_value", "\"passed\""),
+		"--condition-result", conditionResult("handoff_record_written", "path", "\"handoff-record.md\""),
+		"--condition-result", conditionResult("panorama_presented", "path", "\".fanloop/card/handoff.md\""),
+		"--terminal", "--summary", "PR handed off")
 	assertSuccess(t, completed, "flow.report.result")
 	assertFlowEffect(t, completed.stdout, "completed", "")
 }

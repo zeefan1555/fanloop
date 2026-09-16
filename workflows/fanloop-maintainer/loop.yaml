@@ -3,75 +3,224 @@ schema_version: 4
 loop:
   bootstrap_techdesign:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_repository_scope}
-      when: {any_of: [[repository_scope_changed]]}
+      when:
+        any_of:
+          - [repository_scope_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: bootstrap_techdesign
 
   clarify_requirements:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_repository_scope}
-      when: {any_of: [[repository_scope_changed]]}
+      when:
+        any_of:
+          - [repository_scope_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: bootstrap_techdesign
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
-      back_step_id: clarify_requirements
-
-  confirm_requirements:
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
       when:
         any_of:
-          - [requirements_changed]
-          - [panorama_card_published, requirements_rejected, requirements_approval_recorded]
+          - [requirements_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: clarify_requirements
 
   design_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_repository_scope}
+      when:
+        any_of:
+          - [repository_scope_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: bootstrap_techdesign
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
-      back_step_id: clarify_requirements
-
-  implement_code:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed]]}
+      when:
+        any_of:
+          - [requirements_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[technical_solution_changes_requested]]}
+      when:
+        any_of:
+          - [technical_solution_changes_requested, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: design_technical_solution
+
+  confirm_technical_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_repository_scope}
+      when:
+        any_of:
+          - [repository_scope_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: bootstrap_techdesign
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when:
+        any_of:
+          - [requirements_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
+      when:
+        any_of:
+          - [technical_solution_review_failed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: design_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_technical_solution
+
+  implement_code:
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: bootstrap_techdesign
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
+      when:
+        any_of:
+          - [requirements_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
+      when:
+        any_of:
+          - [technical_solution_changes_requested, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: design_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[implementation_changes_requested]]}
+      when:
+        any_of:
+          - [implementation_changes_requested, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: implement_code
 
   review_code:
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: bootstrap_techdesign
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed, implementation_report_written, implementation_document_published]]}
+      when:
+        any_of:
+          - [requirements_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[technical_solution_changes_requested, implementation_report_written, implementation_document_published]]}
+      when:
+        any_of:
+          - [technical_solution_changes_requested, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: design_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[review_failed, implementation_report_written, implementation_document_published]]}
+      when:
+        any_of:
+          - [implementation_changes_requested, panorama_presented]
+          - [candidate_changed, panorama_presented]
+          - [code_review_blocked, review_report_written, code_review_document_published, panorama_presented]
+          - [code_review_approved, local_validation_failed, review_report_written, code_review_document_published, panorama_presented]
+          - [code_review_recommended, local_validation_failed, review_report_written, code_review_document_published, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: implement_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: review_code
 
   execute_agent_acceptance:
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: bootstrap_techdesign
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[agent_acceptance_failed, requirements_changed, acceptance_report_written, acceptance_document_published]]}
+      when:
+        any_of:
+          - [agent_acceptance_failed, requirements_changed, acceptance_report_written, acceptance_document_published, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: clarify_requirements
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_technical_solution}
-      when: {any_of: [[agent_acceptance_failed, technical_solution_changes_requested, acceptance_report_written, acceptance_document_published]]}
+      when:
+        any_of:
+          - [agent_acceptance_failed, technical_solution_changes_requested, acceptance_report_written, acceptance_document_published, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: design_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[agent_acceptance_failed, implementation_changes_requested, acceptance_report_written, acceptance_document_published]]}
+      when:
+        any_of:
+          - [agent_acceptance_failed, implementation_changes_requested, acceptance_report_written, acceptance_document_published, panorama_presented]
+          - [candidate_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: implement_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: review_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: execute_agent_acceptance
 
-  merge_code:
+  confirm_human_acceptance:
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: bootstrap_techdesign
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed, acceptance_report_written, acceptance_document_published]]}
+      when:
+        any_of:
+          - [requirements_changed, human_acceptance_result_recorded, human_review_written, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: design_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_technical_solution
     - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
-      when: {any_of: [[implementation_changes_requested, acceptance_report_written, acceptance_document_published]]}
+      when:
+        any_of:
+          - [implementation_changes_requested, human_acceptance_result_recorded, human_review_written, panorama_presented]
+          - [candidate_changed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
       back_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_merge}
-      when: {any_of: [[code_merge_failed, acceptance_report_written, acceptance_document_published]]}
-      back_step_id: merge_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: review_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: execute_agent_acceptance
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_human_acceptance
 
-  update_local_cli:
-    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_requirements}
-      when: {any_of: [[requirements_changed, acceptance_report_written, acceptance_document_published]]}
+  handoff_merge_request:
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: bootstrap_techdesign
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
       back_step_id: clarify_requirements
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: design_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_technical_solution
+    - prompt_ref: {file: prompt.yaml, prompt_id: back_to_implementation}
+      when:
+        any_of:
+          - [implementation_changes_requested, panorama_presented]
+          - [candidate_changed, panorama_presented]
+          - [merge_request_published, remote_checks_failed, panorama_presented]
+          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+      back_step_id: implement_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: review_code
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: execute_agent_acceptance
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: confirm_human_acceptance
+    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
+      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
+      back_step_id: handoff_merge_request

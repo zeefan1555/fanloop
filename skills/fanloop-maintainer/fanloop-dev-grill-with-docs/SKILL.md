@@ -1,6 +1,6 @@
 ---
 name: fanloop-dev-grill-with-docs
-description: 编排 Fanloop CLI 需求澄清，把已确认决策、公开 CLI 验收场景和完整改造计划沉淀到 requirements.md 与唯一飞书需求文档。
+description: 编排 Fanloop CLI 需求澄清，把已确认决策、公开 CLI 验收场景和 human 批准证据沉淀到 requirements.md 与唯一飞书需求文档。
 ---
 
 # Grill with Docs
@@ -27,6 +27,8 @@ Open Questions 为空且 `requirements.md` 完整后，使用当前宿主的 `la
 1. 标题包含 Requirement 身份并保持稳定；同一 Requirement 始终更新同一份唯一飞书需求文档。
 2. 先按稳定标题查找：零命中才创建，唯一命中更新，多命中立即 blocked。创建结果不确定时先重查，不重复创建。
 3. 创建或更新后按返回 URL 语义回读，正文必须非空，且决策、验收场景、完整改造计划与最终 `requirements.md` 一致。
-4. 成功后返回 `requirements_grilled=requirements.md` 与 `requirements_document_published=<URL>`。
+4. 展示完整计划后等待真实 human 明确批准或拒绝；沉默、含糊回复、旧消息或 Developer 自批都无效。
+5. 使用 `fanloop-dev-decision-receipt` 逐字记录真实 actor、不可变消息或 turn 引用、决定和证据，并把 receipt ID 与原始决定写回 `requirements.md`。
+6. 批准时返回 `requirements_grilled`、`requirements_document_published`、`requirements_approved`、`requirements_approval_recorded` 与 `requirements_evidence_written`；拒绝时返回对应拒绝组合。
 
 飞书不可用、标题多命中、写入失败或语义回读失败时保持 blocked，不返回成功 Condition。

@@ -149,6 +149,7 @@ func TestMaintainerDryRunAcceptsIssueWorkspaceDirectoryOutput(t *testing.T) {
 		"--dry-run",
 		"--step-id", "bootstrap_techdesign",
 		"--condition-result", conditionResult("repository_workspace_prepared", "path", `"issue-workspace"`),
+		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/bootstrap.md"`),
 		"--next-step-id", "clarify_requirements",
 		"--summary", "Issue Workspace prepared",
 	)

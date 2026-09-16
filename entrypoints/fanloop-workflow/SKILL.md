@@ -29,6 +29,11 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
+维护 Fanloop 仓库时先判断变更边界。若预期变更全部位于 live 配置目录 `skills/**` 或
+`exemplars/**`，且不需要修改 Workflow YAML、CLI/Runtime、IDL、测试基础设施、构建、安装或发布逻辑，
+直接修改并运行受影响的聚焦检查，不创建或初始化 `fanloop-maintainer` Requirement。只要需要修改上述
+任一非 live 配置边界，就必须使用 `fanloop-maintainer`；已经初始化的 Requirement 继续按其绑定流程推进。
+
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。此前单独执行的 update 失败不阻止已有 Requirement 继续。
 2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
 
@@ -50,7 +55,7 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
    `when.any_of` 外层是 OR、内层是 AND。提交一个完整组合；同一 `exclusive_group` 只选一个 Condition。Output key 由 Condition 定义，Agent 不提交 key 或 producer_step_id。Evidence 只用于审计，不参与路由。
 6. 从最新 `available_routes` 选择一条满足该 Condition 组合的 Route，并把 `route` 原样表达为 `--next-step-id`、`--back-step-id` 或 `--terminal`。`direction=flow` 返回 `advanced|completed`；`direction=loop` 返回 `looped`，目标 Step 及其下游生产的 Output 失效。不要猜目标。
 7. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中或多命中都原子拒绝。
-8. Human Step 使用同一个 Result 接缝。当前 Conditions 提供 `agent_approved` 且 Agent 已独立确认无阻塞项、无需人作出新决定时，可直接提交该 Condition 与 Route 要求的其他事实，不发布 Panorama；否则走人工路径。人工 Route 要求 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到明确的人类决定后，把本次精确 `panorama_snapshot_path` 与 approved/rejected Condition、消息引用和 Evidence 一起上报。CLI 不自动发送，也不认证审批人或事实真伪。
+8. Human Step 使用同一个 Result 接缝。当前 Route 要求 `panorama_presented` 或 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到展示之后的全新、明确人类决定，再把本次精确 `panorama_snapshot_path` 与决定 Condition、回执和 Evidence 一起上报。沉默、含糊回复、机器人结论或 Agent 自批均无效；CLI 不自动发送，也不认证审批人或事实真伪。
 9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
 
 ## 人类提问顺序

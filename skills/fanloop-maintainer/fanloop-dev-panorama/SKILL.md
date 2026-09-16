@@ -1,11 +1,11 @@
 ---
 name: fanloop-dev-panorama
-description: 在 fanloop-maintainer 的 panorama_card_published Condition 要求时按当前 Agent 人设选择唯一通道，展示 renderer 生成的 Panorama 并返回本次精确 snapshot_path。
+description: 在 fanloop-maintainer 的 panorama_presented Condition 要求时按当前 Agent 人设选择唯一通道，展示 renderer 生成的 Panorama 并返回本次精确 snapshot_path。
 ---
 
 # Fanloop Panorama 投递
 
-本 Skill 只负责识别人设、选择唯一展示方式并满足 `panorama_card_published`。外层 Workflow
+本 Skill 只负责识别人设、选择唯一展示方式并满足 `panorama_presented`。外层 Workflow
 决定何时执行 Condition。
 
 ## 识别人设
@@ -22,9 +22,8 @@ blocked，不渲染、不发送。
 
 ## 展示 Panorama
 
-仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_card_published`，且当前
-选择人工审核路径时执行；选择 `agent_approved` Route 时不得渲染或发送。每次进入一个新的
-Human Step 的人工路径只执行一次；同一 Step 内的 progress 和人工交互不重复展示。
+仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_presented` 时执行。
+每次进入一个新 Step 只展示一次；同一 Step 内的 progress 和人工交互不重复展示。
 
 先读取最新 `flow status`，再只执行对应的一个分支。所有分支都必须执行一次非 dry-run render，只使用
 本次成功响应的精确 `data.snapshot_path`；不得扫描 `.fanloop/card` 猜最新文件。
@@ -88,7 +87,7 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 只有当前分支已成功展示或发送后，才返回：
 
 ```json
-{"condition_id":"panorama_card_published","output":{"type":"path","value":"<data.snapshot_path>"}}
+{"condition_id":"panorama_presented","output":{"type":"path","value":"<data.snapshot_path>"}}
 ```
 
 `value` 必须是本次 render 原样返回的 Requirement Root 相对路径。渲染或发送失败、结果无法确认或宿主能力不可用时，

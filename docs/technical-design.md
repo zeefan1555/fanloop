@@ -15,7 +15,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 当前携带两套 Bundle：
 
 - `technical-solution-design`：十六步技术文档流程，第 0 至第 10 章各有独立 Step 和产物，按业务问题、技术判断和结果与规划三阶段推进。
-- `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；需求确认、研发实现、独立 Sub-agent 验收、唯一 PR 合并与本地 CLI 更新顺序推进。
+- `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；TechDesign、Implement 与 Test 依次完成方案自主评审、两级验收和 PR/CI 交接。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
 Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建和 Doctor 拒绝 live
@@ -45,9 +45,8 @@ fanloop flow report result
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
-Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_requirements` 现在
-由 Agent 独立复核；缺少真实产品决策时保持 blocked，人工补充路径仍可使用 Panorama，但不是生产
-拓扑中的 Human Step。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
+Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_human_acceptance` 是最终
+human 验收点；需求澄清中的批准同样只接受真实 human 决定，Developer 不得自批。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
 文档 URL、`panorama_card_published` 与人的明确结论。审批 Skill 组织审核材料并按最早受影响层分类，
 Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
@@ -56,7 +55,7 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 [ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)、
 [ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)、
 [ADR-0098](./adr/0098-use-eleven-section-technical-document-workflow.md)、
-[ADR-0094](./adr/0094-simplify-maintainer-to-three-stage-agent-delivery.md)。
+[ADR-0100](./adr/0100-align-maintainer-with-treeloop-handoff.md)。
 
 ## 当前配置实例
 
@@ -69,17 +68,14 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 最终呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
-`fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：需求确认包含工作区准备、需求澄清、Agent 需求确认；
-研发实现包含方案设计、代码实现、代码审查；验收交付包含 Agent 自动化验收、合并 MR、更新本地 CLI。
+`fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：TechDesign 包含仓库范围确定、需求澄清、方案设计和方案自主评审；
+Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、人类端到端测试和 MR 门禁与交接。
 Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
-需求、研发、交付分别维护 `requirements.md`、`implementation-report.md`、`acceptance-report.md`，并以
-Requirement 稳定标题创建或更新唯一飞书文档，语义回读后把 URL 作为 YAML Output 交给 Panorama。
-Review 在同一最终工作树运行聚焦测试、`./tests/run-unit` 与 `./tests/run-e2e` 后冻结 `candidate_head`。
-验收在一次性数据目录安装该候选，由恰好一个无实现上下文的全新 Sub-agent 使用 1 至 3 个公开 CLI
-场景做黑盒测试，全程不改全局 current。`merge_code` 发布唯一 PR、校验精确 HEAD 的 Ruleset 与
-required checks，并使用 `--auto --squash --match-head-commit` 合并；`update_local_cli` 最后从精确
-merge commit 的干净 detached worktree 执行本地安装。
+实现阶段运行聚焦测试、`./tests/run-unit`、`./tests/run-e2e` 和独立整体 CR；Review 阶段核验证据并冻结
+`review_base` / `reviewed_head`。Agent 验收在一次性数据目录安装候选，由恰好一个无实现上下文的全新
+Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。human 验收通过或明确跳过后，
+`handoff_merge_request` 发布唯一 PR、校验精确 final head 的 Ruleset/required checks、同步 Review 并交接；不自动合并或更新本地 CLI。
 
 ## 当前持久化版本
 

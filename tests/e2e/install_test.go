@@ -104,7 +104,7 @@ func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(oldRelease.ConfigSource, "skills", "fanloop-maintainer", "fanloop-dev-update-local-cli", "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(oldRelease.ConfigSource, "skills", "fanloop-maintainer", "fanloop-dev-workflow", "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(os.Environ(), "HOME="+home)
 	if output, err := pinned.CombinedOutput(); err != nil {
@@ -660,7 +660,7 @@ func makeReleaseFixtureWithChangedMaintainerPrompt(t *testing.T, repository, rel
 	if err != nil {
 		t.Fatal(err)
 	}
-	changed := bytes.Replace(content, []byte("main 固定基线"), []byte("candidate 固定基线"), 1)
+	changed := bytes.Replace(content, []byte("最新 main 基线"), []byte("candidate main 基线"), 1)
 	if bytes.Equal(changed, content) {
 		t.Fatal("maintainer prompt fixture replacement did not match")
 	}
