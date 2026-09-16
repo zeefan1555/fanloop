@@ -424,5 +424,10 @@ func (p *RouteSelection) IsValid() error {
 			return fmt.Errorf("field BackStepId min_len rule failed, current value: %d", len(*p.BackStepId))
 		}
 	}
+	if p.JumpStepId != nil {
+		if len(*p.JumpStepId) < int(1) {
+			return fmt.Errorf("field JumpStepId min_len rule failed, current value: %d", len(*p.JumpStepId))
+		}
+	}
 	return nil
 }

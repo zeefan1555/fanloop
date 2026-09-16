@@ -24,7 +24,7 @@ func TestProjectionWritesStorageThriftSchema(t *testing.T) {
 		SchemaVersion: state.CurrentStateSchemaVersion,
 		Requirement:   state.Requirement{Title: "Storage Thrift"},
 		Release:       state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
-		CurrentStepID: &step, CurrentStepStatus: state.StepReady,
+		CurrentStepID: &step, CurrentStepStatus: state.StepAwaitingConfirmation,
 		Outputs: map[string]state.RegisteredOutput{}, Integrations: state.Integrations{},
 		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
 	}
@@ -40,8 +40,8 @@ func TestProjectionWritesStorageThriftSchema(t *testing.T) {
 	if err := json.Unmarshal(content, &document); err != nil {
 		t.Fatal(err)
 	}
-	if document["schema_version"] != float64(5) {
-		t.Fatalf("schema_version = %v, want 5", document["schema_version"])
+	if document["schema_version"] != float64(6) {
+		t.Fatalf("schema_version = %v, want 6", document["schema_version"])
 	}
 	if _, err := LoadProjection(root); err != nil {
 		t.Fatal(err)

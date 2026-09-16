@@ -18,6 +18,8 @@ type resultEvaluation struct {
 	transition        *flowidl.Transition
 	durableEffect     state.ResultEffect
 	durableTransition state.Transition
+	skippedStepIDs    []string
+	updateSkipped     bool
 }
 
 func validateResultRequest(request *flowidl.FlowResultRequest) *erroridl.PublicError {
@@ -28,10 +30,13 @@ func validateResultRequest(request *flowidl.FlowResultRequest) *erroridl.PublicE
 		return requestError(err)
 	}
 	if request.Route.CountSetFieldsRouteSelection() != 1 {
-		return requestError(errText("route requires exactly one of next_step_id, back_step_id, or terminal"))
+		return requestError(errText("route requires exactly one of next_step_id, back_step_id, terminal, start_current_step, or jump_step_id"))
 	}
 	if request.Route.Terminal != nil && !*request.Route.Terminal {
 		return requestError(errText("route.terminal must be true"))
+	}
+	if request.Route.StartCurrentStep != nil && !*request.Route.StartCurrentStep {
+		return requestError(errText("route.start_current_step must be true"))
 	}
 	if failure := validateEvidence(request.Evidence); failure != nil {
 		return failure
@@ -45,6 +50,12 @@ func validateResultRequest(request *flowidl.FlowResultRequest) *erroridl.PublicE
 }
 
 func evaluateResult(definition workflow.Workflow, current state.State, request *flowidl.FlowResultRequest) (resultEvaluation, *erroridl.PublicError) {
+	if request.Route.StartCurrentStep != nil || request.Route.JumpStepId != nil {
+		return evaluateCommonControl(definition, current, request)
+	}
+	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_REPORT_NOT_ALLOWED, "current Step requires human confirmation before business results", nil)
+	}
 	relevant := map[string]bool{}
 	for _, id := range definition.RelevantConditionIDs(request.StepId) {
 		relevant[id] = true
@@ -146,6 +157,99 @@ func evaluateResult(definition workflow.Workflow, current state.State, request *
 		durableEffect:     state.ResultLooped,
 		durableTransition: state.Transition{Direction: state.TransitionLoop, FromStepID: request.StepId, ToStepID: backStepID},
 	}, nil
+}
+
+func evaluateCommonControl(definition workflow.Workflow, current state.State, request *flowidl.FlowResultRequest) (resultEvaluation, *erroridl.PublicError) {
+	control := definition.Jump
+	effect, durableEffect := flowidl.ResultEffect_jumped, state.ResultJumped
+	direction, durableDirection := flowidl.TransitionDirection_jump, state.TransitionJump
+	target := request.Route.GetJumpStepId()
+	if request.Route.StartCurrentStep != nil {
+		if definition.StepStart == nil || current.CurrentStepStatus != state.StepAwaitingConfirmation {
+			return resultEvaluation{}, newFlowError(erroridl.ErrorCode_ROUTE_NOT_ALLOWED, "start Route is not available at the current Step", nil)
+		}
+		control = definition.StepStart
+		effect, durableEffect = flowidl.ResultEffect_started, state.ResultStarted
+		direction, durableDirection = flowidl.TransitionDirection_start, state.TransitionStart
+		target = request.StepId
+	} else if definition.Jump == nil {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_ROUTE_NOT_ALLOWED, "jump Route is not available", nil)
+	}
+	if _, _, ok := definition.FindStep(target); !ok {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_ROUTE_NOT_ALLOWED, "jump target is unknown", map[string]string{"jump_step_id": target})
+	}
+	if len(request.ConditionResults) != 1 {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_CONDITION_NOT_ALLOWED, "common control requires exactly one common Condition", nil)
+	}
+	result := request.ConditionResults[0]
+	condition, ok := definition.CommonConditions[result.ConditionId]
+	if !ok || !control.When.Matches(map[string]bool{result.ConditionId: true}) {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_CONDITION_NOT_ALLOWED, "Condition is not available for the selected common control", map[string]string{"condition_id": result.ConditionId})
+	}
+	outputType, ok := durableOutputType(result.Output.Type)
+	raw, err := json.Marshal(result.Output.Value)
+	if !ok || outputType != condition.Output.Type || err != nil || workflow.ValidateOutput(condition.Output, raw) != nil {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_OUTPUT_INVALID, "Common Condition Output is invalid", map[string]string{"condition_id": result.ConditionId})
+	}
+	if !hasHumanEvidence(request.Evidence) {
+		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_REPORT_NOT_ALLOWED, "common control requires human Evidence", nil)
+	}
+	if request.Route.JumpStepId != nil {
+		var outputTarget string
+		if json.Unmarshal(raw, &outputTarget) != nil || outputTarget != target {
+			return resultEvaluation{}, newFlowError(erroridl.ErrorCode_OUTPUT_INVALID, "jump Condition target must equal route.jump_step_id", nil)
+		}
+	}
+	invalidated := []string{}
+	if effect == flowidl.ResultEffect_jumped {
+		invalidated, err = outputsFromStep(definition, target, current.Outputs)
+		if err != nil {
+			return resultEvaluation{}, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
+		}
+	}
+	return resultEvaluation{
+		conditionResults: []state.ConditionResult{{ConditionID: result.ConditionId, Output: state.OutputValue{Type: outputType, Value: append(json.RawMessage(nil), raw...)}}},
+		accepted:         map[string]state.RegisteredOutput{}, invalidated: invalidated, effect: effect,
+		transition:    &flowidl.Transition{Direction: direction, FromStepId: request.StepId, ToStepId: stringPointer(target)},
+		durableEffect: durableEffect, durableTransition: state.Transition{Direction: durableDirection, FromStepID: request.StepId, ToStepID: target},
+		skippedStepIDs: jumpedSkippedSteps(definition, current, request.StepId, target),
+		updateSkipped:  effect == flowidl.ResultEffect_jumped,
+	}, nil
+}
+
+func jumpedSkippedSteps(definition workflow.Workflow, current state.State, source, target string) []string {
+	ordered := definition.OrderedStepIDs()
+	_, sourcePosition, _ := definition.FindStep(source)
+	_, targetPosition, _ := definition.FindStep(target)
+	skipped := map[string]bool{}
+	for _, stepID := range current.SkippedStepIDs {
+		skipped[stepID] = true
+	}
+	if targetPosition > sourcePosition {
+		for _, stepID := range ordered[sourcePosition:targetPosition] {
+			skipped[stepID] = true
+		}
+	} else {
+		for _, stepID := range ordered[targetPosition:] {
+			delete(skipped, stepID)
+		}
+	}
+	result := make([]string, 0, len(skipped))
+	for _, stepID := range ordered {
+		if skipped[stepID] {
+			result = append(result, stepID)
+		}
+	}
+	return result
+}
+
+func hasHumanEvidence(values []*flowidl.Evidence) bool {
+	for _, value := range values {
+		if value != nil && value.Source == flowidl.EvidenceSource_human {
+			return true
+		}
+	}
+	return false
 }
 
 func matchingFlowRoutes(routes []workflow.FlowRoute, selected *flowidl.RouteSelection, conditions map[string]bool) (bool, []workflow.FlowRoute) {

@@ -30,8 +30,8 @@ func FormatPanoramaStage(stage workflow.Stage, stepLabel func(workflow.Step) str
 
 func Project(definition workflow.Workflow, current state.State) *flowidl.FlowState {
 	result := &flowidl.FlowState{
-		Status:  flowidl.WorkflowStatus_completed,
-		Outputs: registeredOutputs(current.Outputs),
+		Status: flowidl.WorkflowStatus_completed, Outputs: registeredOutputs(current.Outputs),
+		SkippedStepIds: append([]string{}, current.SkippedStepIDs...),
 	}
 	if current.CurrentStepID == nil {
 		return result
@@ -49,6 +49,16 @@ func Project(definition workflow.Workflow, current state.State) *flowidl.FlowSta
 		return result
 	}
 	paths := skillPaths(definition.ID)
+	conditions := conditionViews(definition, context.Step.ID, paths)
+	routes := availableRouteViews(definition, flowRoutes, definition.Loops[context.Step.ID], paths)
+	if definition.Jump != nil {
+		routes = append(routes, commonJumpRouteViews(definition, paths)...)
+	}
+	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
+		stepPrompt, _ = definition.Prompt(definition.StepStart.PromptRef)
+		conditions = []*flowidl.ConditionView{}
+		routes = append([]*flowidl.AvailableRoute{commonStartRouteView(definition, paths)}, commonJumpRouteViews(definition, paths)...)
+	}
 	result.Status = flowidl.WorkflowStatus_running
 	result.Current = &flowidl.CurrentTask{
 		Context: &flowidl.CurrentContext{
@@ -59,9 +69,44 @@ func Project(definition workflow.Workflow, current state.State) *flowidl.FlowSta
 		Execution: &flowidl.Execution{
 			Status: stepStatus(current.CurrentStepStatus), Summary: optionalString(current.CurrentStepSummary), Evidence: evidence(current.CurrentEvidence),
 		},
-		Prompt:          prompt(stepPrompt, paths),
-		Conditions:      conditionViews(definition, context.Step.ID, paths),
-		AvailableRoutes: availableRouteViews(definition, flowRoutes, definition.Loops[context.Step.ID], paths),
+		Prompt: prompt(stepPrompt, paths), Conditions: conditions, AvailableRoutes: routes,
+		CommonSkills: skills(definition.CommonSkills, paths), CommonConditions: commonConditionViews(definition, paths),
+	}
+	return result
+}
+
+func commonConditionViews(definition workflow.Workflow, paths map[string]string) []*flowidl.ConditionView {
+	ids := make([]string, 0, len(definition.CommonConditions))
+	for id := range definition.CommonConditions {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	result := make([]*flowidl.ConditionView, 0, len(ids))
+	for _, id := range ids {
+		condition := definition.CommonConditions[id]
+		conditionPrompt, ok := definition.Prompt(condition.PromptRef)
+		if ok {
+			result = append(result, &flowidl.ConditionView{Id: id, Prompt: prompt(conditionPrompt, paths), Output: outputSpec(condition.Output), ExclusiveGroup: optionalString(condition.ExclusiveGroup)})
+		}
+	}
+	return result
+}
+
+func commonStartRouteView(definition workflow.Workflow, paths map[string]string) *flowidl.AvailableRoute {
+	control := definition.StepStart
+	controlPrompt, _ := definition.Prompt(control.PromptRef)
+	return &flowidl.AvailableRoute{Direction: flowidl.RouteDirection_flow, When: routeWhen(control.When), Route: &flowidl.RouteSelection{StartCurrentStep: boolPointer(true)}, Prompt: prompt(controlPrompt, paths)}
+}
+
+func commonJumpRouteViews(definition workflow.Workflow, paths map[string]string) []*flowidl.AvailableRoute {
+	if definition.Jump == nil {
+		return nil
+	}
+	controlPrompt, _ := definition.Prompt(definition.Jump.PromptRef)
+	result := make([]*flowidl.AvailableRoute, 0, len(definition.OrderedStepIDs()))
+	for _, stepID := range definition.OrderedStepIDs() {
+		id := stepID
+		result = append(result, &flowidl.AvailableRoute{Direction: flowidl.RouteDirection_flow, When: routeWhen(definition.Jump.When), Route: &flowidl.RouteSelection{JumpStepId: &id}, Prompt: prompt(controlPrompt, paths)})
 	}
 	return result
 }
@@ -210,6 +255,8 @@ func stepStatus(value state.StepStatus) flowidl.StepStatus {
 		return flowidl.StepStatus_fixing
 	case state.StepBlocked:
 		return flowidl.StepStatus_blocked
+	case state.StepAwaitingConfirmation:
+		return flowidl.StepStatus_awaiting_confirmation
 	default:
 		return flowidl.StepStatus_ready
 	}

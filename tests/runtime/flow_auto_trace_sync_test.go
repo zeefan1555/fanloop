@@ -173,6 +173,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace", "--registry", "test"), "trace.bind")
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	configBytes := readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json"))
 	var config map[string]any
 	if err := json.Unmarshal(configBytes, &config); err != nil {
@@ -205,10 +206,10 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	assertRegistryFields(t, registryFieldsPath, "In Progress", "业务问题 / 业务问题 / 目标与问题定义")
 
 	log := string(readFile(t, logPath))
-	if got := strings.Count(log, "docs +update"); got != 3 {
+	if got := strings.Count(log, "docs +update"); got != 4 {
 		t.Fatalf("each accepted Flow update must sync the Trace document: calls=%d\n%s", got, log)
 	}
-	if got := strings.Count(log, "base +record-upsert"); got != 3 {
+	if got := strings.Count(log, "base +record-upsert"); got != 4 {
 		t.Fatalf("each accepted Flow update must sync the Registry: calls=%d\n%s", got, log)
 	}
 	for _, want := range []string{"--base-token A3zNbz0sFapWzVsjHCDcIebdnfg", "--table-id tblGrG1epTVE9tHs", "--view-id vew5zFcUtJ"} {
@@ -230,7 +231,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	}
 	status := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, status, "trace.status")
-	for _, want := range []string{`"event_count": 11`, `"outcome": "succeeded"`, `"target": "trace_document"`, `"target": "registry"`} {
+	for _, want := range []string{`"event_count": 14`, `"outcome": "succeeded"`, `"target": "trace_document"`, `"target": "registry"`} {
 		if !strings.Contains(status.stdout, want) {
 			t.Fatalf("Trace status does not contain %s:\n%s", want, status.stdout)
 		}
@@ -250,6 +251,7 @@ func TestFlowReportKeepsCommittedUpdateWhenAutoSyncIsPartial(t *testing.T) {
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Partial Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace"), "trace.bind")
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_requirement_background", "--status", "blocked", "--summary", "local fact wins")
 	assertSuccess(t, reported, "flow.report.progress")
 	if !strings.Contains(reported.stdout, `"effect": "status_updated"`) {
@@ -281,6 +283,7 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "No Auto Sync"), "flow.init")
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/AutoSyncTrace"), "trace.bind")
 	rejected := run(binary, "flow", "report", "result", "--root", root, "--step-id", "write_technical_solution", "--condition-result", conditionResult("technical_solution_written", "path", `"technical-solution.md"`), "--condition-result", conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`), "--next-step-id", "review_technical_solution", "--summary", "stale report")
 	if rejected.exitCode == 0 || !strings.Contains(rejected.stderr, `"code": "STEP_NOT_CURRENT"`) {
@@ -296,7 +299,7 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	}
 	traceStatus := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, traceStatus, "trace.status")
-	if !strings.Contains(traceStatus.stdout, `"event_count": 2`) || strings.Contains(traceStatus.stdout, `"last_sync"`) {
+	if !strings.Contains(traceStatus.stdout, `"event_count": 3`) || strings.Contains(traceStatus.stdout, `"last_sync"`) {
 		t.Fatalf("non-committed reports changed Trace sync history: %s", traceStatus.stdout)
 	}
 }

@@ -30,6 +30,7 @@ type Projection struct {
 	CurrentStepSummary string
 	CurrentEvidence    []state.Evidence
 	Outputs            map[string]state.RegisteredOutput
+	SkippedStepIDs     []string
 	TraceDocumentURL   string
 	CLILogDocumentURL  string
 	SourceEventID      string
@@ -46,7 +47,8 @@ func WriteProjection(root string, current state.State) error {
 		CurrentStepID: cloneString(current.CurrentStepID), CurrentStepStatus: current.CurrentStepStatus,
 		CurrentStepSummary: current.CurrentStepSummary, CurrentEvidence: append([]state.Evidence(nil), current.CurrentEvidence...),
 		Outputs: cloneOutputs(current.Outputs), TraceDocumentURL: traceDocumentURL(current), CLILogDocumentURL: cliLogDocumentURL(current),
-		SourceEventID: current.LastEventID, UpdatedAt: current.UpdatedAt,
+		SkippedStepIDs: append([]string{}, current.SkippedStepIDs...),
+		SourceEventID:  current.LastEventID, UpdatedAt: current.UpdatedAt,
 	}
 	if err := projection.Validate(); err != nil {
 		return err
@@ -64,6 +66,7 @@ func WriteProjection(root string, current state.State) error {
 		CurrentStepId: storedState.CurrentStepId, CurrentStepStatus: storedState.CurrentStepStatus,
 		CurrentStepSummary: storedState.CurrentStepSummary, CurrentEvidence: storedState.CurrentEvidence,
 		Outputs: outputs, SourceEventId: projection.SourceEventID, UpdatedAt: storedState.UpdatedAt,
+		SkippedStepIds: append([]string{}, projection.SkippedStepIDs...),
 	}
 	if projection.TraceDocumentURL != "" {
 		stored.TraceDocumentUrl = stringPointer(projection.TraceDocumentURL)
@@ -127,6 +130,7 @@ func LoadProjection(root string) (Projection, error) {
 		CurrentStepId: stored.CurrentStepId, CurrentStepStatus: stored.CurrentStepStatus,
 		CurrentStepSummary: stored.CurrentStepSummary, CurrentEvidence: stored.CurrentEvidence,
 		Integrations: integrations, LastEventId: stored.SourceEventId, CreatedAt: stored.UpdatedAt, UpdatedAt: stored.UpdatedAt,
+		SkippedStepIds: append([]string{}, stored.SkippedStepIds...),
 	}, outputs)
 	if err != nil {
 		return Projection{}, err
@@ -136,7 +140,8 @@ func LoadProjection(root string) (Projection, error) {
 		CurrentStepID: current.CurrentStepID, CurrentStepStatus: current.CurrentStepStatus,
 		CurrentStepSummary: current.CurrentStepSummary, CurrentEvidence: current.CurrentEvidence,
 		Outputs: current.Outputs, TraceDocumentURL: stored.GetTraceDocumentUrl(), CLILogDocumentURL: stored.GetCliLogDocumentUrl(),
-		SourceEventID: stored.SourceEventId, UpdatedAt: current.UpdatedAt,
+		SkippedStepIDs: append([]string{}, current.SkippedStepIDs...),
+		SourceEventID:  stored.SourceEventId, UpdatedAt: current.UpdatedAt,
 	}
 	if err := projection.Validate(); err != nil {
 		return Projection{}, err
@@ -182,7 +187,8 @@ func (value Projection) State() state.State {
 		CurrentStepID: cloneString(value.CurrentStepID), CurrentStepStatus: value.CurrentStepStatus,
 		CurrentStepSummary: value.CurrentStepSummary, CurrentEvidence: append([]state.Evidence(nil), value.CurrentEvidence...),
 		Outputs: cloneOutputs(value.Outputs), Integrations: state.Integrations{}, LastEventID: value.SourceEventID,
-		CreatedAt: value.UpdatedAt, UpdatedAt: value.UpdatedAt,
+		SkippedStepIDs: append([]string{}, value.SkippedStepIDs...),
+		CreatedAt:      value.UpdatedAt, UpdatedAt: value.UpdatedAt,
 	}
 	if value.TraceDocumentURL != "" {
 		current.Integrations.Trace = &state.TraceBinding{

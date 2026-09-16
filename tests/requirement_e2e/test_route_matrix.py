@@ -18,6 +18,16 @@ class RouteMatrixTest(unittest.TestCase):
             "available_routes": [
                 {
                     "direction": "flow",
+                    "when": {"any_of": [["step_scope_confirmed"]]},
+                    "route": {"start_current_step": True},
+                },
+                {
+                    "direction": "flow",
+                    "when": {"any_of": [["human_step_jump_requested"]]},
+                    "route": {"jump_step_id": "checks"},
+                },
+                {
+                    "direction": "flow",
                     "when": {"any_of": [["unit_passed"], ["unit_failed"]]},
                     "route": {"next_step_id": "review"},
                 },

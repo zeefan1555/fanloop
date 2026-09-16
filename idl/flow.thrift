@@ -48,6 +48,7 @@ enum StepStatus {
   fixing      = 3,
   blocked     = 4,
   // Value 5 is retired and must not be reused.
+  awaiting_confirmation = 6,
 }
 
 enum Executor {
@@ -164,6 +165,8 @@ union RouteSelection {
   1: string next_step_id (vt.min_size = "1"),
   2: string back_step_id (vt.min_size = "1"),
   3: bool   terminal,
+  4: bool   start_current_step,
+  5: string jump_step_id (vt.min_size = "1"),
 }
 
 struct AvailableRoute {
@@ -183,6 +186,8 @@ struct CurrentTask {
   4: required list<ConditionView> conditions,
   // Fields 5-6 are retired and must not be reused.
   7: required list<AvailableRoute> available_routes,
+  8: required list<Skill>          common_skills,
+  9: required list<ConditionView>  common_conditions,
 }
 
 struct FlowState {
@@ -192,6 +197,7 @@ struct FlowState {
   ),
   2: optional CurrentTask                  current,
   3: required map<string,RegisteredOutput> outputs,
+  4: required list<string>                 skipped_step_ids,
 }
 
 enum InitEffect {
@@ -254,12 +260,16 @@ enum ResultEffect {
   advanced    = 1,
   looped      = 2,
   completed   = 3,
+  started     = 4,
+  jumped      = 5,
 }
 
 enum TransitionDirection {
   unspecified = 0,
   flow        = 1,
   loop        = 2,
+  start       = 3,
+  jump        = 4,
 }
 
 struct Transition {

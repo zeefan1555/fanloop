@@ -57,6 +57,7 @@ set -eu
 		t.Fatalf("Card projection did not retain Trace binding:\n%s", projection)
 	}
 
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root,
 		"--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "framing"), "flow.report.progress")
 	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
@@ -209,6 +210,7 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 		t.Fatalf("initial Card projection does not contain the current Step:\n%s", projection)
 	}
 
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	reported := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "frame_requirement_background",
 		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),

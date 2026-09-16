@@ -13,6 +13,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Technical solution lifecycle"), "flow.init")
 	advance := func(step, next string, conditions ...string) result {
 		t.Helper()
+		ensureTechnicalStepStarted(t, binary, root, step)
 		args := []string{"flow", "report", "result", "--root", root, "--step-id", step, "--next-step-id", next, "--summary", "ready"}
 		for _, condition := range conditions {
 			args = append(args, "--condition-result", condition)
@@ -23,6 +24,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 		return got
 	}
 
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	progress := run(binary, "flow", "report", "progress", "--root", root,
 		"--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "framing")
 	assertSuccess(t, progress, "flow.report.progress")
@@ -46,6 +48,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 		}
 	}
 
+	ensureTechnicalStepStarted(t, binary, root, "confirm_technical_problem")
 	rejected := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_technical_problem",
 		"--condition-result", conditionResult("problem_document_published", "url", `"https://example.com/problem-definition"`),
@@ -93,6 +96,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 		conditionResult("summary_defined", "path", `".technical-solution/sections/00-summary.md"`))
 	advance("write_technical_solution", "review_technical_solution",
 		conditionResult("technical_solution_written", "path", `"technical-solution.md"`))
+	ensureTechnicalStepStarted(t, binary, root, "review_technical_solution")
 	reviewed := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "review_technical_solution",
 		"--condition-result", conditionResult("technical_solution_review_written", "path", `".technical-solution/review.md"`),
@@ -223,6 +227,7 @@ func TestMaterialFlashcardsHumanGateAndRecoveryRoutes(t *testing.T) {
 func TestFlowResultAcceptsExplicitTechnicalSolutionRoute(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Explicit route"), "flow.init")
+	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	reported := run(binary, "flow", "report", "result", "--root", root, "--input", `{
   "step_id": "frame_requirement_background",
   "condition_results": [{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-business-background.md"}}],

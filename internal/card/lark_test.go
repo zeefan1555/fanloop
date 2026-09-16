@@ -88,6 +88,19 @@ func TestCardShowsOnlyCurrentExecutionEvidence(t *testing.T) {
 	}
 }
 
+func TestPanoramaRendersSkippedStepsWithoutCompletionMark(t *testing.T) {
+	loaded, err := workflow.Load("technical-solution-design")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stepID := "research_solution_options"
+	current := state.State{Requirement: state.Requirement{Title: "Skipped"}, CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, SkippedStepIDs: []string{"frame_requirement_background"}, Outputs: map[string]state.RegisteredOutput{}}
+	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
+	if !strings.Contains(markdown, "已跳过 业务背景") || strings.Contains(markdown, "✅ 业务背景") {
+		t.Fatalf("skipped Step was rendered as completed:\n%s", markdown)
+	}
+}
+
 func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 	loaded, err := workflow.Load("fanloop-maintainer")
 	if err != nil {
