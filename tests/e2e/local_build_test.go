@@ -72,7 +72,7 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 		t.Fatalf("local install did not return its local release: %v\n%s", err, installOutput)
 	}
 	version := installed.Data.ReleaseVersion
-	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, version, traeRoot, claudeRoot)
+	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, releaseFixture{ConfigSource: repository, Version: version}, traeRoot, claudeRoot)
 	assertLocalBuildContents(t, repository, filepath.Join(dataRoot, "current"))
 	if fixtureDirectoryDigest(t, installBuild) != fixtureDirectoryDigest(t, filepath.Join(dataRoot, "releases", version)) {
 		t.Fatal("installation changed the built local directory")
@@ -113,10 +113,10 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	for index, entry := range entries {
 		names[index] = entry.Name()
 	}
-	if want := []string{"bin", "entrypoints", "release.json", "skills", "workflows"}; !reflect.DeepEqual(names, want) {
+	if want := []string{"bin", "entrypoints", "release.json", "workflows"}; !reflect.DeepEqual(names, want) {
 		t.Fatalf("local build entries = %v, want one copy of each component: %v", names, want)
 	}
-	for _, component := range []string{"entrypoints", "skills"} {
+	for _, component := range []string{"entrypoints"} {
 		if fixtureDirectoryDigest(t, filepath.Join(repository, component)) != fixtureDirectoryDigest(t, filepath.Join(root, component)) {
 			t.Fatalf("local build changed or omitted %s files", component)
 		}
@@ -135,12 +135,8 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 			t.Fatalf("local build changed or omitted workflow %s", name)
 		}
 	}
-	images, err := filepath.Glob(filepath.Join(root, "skills", "technical-solution-design", "technical-solution-review", "references", "examples", "*", "images", "*"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(images) != 0 {
-		t.Fatalf("local build contains %d source-only exemplar images", len(images))
+	if _, err := os.Stat(filepath.Join(root, "skills")); !os.IsNotExist(err) {
+		t.Fatalf("local build contains live Skill configuration: %v", err)
 	}
 	sourceImages, err := filepath.Glob(filepath.Join(repository, "exemplars", "technical-solution", "*", "images", "*"))
 	if err != nil || len(sourceImages) == 0 {

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -22,21 +23,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantSkills := []string{
-		"fanloop-workflow",
-		"fanloop-dev-agent-acceptance", "fanloop-dev-bootstrap", "fanloop-dev-code-review",
-		"fanloop-dev-domain-modeling", "fanloop-dev-grill-with-docs", "fanloop-dev-grilling",
-		"fanloop-dev-implement", "fanloop-dev-merge-code", "fanloop-dev-panorama", "fanloop-dev-tdd",
-		"fanloop-dev-to-spec", "fanloop-dev-to-tickets", "fanloop-dev-update-local-cli", "fanloop-dev-workflow",
-		"flashcard-card-planning", "flashcard-goal-framing", "flashcard-knowledge-selection",
-		"flashcard-preview-approval", "flashcard-quality-review", "flashcard-source-understanding", "flashcard", "material-flashcards-panorama",
-		"technical-background-framing", "technical-business-constraints", "technical-decision-recording",
-		"technical-direction-approval", "technical-goals-and-problems", "technical-key-solutions",
-		"technical-overall-solution", "technical-problem-approval", "technical-retrospective-planning",
-		"technical-solution-approval", "technical-solution-benefits",
-		"technical-solution-delivery", "technical-solution-panorama", "technical-solution-research",
-		"technical-solution-review", "technical-solution-writing", "technical-summary-writing",
-	}
+	wantSkills := []string{"fanloop-workflow"}
 	gotSkills := make([]string, len(manifest.Skills))
 	for index, skill := range manifest.Skills {
 		gotSkills[index] = skill.Name
@@ -136,99 +123,21 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 	}
 }
 
-func TestDiscoverSkillsUsesWorkflowGroups(t *testing.T) {
+func TestDiscoverEntrypoint(t *testing.T) {
 	root := t.TempDir()
-	for _, relative := range []string{
-		"entrypoints/fanloop-workflow/SKILL.md",
-		"skills/technical-solution-design/write/SKILL.md",
-		"skills/fanloop-maintainer/maintain/SKILL.md",
-	} {
-		path := filepath.Join(root, filepath.FromSlash(relative))
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, []byte(relative), 0o600); err != nil {
-			t.Fatal(err)
-		}
+	path := filepath.Join(root, release.ExposedSkillPath, "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	skills, err := discoverSkills(root, "1.2.3")
+	if err := os.WriteFile(path, []byte("entrypoint"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	skill, err := discoverEntrypoint(root, "1.2.3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := make([]string, len(skills))
-	for index, skill := range skills {
-		got[index] = skill.Name + "=" + skill.Path
-	}
-	want := []string{
-		"fanloop-workflow=entrypoints/fanloop-workflow",
-		"maintain=skills/fanloop-maintainer/maintain",
-		"write=skills/technical-solution-design/write",
-	}
-	if !equalStrings(got, want) {
-		t.Fatalf("discoverSkills() = %v, want %v", got, want)
-	}
-	nested := filepath.Join(root, "skills", "legacy", "nested", "skill", "SKILL.md")
-	if err := os.MkdirAll(filepath.Dir(nested), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(nested, []byte("legacy"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := discoverSkills(root, "1.2.3"); err == nil || !strings.Contains(err.Error(), "skills/<workflow-id>/<skill-id>/SKILL.md") {
-		t.Fatalf("nested Skill layout error = %v", err)
-	}
-}
-
-func TestValidateWorkflowSkillDirectoriesRequiresExactMatch(t *testing.T) {
-	root := t.TempDir()
-	for _, relative := range []string{"workflows/flow", "skills/flow"} {
-		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(relative)), 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := validateWorkflowSkillDirectories(root); err != nil {
-		t.Fatalf("matching directories rejected: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(root, "workflows", "orphan"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := validateWorkflowSkillDirectories(root); err == nil || !strings.Contains(err.Error(), "orphan") {
-		t.Fatalf("mismatched directories accepted: %v", err)
-	}
-}
-
-func TestValidateWorkflowSkillBindingsEnforcesGroups(t *testing.T) {
-	manifest := release.Manifest{
-		Skills: []*release.Skill{
-			{Name: release.ExposedSkillName, Path: release.ExposedSkillPath},
-			{Name: "write", Path: "skills/technical-solution-design/write"},
-			{Name: "maintain", Path: "skills/fanloop-maintainer/maintain"},
-		},
-		Workflows: []*release.Workflow{{Id: "technical-solution-design"}, {Id: "fanloop-maintainer"}},
-	}
-	loaded := []workflow.Loaded{
-		{Workflow: workflow.Workflow{ID: "technical-solution-design", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "write"}}}}}},
-		{Workflow: workflow.Workflow{ID: "fanloop-maintainer", Prompts: map[string]workflow.PromptDefinition{"step": {Skills: []workflow.SkillBinding{{ID: "maintain"}}}}}},
-	}
-	if err := validateWorkflowSkillBindings(manifest, loaded); err != nil {
-		t.Fatalf("valid bindings rejected: %v", err)
-	}
-	loaded[0].Workflow.Prompts["step"] = workflow.PromptDefinition{Skills: []workflow.SkillBinding{{ID: "maintain"}}}
-	if err := validateWorkflowSkillBindings(manifest, loaded); err == nil || !strings.Contains(err.Error(), "cannot use") {
-		t.Fatalf("cross-Workflow binding error = %v", err)
-	}
-	loaded[0].Workflow.Prompts["step"] = workflow.PromptDefinition{Skills: []workflow.SkillBinding{{ID: "missing"}}}
-	if err := validateWorkflowSkillBindings(manifest, loaded); err == nil || !strings.Contains(err.Error(), "unknown Skill") {
-		t.Fatalf("missing binding error = %v", err)
-	}
-	manifest.Skills = append(manifest.Skills, &release.Skill{Name: "orphan", Path: "skills/orphan/orphan"})
-	if err := validateWorkflowSkillBindings(manifest, loaded); err == nil || !strings.Contains(err.Error(), `unknown Workflow group "orphan"`) {
-		t.Fatalf("unknown Workflow Skill group error = %v", err)
-	}
-	manifest.Skills = manifest.Skills[:len(manifest.Skills)-1]
-	manifest.Workflows = append(manifest.Workflows, &release.Workflow{Id: "orphan"})
-	if err := validateWorkflowSkillBindings(manifest, loaded); err == nil || !strings.Contains(err.Error(), "missing matching skills/orphan group") {
-		t.Fatalf("missing Workflow Skill group error = %v", err)
+	if skill.Name != release.ExposedSkillName || skill.Path != release.ExposedSkillPath || skill.Version != "1.2.3" || skill.Sha256 == "" {
+		t.Fatalf("discoverEntrypoint() = %#v", skill)
 	}
 }
 
@@ -285,21 +194,22 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), routes, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := validateWorkflowSkillDirectories(root); err != nil {
+	skills, err := skillconfig.Validate(root, []workflow.Loaded{loaded})
+	if err != nil {
 		t.Fatal(err)
 	}
-	skills, err := discoverSkills(root, "1.2.3")
+	if len(skills) == 0 {
+		t.Fatal("config-only Workflow has no Skills")
+	}
+	exposed, err := discoverEntrypoint(root, "1.2.3")
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest := release.Manifest{
-		Skills: skills,
+		Skills: []*release.Skill{exposed},
 		Workflows: []*release.Workflow{{
 			Id: workflowID, Path: "workflows/" + workflowID, Sha256: loaded.Ref.Digest,
 		}},
-	}
-	if err := validateWorkflowSkillBindings(manifest, []workflow.Loaded{loaded}); err != nil {
-		t.Fatal(err)
 	}
 	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), manifest); err != nil {
 		t.Fatal(err)
@@ -403,19 +313,19 @@ func TestDirectoryVerificationRejectsIncompleteOrChangedBuild(t *testing.T) {
 		remove, symlink           bool
 	}{
 		{name: "missing binary", path: "bin/fanloop", remove: true, want: "bin/fanloop"},
-		{name: "missing Skill", path: "skills/technical-solution-design/example/SKILL.md", remove: true, want: "checksum mismatch"},
-		{name: "changed Skill", path: "skills/technical-solution-design/example/SKILL.md", content: "changed", want: "checksum mismatch"},
+		{name: "missing entrypoint", path: "entrypoints/fanloop-workflow/SKILL.md", remove: true, want: "checksum mismatch"},
+		{name: "changed entrypoint", path: "entrypoints/fanloop-workflow/SKILL.md", content: "changed", want: "checksum mismatch"},
 		{name: "missing Workflow", path: "workflows/technical-solution-design/flow.yaml", remove: true, want: "flow.yaml"},
 		{name: "invalid Workflow", path: "workflows/technical-solution-design/flow.yaml", content: "invalid: true", want: "Workflow"},
 		{name: "extra Workflow file", path: "workflows/technical-solution-design/guard.yaml", content: "extra", want: "guard.yaml"},
 		{name: "unmanifested Workflow", path: "workflows/orphan/README.md", content: "extra", want: "workflows/orphan/README.md"},
 		{name: "unmanifested Skill", path: "skills/orphan/SKILL.md", content: "extra", want: "skills/orphan/SKILL.md"},
-		{name: "symlink", path: "skills/technical-solution-design/example/link.md", symlink: true, want: "unsupported entry"},
+		{name: "symlink", path: "entrypoints/fanloop-workflow/link.md", symlink: true, want: "unsupported entry"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			root := t.TempDir()
 			writeTestFile(t, root, "bin/fanloop", []byte("binary"))
-			skillPath := "skills/technical-solution-design/example"
+			skillPath := release.ExposedSkillPath
 			writeTestFile(t, root, skillPath+"/SKILL.md", []byte("example Skill"))
 			digest, err := release.DirectoryDigest(filepath.Join(root, skillPath))
 			if err != nil {
@@ -434,7 +344,7 @@ func TestDirectoryVerificationRejectsIncompleteOrChangedBuild(t *testing.T) {
 				t.Fatal(err)
 			}
 			manifest := release.Manifest{
-				Skills:    []*release.Skill{{Name: "example", Path: skillPath, Sha256: digest}},
+				Skills:    []*release.Skill{{Name: release.ExposedSkillName, Path: skillPath, Sha256: digest}},
 				Workflows: []*release.Workflow{{Id: loaded.Ref.ID, Path: bundlePath, Sha256: loaded.Ref.Digest}},
 			}
 			if _, err := verifyDirectory(root, manifest); err != nil {
@@ -476,7 +386,7 @@ func writeTestFile(t *testing.T, root, relative string, content []byte) {
 func writeTestReleaseDirectory(t *testing.T, source, destination string) {
 	t.Helper()
 	writeTestFile(t, destination, "bin/fanloop", []byte("test binary"))
-	for _, top := range []string{"entrypoints", "skills", "workflows"} {
+	for _, top := range []string{"entrypoints", "workflows"} {
 		if err := filepath.WalkDir(filepath.Join(source, top), func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil || entry.IsDir() {
 				return walkErr

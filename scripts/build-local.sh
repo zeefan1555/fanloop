@@ -32,7 +32,7 @@ if [[ $# -eq 1 ]]; then
 else
   build_root="$(mktemp -d "$build_root")"
 fi
-source_paths=(.)
+source_paths=(. ':(exclude)skills' ':(exclude)skills/**' ':(exclude)exemplars' ':(exclude)exemplars/**')
 case "$build_root/" in
   "$repo_root/"*) source_paths+=(":(exclude,literal)${build_root#"$repo_root/"}") ;;
 esac
@@ -66,7 +66,7 @@ export GOOS="$(go env GOHOSTOS)" GOARCH="$(go env GOHOSTARCH)" CGO_ENABLED=0
 go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X github.com/zeefan1555/fanloop/internal/buildinfo.ReleaseVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.Commit=$commit" \
   -o "$build_root/bin/fanloop" . >&2
-cp -R "$repo_root/entrypoints" "$repo_root/skills" "$build_root/"
+cp -R "$repo_root/entrypoints" "$build_root/"
 for workflow_source in "$repo_root"/workflows/*/; do
   workflow_name="$(basename "$workflow_source")"
   mkdir "$build_root/workflows/$workflow_name"

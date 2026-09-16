@@ -16,6 +16,7 @@ import (
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/workflow"
@@ -31,6 +32,7 @@ const (
 type Runtime struct {
 	ReleaseRoot string
 	BinaryPath  string
+	ConfigRoot  string
 	SkillRoots  []string
 }
 
@@ -50,7 +52,8 @@ func DefaultRuntime() Runtime {
 	if roots, err := release.DefaultSkillRoots(); err == nil {
 		skillRoots = roots.Values()
 	}
-	return Runtime{ReleaseRoot: releaseRoot, BinaryPath: executable, SkillRoots: skillRoots}
+	configRoot, _ := skillconfig.DefaultRoot()
+	return Runtime{ReleaseRoot: releaseRoot, BinaryPath: executable, ConfigRoot: configRoot, SkillRoots: skillRoots}
 }
 
 func (runtime Runtime) Run(requirementRoot string) *idl.DoctorResponse {
@@ -80,6 +83,7 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 			check("release_manifest", statusWarn, "No installed release manifest; this appears to be a source build.", "Install a matched Fanloop release for production use."),
 			skipped("binary_checksum", "Release manifest is unavailable."),
 			skipped("skills", "Release manifest is unavailable."),
+			skipped("skill_config", "Release manifest is unavailable."),
 			skipped("workflows", "Release manifest is unavailable."),
 			skipped("version_drift", "Release manifest is unavailable."),
 		}
@@ -89,12 +93,13 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 			check("release_manifest", statusFail, "Release manifest is invalid: "+err.Error(), "Reinstall this Fanloop release."),
 			skipped("binary_checksum", "Release manifest is invalid."),
 			skipped("skills", "Release manifest is invalid."),
+			skipped("skill_config", "Release manifest is invalid."),
 			skipped("workflows", "Release manifest is invalid."),
 			skipped("version_drift", "Release manifest is invalid."),
 		}
 	}
 	checks := []*idl.DoctorCheck{check("release_manifest", statusPass, "Release manifest is valid.", "")}
-	checks = append(checks, runtime.binaryCheck(manifest), skillCheck(runtime.ReleaseRoot, manifest))
+	checks = append(checks, runtime.binaryCheck(manifest), skillCheck(runtime.ReleaseRoot, manifest), skillConfigCheck(runtime.ConfigRoot))
 	if len(runtime.SkillRoots) > 0 {
 		checks = append(checks, skillLinkCheck(runtime.ReleaseRoot, runtime.SkillRoots, manifest))
 	}
@@ -121,7 +126,21 @@ func skillCheck(root string, manifest release.Manifest) *idl.DoctorCheck {
 			return check("skills", statusFail, fmt.Sprintf("Skill %q checksum does not match.", skill.Name), "Reinstall this Fanloop release.")
 		}
 	}
-	return check("skills", statusPass, "All packaged Skills match the release manifest.", "")
+	return check("skills", statusPass, "The packaged Workflow entrypoint matches the release manifest.", "")
+}
+
+func skillConfigCheck(root string) *idl.DoctorCheck {
+	if root == "" {
+		return skipped("skill_config", "Live Skill configuration root is unavailable.")
+	}
+	definitions, err := workflow.List()
+	if err != nil {
+		return check("skill_config", statusFail, "Embedded Workflows cannot be read.", "Reinstall Fanloop.")
+	}
+	if _, err := skillconfig.Validate(root, definitions); err != nil {
+		return check("skill_config", statusFail, "Live Skill configuration is invalid: "+err.Error(), "Restore the configured repository checkout.")
+	}
+	return check("skill_config", statusPass, "Live Skills match the embedded Workflow bindings.", "")
 }
 
 func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifest) *idl.DoctorCheck {

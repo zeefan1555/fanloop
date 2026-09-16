@@ -79,6 +79,9 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		t.Fatalf("retired root FEATURE_MAP.md remains: %v", err)
 	}
 	contracts := map[string][]string{
+		"scripts/install-local.sh": {
+			"--config-source", "FANLOOP_CONFIG_SOURCE", "$HOME/.fanloop",
+		},
 		"entrypoints/fanloop-workflow/SKILL.md": {
 			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
 		},
@@ -107,7 +110,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"pin-controller-release.sh", "bound-release-home", "origin/main", "detached worktree", "./scripts/install-local.sh", "version commit", "Doctor", "acceptance-report.md", "飞书验收交付报告", "local_cli_updated",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-update-local-cli/scripts/pin-controller-release.sh": {
-			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
+			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 	}
 	for relative, snippets := range contracts {
@@ -128,6 +131,9 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	}
 	if strings.Contains(string(entrypoint), "issue-workspace/bound-release-home") {
 		t.Error("fanloop-workflow trusts a candidate-writable controller path")
+	}
+	if strings.Contains(string(entrypoint), "/current/skills/") {
+		t.Error("fanloop-workflow still references packaged atomic Skills")
 	}
 	maintainerEntry, err := os.ReadFile(filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-workflow", "SKILL.md"))
 	if err != nil {

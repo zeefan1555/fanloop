@@ -98,4 +98,4 @@ Requirement 稳定标题，零命中创建、唯一命中更新、多命中阻�
 真实 CLI 输出、退出码与文件副作用的受审快照。随机 ID、时间和临时路径仅在比较时规范化。
 
 **Release Manifest**
-一次发布中 CLI、Skills、完整 Bundle、Schema 版本与文件摘要的唯一声明；字段和局部约束由 `idl/release.thrift` 定义，安装和更新只切换完整配套版本。
+一次发布中 CLI、统一 Workflow 入口、完整 Bundle、Schema 版本与文件摘要的唯一声明；字段和局部约束由 `idl/release.thrift` 定义。原子 Skills 位于独立 live 配置根，不进入 Release Manifest。

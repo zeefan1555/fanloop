@@ -55,6 +55,14 @@ func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
 	}
 }
 
+func TestValidateAllowsOnlyPackagedWorkflowEntrypoint(t *testing.T) {
+	manifest := validTestManifest()
+	manifest.Skills = manifest.Skills[1:]
+	if err := manifest.Validate(); err != nil {
+		t.Fatalf("entrypoint-only release rejected: %v", err)
+	}
+}
+
 func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
 	tests := []struct{ path, want string }{
 		{"skills/ai-test", "invalid or duplicate skill"},

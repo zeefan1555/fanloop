@@ -10,8 +10,10 @@ requirement_root="$(cd "$1" && pwd -P)"
 controller_home="$requirement_root/bound-release-home"
 skill_roots="$controller_home/skill-roots"
 controller_binary="$controller_home/current/bin/fanloop"
+source_config="$(cd "${FANLOOP_CONFIG_ROOT:-$HOME/.fanloop/config/current}" && pwd -P)"
 controller_env=(
   "FANLOOP_DATA_HOME=$controller_home"
+  "FANLOOP_CONFIG_ROOT=$controller_home/config/current"
   "FANLOOP_CODEX_SKILLS_ROOT=$skill_roots/codex"
   "FANLOOP_AGENT_SKILLS_ROOT=$skill_roots/agent"
   "FANLOOP_TRAE_SKILLS_ROOT=$skill_roots/trae"
@@ -46,6 +48,7 @@ source_binary="$source_release/bin/fanloop"
 
 env \
   -u FANLOOP_DATA_HOME \
+  -u FANLOOP_CONFIG_ROOT \
   -u FANLOOP_CODEX_SKILLS_ROOT \
   -u FANLOOP_AGENT_SKILLS_ROOT \
   -u FANLOOP_TRAE_SKILLS_ROOT \
@@ -54,6 +57,7 @@ env \
 
 "$source_binary" __install \
   --source "$source_release" \
+  --config-source "$source_config" \
   --data-root "$controller_home" \
   --codex-skills-root "$skill_roots/codex" \
   --agent-skills-root "$skill_roots/agent" \

@@ -5,7 +5,7 @@ orchestration directory.
 
 | Boundary | Paths | Owns |
 | --- | --- | --- |
-| Skill | `skills/` | Agent instructions and examples |
+| Live Skill configuration | `skills/`, `exemplars/` | Agent instructions and examples read directly from the configured source checkout |
 | Workflow | `workflows/`, `internal/workflow/` | Stage, Step, output, gate, failure target and feedback policy |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec}/`, `errs/` | Command behavior, state changes and Lark execution |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts and E2E gates |
