@@ -7,10 +7,10 @@ namespace go storageidl
 // This file owns every Fanloop-defined structured JSON/JSONL document under
 // .fanloop. It defines file schemas only: no public CLI methods or RPC service.
 
-const i32 FLOW_STATE_SCHEMA_VERSION      = 12
-const i32 EVENT_SCHEMA_VERSION           = 12
+const i32 FLOW_STATE_SCHEMA_VERSION      = 13
+const i32 EVENT_SCHEMA_VERSION           = 13
 const i32 OUTPUT_REGISTRY_SCHEMA_VERSION = 3
-const i32 CARD_PROJECTION_SCHEMA_VERSION = 5
+const i32 CARD_PROJECTION_SCHEMA_VERSION = 6
 const i32 CARD_BINDING_SCHEMA_VERSION      = 2
 const i32 TRACE_CONFIG_SCHEMA_VERSION      = 2
 const i32 CLI_EXECUTION_LOG_SCHEMA_VERSION = 2
@@ -39,6 +39,8 @@ enum StepStatus {
   in_progress = 2,
   fixing      = 3,
   blocked     = 4,
+  // Value 5 is retired and must not be reused.
+  awaiting_confirmation = 6,
 }
 
 enum EvidenceSource {
@@ -83,12 +85,16 @@ enum ResultEffect {
   advanced    = 1,
   looped      = 2,
   completed   = 3,
+  started     = 4,
+  jumped      = 5,
 }
 
 enum TransitionDirection {
   unspecified = 0,
   flow        = 1,
   loop        = 2,
+  start       = 3,
+  jump        = 4,
 }
 
 enum TraceSyncOutcome {
@@ -189,6 +195,7 @@ struct FlowState {
   9:  required string         last_event_id        (vt.min_size = "1"),
   10: required string         created_at           (vt.min_size = "1"),
   11: required string         updated_at           (vt.min_size = "1"),
+  12: required list<string>   skipped_step_ids,
 }
 
 struct OutputRegistry {
@@ -333,6 +340,7 @@ struct CardProjection {
   10: required string                       source_event_id      (vt.min_size = "1"),
   11: required string                       updated_at           (vt.min_size = "1"),
   12: optional string                       cli_log_document_url,
+  13: required list<string>                 skipped_step_ids,
 }
 
 struct CardBinding {

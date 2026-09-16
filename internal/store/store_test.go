@@ -21,7 +21,7 @@ func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := workflow.Load("material-flashcards")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	committedWorkflow(t, root)
 
 	for relative, wantVersion := range map[string]float64{
-		".fanloop/flow/state.json":   12,
+		".fanloop/flow/state.json":   13,
 		".fanloop/output/state.json": 3,
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
@@ -80,7 +80,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(line), &event); err != nil {
 		t.Fatal(err)
 	}
-	if event["schema_version"] != float64(12) || event["kind"] != "flow_initialized" {
+	if event["schema_version"] != float64(13) || event["kind"] != "flow_initialized" {
 		t.Fatalf("Event header = %#v", event)
 	}
 	payload, ok := event["payload"].(map[string]any)
@@ -187,6 +187,19 @@ func TestMaintainerTracePanoramaShowsThreeStageDelivery(t *testing.T) {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)
 		}
+	}
+}
+
+func TestTracePanoramaRendersSkippedStepsWithoutCompletionMark(t *testing.T) {
+	loaded, err := workflow.Load("technical-solution-design")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stepID := "research_solution_options"
+	current := state.State{CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, SkippedStepIDs: []string{"frame_requirement_background"}, Outputs: map[string]state.RegisteredOutput{}}
+	panorama := tracePanorama(current, loaded.Workflow)
+	if !strings.Contains(panorama, "已跳过 业务背景") || strings.Contains(panorama, "✅ 业务背景") {
+		t.Fatalf("skipped Step was rendered as completed:\n%s", panorama)
 	}
 }
 
@@ -315,7 +328,7 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := workflow.Load("material-flashcards")
 	if err != nil {
 		t.Fatal(err)
 	}

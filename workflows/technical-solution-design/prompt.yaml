@@ -1,6 +1,18 @@
-schema_version: 1
+schema_version: 2
+
+common_skills:
+  - {id: grill-with-docs, prompt: 使用该 Skill 对当前 Step 的目标、约束、输入、输出和验收标准逐项澄清，取得人的明确确认后再开工。, optional: false}
+  - {id: human-step-jump, prompt: 当人要求跳转时，使用该 Skill 展示影响并确认目标 Step。, optional: true}
 
 prompts:
+  step_start_control:
+    prompt: 人确认当前 Step 的目标、约束和验收条件后启动当前 Step。
+    skills: []
+
+  human_step_jump_control:
+    prompt: 人确认跳转目标及其跳过、失效和缺失依赖影响后跳转。
+    skills: []
+
   frame_requirement_background_flow:
     prompt: |
       先用一句话固定全文主题：基于什么业务特点，通过什么技术方案，解决什么问题，带来什么结果。再只写业务背景，说明具体业务场景、业务所处阶段、核心指标、参与方、关键链路、当前瓶颈和为什么值得投入，帮助项目外读者快速进入上下文；关键事实标明来源和证据状态，区分现状事实、估算、目标和待确认信息，写入并回读 .technical-solution/sections/01-business-background.md。不得分析根因、定义方案或堆叠架构细节。完成时上报 background_defined；证据仍可调查时继续工作。

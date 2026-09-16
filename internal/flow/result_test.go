@@ -135,6 +135,66 @@ func TestEvaluateResultRoutesTechnicalReviewAndInvalidatesByProducer(t *testing.
 	})
 }
 
+func TestEvaluateCommonStepControls(t *testing.T) {
+	loaded, err := workflow.Load("technical-solution-design")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := "frame_requirement_background"
+	human := []*flowidl.Evidence{{Source: flowidl.EvidenceSource_human, Content: "confirmed"}}
+
+	start := resultRequest(first, &flowidl.RouteSelection{StartCurrentStep: boolPointer(true)}, condition("step_scope_confirmed", flowidl.OutputType_enum_value, "confirmed"))
+	start.Evidence = human
+	evaluation, failure := evaluateResult(loaded.Workflow, state.State{CurrentStepStatus: state.StepAwaitingConfirmation, Outputs: map[string]state.RegisteredOutput{}}, start)
+	if failure != nil || evaluation.effect != flowidl.ResultEffect_started || len(evaluation.accepted) != 0 || evaluation.transition.GetToStepId() != first {
+		t.Fatalf("start evaluation = %#v, failure = %#v", evaluation, failure)
+	}
+
+	target := "research_solution_options"
+	jump := resultRequest(first, &flowidl.RouteSelection{JumpStepId: &target}, condition("human_step_jump_requested", flowidl.OutputType_string, target))
+	jump.Evidence = human
+	evaluation, failure = evaluateResult(loaded.Workflow, state.State{CurrentStepStatus: state.StepInProgress, Outputs: map[string]state.RegisteredOutput{}}, jump)
+	wantSkipped := []string{"frame_requirement_background", "define_goals_and_problems", "define_business_constraints", "confirm_technical_problem"}
+	if failure != nil || evaluation.effect != flowidl.ResultEffect_jumped || !sameStrings(evaluation.skippedStepIDs, wantSkipped) || !evaluation.updateSkipped {
+		t.Fatalf("jump evaluation = %#v, failure = %#v", evaluation, failure)
+	}
+	jump.Evidence = nil
+	if _, failure = evaluateResult(loaded.Workflow, state.State{CurrentStepStatus: state.StepInProgress, Outputs: map[string]state.RegisteredOutput{}}, jump); failure == nil || failure.Code != erroridl.ErrorCode_REPORT_NOT_ALLOWED {
+		t.Fatalf("jump without human Evidence failure = %#v", failure)
+	}
+	jump.Evidence = human
+	mismatch := "design_overall_solution"
+	jump.Route.JumpStepId = &mismatch
+	if _, failure = evaluateResult(loaded.Workflow, state.State{CurrentStepStatus: state.StepInProgress, Outputs: map[string]state.RegisteredOutput{}}, jump); failure == nil || failure.Code != erroridl.ErrorCode_OUTPUT_INVALID {
+		t.Fatalf("jump target mismatch failure = %#v", failure)
+	}
+	jump.Route.JumpStepId = &target
+
+	backTarget := "define_goals_and_problems"
+	back := resultRequest("design_overall_solution", &flowidl.RouteSelection{JumpStepId: &backTarget}, condition("human_step_jump_requested", flowidl.OutputType_string, backTarget))
+	back.Evidence = human
+	evaluation, failure = evaluateResult(loaded.Workflow, state.State{CurrentStepStatus: state.StepInProgress, SkippedStepIDs: wantSkipped, Outputs: map[string]state.RegisteredOutput{
+		"background_section_path": {Type: workflow.OutputPath, Value: json.RawMessage(`"background.md"`), ProducerStepID: first},
+		"research_section_path":   {Type: workflow.OutputPath, Value: json.RawMessage(`"research.md"`), ProducerStepID: "research_solution_options"},
+	}}, back)
+	if failure != nil || !sameStrings(evaluation.invalidated, []string{"research_section_path"}) || len(evaluation.skippedStepIDs) != 1 || evaluation.skippedStepIDs[0] != first {
+		t.Fatalf("backward jump evaluation = %#v, failure = %#v", evaluation, failure)
+	}
+	currentTarget := "design_overall_solution"
+	currentJump := resultRequest(currentTarget, &flowidl.RouteSelection{JumpStepId: &currentTarget}, condition("human_step_jump_requested", flowidl.OutputType_string, currentTarget))
+	currentJump.Evidence = human
+	evaluation, failure = evaluateResult(loaded.Workflow, state.State{CurrentStepStatus: state.StepBlocked, SkippedStepIDs: wantSkipped, Outputs: map[string]state.RegisteredOutput{}}, currentJump)
+	if failure != nil || !sameStrings(evaluation.skippedStepIDs, wantSkipped) {
+		t.Fatalf("current jump evaluation = %#v, failure = %#v", evaluation, failure)
+	}
+
+	mixed := resultRequest(first, &flowidl.RouteSelection{JumpStepId: &target}, condition("background_defined", flowidl.OutputType_path, "background.md"))
+	mixed.Evidence = human
+	if _, failure = evaluateResult(loaded.Workflow, state.State{Outputs: map[string]state.RegisteredOutput{}}, mixed); failure == nil || failure.Code != erroridl.ErrorCode_CONDITION_NOT_ALLOWED {
+		t.Fatalf("mixed common/business failure = %#v", failure)
+	}
+}
+
 func cloneFlowRoutes(source map[string][]workflow.FlowRoute) map[string][]workflow.FlowRoute {
 	result := make(map[string][]workflow.FlowRoute, len(source))
 	for key, routes := range source {
@@ -180,3 +240,5 @@ func sameStrings(left, right []string) bool {
 	}
 	return true
 }
+
+func boolPointer(value bool) *bool { return &value }

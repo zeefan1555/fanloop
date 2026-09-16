@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -146,6 +147,8 @@ func tracePanorama(current state.State, definition workflow.Workflow) string {
 		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflow.Step) string {
 			label := step.Name
 			switch {
+			case slices.Contains(current.SkippedStepIDs, step.ID):
+				label = "已跳过 " + label
 			case current.CurrentStepID == nil || currentFound && position < currentPosition:
 				label = "✅ " + label
 			case currentFound && position == currentPosition:
@@ -162,6 +165,9 @@ func tracePanorama(current state.State, definition workflow.Workflow) string {
 func traceStatusLabel(current state.State, definition workflow.Workflow) string {
 	if current.CurrentStepID == nil {
 		return "Done"
+	}
+	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
+		return "Awaiting Confirmation"
 	}
 	if context, _, ok := definition.FindStep(*current.CurrentStepID); ok && context.Step.Executor == workflow.StepExecutorHuman {
 		return "Human Review"
@@ -210,12 +216,21 @@ func currentConditionLines(current state.State, definition workflow.Workflow) []
 		return []string{"- Workflow 已完成"}
 	}
 	ids := definition.RelevantConditionIDs(*current.CurrentStepID)
+	conditions := definition.Conditions
+	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
+		ids = make([]string, 0, len(definition.CommonConditions))
+		conditions = definition.CommonConditions
+		for id := range conditions {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+	}
 	if len(ids) == 0 {
 		return []string{"- 无"}
 	}
 	lines := []string{"| Condition | Output key | Type |", "|---|---|---|"}
 	for _, id := range ids {
-		condition, ok := definition.Condition(id)
+		condition, ok := conditions[id]
 		if ok {
 			lines = append(lines, fmt.Sprintf("| %s | %s | %s |", mdCell(id), mdCell(condition.Output.Key), mdCell(condition.Output.Type)))
 		}

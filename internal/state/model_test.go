@@ -13,6 +13,8 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
+	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
 	now := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
 	current := State{
@@ -110,6 +112,8 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
+	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
 	now := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
 	current := State{

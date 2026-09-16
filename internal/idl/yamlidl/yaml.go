@@ -16,13 +16,13 @@ const (
 	// field IDs, and schema versions. It declares no public command or Service.
 	WORKFLOW_SCHEMA_VERSION = 7
 
-	FLOW_SCHEMA_VERSION = 4
+	FLOW_SCHEMA_VERSION = 5
 
-	CONDITION_SCHEMA_VERSION = 2
+	CONDITION_SCHEMA_VERSION = 3
 
 	LOOP_SCHEMA_VERSION = 4
 
-	PROMPT_SCHEMA_VERSION = 1
+	PROMPT_SCHEMA_VERSION = 2
 
 	PROMPT_FILE = "prompt.yaml"
 
@@ -783,6 +783,86 @@ var fieldIDToName_LoopRoute = map[int16]string{
 	3: "back_step_id",
 }
 
+type CommonControlRoute struct {
+	PromptRef *PromptRef `thrift:"prompt_ref,1,required" yaml:"prompt_ref" json:"prompt_ref"`
+	When      *When      `thrift:"when,2,required" yaml:"when" json:"when"`
+}
+
+func NewCommonControlRoute() *CommonControlRoute {
+	return &CommonControlRoute{}
+}
+
+func (p *CommonControlRoute) InitDefault() {
+}
+
+var CommonControlRoute_PromptRef_DEFAULT *PromptRef
+
+func (p *CommonControlRoute) GetPromptRef() (v *PromptRef) {
+	if !p.IsSetPromptRef() {
+		return CommonControlRoute_PromptRef_DEFAULT
+	}
+	return p.PromptRef
+}
+
+var CommonControlRoute_When_DEFAULT *When
+
+func (p *CommonControlRoute) GetWhen() (v *When) {
+	if !p.IsSetWhen() {
+		return CommonControlRoute_When_DEFAULT
+	}
+	return p.When
+}
+
+func (p *CommonControlRoute) IsSetPromptRef() bool {
+	return p.PromptRef != nil
+}
+
+func (p *CommonControlRoute) IsSetWhen() bool {
+	return p.When != nil
+}
+
+func (p *CommonControlRoute) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CommonControlRoute(%+v)", *p)
+}
+
+func (p *CommonControlRoute) DeepEqual(ano *CommonControlRoute) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.PromptRef) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.When) {
+		return false
+	}
+	return true
+}
+
+func (p *CommonControlRoute) Field1DeepEqual(src *PromptRef) bool {
+
+	if !p.PromptRef.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *CommonControlRoute) Field2DeepEqual(src *When) bool {
+
+	if !p.When.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_CommonControlRoute = map[int16]string{
+	1: "prompt_ref",
+	2: "when",
+}
+
 type OutputDefinition struct {
 	Key         string     `thrift:"key,1,required" yaml:"key" json:"key"`
 	Type        OutputType `thrift:"type,2,required,OutputType" yaml:"type" json:"type"`
@@ -1416,6 +1496,8 @@ var fieldIDToName_WorkflowDocument = map[int16]string{
 type FlowDocument struct {
 	SchemaVersion int32                   `thrift:"schema_version,1,required" yaml:"schema_version" json:"schema_version"`
 	Flow          map[string][]*FlowRoute `thrift:"flow,2,required,map<string:list<FlowRoute>>" yaml:"flow" json:"flow"`
+	StepStart     *CommonControlRoute     `thrift:"step_start,3,optional" yaml:"step_start,omitempty" json:"step_start,omitempty"`
+	Jump          *CommonControlRoute     `thrift:"jump,4,optional" yaml:"jump,omitempty" json:"jump,omitempty"`
 }
 
 func NewFlowDocument() *FlowDocument {
@@ -1431,6 +1513,32 @@ func (p *FlowDocument) GetSchemaVersion() (v int32) {
 
 func (p *FlowDocument) GetFlow() (v map[string][]*FlowRoute) {
 	return p.Flow
+}
+
+var FlowDocument_StepStart_DEFAULT *CommonControlRoute
+
+func (p *FlowDocument) GetStepStart() (v *CommonControlRoute) {
+	if !p.IsSetStepStart() {
+		return FlowDocument_StepStart_DEFAULT
+	}
+	return p.StepStart
+}
+
+var FlowDocument_Jump_DEFAULT *CommonControlRoute
+
+func (p *FlowDocument) GetJump() (v *CommonControlRoute) {
+	if !p.IsSetJump() {
+		return FlowDocument_Jump_DEFAULT
+	}
+	return p.Jump
+}
+
+func (p *FlowDocument) IsSetStepStart() bool {
+	return p.StepStart != nil
+}
+
+func (p *FlowDocument) IsSetJump() bool {
+	return p.Jump != nil
 }
 
 func (p *FlowDocument) String() string {
@@ -1450,6 +1558,12 @@ func (p *FlowDocument) DeepEqual(ano *FlowDocument) bool {
 		return false
 	}
 	if !p.Field2DeepEqual(ano.Flow) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.StepStart) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.Jump) {
 		return false
 	}
 	return true
@@ -1481,15 +1595,32 @@ func (p *FlowDocument) Field2DeepEqual(src map[string][]*FlowRoute) bool {
 	}
 	return true
 }
+func (p *FlowDocument) Field3DeepEqual(src *CommonControlRoute) bool {
+
+	if !p.StepStart.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *FlowDocument) Field4DeepEqual(src *CommonControlRoute) bool {
+
+	if !p.Jump.DeepEqual(src) {
+		return false
+	}
+	return true
+}
 
 var fieldIDToName_FlowDocument = map[int16]string{
 	1: "schema_version",
 	2: "flow",
+	3: "step_start",
+	4: "jump",
 }
 
 type ConditionDocument struct {
-	SchemaVersion int32                           `thrift:"schema_version,1,required" yaml:"schema_version" json:"schema_version"`
-	Conditions    map[string]*ConditionDefinition `thrift:"conditions,2,required" yaml:"conditions" json:"conditions"`
+	SchemaVersion    int32                           `thrift:"schema_version,1,required" yaml:"schema_version" json:"schema_version"`
+	Conditions       map[string]*ConditionDefinition `thrift:"conditions,2,required" yaml:"conditions" json:"conditions"`
+	CommonConditions map[string]*ConditionDefinition `thrift:"common_conditions,3,optional" yaml:"common_conditions,omitempty" json:"common_conditions,omitempty"`
 }
 
 func NewConditionDocument() *ConditionDocument {
@@ -1505,6 +1636,19 @@ func (p *ConditionDocument) GetSchemaVersion() (v int32) {
 
 func (p *ConditionDocument) GetConditions() (v map[string]*ConditionDefinition) {
 	return p.Conditions
+}
+
+var ConditionDocument_CommonConditions_DEFAULT map[string]*ConditionDefinition
+
+func (p *ConditionDocument) GetCommonConditions() (v map[string]*ConditionDefinition) {
+	if !p.IsSetCommonConditions() {
+		return ConditionDocument_CommonConditions_DEFAULT
+	}
+	return p.CommonConditions
+}
+
+func (p *ConditionDocument) IsSetCommonConditions() bool {
+	return p.CommonConditions != nil
 }
 
 func (p *ConditionDocument) String() string {
@@ -1524,6 +1668,9 @@ func (p *ConditionDocument) DeepEqual(ano *ConditionDocument) bool {
 		return false
 	}
 	if !p.Field2DeepEqual(ano.Conditions) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.CommonConditions) {
 		return false
 	}
 	return true
@@ -1549,10 +1696,24 @@ func (p *ConditionDocument) Field2DeepEqual(src map[string]*ConditionDefinition)
 	}
 	return true
 }
+func (p *ConditionDocument) Field3DeepEqual(src map[string]*ConditionDefinition) bool {
+
+	if len(p.CommonConditions) != len(src) {
+		return false
+	}
+	for k, v := range p.CommonConditions {
+		_src := src[k]
+		if !v.DeepEqual(_src) {
+			return false
+		}
+	}
+	return true
+}
 
 var fieldIDToName_ConditionDocument = map[int16]string{
 	1: "schema_version",
 	2: "conditions",
+	3: "common_conditions",
 }
 
 type LoopDocument struct {
@@ -1632,6 +1793,7 @@ var fieldIDToName_LoopDocument = map[int16]string{
 type PromptDocument struct {
 	SchemaVersion int32                        `thrift:"schema_version,1,required" yaml:"schema_version" json:"schema_version"`
 	Prompts       map[string]*PromptDefinition `thrift:"prompts,2,required" yaml:"prompts" json:"prompts"`
+	CommonSkills  []*SkillBinding              `thrift:"common_skills,3,optional,list<SkillBinding>" yaml:"common_skills,omitempty" json:"common_skills,omitempty"`
 }
 
 func NewPromptDocument() *PromptDocument {
@@ -1647,6 +1809,19 @@ func (p *PromptDocument) GetSchemaVersion() (v int32) {
 
 func (p *PromptDocument) GetPrompts() (v map[string]*PromptDefinition) {
 	return p.Prompts
+}
+
+var PromptDocument_CommonSkills_DEFAULT []*SkillBinding
+
+func (p *PromptDocument) GetCommonSkills() (v []*SkillBinding) {
+	if !p.IsSetCommonSkills() {
+		return PromptDocument_CommonSkills_DEFAULT
+	}
+	return p.CommonSkills
+}
+
+func (p *PromptDocument) IsSetCommonSkills() bool {
+	return p.CommonSkills != nil
 }
 
 func (p *PromptDocument) String() string {
@@ -1666,6 +1841,9 @@ func (p *PromptDocument) DeepEqual(ano *PromptDocument) bool {
 		return false
 	}
 	if !p.Field2DeepEqual(ano.Prompts) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.CommonSkills) {
 		return false
 	}
 	return true
@@ -1691,8 +1869,22 @@ func (p *PromptDocument) Field2DeepEqual(src map[string]*PromptDefinition) bool 
 	}
 	return true
 }
+func (p *PromptDocument) Field3DeepEqual(src []*SkillBinding) bool {
+
+	if len(p.CommonSkills) != len(src) {
+		return false
+	}
+	for i, v := range p.CommonSkills {
+		_src := src[i]
+		if !v.DeepEqual(_src) {
+			return false
+		}
+	}
+	return true
+}
 
 var fieldIDToName_PromptDocument = map[int16]string{
 	1: "schema_version",
 	2: "prompts",
+	3: "common_skills",
 }

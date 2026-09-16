@@ -110,6 +110,21 @@ func (p *LoopRoute) IsValid() error {
 	}
 	return nil
 }
+func (p *CommonControlRoute) IsValid() error {
+	if p.PromptRef == nil {
+		return fmt.Errorf("field PromptRef not_nil rule failed")
+	}
+	if err := p.PromptRef.IsValid(); err != nil {
+		return fmt.Errorf("field PromptRef not valid, %w", err)
+	}
+	if p.When == nil {
+		return fmt.Errorf("field When not_nil rule failed")
+	}
+	if err := p.When.IsValid(); err != nil {
+		return fmt.Errorf("field When not valid, %w", err)
+	}
+	return nil
+}
 func (p *OutputDefinition) IsValid() error {
 	if len(p.Key) < int(1) {
 		return fmt.Errorf("field Key min_len rule failed, current value: %d", len(p.Key))
@@ -167,6 +182,16 @@ func (p *WorkflowDocument) IsValid() error {
 func (p *FlowDocument) IsValid() error {
 	if p.SchemaVersion < int32(1) {
 		return fmt.Errorf("field SchemaVersion ge rule failed, current value: %v", p.SchemaVersion)
+	}
+	if p.StepStart != nil {
+		if err := p.StepStart.IsValid(); err != nil {
+			return fmt.Errorf("field StepStart not valid, %w", err)
+		}
+	}
+	if p.Jump != nil {
+		if err := p.Jump.IsValid(); err != nil {
+			return fmt.Errorf("field Jump not valid, %w", err)
+		}
 	}
 	return nil
 }

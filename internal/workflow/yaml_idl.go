@@ -14,21 +14,23 @@ func normalizeYAMLOptionalDefaults(flow *yamlidl.FlowDocument, condition *yamlid
 			}
 		}
 	}
-	for _, definition := range condition.Conditions {
-		if definition == nil {
-			continue
-		}
-		if definition.ExclusiveGroup != nil && *definition.ExclusiveGroup == "" {
-			definition.ExclusiveGroup = nil
-		}
-		if definition.Output == nil {
-			continue
-		}
-		if definition.Output.Source != nil && *definition.Output.Source == "" {
-			definition.Output.Source = nil
-		}
-		if definition.Output.Description != nil && *definition.Output.Description == "" {
-			definition.Output.Description = nil
+	for _, definitions := range []map[string]*yamlidl.ConditionDefinition{condition.Conditions, condition.CommonConditions} {
+		for _, definition := range definitions {
+			if definition == nil {
+				continue
+			}
+			if definition.ExclusiveGroup != nil && *definition.ExclusiveGroup == "" {
+				definition.ExclusiveGroup = nil
+			}
+			if definition.Output == nil {
+				continue
+			}
+			if definition.Output.Source != nil && *definition.Output.Source == "" {
+				definition.Output.Source = nil
+			}
+			if definition.Output.Description != nil && *definition.Output.Description == "" {
+				definition.Output.Description = nil
+			}
 		}
 	}
 }
@@ -60,15 +62,34 @@ func normalizeYAMLDocuments(
 	if err != nil {
 		return Workflow{}, err
 	}
+	commonConditions, err := normalizeConditions(promptlessMap(conditionDocument.CommonConditions))
+	if err != nil {
+		return Workflow{}, err
+	}
+	commonSkills, err := normalizeSkills(promptDocument.CommonSkills, "prompt.common_skills")
+	if err != nil {
+		return Workflow{}, err
+	}
 	return Workflow{
-		SchemaVersion: workflowDocument.SchemaVersion,
-		ID:            workflowDocument.Id,
-		Stages:        stages,
-		Flows:         flows,
-		Conditions:    conditions,
-		Loops:         loops,
-		Prompts:       prompts,
+		SchemaVersion:    workflowDocument.SchemaVersion,
+		ID:               workflowDocument.Id,
+		Stages:           stages,
+		Flows:            flows,
+		Conditions:       conditions,
+		Loops:            loops,
+		Prompts:          prompts,
+		CommonSkills:     commonSkills,
+		CommonConditions: commonConditions,
+		StepStart:        normalizeCommonControl(flowDocument.StepStart),
+		Jump:             normalizeCommonControl(flowDocument.Jump),
 	}, nil
+}
+
+func promptlessMap(values map[string]*yamlidl.ConditionDefinition) map[string]*yamlidl.ConditionDefinition {
+	if values == nil {
+		return map[string]*yamlidl.ConditionDefinition{}
+	}
+	return values
 }
 
 func normalizeStages(values []*yamlidl.Stage) ([]Stage, error) {
@@ -212,19 +233,34 @@ func normalizePrompts(values map[string]*yamlidl.PromptDefinition) (map[string]P
 		if value.Skills == nil {
 			return nil, fmt.Errorf("prompt.%s.skills is required", id)
 		}
-		skills := make([]SkillBinding, len(value.Skills))
-		for index, skill := range value.Skills {
-			if skill == nil {
-				return nil, fmt.Errorf("prompt.%s.skills[%d] is null", id, index)
-			}
-			if err := skill.IsValid(); err != nil {
-				return nil, fmt.Errorf("prompt.%s.skills[%d]: %w", id, index, err)
-			}
-			skills[index] = SkillBinding{ID: skill.Id, Prompt: skill.Prompt, Optional: copyPointer(skill.Optional)}
+		skills, err := normalizeSkills(value.Skills, "prompt."+id+".skills")
+		if err != nil {
+			return nil, err
 		}
 		result[id] = PromptDefinition{Prompt: value.Prompt, Skills: skills}
 	}
 	return result, nil
+}
+
+func normalizeSkills(values []*yamlidl.SkillBinding, owner string) ([]SkillBinding, error) {
+	result := make([]SkillBinding, len(values))
+	for index, skill := range values {
+		if skill == nil {
+			return nil, fmt.Errorf("%s[%d] is null", owner, index)
+		}
+		if err := skill.IsValid(); err != nil {
+			return nil, fmt.Errorf("%s[%d]: %w", owner, index, err)
+		}
+		result[index] = SkillBinding{ID: skill.Id, Prompt: skill.Prompt, Optional: copyPointer(skill.Optional)}
+	}
+	return result, nil
+}
+
+func normalizeCommonControl(value *yamlidl.CommonControlRoute) *CommonControlRoute {
+	if value == nil {
+		return nil
+	}
+	return &CommonControlRoute{PromptRef: normalizePromptRef(value.PromptRef), When: normalizeWhen(value.When)}
 }
 
 func normalizePromptRef(value *yamlidl.PromptRef) PromptRef {

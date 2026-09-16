@@ -10,13 +10,17 @@ import (
 
 // Workflow is the resolved, immutable five-file Workflow Bundle.
 type Workflow struct {
-	SchemaVersion int32
-	ID            string
-	Stages        []Stage
-	Flows         map[string][]FlowRoute
-	Conditions    map[string]ConditionDefinition
-	Loops         map[string][]LoopRoute
-	Prompts       map[string]PromptDefinition
+	SchemaVersion    int32
+	ID               string
+	Stages           []Stage
+	Flows            map[string][]FlowRoute
+	Conditions       map[string]ConditionDefinition
+	Loops            map[string][]LoopRoute
+	Prompts          map[string]PromptDefinition
+	CommonSkills     []SkillBinding
+	CommonConditions map[string]ConditionDefinition
+	StepStart        *CommonControlRoute
+	Jump             *CommonControlRoute
 }
 
 type Stage struct {
@@ -80,6 +84,11 @@ type LoopRoute struct {
 	PromptRef  PromptRef
 	When       When
 	BackStepID string
+}
+
+type CommonControlRoute struct {
+	PromptRef PromptRef
+	When      When
 }
 
 type ConditionDefinition struct {

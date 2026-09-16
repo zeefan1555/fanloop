@@ -62,6 +62,9 @@ func ValidateBundle(value *Workflow, flowSchema, conditionSchema, loopSchema, pr
 			return err
 		}
 	}
+	if err := validateSkills("prompt.common_skills", value.CommonSkills); err != nil {
+		return err
+	}
 	usedPrompts, usedConditions := map[string]bool{}, map[string]bool{}
 	outputTypes := map[string]OutputType{}
 	for conditionID, condition := range value.Conditions {
@@ -72,6 +75,52 @@ func ValidateBundle(value *Workflow, flowSchema, conditionSchema, loopSchema, pr
 			return fmt.Errorf("Output %q uses types %q and %q", condition.Output.Key, previous, condition.Output.Type)
 		}
 		outputTypes[condition.Output.Key] = condition.Output.Type
+	}
+	usedCommonConditions := map[string]bool{}
+	commonGroup := ""
+	for conditionID, condition := range value.CommonConditions {
+		if _, exists := value.Conditions[conditionID]; exists {
+			return fmt.Errorf("Common Condition %q duplicates a business Condition", conditionID)
+		}
+		if err := validateCondition(conditionID, condition, value.Prompts, usedPrompts); err != nil {
+			return err
+		}
+		if condition.ExclusiveGroup == "" || commonGroup != "" && condition.ExclusiveGroup != commonGroup {
+			return fmt.Errorf("Common Condition %q must share one non-empty exclusive_group", conditionID)
+		}
+		commonGroup = condition.ExclusiveGroup
+		if _, exists := outputTypes[condition.Output.Key]; exists {
+			return fmt.Errorf("Common Condition %q reuses Output key %q", conditionID, condition.Output.Key)
+		}
+		outputTypes[condition.Output.Key] = condition.Output.Type
+	}
+	if (value.StepStart == nil) != (value.Jump == nil) {
+		return fmt.Errorf("step_start and jump must be declared together")
+	}
+	if value.StepStart == nil {
+		if len(value.CommonSkills) != 0 || len(value.CommonConditions) != 0 {
+			return fmt.Errorf("common Skills and Conditions require step_start and jump")
+		}
+	} else {
+		if len(value.CommonSkills) == 0 || len(value.CommonConditions) == 0 {
+			return fmt.Errorf("step_start and jump require common Skills and Conditions")
+		}
+		controlConditions := map[string]string{}
+		for name, control := range map[string]*CommonControlRoute{"step_start": value.StepStart, "jump": value.Jump} {
+			if err := validatePromptRef(name, control.PromptRef, value.Prompts, usedPrompts); err != nil {
+				return err
+			}
+			if err := validateWhen(name, control.When, value.CommonConditions, usedCommonConditions); err != nil {
+				return err
+			}
+			if len(control.When.AnyOf) != 1 || len(control.When.AnyOf[0]) != 1 {
+				return fmt.Errorf("%s must reference exactly one Common Condition", name)
+			}
+			controlConditions[name] = control.When.AnyOf[0][0]
+		}
+		if controlConditions["step_start"] == controlConditions["jump"] {
+			return fmt.Errorf("step_start and jump must use different Common Conditions")
+		}
 	}
 
 	for stepID, routes := range value.Flows {
@@ -127,6 +176,11 @@ func ValidateBundle(value *Workflow, flowSchema, conditionSchema, loopSchema, pr
 			return fmt.Errorf("Condition %q is not referenced", conditionID)
 		}
 	}
+	for conditionID := range value.CommonConditions {
+		if !usedCommonConditions[conditionID] {
+			return fmt.Errorf("Common Condition %q is not referenced", conditionID)
+		}
+	}
 	for promptID := range value.Prompts {
 		if !usedPrompts[promptID] {
 			return fmt.Errorf("Prompt %q is not referenced", promptID)
@@ -179,10 +233,14 @@ func validatePrompt(id string, prompt PromptDefinition) error {
 	if !configIDPattern.MatchString(id) || strings.TrimSpace(prompt.Prompt) == "" || strings.Contains(prompt.Prompt, "{{") || strings.Contains(prompt.Prompt, "${") {
 		return fmt.Errorf("Prompt %q is invalid", id)
 	}
+	return validateSkills("Prompt "+fmt.Sprintf("%q", id), prompt.Skills)
+}
+
+func validateSkills(owner string, skills []SkillBinding) error {
 	seen := map[string]bool{}
-	for _, skill := range prompt.Skills {
+	for _, skill := range skills {
 		if strings.TrimSpace(skill.ID) == "" || strings.TrimSpace(skill.Prompt) == "" || skill.Optional == nil || seen[skill.ID] {
-			return fmt.Errorf("Prompt %q has an invalid or duplicate Skill %q", id, skill.ID)
+			return fmt.Errorf("%s has an invalid or duplicate Skill %q", owner, skill.ID)
 		}
 		seen[skill.ID] = true
 	}

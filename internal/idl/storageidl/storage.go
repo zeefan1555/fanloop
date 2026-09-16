@@ -15,13 +15,13 @@ const (
 	//
 	// This file owns every Fanloop-defined structured JSON/JSONL document under
 	// .fanloop. It defines file schemas only: no public CLI methods or RPC service.
-	FLOW_STATE_SCHEMA_VERSION = 12
+	FLOW_STATE_SCHEMA_VERSION = 13
 
-	EVENT_SCHEMA_VERSION = 12
+	EVENT_SCHEMA_VERSION = 13
 
 	OUTPUT_REGISTRY_SCHEMA_VERSION = 3
 
-	CARD_PROJECTION_SCHEMA_VERSION = 5
+	CARD_PROJECTION_SCHEMA_VERSION = 6
 
 	CARD_BINDING_SCHEMA_VERSION = 2
 
@@ -38,6 +38,8 @@ const (
 	StepStatus_in_progress StepStatus = 2
 	StepStatus_fixing      StepStatus = 3
 	StepStatus_blocked     StepStatus = 4
+	// Value 5 is retired and must not be reused.
+	StepStatus_awaiting_confirmation StepStatus = 6
 )
 
 func (p StepStatus) String() string {
@@ -52,6 +54,8 @@ func (p StepStatus) String() string {
 		return "fixing"
 	case StepStatus_blocked:
 		return "blocked"
+	case StepStatus_awaiting_confirmation:
+		return "awaiting_confirmation"
 	}
 	return "<UNSET>"
 }
@@ -68,6 +72,8 @@ func StepStatusFromString(s string) (StepStatus, error) {
 		return StepStatus_fixing, nil
 	case "blocked":
 		return StepStatus_blocked, nil
+	case "awaiting_confirmation":
+		return StepStatus_awaiting_confirmation, nil
 	}
 	return StepStatus(0), fmt.Errorf("not a valid StepStatus string")
 }
@@ -417,6 +423,8 @@ const (
 	ResultEffect_advanced    ResultEffect = 1
 	ResultEffect_looped      ResultEffect = 2
 	ResultEffect_completed   ResultEffect = 3
+	ResultEffect_started     ResultEffect = 4
+	ResultEffect_jumped      ResultEffect = 5
 )
 
 func (p ResultEffect) String() string {
@@ -429,6 +437,10 @@ func (p ResultEffect) String() string {
 		return "looped"
 	case ResultEffect_completed:
 		return "completed"
+	case ResultEffect_started:
+		return "started"
+	case ResultEffect_jumped:
+		return "jumped"
 	}
 	return "<UNSET>"
 }
@@ -443,6 +455,10 @@ func ResultEffectFromString(s string) (ResultEffect, error) {
 		return ResultEffect_looped, nil
 	case "completed":
 		return ResultEffect_completed, nil
+	case "started":
+		return ResultEffect_started, nil
+	case "jumped":
+		return ResultEffect_jumped, nil
 	}
 	return ResultEffect(0), fmt.Errorf("not a valid ResultEffect string")
 }
@@ -482,6 +498,8 @@ const (
 	TransitionDirection_unspecified TransitionDirection = 0
 	TransitionDirection_flow        TransitionDirection = 1
 	TransitionDirection_loop        TransitionDirection = 2
+	TransitionDirection_start       TransitionDirection = 3
+	TransitionDirection_jump        TransitionDirection = 4
 )
 
 func (p TransitionDirection) String() string {
@@ -492,6 +510,10 @@ func (p TransitionDirection) String() string {
 		return "flow"
 	case TransitionDirection_loop:
 		return "loop"
+	case TransitionDirection_start:
+		return "start"
+	case TransitionDirection_jump:
+		return "jump"
 	}
 	return "<UNSET>"
 }
@@ -504,6 +526,10 @@ func TransitionDirectionFromString(s string) (TransitionDirection, error) {
 		return TransitionDirection_flow, nil
 	case "loop":
 		return TransitionDirection_loop, nil
+	case "start":
+		return TransitionDirection_start, nil
+	case "jump":
+		return TransitionDirection_jump, nil
 	}
 	return TransitionDirection(0), fmt.Errorf("not a valid TransitionDirection string")
 }
@@ -1723,6 +1749,7 @@ type FlowState struct {
 	LastEventId        string        `thrift:"last_event_id,9,required" json:"last_event_id"`
 	CreatedAt          string        `thrift:"created_at,10,required" json:"created_at"`
 	UpdatedAt          string        `thrift:"updated_at,11,required" json:"updated_at"`
+	SkippedStepIds     []string      `thrift:"skipped_step_ids,12,required,list<string>" json:"skipped_step_ids"`
 }
 
 func NewFlowState() *FlowState {
@@ -1811,6 +1838,10 @@ func (p *FlowState) GetUpdatedAt() (v string) {
 	return p.UpdatedAt
 }
 
+func (p *FlowState) GetSkippedStepIds() (v []string) {
+	return p.SkippedStepIds
+}
+
 func (p *FlowState) IsSetRequirement() bool {
 	return p.Requirement != nil
 }
@@ -1883,6 +1914,9 @@ func (p *FlowState) DeepEqual(ano *FlowState) bool {
 		return false
 	}
 	if !p.Field11DeepEqual(ano.UpdatedAt) {
+		return false
+	}
+	if !p.Field12DeepEqual(ano.SkippedStepIds) {
 		return false
 	}
 	return true
@@ -1986,6 +2020,19 @@ func (p *FlowState) Field11DeepEqual(src string) bool {
 	}
 	return true
 }
+func (p *FlowState) Field12DeepEqual(src []string) bool {
+
+	if len(p.SkippedStepIds) != len(src) {
+		return false
+	}
+	for i, v := range p.SkippedStepIds {
+		_src := src[i]
+		if strings.Compare(v, _src) != 0 {
+			return false
+		}
+	}
+	return true
+}
 
 var fieldIDToName_FlowState = map[int16]string{
 	1:  "schema_version",
@@ -1999,6 +2046,7 @@ var fieldIDToName_FlowState = map[int16]string{
 	9:  "last_event_id",
 	10: "created_at",
 	11: "updated_at",
+	12: "skipped_step_ids",
 }
 
 type OutputRegistry struct {
@@ -3330,6 +3378,7 @@ type CardProjection struct {
 	SourceEventId      string                       `thrift:"source_event_id,10,required" json:"source_event_id"`
 	UpdatedAt          string                       `thrift:"updated_at,11,required" json:"updated_at"`
 	CliLogDocumentUrl  *string                      `thrift:"cli_log_document_url,12,optional" json:"cli_log_document_url,omitempty"`
+	SkippedStepIds     []string                     `thrift:"skipped_step_ids,13,required,list<string>" json:"skipped_step_ids"`
 }
 
 func NewCardProjection() *CardProjection {
@@ -3427,6 +3476,10 @@ func (p *CardProjection) GetCliLogDocumentUrl() (v string) {
 	return *p.CliLogDocumentUrl
 }
 
+func (p *CardProjection) GetSkippedStepIds() (v []string) {
+	return p.SkippedStepIds
+}
+
 func (p *CardProjection) IsSetRequirement() bool {
 	return p.Requirement != nil
 }
@@ -3506,6 +3559,9 @@ func (p *CardProjection) DeepEqual(ano *CardProjection) bool {
 		return false
 	}
 	if !p.Field12DeepEqual(ano.CliLogDocumentUrl) {
+		return false
+	}
+	if !p.Field13DeepEqual(ano.SkippedStepIds) {
 		return false
 	}
 	return true
@@ -3632,6 +3688,19 @@ func (p *CardProjection) Field12DeepEqual(src *string) bool {
 	}
 	return true
 }
+func (p *CardProjection) Field13DeepEqual(src []string) bool {
+
+	if len(p.SkippedStepIds) != len(src) {
+		return false
+	}
+	for i, v := range p.SkippedStepIds {
+		_src := src[i]
+		if strings.Compare(v, _src) != 0 {
+			return false
+		}
+	}
+	return true
+}
 
 var fieldIDToName_CardProjection = map[int16]string{
 	1:  "schema_version",
@@ -3646,6 +3715,7 @@ var fieldIDToName_CardProjection = map[int16]string{
 	10: "source_event_id",
 	11: "updated_at",
 	12: "cli_log_document_url",
+	13: "skipped_step_ids",
 }
 
 type CardBinding struct {

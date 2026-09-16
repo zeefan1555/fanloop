@@ -1,4 +1,12 @@
-schema_version: 4
+schema_version: 5
+
+step_start:
+  prompt_ref: {file: prompt.yaml, prompt_id: step_start_control}
+  when: {any_of: [[step_scope_confirmed]]}
+
+jump:
+  prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_control}
+  when: {any_of: [[human_step_jump_requested]]}
 
 flow:
   frame_requirement_background:

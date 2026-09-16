@@ -82,6 +82,11 @@ func Validate(root string, definitions []workflow.Loaded) ([]Skill, error) {
 		byWorkflow[skill.WorkflowID][skill.Name] = true
 	}
 	for _, definition := range definitions {
+		for _, binding := range definition.Workflow.CommonSkills {
+			if !byWorkflow[definition.Ref.ID][binding.ID] {
+				return nil, fmt.Errorf("Workflow %s common Skills use unknown Skill %q", definition.Ref.ID, binding.ID)
+			}
+		}
 		promptIDs := make([]string, 0, len(definition.Workflow.Prompts))
 		for promptID := range definition.Workflow.Prompts {
 			promptIDs = append(promptIDs, promptID)

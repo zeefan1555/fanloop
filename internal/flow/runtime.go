@@ -67,6 +67,7 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		return nil, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, "workflow has no steps", nil)
 	}
 	now := runtime.now()
+	initialStatus := entryStepStatus(loaded.Workflow)
 	next := state.State{
 		SchemaVersion: state.CurrentStateSchemaVersion,
 		Requirement: state.Requirement{
@@ -74,9 +75,10 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		},
 		Release:            state.Release{Version: runtime.releaseVersion(), Workflow: state.WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID:      &first,
-		CurrentStepStatus:  state.StepReady,
+		CurrentStepStatus:  initialStatus,
 		CurrentStepSummary: "workflow initialized",
 		Outputs:            map[string]state.RegisteredOutput{},
+		SkippedStepIDs:     []string{},
 		Integrations:       state.Integrations{},
 		CreatedAt:          now,
 		UpdatedAt:          now,
@@ -95,7 +97,7 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	event := state.Event{
 		SchemaVersion: state.CurrentEventSchemaVersion, ID: eventID, OccurredAt: now,
 		Kind: state.EventFlowInitialized, Command: "flow.init", Workflow: state.WorkflowRefFrom(loaded.Ref),
-		Payload: state.Payload(state.FlowInitializedPayload{StepID: first, StepStatus: state.StepReady}),
+		Payload: state.Payload(state.FlowInitializedPayload{StepID: first, StepStatus: initialStatus}),
 	}
 	if failure := validateAndCommit(local, loaded.Workflow, next, event); failure != nil {
 		return nil, failure
@@ -144,6 +146,9 @@ func (runtime Runtime) Progress(ctx context.Context, root string, request *flowi
 	}
 	if failure := requireCurrentStep(current, request.StepId); failure != nil {
 		return nil, failure
+	}
+	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
+		return nil, newFlowError(erroridl.ErrorCode_REPORT_NOT_ALLOWED, "current Step requires human confirmation before progress", nil)
 	}
 	from := state.StateRef(current)
 	current.CurrentStepStatus = durableProgressStatus(request.Status)
@@ -198,6 +203,9 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 	for _, key := range evaluation.invalidated {
 		delete(current.Outputs, key)
 	}
+	if evaluation.updateSkipped {
+		current.SkippedStepIDs = append([]string(nil), evaluation.skippedStepIDs...)
+	}
 	current.UpdatedAt = runtime.now()
 	switch evaluation.effect {
 	case flowidl.ResultEffect_completed:
@@ -205,9 +213,14 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 		current.CurrentStepStatus = ""
 		current.CurrentStepSummary = ""
 		current.CurrentEvidence = nil
+	case flowidl.ResultEffect_started:
+		current.CurrentStepID = stringPointer(evaluation.transition.GetToStepId())
+		current.CurrentStepStatus = state.StepInProgress
+		current.CurrentStepSummary = request.Summary
+		current.CurrentEvidence = durableEvidence(request.Evidence)
 	default:
 		current.CurrentStepID = stringPointer(evaluation.transition.GetToStepId())
-		current.CurrentStepStatus = state.StepReady
+		current.CurrentStepStatus = entryStepStatus(loaded.Workflow)
 		current.CurrentStepSummary = request.Summary
 		current.CurrentEvidence = durableEvidence(request.Evidence)
 	}
@@ -240,6 +253,13 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 	}
 	runtime.afterAcceptedReport(ctx, root, current, event.ID)
 	return response, nil
+}
+
+func entryStepStatus(definition workflow.Workflow) state.StepStatus {
+	if definition.StepStart != nil {
+		return state.StepAwaitingConfirmation
+	}
+	return state.StepReady
 }
 
 func validateProgressRequest(request *flowidl.FlowProgressRequest) *erroridl.PublicError {

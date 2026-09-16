@@ -33,8 +33,9 @@ CLI 日志要求和 Output 字段映射。完整通用化决策见
 
 ## 推进模型
 
-`flow status` 返回当前 Step 的 context、execution、Prompt/Skills、Conditions、available routes 和
-有效 Outputs。Agent 只从该响应选择一组 Condition 与一条 Route，再调用：
+`flow status` 返回当前 Step 的 context、execution、Prompt/Skills、Conditions、available routes、
+Workflow 级 common Skills/Conditions、skipped Steps 和有效 Outputs。Agent 只从该响应选择一组
+Condition 与一条 Route，再调用：
 
 ```text
 fanloop flow report progress
@@ -44,6 +45,12 @@ fanloop flow report result
 `when.any_of` 外层为 OR、内层为 AND。Flow 前进到 `next_step_id` 或 terminal；Loop 回到
 `back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
+
+声明 `step_start` 与 `jump` 的 Workflow 在每次进入 Step 时先进入 `awaiting_confirmation`。此时只展示
+开工确认 Prompt、start Route 和面向全部真实 Step 的 jump Routes；人的明确确认形成独立 Event 后，
+同一 Step 才进入 `in_progress` 并展示业务 Prompt。Jump 可在任意运行中 Step 使用，向前跨过的 Step
+进入 `skipped_step_ids`，目标及下游 Outputs 失效；Card 与 Trace 将 skipped 显示为“已跳过”。完整
+决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
 Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_human_acceptance` 是最终
 human 验收点；需求澄清中的批准同样只接受真实 human 决定，Developer 不得自批。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
@@ -64,6 +71,9 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 再组装 `technical-solution.md`。摘要最后生成但在最终文档置顶；总体架构图和独立审校报告分别写入
 `.technical-solution/architecture.mmd` 与 `.technical-solution/review.md`。
 
+这十六个 Step 共享 required `grill-with-docs`：每一步都先结合已有文档澄清范围并取得人的明确确认；
+optional `human-step-jump` 允许人在确认影响后跳到任意 Step。Step 的 ID、名称、顺序和 executor 不变。
+
 业务问题、技术判断和完整文档分别经过强制人工审核，并输出稳定飞书文档 URL。反馈按十一章或
 最终呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
@@ -79,9 +89,9 @@ Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全�
 
 ## 当前持久化版本
 
-- Workflow / Flow / Condition / Loop / Prompt：`7 / 4 / 2 / 4 / 1`
-- Flow State / Event / Output Registry：`12 / 12 / 3`
-- Card Projection / Card Binding / Trace Config / CLI Log：`5 / 2 / 2 / 2`
+- Workflow / Flow / Condition / Loop / Prompt：`7 / 5 / 3 / 4 / 2`
+- Flow State / Event / Output Registry：`13 / 13 / 3`
+- Card Projection / Card Binding / Trace Config / CLI Log：`6 / 2 / 2 / 2`
 
 Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命令、文件位置和恢复提示均不
 提供旧产品身份的兼容入口。

@@ -167,6 +167,41 @@ func bindTestTrace(t *testing.T, binary, root, documentURL string) {
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", documentURL), "trace.bind")
 }
 
+func ensureTechnicalStepStarted(t *testing.T, binary, root, stepID string) {
+	t.Helper()
+	status := run(binary, "flow", "status", "--root", root)
+	assertSuccess(t, status, "flow.status")
+	var envelope struct {
+		Data struct {
+			State struct {
+				Current struct {
+					Context struct {
+						StepID string `json:"step_id"`
+					} `json:"context"`
+					Execution struct {
+						Status string `json:"status"`
+					} `json:"execution"`
+				} `json:"current"`
+			} `json:"state"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(status.stdout), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	current := envelope.Data.State.Current
+	if current.Context.StepID != stepID {
+		t.Fatalf("current Step = %q, want %q", current.Context.StepID, stepID)
+	}
+	if current.Execution.Status != "awaiting_confirmation" {
+		return
+	}
+	started := run(binary, "flow", "report", "result", "--root", root, "--step-id", stepID,
+		"--condition-result", conditionResult("step_scope_confirmed", "enum_value", `"confirmed"`),
+		"--evidence", `{"source":"human","content":"confirmed"}`,
+		"--summary", "step confirmed", "--start-current-step")
+	assertSuccess(t, started, "flow.report.result")
+}
+
 func reportBootstrap(binary, root, documentURL string) result {
 	return run(binary, "flow", "report", "result",
 		"--root", root,

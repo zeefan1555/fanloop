@@ -9,6 +9,21 @@ import (
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
+func TestProjectAwaitingConfirmationShowsOnlyCommonControls(t *testing.T) {
+	loaded, err := workflow.Load("technical-solution-design")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stepID := "frame_requirement_background"
+	projected := Project(loaded.Workflow, state.State{CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, Outputs: map[string]state.RegisteredOutput{}})
+	if projected.Current.Execution.Status.String() != "awaiting_confirmation" || len(projected.Current.Prompt.Skills) != 0 || len(projected.Current.Conditions) != 0 {
+		t.Fatalf("awaiting current = %#v", projected.Current)
+	}
+	if len(projected.Current.CommonSkills) != 2 || len(projected.Current.CommonConditions) != 2 || len(projected.Current.AvailableRoutes) != 17 || !projected.Current.AvailableRoutes[0].Route.GetStartCurrentStep() {
+		t.Fatalf("common controls = %#v", projected.Current)
+	}
+}
+
 func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {

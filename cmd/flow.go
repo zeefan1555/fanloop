@@ -227,11 +227,11 @@ func newFlowResultCommand(ioStreams streams, root *string) *cobra.Command {
 	var controls operationControls
 	request := flowidl.NewFlowResultRequest()
 	var conditionResults, evidence []string
-	var nextStepID, backStepID string
-	var terminal bool
+	var nextStepID, backStepID, jumpStepID string
+	var terminal, startCurrentStep bool
 	command := operationCommand("flow.report.result")
 	command.Long = `Purpose:
-  Submit current Step Condition results and select one configured Flow, Loop, or terminal Route.
+	  Submit current Step Condition results and select one configured Flow, Loop, start, jump, or terminal Route.
 
 Effect:
   Local write. A non-dry-run call advances, loops, or completes the Workflow and commits State/Event facts.
@@ -257,8 +257,8 @@ Request JSON:
       }
     ],
     "summary": "<SUMMARY>",
-    "route": {
-      "next_step_id": "<NEXT_STEP_ID>"
+	    "route": {
+	      "next_step_id": "<NEXT_STEP_ID>"
     }
   }
 
@@ -266,11 +266,12 @@ Typed flags:
   fanloop flow report result --root <ABSOLUTE_REQUIREMENT_ROOT> --step-id <CURRENT_STEP_ID> --condition-result '{"condition_id":"<CONDITION_ID>","output":{"type":"string","value":"<VALUE>"}}' --evidence '{"source":"file","content":"<EVIDENCE>","ref":"<OPTIONAL_REF>"}' --summary <SUMMARY> --next-step-id <NEXT_STEP_ID>
 
 Constraints:
-  step_id is required and must equal latest Status current.context.step_id. Submit only current.conditions, using each listed Output type and constraints.
+	  step_id is required and must equal latest Status current.context.step_id. Submit only current.conditions, or exactly one current.common_conditions item for a start or jump control.
   condition_results is required and must be non-empty. Each condition_results item requires condition_id and output.type/value.
   evidence may be omitted or empty; each item requires source and content, with optional ref.
   Evidence source is human, system, ai, file, or url. Evidence never participates in Route matching; summary is required.
-  route is required, must equal one current.available_routes[].route, and selects exactly one next_step_id, back_step_id, or terminal: true.
+	  route is required, must equal one current.available_routes[].route, and selects exactly one next_step_id, back_step_id, terminal: true, start_current_step: true, or jump_step_id.
+	  start and jump controls require human Evidence. jump_step_id must equal the common Condition output value.
   Use either --input or the typed flags, not both. The CLI validates the configured Route; it does not verify business truth.
 
 Controls:
@@ -303,6 +304,12 @@ Next step:
 			if command.Flags().Changed("terminal") {
 				request.Route.Terminal = &terminal
 			}
+			if command.Flags().Changed("start-current-step") {
+				request.Route.StartCurrentStep = &startCurrentStep
+			}
+			if command.Flags().Changed("jump-step-id") {
+				request.Route.JumpStepId = &jumpStepID
+			}
 			return request, nil
 		}
 		return runOperation(command.Context(), command, *root, controls, ioStreams, typed,
@@ -320,6 +327,8 @@ Next step:
 	command.Flags().StringVar(&nextStepID, "next-step-id", "", "matching Flow target Step id")
 	command.Flags().StringVar(&backStepID, "back-step-id", "", "matching Loop target Step id")
 	command.Flags().BoolVar(&terminal, "terminal", false, "select a matching terminal Flow Route")
+	command.Flags().BoolVar(&startCurrentStep, "start-current-step", false, "start the current Step after human confirmation")
+	command.Flags().StringVar(&jumpStepID, "jump-step-id", "", "jump to a Workflow Step after human confirmation")
 	return command
 }
 

@@ -175,6 +175,9 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	seenSkills := map[string]bool{}
+	for _, binding := range loaded.Workflow.CommonSkills {
+		seenSkills[binding.ID] = true
+	}
 	for _, prompt := range loaded.Workflow.Prompts {
 		for _, binding := range prompt.Skills {
 			seenSkills[binding.ID] = true

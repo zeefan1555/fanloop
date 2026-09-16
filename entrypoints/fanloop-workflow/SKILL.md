@@ -42,21 +42,23 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
 ## 执行当前 Step
 
 1. 使用启动阶段或上一次响应后读取的最新 `flow status`；仅按启动协议初始化新流程。
-2. 只使用最新 `data.state.current`：读取扁平 `context`、`prompt`、`conditions`、`available_routes` 和已有 `outputs`。
-3. 完整执行 `current.prompt`。每个结构化 Skill 都以 `path` 给出 live 配置仓库中的绝对 `SKILL.md`；每次 Status 后都重新读取，不缓存旧内容，不得按 `id` 去全局 Skills Root 猜测或搜索。依次使用 `optional=false` 的 Skills；`optional=true` 只在对应 Prompt 的条件成立时使用。`path` 缺失或不可读时停止执行并运行 `doctor`，不得 fallback 到 Release 副本或其他同名 Skill。
-4. 工作尚未形成退出结论时上报：
+2. 只使用最新 `data.state.current`：读取扁平 `context`、`execution.status`、`prompt`、`conditions`、`common_skills`、`common_conditions`、`available_routes` 和已有 `outputs`。
+3. 每个结构化 Skill 都以 `path` 给出 live 配置仓库中的绝对 `SKILL.md`；每次 Status 后都重新读取，不缓存旧内容，不得按 `id` 去全局 Skills Root 猜测或搜索。依次使用 `optional=false` 的 Skills；`optional=true` 只在对应 Prompt 的条件成立时使用。`path` 缺失或不可读时停止执行并运行 `doctor`，不得 fallback 到 Release 副本或其他同名 Skill。
+4. `execution.status=awaiting_confirmation` 时，先完整执行 `current.common_skills` 中必需的 Skill，但不执行业务 `current.prompt`；只能从 `current.common_conditions` 取得唯一 Condition，并选择 `start_current_step` 或 `jump_step_id` Route。必须等待针对当前 Step 和本次材料的全新、明确人类确认；早先的笼统授权不得代替逐 Step 确认。确认开工时使用 `--start-current-step`；确认跳转时使用 `--jump-step-id <ID>`。
+5. `execution.status=in_progress|ready|fixing|blocked` 时，完整执行 `current.prompt`；若人类明确要求跳转，仍执行 `current.common_skills` 对应的跳转 Skill，从 `current.common_conditions` 上报唯一 Condition 并使用 `--jump-step-id <ID>`。
+6. 工作尚未形成退出结论时上报：
 
    `flow report progress --step-id <当前 Step ID> --status <in_progress|fixing|blocked> --summary <摘要> [--evidence '<JSON>']`
 
-5. 形成真实结论后，从 `current.conditions[]` 选择原子 Condition，并按其 `output.type` 与约束构造：
+7. 形成真实结论后，从 `current.conditions[]` 选择原子 Condition，并按其 `output.type` 与约束构造：
 
    `flow report result --step-id <当前 Step ID> --condition-result '{"condition_id":"<ID>","output":{"type":"<TYPE>","value":<JSON>}}' [--condition-result ...] <--next-step-id ID|--back-step-id ID|--terminal> --summary <摘要> [--evidence '<JSON>']`
 
    `when.any_of` 外层是 OR、内层是 AND。提交一个完整组合；同一 `exclusive_group` 只选一个 Condition。Output key 由 Condition 定义，Agent 不提交 key 或 producer_step_id。Evidence 只用于审计，不参与路由。
-6. 从最新 `available_routes` 选择一条满足该 Condition 组合的 Route，并把 `route` 原样表达为 `--next-step-id`、`--back-step-id` 或 `--terminal`。`direction=flow` 返回 `advanced|completed`；`direction=loop` 返回 `looped`，目标 Step 及其下游生产的 Output 失效。不要猜目标。
-7. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中或多命中都原子拒绝。
-8. Human Step 使用同一个 Result 接缝。当前 Route 要求 `panorama_presented` 或 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到展示之后的全新、明确人类决定，再把本次精确 `panorama_snapshot_path` 与决定 Condition、回执和 Evidence 一起上报。沉默、含糊回复、机器人结论或 Agent 自批均无效；CLI 不自动发送，也不认证审批人或事实真伪。
-9. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
+8. 从最新 `available_routes` 选择一条满足该 Condition 组合的 Route，并把 `route` 原样表达为 `--next-step-id`、`--back-step-id`、`--terminal`、`--start-current-step` 或 `--jump-step-id`。`direction=flow` 返回 `advanced|completed|started`；`direction=loop` 返回 `looped`；Jump 返回 `jumped`，按 Status 报告的目标和跳过项继续。不要猜目标。
+9. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中或多命中都原子拒绝。
+10. Human Step 使用同一个 Result 接缝。当前 Route 要求 `panorama_presented` 或 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到展示之后的全新、明确人类决定，再把本次精确 `panorama_snapshot_path` 与决定 Condition、回执和 Evidence 一起上报。沉默、含糊回复、机器人结论或 Agent 自批均无效；CLI 不自动发送，也不认证审批人或事实真伪。
+11. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
 
 ## 人类提问顺序
 
