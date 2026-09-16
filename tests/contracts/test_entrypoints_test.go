@@ -83,7 +83,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"--config-source", "FANLOOP_CONFIG_SOURCE", "$HOME/.fanloop",
 		},
 		"entrypoints/fanloop-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
 		},
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
@@ -98,7 +98,10 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"candidate_head", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书验收交付报告", "基础设施失败保持 blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "expectedApprover", "cli_aaf6cd8160b89bda", "ou_3b0b9cf8364168c5eb999bd6c5a33b95", "Stage/Job/Step", "目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界", "精确授权口令", "turn boundary", "senderType=user", "botmux quoted", "批准进入 需求实现", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "bound-release-home", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "Sub-agent", "expectedApprover", "cli_aaf6cd8160b89bda", "ou_3b0b9cf8364168c5eb999bd6c5a33b95", "Stage/Job/Step", "目标、现状问题、逐项改造、影响文件/契约、保持不变与非目标、验证计划、交付边界", "精确授权口令", "turn boundary", "senderType=user", "botmux quoted", "批准进入 需求实现", "<REQUIREMENT_CONTROLLER> flow report", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+		},
+		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
+			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
 			"reviewed HEAD", "./tests/run-unit", "./tests/run-e2e", "implementation-report.md", "同一飞书研发实现报告", "candidate_head_frozen",

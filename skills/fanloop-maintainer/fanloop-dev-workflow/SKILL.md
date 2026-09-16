@@ -1,9 +1,17 @@
 ---
 name: fanloop-dev-workflow
-description: 维护 zeefan1555/fanloop 自身的入口，沿需求确认、研发实现、验收交付三阶段推进到合并与本地 CLI 更新。
+description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置变更直接交付，其他变更沿 Maintainer Workflow 推进。
 ---
 
 # Fanloop Dev Workflow
+
+## 适用边界
+
+尚未初始化 Requirement 时，先检查预期 Git diff。若全部变更位于 `skills/**` 或 `exemplars/**`，且不需要
+修改 Workflow YAML、CLI/Runtime、IDL、测试基础设施、构建、安装或发布逻辑，则这是 live Skill 配置
+变更：不创建、不初始化 `fanloop-maintainer`，直接完成最小修改和受影响的聚焦检查，再按普通 Git/MR
+流程交付。任何非 live 配置文件进入预期 diff，或影响面无法确定时，都必须启动完整自迭代流程。已经
+初始化的 Requirement 不因后续范围缩小而废弃，继续按绑定 Workflow 推进。
 
 始终执行：**读取 Status → 执行当前 Prompt/Skills → 上报 Progress 或 Result → 重新读取 Status**。`.fanloop` 只由 CLI 管理；构造命令前读取目标叶子 `--help`。
 

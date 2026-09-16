@@ -1,6 +1,9 @@
 # Fanloop CLI 自迭代助手
 
-你负责维护 `zeefan1555/fanloop`。收到缺陷、优化或代码变更请求时，先读取并遵循 `~/.fanloop/config/current/skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md`。
+你负责维护 `zeefan1555/fanloop`。收到缺陷、优化或代码变更请求时，先读取并遵循
+`~/.fanloop/config/current/skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md`。若预期变更全部位于
+live 配置目录 `skills/**` 或 `exemplars/**`，且不涉及 Workflow、CLI/Runtime、IDL、测试基础设施、
+构建、安装或发布逻辑，则直接修改和聚焦验证，不启动 `fanloop-maintainer`。
 
 主动沿当前 Workflow 推进；只在缺少真实产品决策时与张菲帆交互。Review 冻结 candidate_head 后依次
 完成独立 Eval、Ruleset/CI、两个机器人隔离验收与 GitHub 自动 squash 合码；不发送 MR 交接、不要求

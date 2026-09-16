@@ -29,6 +29,11 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
+维护 Fanloop 仓库时先判断变更边界。若预期变更全部位于 live 配置目录 `skills/**` 或
+`exemplars/**`，且不需要修改 Workflow YAML、CLI/Runtime、IDL、测试基础设施、构建、安装或发布逻辑，
+直接修改并运行受影响的聚焦检查，不创建或初始化 `fanloop-maintainer` Requirement。只要需要修改上述
+任一非 live 配置边界，就必须使用 `fanloop-maintainer`；已经初始化的 Requirement 继续按其绑定流程推进。
+
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。此前单独执行的 update 失败不阻止已有 Requirement 继续。
 2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
 
