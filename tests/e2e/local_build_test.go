@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestLocalBuildAndInstallKeepMatchedSourceAndCompleteExemplars(t *testing.T) {
+func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T) {
 	repository := repositoryRoot(t)
 	git := exec.Command("git", "rev-parse", "HEAD")
 	git.Dir = repository
@@ -129,15 +129,16 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 			t.Fatalf("local build changed or omitted workflow %s", name)
 		}
 	}
-	examples := filepath.Join(root, "skills", "technical-solution-design", "technical-solution-review", "references", "examples")
-	images, err := filepath.Glob(filepath.Join(examples, "*", "images", "*"))
+	images, err := filepath.Glob(filepath.Join(root, "skills", "technical-solution-design", "technical-solution-review", "references", "examples", "*", "images", "*"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sourceExamples := filepath.Join(repository, "skills", "technical-solution-design", "technical-solution-review", "references", "examples")
-	sourceImages, err := filepath.Glob(filepath.Join(sourceExamples, "*", "images", "*"))
-	if err != nil || len(sourceImages) == 0 || len(images) != len(sourceImages) {
-		t.Fatalf("local exemplar images = %d, want all %d source images exactly once: %v", len(images), len(sourceImages), err)
+	if len(images) != 0 {
+		t.Fatalf("local build contains %d source-only exemplar images", len(images))
+	}
+	sourceImages, err := filepath.Glob(filepath.Join(repository, "exemplars", "technical-solution", "*", "images", "*"))
+	if err != nil || len(sourceImages) == 0 {
+		t.Fatalf("source-only exemplar images = %d: %v", len(sourceImages), err)
 	}
 	var manifest struct {
 		Schema int `json:"schema_version"`

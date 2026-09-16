@@ -26,7 +26,7 @@ Treeloop 完整经历了五种使用 Agent 的方式：
 
 **图 1｜使用 Agent 时逐步提升的自动化程度**
 
-![这张图对应文档中“使用Agent时逐步提升的自动化程度”的图1，呈现了使用Agent完成任务的五个自动化阶段。从左到右依次标注为：Vibe｜通轮对话，对应混乱的角色与零散任务块；Skill｜人工串联，对应角色整理任务模块；Driver｜一句Prompt串流程，对应角色用长棒连接任务节点；Workflow｜按轨道自动跑，对应小车沿指定轨道行进；CLI｜Agent写代码，CLI守规则，对应小车驶入标注“CLI”的规则门禁区域，整体直观展现了自动化程度逐步提升的过程。](images/01-agent-evolution.png)
+![这张图对应文档中“使用Agent时逐步提升的自动化程度”的图1，呈现了使用Agent完成任务的五个自动化阶段。从左到右依次标注为：Vibe｜通轮对话，对应混乱的角色与零散任务块；Skill｜人工串联，对应角色整理任务模块；Driver｜一句Prompt串流程，对应角色用长棒连接任务节点；Workflow｜按轨道自动跑，对应小车沿指定轨道行进；CLI｜Agent写代码，CLI守规则，对应小车驶入标注“CLI”的规则门禁区域，整体直观展现了自动化程度逐步提升的过程。](../../../../../../exemplars/technical-solution/treeloop-control/images/01-agent-evolution.png)
 
 这五个阶段不是简单的“落后到先进”。每一层都解决了上一层的真实问题：Skill 解决能力复用，Driver 解决人工串流程，Workflow 解决部分 Prompt 泛化。新的矛盾也随之出现——当任务变长，限制自动化的已经不只是“Agent 会不会做”，而是“谁记住进度、谁判断过关、谁决定回到哪里”。
 
@@ -111,7 +111,7 @@ Treeloop 的方案推导，实质上是在五组指标之间做取舍。
 
 **图 2｜Treeloop 的确定性控制闭环**
 
-![图 2：从用户视角看 Treeloop 如何工作](images/02-control-architecture.jpg)
+![图 2：从用户视角看 Treeloop 如何工作](../../../../../../exemplars/technical-solution/treeloop-control/images/02-control-architecture.jpg)
 
 从左到右看，主链只有五步：
 
@@ -189,7 +189,7 @@ Treeloop 默认主 Workflow 的 ID 是 `treeloop`。当前结构包含 3 个 Sta
 
 **图 3｜Treeloop 普通研发主 Workflow**
 
-![图 3：Treeloop 主 Workflow](images/03-development-workflow.jpg)
+![图 3：Treeloop 主 Workflow](../../../../../../exemplars/technical-solution/treeloop-control/images/03-development-workflow.jpg)
 
 三个细节容易被小白误解：
 
@@ -214,7 +214,7 @@ CLI 阶段改变的是任务边界：
 
 **图 4｜CLI 前后单任务串行与多任务并行的对比**
 
-![图片展示了CLI前后任务处理方式的对比。左侧“CLI之前 | 一次一个任务”中，一个角色推动小车依次通过多个检查点；右侧“CLI之后 | 并行多个任务”中，角色同时推动多个小车，只审核关键节点。该图与上下文紧密相关，直观呈现了CLI启用前后任务处理方式的变化，即从单任务串行到多任务并行，强调了CLI在提高任务处理效率方面的效果。](images/04-task-parallelism.png)
+![图片展示了CLI前后任务处理方式的对比。左侧“CLI之前 | 一次一个任务”中，一个角色推动小车依次通过多个检查点；右侧“CLI之后 | 并行多个任务”中，角色同时推动多个小车，只审核关键节点。该图与上下文紧密相关，直观呈现了CLI启用前后任务处理方式的变化，即从单任务串行到多任务并行，强调了CLI在提高任务处理效率方面的效果。](../../../../../../exemplars/technical-solution/treeloop-control/images/04-task-parallelism.png)
 
 所以这里的“并行”不是让一个 Requirement 同时拥有多个活动 Step，而是让多个 Requirement 的生命周期安全重叠。这个区别很重要：前者会制造状态竞争，后者才是在保持单任务确定性的同时提高人的管理跨度。
 
@@ -246,14 +246,14 @@ CLI 阶段改变的是任务边界：
 
 **图 5｜Treeloop 自迭代 Workflow**
 
-![图 5：Treeloop 自迭代 Workflow](images/05-maintainer-workflow.jpg)
+![图 5：Treeloop 自迭代 Workflow](../../../../../../exemplars/technical-solution/treeloop-control/images/05-maintainer-workflow.jpg)
 
 这里的 red-green 是先用测试证明目标行为尚未实现，再完成最小实现让测试通过。自迭代的终点是 MR 完成交接，不会自动等待审核、合并 MR 或发布 Release。
 
 这条 Workflow 的价值，不在于“系统可以无人维护自己”，而在于证明普通研发与基础设施自维护可以共享同一套状态、门禁、回流和 Human Gate 语义。
 
-![实际任务截图：进入 MR 检查与 CodeReview](images/06-design-implementation-example.png)
+![实际任务截图：进入 MR 检查与 CodeReview](../../../../../../exemplars/technical-solution/treeloop-control/images/06-design-implementation-example.png)
 需求澄清过后自动进行方案设计，代码实现
 
-![实际任务截图：检查失败后回流实现](images/07-review-feedback-example.png)
+![实际任务截图：检查失败后回流实现](../../../../../../exemplars/technical-solution/treeloop-control/images/07-review-feedback-example.png)
 CodeReview 发现问题，自动回流到代码实现
