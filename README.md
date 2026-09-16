@@ -24,7 +24,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 ## 本地构建与安装
 
 从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、Skills、
-范文和校验清单的可运行目录；GitHub 托管源码。
+范文文本和校验清单的可运行目录；范文图片仅保留在源码仓库的 `exemplars/`，不进入构建目录。
 
 只构建、直接运行：
 
