@@ -9,7 +9,7 @@ prompts:
     prompt: 人确认当前 Step 的目标、约束和验收条件后启动当前 Step。
     skills: []
 
-  step_jump_control:
+  human_step_jump_control:
     prompt: 人确认跳转目标及其跳过、失效和缺失依赖影响后跳转。
     skills: []
 

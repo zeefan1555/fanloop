@@ -58,7 +58,7 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	if loaded.Workflow.StepStart == nil || loaded.Workflow.StepStart.PromptRef.PromptID != "step_start_control" || !reflect.DeepEqual(loaded.Workflow.StepStart.When.AnyOf, [][]string{{"step_scope_confirmed"}}) {
 		t.Fatalf("Step start control = %#v", loaded.Workflow.StepStart)
 	}
-	if loaded.Workflow.Jump == nil || loaded.Workflow.Jump.PromptRef.PromptID != "step_jump_control" || !reflect.DeepEqual(loaded.Workflow.Jump.When.AnyOf, [][]string{{"human_step_jump_requested"}}) {
+	if loaded.Workflow.Jump == nil || loaded.Workflow.Jump.PromptRef.PromptID != "human_step_jump_control" || !reflect.DeepEqual(loaded.Workflow.Jump.When.AnyOf, [][]string{{"human_step_jump_requested"}}) {
 		t.Fatalf("Step jump control = %#v", loaded.Workflow.Jump)
 	}
 	for _, conditionID := range []string{"step_scope_confirmed", "human_step_jump_requested"} {

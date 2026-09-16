@@ -6,7 +6,7 @@ common_conditions:
     output: {key: step_scope_confirmation, type: enum_value, values: [confirmed]}
     exclusive_group: common_control_action
   human_step_jump_requested:
-    prompt_ref: {file: prompt.yaml, prompt_id: step_jump_control}
+    prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_control}
     output: {key: human_step_jump_target, type: string}
     exclusive_group: common_control_action
 
