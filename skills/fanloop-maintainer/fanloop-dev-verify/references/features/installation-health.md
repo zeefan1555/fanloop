@@ -9,7 +9,8 @@
 ## How to get to it (user POV)
 
 Run `./scripts/build-local.sh` to build without switching current, or `./scripts/install-local.sh` to install. Inspect the
-active installation with `fanloop version` and `fanloop doctor`; add `--root` to diagnose an initialized Requirement.
+active installation with `fanloop version`, `fanloop doctor`, and `fanloop verify doctor`; add `--root` to diagnose an
+initialized Requirement. Run `fanloop verify smoke` for the fixed isolated public-CLI journey and its evidence bundle.
 
 ## Driving it with fanloop
 

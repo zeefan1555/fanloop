@@ -13,7 +13,7 @@ Fanloop 采用项目级 Verification Skill、行为级 Feature Map 和维护 Ski
 
 ## 验证控制面
 
-公开控制面目标为 `fanloop verify` 命令组：
+公开控制面为 `fanloop verify` 命令组：
 
 - `verify doctor` 检查候选版本、live 配置、隔离目录与必要工具；
 - `verify smoke` 驱动一条完整本地 Requirement 闭环并生成证据；
@@ -25,8 +25,9 @@ Fanloop 采用项目级 Verification Skill、行为级 Feature Map 和维护 Ski
 证据保存在受限权限目录，包含候选身份、命令、退出码、stdout/stderr、前后快照、副作用、清理状态和
 `passed|failed|blocked` 结论。
 
-该公开命令需要新增 Thrift Service、Request/Response 和生成物。具体 field ID、可选性、枚举、错误目录
-和叶子 Help 必须在编辑 `idl/` 前按仓库门禁另行人工审核；本 ADR 不构成对未展示 IDL diff 的授权。
+该公开命令由 `idl/verify.thrift` 的 `VerifyService` 定义，使用独立的 Verification outcome/check 类型与
+四组 Request/Response，不增加 ErrorCode，也不改变已有公共命令或持久化 Schema。具体 field ID、可选性、
+枚举、逐命令错误目录和两处生产 SkillBinding 已在实现前按仓库门禁单独展示并获得人工批准。
 
 ## Live Skills 与 Feature Map
 
@@ -45,6 +46,10 @@ Feature Map 是便于 Agent 检索的行为记忆，不是第二套契约。稳�
 并行完成只读源码审计，由一个协调者逐项真实驱动，区分 doc drift、harness gap 与 product gap，结果只能
 是 `clean`、`changed` 或 `blocked`。维护只修验证资产；需要修改公共 CLI、IDL、Workflow 或产品行为的
 gap 返回正常研发流程，不用文档修订掩盖产品问题。
+
+手工维护稳定后启用每日 Agent 任务。并行 live drive 优先使用互不共享写状态的远程环境；本地回退也必须
+隔离候选安装、`FANLOOP_DATA_HOME`、Requirement Root 与 evidence。`clean` 静默结束，`changed` 最多
+创建一个验证资产 PR，`blocked` 或 product gap 只通知并附证据，不自动修改产品或合并 PR。
 
 ## Maintainer 集成
 

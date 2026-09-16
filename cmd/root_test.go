@@ -96,9 +96,10 @@ func TestTypedOptionalFlagsPreserveExplicitEmptyValues(t *testing.T) {
 func TestRootOwnsRealDomainSubcommands(t *testing.T) {
 	root := NewRoot(bytes.NewReader(nil), io.Discard, io.Discard)
 	want := map[string][]string{
-		"flow":  {"init", "report", "status"},
-		"trace": {"bind", "render", "status", "sync"},
-		"card":  {"render"},
+		"flow":   {"init", "report", "status"},
+		"trace":  {"bind", "render", "status", "sync"},
+		"card":   {"render"},
+		"verify": {"cleanup", "doctor", "smoke", "snapshot"},
 	}
 	for domain, operations := range want {
 		child, _, err := root.Find([]string{domain})
@@ -148,8 +149,8 @@ func TestRootCommandTreeMatchesIDLRegistry(t *testing.T) {
 	for _, spec := range idl.CommandSpecs() {
 		expected[spec.ID] = true
 	}
-	if len(actual) != 11 || len(expected) != 11 {
-		t.Fatalf("public command counts = Cobra %d, IDL %d; want 11", len(actual), len(expected))
+	if len(actual) != 15 || len(expected) != 15 {
+		t.Fatalf("public command counts = Cobra %d, IDL %d; want 15", len(actual), len(expected))
 	}
 	if command, _, err := root.Find([]string{"schema"}); err == nil && command.Name() == "schema" {
 		t.Fatal("root still exposes the retired schema command")
@@ -176,6 +177,7 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		"flow":    true,
 		"trace":   true,
 		"card":    true,
+		"verify":  true,
 		"version": true,
 		"doctor":  true,
 	}
@@ -415,6 +417,50 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"current or panorama",
 				"markdown or lark_json",
 				"view and format are required",
+			},
+		},
+		{
+			name:      "verify doctor",
+			commandID: "verify.doctor",
+			args:      []string{"verify", "doctor", "--help"},
+			want: []string{
+				"Request JSON:\n  {}",
+				"Read only",
+				"isolated public-CLI verification run",
+				"fanloop verify smoke",
+			},
+		},
+		{
+			name:      "verify smoke",
+			commandID: "verify.smoke",
+			args:      []string{"verify", "smoke", "--help"},
+			want: []string{
+				`"evidence_dir": "<ABSOLUTE_EVIDENCE_DIRECTORY>"`,
+				"--evidence-dir <ABSOLUTE_EVIDENCE_DIRECTORY>",
+				"isolated data home and Requirement",
+				"report.md and manifest.json",
+			},
+		},
+		{
+			name:      "verify snapshot",
+			commandID: "verify.snapshot",
+			args:      []string{"verify", "snapshot", "--help"},
+			want: []string{
+				`"evidence_dir": "<ABSOLUTE_SNAPSHOT_DIRECTORY>"`,
+				"--root <ABSOLUTE_REQUIREMENT_ROOT>",
+				"Status, Trace and Card",
+				"durable files",
+			},
+		},
+		{
+			name:      "verify cleanup",
+			commandID: "verify.cleanup",
+			args:      []string{"verify", "cleanup", "--help"},
+			want: []string{
+				`"run_id": "<RUN_ID>"`,
+				"--run-id <RUN_ID> [--dry-run]",
+				"verification/work/<RUN_ID>",
+				"preserving its evidence",
 			},
 		},
 		{

@@ -21,9 +21,14 @@ description: 审计并真实驱动 Fanloop 的 Verification Skill 与 Feature Ma
 
 ## Live pass
 
-按 `fanloop-dev-verify` 的 Launch 模型建立一个隔离候选。Fanloop 是短生命周期 CLI：每个 Feature 使用
-全新 Requirement Root，首次驱动及失败后运行 Doctor，逐项完成真实公开 CLI 路径。每轮清理临时状态，
-同时确认已采集证据仍存在；最后执行 multi-surface journey。
+按 `fanloop-dev-verify` 的 Launch 模型建立一个隔离候选，先运行 `fanloop verify doctor`。Fanloop 是短生命周期
+CLI：每个 Feature 使用全新 Requirement Root，首次驱动及失败后运行 Doctor，逐项完成真实公开 CLI 路径，
+用 `fanloop verify snapshot` 保存证据。每轮以 `fanloop verify cleanup --dry-run` 预览后清理临时状态，同时确认
+已采集证据仍存在；最后运行 `fanloop verify smoke` 完成 multi-surface journey。
+
+并行 live drive 优先把每个 Feature 放到独立远程环境；每个环境必须拥有独立候选安装、`FANLOOP_DATA_HOME`、
+Requirement Root 和 evidence 目录。远程环境不可用时才回退本机，并保持同样的写状态隔离；不得并行共享
+current、Requirement 或 evidence。
 
 ## Triage
 
@@ -37,3 +42,9 @@ description: 审计并真实驱动 Fanloop 的 Verification Skill 与 Feature Ma
 `clean` 要求每个 Feature 都有 source 与 live 覆盖且无需修改。`changed` 只包含经过重新驱动证明的验证
 Skill/Feature Map 修正，一次最多一个 PR。覆盖未完成、环境不可达或修正不能安全交付时为 `blocked`，
 明确列出未覆盖 Feature、已尝试入口和所需外部变化。
+
+## Scheduled maintenance
+
+每日任务执行 Index hygiene、Source wave 和 Live pass。`clean` 时静默结束；`changed` 时最多创建一个仅含
+验证资产的 PR；`blocked` 或 `product gap` 时通知并附 run ID、候选身份、最早失败命令和 evidence 路径。
+定时任务不修改产品代码，不合并 PR，也不使用真实用户凭据或 Botmux 目标。

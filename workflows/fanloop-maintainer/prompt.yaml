@@ -58,6 +58,7 @@ prompts:
     skills:
       - {id: fanloop-dev-tdd, prompt: 在已约定公开 Seam 上完成适用行为的 red-green；不适用项记录理由与替代检查。, optional: false}
       - {id: fanloop-dev-implement, prompt: 完成实现、聚焦与完整验证、独立整体 CR、修复复核、提交和实现报告。, optional: false}
+      - {id: fanloop-dev-maintain-verification, prompt: 用户表面变化时维护 Verification Skill 与 Feature Map，并完成 source + live 验证。, optional: true}
 
   review_code_flow:
     prompt: |
@@ -74,6 +75,7 @@ prompts:
       在隔离 FANLOOP_DATA_HOME 与四类 Skill Root 中从 reviewed_head 执行 ./scripts/install-local.sh，回读隔离 current、version commit 和 Doctor，并证明全局 current 未变。派发恰好一个无实现上下文的全新 Sub-agent，只使用该 CLI 绝对路径、叶子 --help 和 requirements.md 中一至三个公开场景完成真实黑盒验收；不得读源码、调用私有 helper、修改候选、使用机器人/Botmux/用户凭据或触碰全局 current。把原始命令、输出、退出码、状态、清理和结论写入 acceptance-report.md，发布并语义回读同一 Agent 验收飞书文档。全部通过上报 agent_acceptance_passed、acceptance_report_written、acceptance_document_published 与 panorama_presented；确定产品失败携带恰好一个最早责任回流；基础设施失败保持 blocked。
     skills:
       - {id: fanloop-dev-agent-acceptance, prompt: 用隔离候选 CLI 和一个独立 Sub-agent 完成真实黑盒验收。, optional: false}
+      - {id: fanloop-dev-verify, prompt: 按 Feature Map 使用隔离候选和公开 CLI 完成真实黑盒验证并保留证据。, optional: false}
 
   confirm_human_acceptance_flow:
     prompt: |

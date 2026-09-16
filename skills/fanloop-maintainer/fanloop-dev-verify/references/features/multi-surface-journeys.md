@@ -8,8 +8,9 @@
 
 ## How to get to it (user POV)
 
-Start from a source candidate, install it in isolation, choose a Workflow, drive the Requirement, inspect its projections and
-finish by cleaning only run-owned state. This is the broad regression path after individual Feature checks.
+Start from a source candidate, install it in isolation, choose a Workflow, drive the Requirement, inspect its projections,
+capture it with `fanloop verify snapshot --root ROOT`, then remove only run-owned state with
+`fanloop verify cleanup --run-id RUN_ID`. This is the broad regression path after individual Feature checks.
 
 ## Driving it with fanloop
 

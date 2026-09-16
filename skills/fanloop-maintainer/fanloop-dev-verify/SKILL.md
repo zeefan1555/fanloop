@@ -6,20 +6,20 @@ description: 从当前 Fanloop 候选建立隔离环境，按 Feature Map 驱动
 # Verify Fanloop
 
 先读 [Feature Map](references/features/README.md)，只验证与当前变化相关的 Feature；广泛回归按索引顺序
-执行并以 `multi-surface-journeys.md` 收尾。公开 `fanloop verify` 控制面落地后优先使用它；在此之前仍按
-本 Skill 的相同步骤直接调用公开 Fanloop CLI，不以内部 Go 调用代替用户路径。
+执行并以 `multi-surface-journeys.md` 收尾。先运行 `fanloop verify doctor`，固定本地闭环使用
+`fanloop verify smoke`；单个 Requirement 使用 `fanloop verify snapshot` 取证，不以内部 Go 调用代替用户路径。
 
 ## Launch
 
 记录候选 HEAD 与工作树。创建独立 session、evidence、`FANLOOP_DATA_HOME` 和四类 Skill Root，清除
 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID`，从当前候选执行 `./scripts/install-local.sh`。只使用隔离
-`current/bin/fanloop`；每个 Feature 使用全新 Requirement Root。
+`current/bin/fanloop`；每个 Feature 使用全新 Requirement Root。安装完成后运行 `fanloop verify doctor`。
 
 完成标准：隔离 current 的 `version.commit_sha` 等于候选 HEAD，全局 current 未改变。
 
 ## Doctor
 
-每个新 session 首次 Drive 前运行 `fanloop version` 与 `fanloop doctor`。任何意外结果后重新 Doctor；
+每个新 session 首次 Drive 前运行 `fanloop version`、`fanloop doctor` 与 `fanloop verify doctor`。任何意外结果后重新 Doctor；
 Doctor 不健康时先保存输出并停止驱动，不在错误实例上继续尝试。
 
 完成标准：候选身份明确，Doctor healthy，Workflow 与 live Skill 配置来自本次隔离环境。
@@ -46,7 +46,7 @@ State、Output、Event、Trace、Card、CLI transcript 和副作用回读。Even
 
 ## Cleanup
 
-清理本次创建的隔离安装、Requirement Root 和临时 Skill Root，只处理本次记录的精确路径。清理前复制
+使用 `fanloop verify cleanup --run-id RUN_ID --dry-run` 预览，再执行非 dry-run 清理。只处理本次记录的精确路径。清理前复制
 所有需要保留的事实，清理后回读 evidence 仍存在，并再次证明全局 current 未改变。没有可靠安全清理
 入口时保留 session 并报告路径，不猜测或扩大删除范围。
 

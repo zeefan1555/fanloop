@@ -7,5 +7,6 @@ include "ops.thrift"
 include "release.thrift"
 include "storage.thrift"
 include "yaml.thrift"
+include "verify.thrift"
 
 namespace go cliidl
