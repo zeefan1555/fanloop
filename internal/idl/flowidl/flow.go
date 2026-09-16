@@ -157,6 +157,8 @@ const (
 	StepStatus_in_progress StepStatus = 2
 	StepStatus_fixing      StepStatus = 3
 	StepStatus_blocked     StepStatus = 4
+	// Value 5 is retired and must not be reused.
+	StepStatus_awaiting_confirmation StepStatus = 6
 )
 
 func (p StepStatus) String() string {
@@ -171,6 +173,8 @@ func (p StepStatus) String() string {
 		return "fixing"
 	case StepStatus_blocked:
 		return "blocked"
+	case StepStatus_awaiting_confirmation:
+		return "awaiting_confirmation"
 	}
 	return "<UNSET>"
 }
@@ -187,6 +191,8 @@ func StepStatusFromString(s string) (StepStatus, error) {
 		return StepStatus_fixing, nil
 	case "blocked":
 		return StepStatus_blocked, nil
+	case "awaiting_confirmation":
+		return StepStatus_awaiting_confirmation, nil
 	}
 	return StepStatus(0), fmt.Errorf("not a valid StepStatus string")
 }
@@ -618,6 +624,8 @@ const (
 	ResultEffect_advanced    ResultEffect = 1
 	ResultEffect_looped      ResultEffect = 2
 	ResultEffect_completed   ResultEffect = 3
+	ResultEffect_started     ResultEffect = 4
+	ResultEffect_jumped      ResultEffect = 5
 )
 
 func (p ResultEffect) String() string {
@@ -630,6 +638,10 @@ func (p ResultEffect) String() string {
 		return "looped"
 	case ResultEffect_completed:
 		return "completed"
+	case ResultEffect_started:
+		return "started"
+	case ResultEffect_jumped:
+		return "jumped"
 	}
 	return "<UNSET>"
 }
@@ -644,6 +656,10 @@ func ResultEffectFromString(s string) (ResultEffect, error) {
 		return ResultEffect_looped, nil
 	case "completed":
 		return ResultEffect_completed, nil
+	case "started":
+		return ResultEffect_started, nil
+	case "jumped":
+		return ResultEffect_jumped, nil
 	}
 	return ResultEffect(0), fmt.Errorf("not a valid ResultEffect string")
 }
@@ -683,6 +699,8 @@ const (
 	TransitionDirection_unspecified TransitionDirection = 0
 	TransitionDirection_flow        TransitionDirection = 1
 	TransitionDirection_loop        TransitionDirection = 2
+	TransitionDirection_start       TransitionDirection = 3
+	TransitionDirection_jump        TransitionDirection = 4
 )
 
 func (p TransitionDirection) String() string {
@@ -693,6 +711,10 @@ func (p TransitionDirection) String() string {
 		return "flow"
 	case TransitionDirection_loop:
 		return "loop"
+	case TransitionDirection_start:
+		return "start"
+	case TransitionDirection_jump:
+		return "jump"
 	}
 	return "<UNSET>"
 }
@@ -705,6 +727,10 @@ func TransitionDirectionFromString(s string) (TransitionDirection, error) {
 		return TransitionDirection_flow, nil
 	case "loop":
 		return TransitionDirection_loop, nil
+	case "start":
+		return TransitionDirection_start, nil
+	case "jump":
+		return TransitionDirection_jump, nil
 	}
 	return TransitionDirection(0), fmt.Errorf("not a valid TransitionDirection string")
 }
@@ -2060,7 +2086,9 @@ type CurrentTask struct {
 	Prompt     *Prompt          `thrift:"prompt,3,required" json:"prompt"`
 	Conditions []*ConditionView `thrift:"conditions,4,required,list<ConditionView>" json:"conditions"`
 	// Fields 5-6 are retired and must not be reused.
-	AvailableRoutes []*AvailableRoute `thrift:"available_routes,7,required,list<AvailableRoute>" json:"available_routes"`
+	AvailableRoutes  []*AvailableRoute `thrift:"available_routes,7,required,list<AvailableRoute>" json:"available_routes"`
+	CommonSkills     []*Skill          `thrift:"common_skills,8,required,list<Skill>" json:"common_skills"`
+	CommonConditions []*ConditionView  `thrift:"common_conditions,9,required,list<ConditionView>" json:"common_conditions"`
 }
 
 func NewCurrentTask() *CurrentTask {
@@ -2105,6 +2133,14 @@ func (p *CurrentTask) GetAvailableRoutes() (v []*AvailableRoute) {
 	return p.AvailableRoutes
 }
 
+func (p *CurrentTask) GetCommonSkills() (v []*Skill) {
+	return p.CommonSkills
+}
+
+func (p *CurrentTask) GetCommonConditions() (v []*ConditionView) {
+	return p.CommonConditions
+}
+
 func (p *CurrentTask) IsSetContext() bool {
 	return p.Context != nil
 }
@@ -2143,6 +2179,12 @@ func (p *CurrentTask) DeepEqual(ano *CurrentTask) bool {
 		return false
 	}
 	if !p.Field7DeepEqual(ano.AvailableRoutes) {
+		return false
+	}
+	if !p.Field8DeepEqual(ano.CommonSkills) {
+		return false
+	}
+	if !p.Field9DeepEqual(ano.CommonConditions) {
 		return false
 	}
 	return true
@@ -2195,6 +2237,32 @@ func (p *CurrentTask) Field7DeepEqual(src []*AvailableRoute) bool {
 	}
 	return true
 }
+func (p *CurrentTask) Field8DeepEqual(src []*Skill) bool {
+
+	if len(p.CommonSkills) != len(src) {
+		return false
+	}
+	for i, v := range p.CommonSkills {
+		_src := src[i]
+		if !v.DeepEqual(_src) {
+			return false
+		}
+	}
+	return true
+}
+func (p *CurrentTask) Field9DeepEqual(src []*ConditionView) bool {
+
+	if len(p.CommonConditions) != len(src) {
+		return false
+	}
+	for i, v := range p.CommonConditions {
+		_src := src[i]
+		if !v.DeepEqual(_src) {
+			return false
+		}
+	}
+	return true
+}
 
 var fieldIDToName_CurrentTask = map[int16]string{
 	1: "context",
@@ -2202,12 +2270,15 @@ var fieldIDToName_CurrentTask = map[int16]string{
 	3: "prompt",
 	4: "conditions",
 	7: "available_routes",
+	8: "common_skills",
+	9: "common_conditions",
 }
 
 type FlowState struct {
-	Status  WorkflowStatus               `thrift:"status,1,required,WorkflowStatus" json:"status"`
-	Current *CurrentTask                 `thrift:"current,2,optional" json:"current,omitempty"`
-	Outputs map[string]*RegisteredOutput `thrift:"outputs,3,required" json:"outputs"`
+	Status         WorkflowStatus               `thrift:"status,1,required,WorkflowStatus" json:"status"`
+	Current        *CurrentTask                 `thrift:"current,2,optional" json:"current,omitempty"`
+	Outputs        map[string]*RegisteredOutput `thrift:"outputs,3,required" json:"outputs"`
+	SkippedStepIds []string                     `thrift:"skipped_step_ids,4,required,list<string>" json:"skipped_step_ids"`
 }
 
 func NewFlowState() *FlowState {
@@ -2234,6 +2305,10 @@ func (p *FlowState) GetOutputs() (v map[string]*RegisteredOutput) {
 	return p.Outputs
 }
 
+func (p *FlowState) GetSkippedStepIds() (v []string) {
+	return p.SkippedStepIds
+}
+
 func (p *FlowState) IsSetCurrent() bool {
 	return p.Current != nil
 }
@@ -2258,6 +2333,9 @@ func (p *FlowState) DeepEqual(ano *FlowState) bool {
 		return false
 	}
 	if !p.Field3DeepEqual(ano.Outputs) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.SkippedStepIds) {
 		return false
 	}
 	return true
@@ -2290,11 +2368,25 @@ func (p *FlowState) Field3DeepEqual(src map[string]*RegisteredOutput) bool {
 	}
 	return true
 }
+func (p *FlowState) Field4DeepEqual(src []string) bool {
+
+	if len(p.SkippedStepIds) != len(src) {
+		return false
+	}
+	for i, v := range p.SkippedStepIds {
+		_src := src[i]
+		if strings.Compare(v, _src) != 0 {
+			return false
+		}
+	}
+	return true
+}
 
 var fieldIDToName_FlowState = map[int16]string{
 	1: "status",
 	2: "current",
 	3: "outputs",
+	4: "skipped_step_ids",
 }
 
 type FlowInitRequest struct {
@@ -3212,9 +3304,11 @@ var fieldIDToName_FlowResultResponse = map[int16]string{
 }
 
 type RouteSelection struct {
-	NextStepId *string `thrift:"next_step_id,1,optional" json:"next_step_id,omitempty"`
-	BackStepId *string `thrift:"back_step_id,2,optional" json:"back_step_id,omitempty"`
-	Terminal   *bool   `thrift:"terminal,3,optional" json:"terminal,omitempty"`
+	NextStepId       *string `thrift:"next_step_id,1,optional" json:"next_step_id,omitempty"`
+	BackStepId       *string `thrift:"back_step_id,2,optional" json:"back_step_id,omitempty"`
+	Terminal         *bool   `thrift:"terminal,3,optional" json:"terminal,omitempty"`
+	StartCurrentStep *bool   `thrift:"start_current_step,4,optional" json:"start_current_step,omitempty"`
+	JumpStepId       *string `thrift:"jump_step_id,5,optional" json:"jump_step_id,omitempty"`
 }
 
 func NewRouteSelection() *RouteSelection {
@@ -3251,6 +3345,24 @@ func (p *RouteSelection) GetTerminal() (v bool) {
 	return *p.Terminal
 }
 
+var RouteSelection_StartCurrentStep_DEFAULT bool
+
+func (p *RouteSelection) GetStartCurrentStep() (v bool) {
+	if !p.IsSetStartCurrentStep() {
+		return RouteSelection_StartCurrentStep_DEFAULT
+	}
+	return *p.StartCurrentStep
+}
+
+var RouteSelection_JumpStepId_DEFAULT string
+
+func (p *RouteSelection) GetJumpStepId() (v string) {
+	if !p.IsSetJumpStepId() {
+		return RouteSelection_JumpStepId_DEFAULT
+	}
+	return *p.JumpStepId
+}
+
 func (p *RouteSelection) CountSetFieldsRouteSelection() int {
 	count := 0
 	if p.IsSetNextStepId() {
@@ -3260,6 +3372,12 @@ func (p *RouteSelection) CountSetFieldsRouteSelection() int {
 		count++
 	}
 	if p.IsSetTerminal() {
+		count++
+	}
+	if p.IsSetStartCurrentStep() {
+		count++
+	}
+	if p.IsSetJumpStepId() {
 		count++
 	}
 	return count
@@ -3275,6 +3393,14 @@ func (p *RouteSelection) IsSetBackStepId() bool {
 
 func (p *RouteSelection) IsSetTerminal() bool {
 	return p.Terminal != nil
+}
+
+func (p *RouteSelection) IsSetStartCurrentStep() bool {
+	return p.StartCurrentStep != nil
+}
+
+func (p *RouteSelection) IsSetJumpStepId() bool {
+	return p.JumpStepId != nil
 }
 
 func (p *RouteSelection) String() string {
@@ -3297,6 +3423,12 @@ func (p *RouteSelection) DeepEqual(ano *RouteSelection) bool {
 		return false
 	}
 	if !p.Field3DeepEqual(ano.Terminal) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.StartCurrentStep) {
+		return false
+	}
+	if !p.Field5DeepEqual(ano.JumpStepId) {
 		return false
 	}
 	return true
@@ -3338,11 +3470,37 @@ func (p *RouteSelection) Field3DeepEqual(src *bool) bool {
 	}
 	return true
 }
+func (p *RouteSelection) Field4DeepEqual(src *bool) bool {
+
+	if p.StartCurrentStep == src {
+		return true
+	} else if p.StartCurrentStep == nil || src == nil {
+		return false
+	}
+	if *p.StartCurrentStep != *src {
+		return false
+	}
+	return true
+}
+func (p *RouteSelection) Field5DeepEqual(src *string) bool {
+
+	if p.JumpStepId == src {
+		return true
+	} else if p.JumpStepId == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.JumpStepId, *src) != 0 {
+		return false
+	}
+	return true
+}
 
 var fieldIDToName_RouteSelection = map[int16]string{
 	1: "next_step_id",
 	2: "back_step_id",
 	3: "terminal",
+	4: "start_current_step",
+	5: "jump_step_id",
 }
 
 // One method maps to one public CLI command:

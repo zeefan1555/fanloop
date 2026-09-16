@@ -18,6 +18,7 @@ func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 		{step: "define_goals_and_problems", conditions: []string{conditionResult("goals_and_problems_defined", "path", `".technical-solution/sections/02-goals-and-problems.md"`)}, next: "define_business_constraints"},
 		{step: "define_business_constraints", conditions: []string{conditionResult("business_constraints_defined", "path", `".technical-solution/sections/03-business-constraints.md"`)}, next: "confirm_technical_problem"},
 	} {
+		ensureTechnicalStepStarted(t, binary, root, report.step)
 		args := []string{"flow", "report", "result", "--root", root, "--step-id", report.step, "--next-step-id", report.next, "--summary", "accepted"}
 		for _, condition := range report.conditions {
 			args = append(args, "--condition-result", condition)
@@ -27,6 +28,7 @@ func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 		assertFlowEffect(t, result.stdout, "advanced", report.next)
 	}
 
+	ensureTechnicalStepStarted(t, binary, root, "confirm_technical_problem")
 	rejected := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "confirm_technical_problem",
 		"--condition-result", conditionResult("agent_approved", "enum_value", `"approved"`),

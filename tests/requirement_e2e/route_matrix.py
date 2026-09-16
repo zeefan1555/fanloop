@@ -46,9 +46,11 @@ def route_cases(current_state: dict[str, Any]) -> list[dict[str, Any]]:
     route_indexes = {"flow": 0, "loop": 0}
     for route in current_state["available_routes"]:
         direction = route["direction"]
+        selection = route["route"]
+        if "start_current_step" in selection or "jump_step_id" in selection:
+            continue
         route_indexes[direction] += 1
         route_index = route_indexes[direction]
-        selection = route["route"]
         target = selection.get("next_step_id") or selection.get("back_step_id") or "Done"
         effect = "completed" if selection.get("terminal") else (
             "advanced" if direction == "flow" else "looped"
@@ -224,6 +226,50 @@ def status(recorder: Recorder, scenario_id: str, root: pathlib.Path, label: str)
         recorder.run(scenario_id, label, root, ["flow", "status", "--root", str(root)]),
         label,
     )
+
+
+def start_current_step(
+    recorder: Recorder,
+    scenario_id: str,
+    root: pathlib.Path,
+    current_state: dict[str, Any],
+) -> dict[str, Any]:
+    if current_state["execution"]["status"] != "awaiting_confirmation":
+        return current_state
+    route = next(
+        item for item in current_state["available_routes"]
+        if item["route"].get("start_current_step") is True
+    )
+    condition_ids = route["when"]["any_of"][0]
+    if len(condition_ids) != 1:
+        raise AssertionError("start control must require exactly one Condition")
+    available = {item["id"]: item for item in current_state["common_conditions"]}
+    condition_id = condition_ids[0]
+    output = available[condition_id]["output"]
+    request = {
+        "step_id": current_state["context"]["step_id"],
+        "condition_results": [{
+            "condition_id": condition_id,
+            "output": {"type": output["type"], "value": output["values"][0]},
+        }],
+        "evidence": [{"source": "human", "content": "e2e confirmed Step scope"}],
+        "summary": "e2e confirmed Step scope",
+        "route": {"start_current_step": True},
+    }
+    success(
+        recorder.run(
+            scenario_id,
+            "start-current-step",
+            root,
+            ["flow", "report", "result", "--root", str(root), "--input", "-"],
+            input_text=json.dumps(request, ensure_ascii=False),
+        ),
+        "start current Step",
+    )
+    started = current(status(recorder, scenario_id, root, "status-after-start"))
+    if started is None or started["execution"]["status"] != "in_progress":
+        raise AssertionError("start control did not enter in_progress")
+    return started
 
 
 def state(root: pathlib.Path) -> dict[str, Any]:
@@ -754,13 +800,19 @@ def main() -> int:
             if step_id in visited:
                 raise AssertionError(f"baseline Flow cycled at {step_id}")
             visited.append(step_id)
+            current_state = start_current_step(recorder, "setup", baseline, current_state)
             step_order = {item: index for index, item in enumerate(visited)}
             cases = route_cases(current_state)
             flow_cases = [case for case in cases if case["direction"] == "flow"]
             if not flow_cases:
                 raise AssertionError(f"{step_id} has no Flow Route")
-            counts["flow_routes"] += sum(route["direction"] == "flow" for route in current_state["available_routes"])
-            counts["loop_routes"] += sum(route["direction"] == "loop" for route in current_state["available_routes"])
+            business_routes = [
+                route for route in current_state["available_routes"]
+                if "jump_step_id" not in route["route"]
+                and "start_current_step" not in route["route"]
+            ]
+            counts["flow_routes"] += sum(route["direction"] == "flow" for route in business_routes)
+            counts["loop_routes"] += sum(route["direction"] == "loop" for route in business_routes)
             counts["flow_alternatives"] += len(flow_cases)
             counts["loop_alternatives"] += len(cases) - len(flow_cases)
             primary = select_baseline_flow_case(flow_cases)

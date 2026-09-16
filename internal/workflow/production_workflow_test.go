@@ -52,6 +52,21 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantIDs) {
 		t.Fatalf("Steps = %v, want %v", got, wantIDs)
 	}
+	if got := loaded.Workflow.CommonSkills; len(got) != 2 || got[0].ID != "grill-with-docs" || got[0].Optional == nil || *got[0].Optional || got[1].ID != "human-step-jump" || got[1].Optional == nil || !*got[1].Optional {
+		t.Fatalf("Common Skills = %#v", got)
+	}
+	if loaded.Workflow.StepStart == nil || loaded.Workflow.StepStart.PromptRef.PromptID != "step_start_control" || !reflect.DeepEqual(loaded.Workflow.StepStart.When.AnyOf, [][]string{{"step_scope_confirmed"}}) {
+		t.Fatalf("Step start control = %#v", loaded.Workflow.StepStart)
+	}
+	if loaded.Workflow.Jump == nil || loaded.Workflow.Jump.PromptRef.PromptID != "step_jump_control" || !reflect.DeepEqual(loaded.Workflow.Jump.When.AnyOf, [][]string{{"human_step_jump_requested"}}) {
+		t.Fatalf("Step jump control = %#v", loaded.Workflow.Jump)
+	}
+	for _, conditionID := range []string{"step_scope_confirmed", "human_step_jump_requested"} {
+		condition, ok := loaded.Workflow.CommonConditions[conditionID]
+		if !ok || condition.ExclusiveGroup != "common_control_action" {
+			t.Fatalf("Common Condition %s = %#v", conditionID, condition)
+		}
+	}
 	wantSkills := map[string]string{
 		"frame_requirement_background_flow":    "technical-background-framing",
 		"define_goals_and_problems_flow":       "technical-goals-and-problems",
@@ -150,7 +165,7 @@ func TestProductionMaterialFlashcardsWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Ref.Digest != "sha256:f2e45489b2959cdfe04947017f42feb40791c38b13c31dae132fdc0ac75001dc" {
+	if loaded.Ref.Digest != "sha256:14eaf31c1d7b06872dc67fc1a0d7498dbe201c335d8d333c2fea3f1c9aefd1c7" {
 		t.Fatalf("material-flashcards digest = %s", loaded.Ref.Digest)
 	}
 	wants := []struct {

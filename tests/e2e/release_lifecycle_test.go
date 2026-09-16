@@ -34,12 +34,21 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	}
 	run("flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Release E2E")
 	run("trace", "bind", "--root", root, "--document-url", "https://bytedance.larkoffice.com/docx/TraceE2E")
+	start := func(step string) {
+		run("flow", "report", "result", "--root", root, "--step-id", step,
+			"--condition-result", `{"condition_id":"step_scope_confirmed","output":{"type":"enum_value","value":"confirmed"}}`,
+			"--evidence", `{"source":"human","content":"confirmed"}`, "--summary", "step confirmed", "--start-current-step")
+	}
+	start("frame_requirement_background")
 	first := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"frame_requirement_background","condition_results":[{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-business-background.md"}}],"route":{"next_step_id":"define_goals_and_problems"},"summary":"background defined","evidence":[]}`)
 	if !strings.Contains(first.stdout, `"effect": "advanced"`) {
 		t.Fatalf("matching Condition result did not advance: %s", first.stdout)
 	}
+	start("define_goals_and_problems")
 	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"define_goals_and_problems","condition_results":[{"condition_id":"goals_and_problems_defined","output":{"type":"path","value":".technical-solution/sections/02-goals-and-problems.md"}}],"route":{"next_step_id":"define_business_constraints"},"summary":"goals and problems defined","evidence":[]}`)
+	start("define_business_constraints")
 	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"define_business_constraints","condition_results":[{"condition_id":"business_constraints_defined","output":{"type":"path","value":".technical-solution/sections/03-business-constraints.md"}}],"route":{"next_step_id":"confirm_technical_problem"},"summary":"business constraints defined","evidence":[]}`)
+	start("confirm_technical_problem")
 	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
 	if incomplete.err == nil || !strings.Contains(incomplete.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
 		t.Fatalf("approval without Panorama receipt bypassed review gate:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
@@ -52,12 +61,13 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if !strings.Contains(approved.stdout, `"step_id": "research_solution_options"`) {
 		t.Fatalf("approved requirements did not enter solution design: %s", approved.stdout)
 	}
+	start("research_solution_options")
 	looped := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"research_solution_options","condition_results":[{"condition_id":"goals_and_problems_changed","output":{"type":"enum_value","value":"goals_and_problems"}}],"route":{"back_step_id":"define_goals_and_problems"},"summary":"goals and problems changed","evidence":[]}`)
 	if !strings.Contains(looped.stdout, `"effect": "looped"`) {
 		t.Fatalf("matching Loop Condition did not return: %s", looped.stdout)
 	}
 	status := run("flow", "status", "--root", root)
-	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "define_goals_and_problems"`) || !strings.Contains(status.stdout, `"status": "ready"`) {
+	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "define_goals_and_problems"`) || !strings.Contains(status.stdout, `"status": "awaiting_confirmation"`) {
 		t.Fatalf("requirement did not preserve its returned Step: %s", status.stdout)
 	}
 

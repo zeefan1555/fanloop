@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 
@@ -155,6 +156,9 @@ func cardStatus(current state.State, definition workflow.Workflow) string {
 	if current.CurrentStepID == nil {
 		return "Done"
 	}
+	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
+		return "Awaiting Confirmation"
+	}
 	if context, _, ok := definition.FindStep(*current.CurrentStepID); ok && context.Step.Executor == workflow.StepExecutorHuman {
 		return "Human Review"
 	}
@@ -205,6 +209,8 @@ func statusPanorama(view cardidl.CardView, current state.State, definition workf
 		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflow.Step) string {
 			label := step.Name
 			switch {
+			case slices.Contains(current.SkippedStepIDs, step.ID):
+				label = "已跳过 " + label
 			case !found || position < currentPosition:
 				label = "✅ " + label
 			case position == currentPosition:

@@ -251,6 +251,13 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if err := os.WriteFile(liveSkill, append(content, []byte("\nlive config marker\n")...), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	started := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", requirementRoot,
+		"--step-id", "frame_requirement_background",
+		"--condition-result", `{"condition_id":"step_scope_confirmed","output":{"type":"enum_value","value":"confirmed"}}`,
+		"--evidence", `{"source":"human","content":"confirmed"}`, "--summary", "step confirmed", "--start-current-step")
+	if started.err != nil {
+		t.Fatalf("start installed technical-solution Step: %v\nstdout: %s\nstderr: %s", started.err, started.stdout, started.stderr)
+	}
 	status := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", requirementRoot)
 	if status.err != nil || !strings.Contains(status.stdout, liveSkill) {
 		t.Fatalf("Flow did not reuse the live Skill path after an edit: %v\n%s", status.err, status.stdout)

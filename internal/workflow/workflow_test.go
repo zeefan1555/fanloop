@@ -294,7 +294,7 @@ stages:
             name: Confirm note
             executor: human
 `)
-	flowYAML := []byte(`schema_version: 4
+	flowYAML := []byte(`schema_version: 5
 flow:
   write_note:
     - prompt_ref: {file: prompt.yaml, prompt_id: write_note_flow}
@@ -309,7 +309,7 @@ flow:
           - [note_approved]
       terminal: true
 `)
-	conditionYAML := []byte(`schema_version: 2
+	conditionYAML := []byte(`schema_version: 3
 conditions:
   note_written:
     prompt_ref: {file: prompt.yaml, prompt_id: note_condition}
@@ -343,7 +343,7 @@ loop:
           - [note_rejected]
       back_step_id: write_note
 `)
-	promptYAML := []byte(`schema_version: 1
+	promptYAML := []byte(`schema_version: 2
 prompts:
   write_note_flow:
     prompt: Write the note

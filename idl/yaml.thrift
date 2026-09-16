@@ -6,10 +6,10 @@ namespace go yamlidl
 // field IDs, and schema versions. It declares no public command or Service.
 
 const i32 WORKFLOW_SCHEMA_VERSION  = 7
-const i32 FLOW_SCHEMA_VERSION      = 4
-const i32 CONDITION_SCHEMA_VERSION = 2
+const i32 FLOW_SCHEMA_VERSION      = 5
+const i32 CONDITION_SCHEMA_VERSION = 3
 const i32 LOOP_SCHEMA_VERSION      = 4
-const i32 PROMPT_SCHEMA_VERSION    = 1
+const i32 PROMPT_SCHEMA_VERSION    = 2
 
 const string PROMPT_FILE                      = "prompt.yaml"
 const string OUTPUT_SOURCE_TRACE_DOCUMENT_URL = "integration.trace.document_url"
@@ -121,6 +121,17 @@ struct LoopRoute {
   ),
 }
 
+struct CommonControlRoute {
+  1: required PromptRef prompt_ref (
+    vt.not_nil = "true",
+    go.tag = 'yaml:"prompt_ref"',
+  ),
+  2: required When      when       (
+    vt.not_nil = "true",
+    go.tag = 'yaml:"when"',
+  ),
+}
+
 struct OutputDefinition {
   1: required string       key         (
     vt.min_size = "1",
@@ -193,6 +204,8 @@ struct FlowDocument {
     go.tag = 'yaml:"schema_version"',
   ),
   2: required map<string,list<FlowRoute>> flow           (go.tag = 'yaml:"flow"'),
+  3: optional CommonControlRoute          step_start     (go.tag = 'yaml:"step_start,omitempty"'),
+  4: optional CommonControlRoute          jump           (go.tag = 'yaml:"jump,omitempty"'),
 }
 
 struct ConditionDocument {
@@ -201,6 +214,7 @@ struct ConditionDocument {
     go.tag = 'yaml:"schema_version"',
   ),
   2: required map<string,ConditionDefinition> conditions     (go.tag = 'yaml:"conditions"'),
+  3: optional map<string,ConditionDefinition> common_conditions (go.tag = 'yaml:"common_conditions,omitempty"'),
 }
 
 struct LoopDocument {
@@ -217,4 +231,5 @@ struct PromptDocument {
     go.tag = 'yaml:"schema_version"',
   ),
   2: required map<string,PromptDefinition> prompts        (go.tag = 'yaml:"prompts"'),
+  3: optional list<SkillBinding>             common_skills (go.tag = 'yaml:"common_skills,omitempty"'),
 }

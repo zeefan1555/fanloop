@@ -183,13 +183,14 @@ func DecodeEvent(content []byte) (Event, error) {
 
 func flowStateToIDL(value State) (*storageidl.FlowState, error) {
 	stored := &storageidl.FlowState{
-		SchemaVersion: int32(value.SchemaVersion),
-		Requirement:   requirementToIDL(value.Requirement),
-		Release:       releaseToIDL(value.Release),
-		Integrations:  &storageidl.Integrations{},
-		LastEventId:   value.LastEventID,
-		CreatedAt:     formatStorageTime(value.CreatedAt),
-		UpdatedAt:     formatStorageTime(value.UpdatedAt),
+		SchemaVersion:  int32(value.SchemaVersion),
+		Requirement:    requirementToIDL(value.Requirement),
+		Release:        releaseToIDL(value.Release),
+		Integrations:   &storageidl.Integrations{},
+		LastEventId:    value.LastEventID,
+		CreatedAt:      formatStorageTime(value.CreatedAt),
+		UpdatedAt:      formatStorageTime(value.UpdatedAt),
+		SkippedStepIds: append([]string{}, value.SkippedStepIDs...),
 	}
 	if value.CurrentStepID != nil {
 		status, err := storageidl.StepStatusFromString(string(value.CurrentStepStatus))
@@ -244,6 +245,7 @@ func flowStateFromIDL(stored *storageidl.FlowState) (State, error) {
 		LastEventID:        stored.LastEventId,
 		CreatedAt:          createdAt,
 		UpdatedAt:          updatedAt,
+		SkippedStepIDs:     append([]string{}, stored.SkippedStepIds...),
 	}
 	if stored.CurrentStepStatus != nil {
 		value.CurrentStepStatus = StepStatus(stored.CurrentStepStatus.String())

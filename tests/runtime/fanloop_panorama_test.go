@@ -35,12 +35,12 @@ func TestTechnicalSolutionPanoramaStagesAreFixed(t *testing.T) {
 	}
 }
 
-func TestTechnicalSolutionInitialPromptExposesEvidenceContract(t *testing.T) {
+func TestTechnicalSolutionInitialPromptRequiresHumanScopeConfirmation(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	initialized := run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Evidence Contract")
 	assertSuccess(t, initialized, "flow.init")
 	content := string(initialized.stdout)
-	for _, want := range []string{"具体业务场景", "核心指标", "来源和证据状态"} {
+	for _, want := range []string{"awaiting_confirmation", "grill-with-docs", "step_scope_confirmed", "start_current_step"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("flow.init response does not expose %q:\n%s", want, content)
 		}
