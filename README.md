@@ -78,6 +78,19 @@ Agent 的统一入口是 `fanloop-workflow` Skill。它按以下闭环推进：
 flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow status
 ```
 
+项目级验证使用公开 CLI，而不是把单元测试当作用户路径：
+
+```bash
+fanloop verify doctor
+fanloop verify smoke
+fanloop verify snapshot --root /absolute/path/to/requirement
+fanloop verify cleanup --run-id <RUN_ID> --dry-run
+```
+
+`verify smoke` 使用隔离数据目录、Requirement 和 Skill Root，清除 Botmux 绑定，并通过当前可执行文件重新
+驱动真实 CLI。默认证据保存在 `$FANLOOP_DATA_HOME/verification/runs/<RUN_ID>/`，包含 Manifest、报告、
+逐命令 stdout/stderr、前后快照和 Requirement CLI 日志；Cleanup 删除运行拥有的临时资源但保留证据。
+
 `technical-solution-design` 的十六个 Step 按业务问题、技术判断和结果与规划三阶段推进。文章第 0 至
 第 10 章各有一个独立 Agent Step 和 Markdown 产物，另保留三个 Human Gate、文档组装与独立审校。
 主要产物写在 Requirement Root：
@@ -124,6 +137,12 @@ fanloop flow init \
 ./tests/run-unit
 ./tests/run-e2e
 ```
+
+项目级闭环验证说明与行为地图位于
+[`skills/fanloop-maintainer/fanloop-dev-verify/`](./skills/fanloop-maintainer/fanloop-dev-verify/)。它从当前
+候选建立隔离安装，使用公开 CLI 驱动真实路径，并在清理临时环境后保留证据。验证地图由
+`fanloop-dev-maintain-verification` 按 source + live 方式维护；产品行为失败必须作为产品问题报告，不能
+通过改写地图掩盖。
 
 Contract Golden 只在人工确认契约变化后更新：
 

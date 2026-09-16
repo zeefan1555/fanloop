@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "final-verify-input-validation",
+  "commands": [
+    {"args": ["verify", "doctor", "--input", "{\"unexpected\":true}"]},
+    {"args": ["verify", "smoke", "--input", "{\"unexpected\":true}"]},
+    {"args": ["verify", "snapshot", "--root", "{{ROOT}}", "--input", "{\"unexpected\":true}"]},
+    {"args": ["verify", "cleanup", "--input", "{\"unexpected\":true}"]}
+  ]
+}

@@ -81,6 +81,49 @@ run_route_matrix() {
       >"$log" 2>&1
 }
 
+run_verify_smoke() {
+  local log="$1"
+  local data_root="$run_root/verify-smoke-data"
+  local evidence_root="$run_root/verify-smoke-evidence"
+  FANLOOP_DATA_HOME="$data_root" \
+    FANLOOP_CONFIG_ROOT="$repo_root" \
+    BOTMUX_CHAT_ID= \
+    BOTMUX_SESSION_ID= \
+    "$binary" verify smoke --evidence-dir "$evidence_root" \
+      >"$log" 2>&1
+  test -f "$evidence_root/manifest.json"
+  test -f "$evidence_root/report.md"
+  test -f "$evidence_root/requirement-cli.jsonl"
+  python3 - "$evidence_root" <<'PY'
+import json
+import pathlib
+import stat
+import sys
+
+root = pathlib.Path(sys.argv[1])
+manifest = json.loads((root / "manifest.json").read_text())
+assert manifest["outcome"] == "passed", manifest
+assert manifest["cleanup"] == {
+    "dry_run_passed": True,
+    "removed": True,
+    "paths": manifest["owned_paths"],
+}, manifest["cleanup"]
+assert not pathlib.Path(manifest["owned_paths"][0]).exists()
+assert len(manifest["commands"]) == 13
+assert {item["id"] for item in manifest["commands"]} >= {
+    "version", "verify.doctor", "flow.status.uninitialized", "flow.init.dry-run",
+    "flow.init", "flow.report.result.dry-run", "flow.report.result",
+    "doctor.requirement", "verify.snapshot", "verify.cleanup.dry-run", "verify.cleanup",
+}
+assert all(item["passed"] for item in manifest["side_effects"])
+assert (root / "snapshots/after/files/.fanloop/flow/state.json").is_file()
+assert (root / "snapshots/after/files/.fanloop/output/state.json").is_file()
+assert (root / "snapshots/after/files/.fanloop/trace/events.jsonl").is_file()
+assert stat.S_IMODE(root.stat().st_mode) == 0o700
+assert stat.S_IMODE((root / "manifest.json").stat().st_mode) == 0o600
+PY
+}
+
 start_shard() {
   local name="$1"
   local log="$2"
@@ -100,6 +143,12 @@ start_shard \
   "$process_logs/lifecycle.log" \
   "$run_root/lifecycle/E2E_REPORT.md" \
   run_lifecycle "$process_logs/lifecycle.log"
+
+start_shard \
+  "verify-smoke" \
+  "$process_logs/verify-smoke.log" \
+  "$run_root/verify-smoke-evidence/report.md" \
+  run_verify_smoke "$process_logs/verify-smoke.log"
 
 while IFS= read -r workflow_id; do
   start_shard \

@@ -64,7 +64,7 @@ func TestGeneratedIDLGoPackagesStayUnderInternalIDL(t *testing.T) {
 	packages := map[string]string{
 		"cardidl": "card.go", "cliidl": "cli.go", "commonidl": "common.go", "erroridl": "error.go",
 		"flowidl": "flow.go", "opsidl": "ops.go", "releaseidl": "release.go", "storageidl": "storage.go", "traceidl": "trace.go",
-		"yamlidl": "yaml.go",
+		"verifyidl": "verify.go", "yamlidl": "yaml.go",
 	}
 	for name, generatedFile := range packages {
 		if _, err := os.Stat(filepath.Join(repo, name)); !os.IsNotExist(err) {

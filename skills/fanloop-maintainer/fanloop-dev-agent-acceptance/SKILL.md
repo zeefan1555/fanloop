@@ -15,9 +15,10 @@ description: 从冻结 reviewed_head 做隔离安装，再由恰好一个无实�
 
 ## 单个 Sub-agent 黑盒
 
-派发恰好一个全新 Sub-agent。它只获得：隔离 CLI 的绝对路径、隔离环境变量、requirements.md 中已批准的 **1 至 3** 个场景、各自独立预期与停止边界；不获得实现上下文。
+派发恰好一个全新 Sub-agent。它只获得：隔离 CLI 的绝对路径、隔离环境变量、相邻
+`fanloop-dev-verify/SKILL.md` 的路径、requirements.md 中已批准的 **1 至 3** 个场景、各自独立预期与停止边界；不获得实现上下文。
 
-Sub-agent 必须为每个场景创建全新 Requirement Root，只能先读相关叶子 `--help`，再使用公开 CLI 驱动场景并记录 argv、stdout、stderr、退出码、前后 Status/Event/文件证据。不得读取源码、内部 Go 包、私有 helper、历史 Requirement 或其他实现材料；不得修改候选、push、建 PR、合并或更新全局 CLI；不得使用机器人、Botmux、用户凭据、Card/Trace 远端集成。
+Sub-agent 必须先读取 Verification Skill 和相关 Feature 页面，再为每个场景创建全新 Requirement Root；只能先读相关叶子 `--help`，再使用公开 CLI 驱动场景并记录 argv、stdout、stderr、退出码、前后 Status/Event/文件证据。不得读取源码、内部 Go 包、私有 helper、历史 Requirement 或其他实现材料；不得修改候选、push、建 PR、合并或更新全局 CLI；不得使用机器人、Botmux、用户凭据、Card/Trace 远端集成。
 
 ## 结论与产物
 

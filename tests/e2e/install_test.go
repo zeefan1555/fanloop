@@ -75,7 +75,9 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 		{"flow", "report", "progress", "--help"}, {"flow", "report", "result", "--help"},
 		{"trace", "bind", "--help"}, {"trace", "status", "--help"},
 		{"trace", "render", "--help"}, {"trace", "sync", "--help"},
-		{"card", "render", "--help"}, {"version", "--help"}, {"doctor", "--help"},
+		{"card", "render", "--help"}, {"verify", "doctor", "--help"},
+		{"verify", "smoke", "--help"}, {"verify", "snapshot", "--help"},
+		{"verify", "cleanup", "--help"}, {"version", "--help"}, {"doctor", "--help"},
 	} {
 		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
 		if result.err != nil || result.stderr != "" || !strings.Contains(result.stdout, "Request JSON:") {
