@@ -28,12 +28,12 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertSuccess(t, progress, "flow.report.progress")
 	assertFlowEffect(t, progress.stdout, "status_updated", "frame_requirement_background")
 
-	advance("frame_requirement_background", "analyze_core_problem",
-		conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`))
-	advance("analyze_core_problem", "define_design_objectives",
-		conditionResult("core_problem_defined", "path", `".technical-solution/sections/02-problem.md"`))
-	advance("define_design_objectives", "confirm_technical_problem",
-		conditionResult("design_objectives_defined", "path", `".technical-solution/sections/03-objectives.md"`))
+	advance("frame_requirement_background", "define_goals_and_problems",
+		conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`))
+	advance("define_goals_and_problems", "define_business_constraints",
+		conditionResult("goals_and_problems_defined", "path", `".technical-solution/sections/02-goals-and-problems.md"`))
+	advance("define_business_constraints", "confirm_technical_problem",
+		conditionResult("business_constraints_defined", "path", `".technical-solution/sections/03-business-constraints.md"`))
 
 	flowState := readFile(t, filepath.Join(root, ".fanloop", "flow", "state.json"))
 	if bytes.Contains(flowState, []byte(`"outputs"`)) {
@@ -50,22 +50,22 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 		"--step-id", "confirm_technical_problem",
 		"--condition-result", conditionResult("problem_document_published", "url", `"https://example.com/problem-definition"`),
 		"--condition-result", conditionResult("panorama_card_published", "path", `".fanloop/card/problem-feedback.json"`),
-		"--condition-result", conditionResult("problem_changed", "enum_value", `"problem"`),
-		"--back-step-id", "analyze_core_problem", "--summary", "core problem needs revision")
+		"--condition-result", conditionResult("goals_and_problems_changed", "enum_value", `"goals_and_problems"`),
+		"--back-step-id", "define_goals_and_problems", "--summary", "goals and problems need revision")
 	assertSuccess(t, rejected, "flow.report.result")
-	assertFlowEffect(t, rejected.stdout, "looped", "analyze_core_problem")
-	assertOutputAbsent(t, rejected.stdout, "problem_section_path")
-	assertOutputAbsent(t, rejected.stdout, "objectives_section_path")
+	assertFlowEffect(t, rejected.stdout, "looped", "define_goals_and_problems")
+	assertOutputAbsent(t, rejected.stdout, "goals_and_problems_section_path")
+	assertOutputAbsent(t, rejected.stdout, "business_constraints_section_path")
 	assertOutputAbsent(t, rejected.stdout, "problem_document_url")
 	assertOutputAbsent(t, rejected.stdout, "panorama_snapshot_path")
 	if !strings.Contains(rejected.stdout, `"background_section_path"`) {
 		t.Fatalf("problem loop removed approved background Output: %s", rejected.stdout)
 	}
 
-	advance("analyze_core_problem", "define_design_objectives",
-		conditionResult("core_problem_defined", "path", `".technical-solution/sections/02-problem.md"`))
-	advance("define_design_objectives", "confirm_technical_problem",
-		conditionResult("design_objectives_defined", "path", `".technical-solution/sections/03-objectives.md"`))
+	advance("define_goals_and_problems", "define_business_constraints",
+		conditionResult("goals_and_problems_defined", "path", `".technical-solution/sections/02-goals-and-problems.md"`))
+	advance("define_business_constraints", "confirm_technical_problem",
+		conditionResult("business_constraints_defined", "path", `".technical-solution/sections/03-business-constraints.md"`))
 	advance("confirm_technical_problem", "research_solution_options",
 		conditionResult("problem_document_published", "url", `"https://example.com/problem-definition"`),
 		conditionResult("panorama_card_published", "path", `".fanloop/card/problem-approved.json"`),
@@ -75,16 +75,22 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	advance("design_overall_solution", "design_key_solutions",
 		conditionResult("overall_solution_designed", "path", `".technical-solution/sections/05-overall-solution.md"`),
 		conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`))
-	advance("design_key_solutions", "confirm_solution_direction",
-		conditionResult("key_solutions_designed", "path", `".technical-solution/sections/06-key-solutions.md"`))
-	advance("confirm_solution_direction", "evaluate_solution_benefits",
+	advance("design_key_solutions", "record_technical_decisions",
+		conditionResult("key_modules_designed", "path", `".technical-solution/sections/06-key-modules.md"`))
+	advance("record_technical_decisions", "confirm_solution_direction",
+		conditionResult("technical_decisions_recorded", "path", `".technical-solution/sections/07-decisions.md"`))
+	advance("confirm_solution_direction", "plan_solution_delivery",
 		conditionResult("solution_document_published", "url", `"https://example.com/solution-design"`),
 		conditionResult("panorama_card_published", "path", `".fanloop/card/solution-approved.json"`),
 		conditionResult("solution_direction_approved", "enum_value", `"approved"`))
-	advance("evaluate_solution_benefits", "plan_solution_delivery",
-		conditionResult("solution_benefits_defined", "path", `".technical-solution/sections/07-benefits.md"`))
-	advance("plan_solution_delivery", "write_technical_solution",
-		conditionResult("delivery_plan_defined", "path", `".technical-solution/sections/08-delivery.md"`))
+	advance("plan_solution_delivery", "evaluate_solution_benefits",
+		conditionResult("delivery_plan_defined", "path", `".technical-solution/sections/08-delivery-and-risk.md"`))
+	advance("evaluate_solution_benefits", "write_retrospective_and_roadmap",
+		conditionResult("results_and_benefits_defined", "path", `".technical-solution/sections/09-results.md"`))
+	advance("write_retrospective_and_roadmap", "write_summary",
+		conditionResult("retrospective_and_roadmap_defined", "path", `".technical-solution/sections/10-retrospective-and-roadmap.md"`))
+	advance("write_summary", "write_technical_solution",
+		conditionResult("summary_defined", "path", `".technical-solution/sections/00-summary.md"`))
 	advance("write_technical_solution", "review_technical_solution",
 		conditionResult("technical_solution_written", "path", `"technical-solution.md"`))
 	reviewed := run(binary, "flow", "report", "result", "--root", root,
@@ -101,7 +107,7 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	}
 
 	events := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "events.jsonl")))
-	for _, fact := range []string{`"kind":"flow_progressed"`, `"effect":"advanced"`, `"effect":"looped"`, `"condition_id":"problem_changed"`, `"condition_id":"presentation_changed"`} {
+	for _, fact := range []string{`"kind":"flow_progressed"`, `"effect":"advanced"`, `"effect":"looped"`, `"condition_id":"goals_and_problems_changed"`, `"condition_id":"presentation_changed"`} {
 		if !strings.Contains(events, fact) {
 			t.Fatalf("Event audit missing %s:\n%s", fact, events)
 		}
@@ -219,13 +225,13 @@ func TestFlowResultAcceptsExplicitTechnicalSolutionRoute(t *testing.T) {
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Explicit route"), "flow.init")
 	reported := run(binary, "flow", "report", "result", "--root", root, "--input", `{
   "step_id": "frame_requirement_background",
-  "condition_results": [{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-background.md"}}],
-  "route": {"next_step_id":"analyze_core_problem"},
+  "condition_results": [{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-business-background.md"}}],
+  "route": {"next_step_id":"define_goals_and_problems"},
   "evidence": [],
   "summary": "requirements ready"
 }`)
 	assertSuccess(t, reported, "flow.report.result")
-	assertFlowEffect(t, reported.stdout, "advanced", "analyze_core_problem")
+	assertFlowEffect(t, reported.stdout, "advanced", "define_goals_and_problems")
 }
 
 func TestFlowReportRejectsRetiredCommandShapes(t *testing.T) {

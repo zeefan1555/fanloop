@@ -1,6 +1,6 @@
 ---
 name: technical-solution-research
-description: 按统一维度调研不改基线、公司内部与业界同类方案，形成公平可追溯的对比片段。用于 technical-solution-design 的方案调研 Step；不直接确定总体架构。
+description: 按统一维度调研二至三类内部或业界可行方案，形成公平可追溯的对比片段。用于 technical-solution-design 的业界/业内方案调研 Step；不直接确定总体架构。
 ---
 
 # 调研候选方案
@@ -8,13 +8,9 @@ description: 按统一维度调研不改基线、公司内部与业界同类方�
 开始前读取 [What–Why–How 推导标准](../technical-solution-review/references/reasoning.md)。每项候选说明
 解决什么、机制如何满足目标，以及为何在当前约束下成立或不成立；总体架构留给下一步确定。
 
-只以已批准的 `01-background.md`、`02-problem.md`、`03-objectives.md` 为边界。先从问题、指标和约束
-导出同一组评价维度，再调查：
-
-1. 不改基线及小幅演进方案；
-2. 公司内真实可复用的同类方案；
-3. 有一手资料支持的业界成熟方案；
-4. 当前候选方案相对上述方案的优势、缺点、适用条件和失败边界。
+只以已批准的 `01-business-background.md`、`02-goals-and-problems.md`、
+`03-business-constraints.md` 为边界。先从问题、目标和约束导出同一组评价维度，再选择 2 至 3 类
+真正可行的基线演进、公司内部或业界成熟方案进行比较。
 
 候选必须势均力敌，全部使用相同维度比较，不拿完整方案与残缺样例对比。来源优先使用代码、正式
 文档、论文或产品官方资料；无法验证的比较项写“未知”。把延迟、可用性、一致性、成本、复杂度、
@@ -27,7 +23,7 @@ description: 按统一维度调研不改基线、公司内部与业界同类方�
 
 | 逻辑产物 | 完整性要求 |
 | --- | --- |
-| 候选方案对比 | 从问题与目标导出统一评价维度，公平比较基线、内部及业界可行候选并附证据链接。 |
+| 候选方案对比 | 从问题、目标与约束导出统一评价维度，公平比较 2 至 3 类可行候选并附证据链接。 |
 | 适用条件 | 逐项说明成立条件、限制与失败边界；无法验证的项标为未知。 |
 | 优势与代价 | 说明各候选的收益、成本和风险，排序或排除理由可追溯到同一组评价维度。 |
 
@@ -36,5 +32,6 @@ description: 按统一维度调研不改基线、公司内部与业界同类方�
 但禁止 `####` 及手工 `1.1` 式标题。可以给出候选排序及依据，但不得提前画目标架构或展开难点
 解法。
 
-若调研改变背景、问题或目标，只选择最早层级上报 `background_changed`、`problem_changed` 或
-`objectives_changed`，Evidence 写清影响。否则仅在产物列表逐项完整时上报 `solution_research_completed` 和片段路径。
+若调研改变背景、目标问题或约束，只选择最早层级上报 `background_changed`、
+`goals_and_problems_changed` 或 `business_constraints_changed`，Evidence 写清影响。否则仅在产物列表
+逐项完整时上报 `solution_research_completed` 和片段路径。

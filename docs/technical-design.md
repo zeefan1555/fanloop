@@ -14,7 +14,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 
 当前携带两套 Bundle：
 
-- `technical-solution-design`：十三步技术方案流程，各 Step 通过 Skill 产出和审核材料，按问题定义、方案设计和方案成文三阶段推进。
+- `technical-solution-design`：十六步技术文档流程，第 0 至第 10 章各有独立 Step 和产物，按业务问题、技术判断和结果与规划三阶段推进。
 - `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；需求确认、研发实现、独立 Sub-agent 验收、唯一 PR 合并与本地 CLI 更新顺序推进。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
@@ -55,17 +55,18 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 [ADR-0086](./adr/0086-align-panorama-with-treeloop.md) 与
 [ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)、
 [ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)、
+[ADR-0098](./adr/0098-use-eleven-section-technical-document-workflow.md)、
 [ADR-0094](./adr/0094-simplify-maintainer-to-three-stage-agent-delivery.md)。
 
 ## 当前配置实例
 
-`technical-solution-design` 用十三个 Step 依次产出需求背景、核心问题、设计目标、方案调研、总体
-方案、难点解法、方案收益和落地规划八个无标题片段，再生成附录并组装 `technical-solution.md`。
-最终正文只有九个正文结构，不暴露内部调研清单；总体架构图和独立审校报告分别写入
+`technical-solution-design` 用十六个 Step 依次产出业务背景、目标与问题定义、业务特点与技术约束、
+方案调研、总体方案、关键模块、技术决策、落地与风险、结果收益、复盘规划和摘要十一个独立片段，
+再组装 `technical-solution.md`。摘要最后生成但在最终文档置顶；总体架构图和独立审校报告分别写入
 `.technical-solution/architecture.mmd` 与 `.technical-solution/review.md`。
 
-问题定义、方案设计和完整方案分别经过强制人工审核，并输出稳定飞书文档 URL。反馈按背景、问题、
-目标、调研、总体方案、难点、收益、落地或呈现中最早受影响的一层回流，目标 Step 及其下游
+业务问题、技术判断和完整文档分别经过强制人工审核，并输出稳定飞书文档 URL。反馈按十一章或
+最终呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
 `fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：需求确认包含工作区准备、需求澄清、Agent 需求确认；

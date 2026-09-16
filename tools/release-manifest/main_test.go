@@ -30,11 +30,12 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 		"fanloop-dev-to-spec", "fanloop-dev-to-tickets", "fanloop-dev-update-local-cli", "fanloop-dev-workflow",
 		"flashcard-card-planning", "flashcard-goal-framing", "flashcard-knowledge-selection",
 		"flashcard-preview-approval", "flashcard-quality-review", "flashcard-source-understanding", "flashcard", "material-flashcards-panorama",
-		"technical-background-framing", "technical-direction-approval", "technical-key-solutions",
-		"technical-objective-setting", "technical-overall-solution", "technical-problem-analysis",
-		"technical-problem-approval", "technical-solution-approval", "technical-solution-benefits",
+		"technical-background-framing", "technical-business-constraints", "technical-decision-recording",
+		"technical-direction-approval", "technical-goals-and-problems", "technical-key-solutions",
+		"technical-overall-solution", "technical-problem-approval", "technical-retrospective-planning",
+		"technical-solution-approval", "technical-solution-benefits",
 		"technical-solution-delivery", "technical-solution-panorama", "technical-solution-research",
-		"technical-solution-review", "technical-solution-writing",
+		"technical-solution-review", "technical-solution-writing", "technical-summary-writing",
 	}
 	gotSkills := make([]string, len(manifest.Skills))
 	for index, skill := range manifest.Skills {
@@ -72,7 +73,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	changed := strings.Replace(string(workflowContent), "name: 问题定义", "name: 不同的问题定义", 1)
+	changed := strings.Replace(string(workflowContent), "name: 业务问题", "name: 不同的业务问题", 1)
 	if changed == string(workflowContent) {
 		t.Fatal("test did not change Workflow")
 	}

@@ -48,10 +48,10 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 		CausedByEventID: "e1", Payload: Payload(progress),
 	})
 
-	second := "analyze_core_problem"
+	second := "define_goals_and_problems"
 	flowResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`)},
+			ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`)},
 		}},
 		Summary: "background defined", Effect: ResultAdvanced,
 		Transition:    Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second},
@@ -62,7 +62,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	current.CurrentStepSummary = flowResult.Summary
 	current.CurrentEvidence = nil
 	current.Outputs = map[string]RegisteredOutput{
-		"background_section_path": {Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`), ProducerStepID: first},
+		"background_section_path": {Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`), ProducerStepID: first},
 	}
 	current.LastEventID = "e3"
 	current.UpdatedAt = now.Add(2 * time.Minute)
@@ -118,11 +118,11 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "background changed",
 		Outputs: map[string]RegisteredOutput{}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
 	}
-	second := "analyze_core_problem"
+	second := "define_goals_and_problems"
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: current.Release.Workflow, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{{ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`)}}},
+			ConditionResults: []ConditionResult{{ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`)}}},
 			Summary:          "background defined", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"background_section_path"}},
 		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{

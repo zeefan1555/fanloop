@@ -244,13 +244,13 @@ func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
 	repo := repositoryRoot(t)
 	required := map[string][]string{
 		"workflows/technical-solution-design/prompt.yaml": {
-			"九个二级语义章节", "允许按项目内容生成三级标题", "来源和证据状态", "适用场景、不适用场景",
+			"0. 摘要", "10. 复盘与后续规划", "5 至 8 行", "2 至 3 个最关键模块", "晋升场景突出能力证据",
 		},
 		"skills/technical-solution-design/technical-solution-writing/SKILL.md": {
-			"九个语义章节", "允许 `###`", "证据状态",
+			"十一个规定 `##`", "允许 `###`", "证据状态",
 		},
 		"skills/technical-solution-design/technical-solution-review/SKILL.md": {
-			"语义章节", "允许 `###`", "适用边界",
+			"第 0 至第 10 章", "允许 `###`", "适用边界",
 		},
 		"skills/technical-solution-design/technical-problem-approval/SKILL.md": {
 			"允许 `###`",
@@ -292,9 +292,10 @@ func TestTechnicalSolutionReasoningReferences(t *testing.T) {
 	}
 	link := regexp.MustCompile(`\[[^\]]+\]\(([^)]+reasoning\.md)\)`)
 	for _, name := range []string{
-		"technical-background-framing", "technical-problem-analysis", "technical-objective-setting",
+		"technical-background-framing", "technical-goals-and-problems", "technical-business-constraints",
 		"technical-solution-research", "technical-overall-solution", "technical-key-solutions",
-		"technical-solution-benefits", "technical-solution-delivery", "technical-solution-writing",
+		"technical-decision-recording", "technical-solution-delivery", "technical-solution-benefits",
+		"technical-retrospective-planning", "technical-summary-writing", "technical-solution-writing",
 		"technical-solution-review",
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -322,18 +323,21 @@ func TestTechnicalSolutionStepArtifactLists(t *testing.T) {
 		skill     string
 		artifacts []string
 	}{
-		{"technical-background-framing", []string{"背景与现状", "业务特点", "关键事实与证据"}},
-		{"technical-problem-analysis", []string{"核心问题", "根因与影响", "关键矛盾"}},
-		{"technical-objective-setting", []string{"目标", "约束与非目标", "取舍顺序", "验收标准"}},
-		{"technical-problem-approval", []string{"汇总的问题定义文档", "审核结论与反馈"}},
+		{"technical-background-framing", []string{"业务阶段与目标", "现状与瓶颈", "关键事实与证据"}},
+		{"technical-goals-and-problems", []string{"核心问题", "目标与验收", "非目标"}},
+		{"technical-business-constraints", []string{"业务特点", "技术约束", "取舍优先级"}},
+		{"technical-problem-approval", []string{"汇总的业务问题文档", "审核结论与反馈"}},
 		{"technical-solution-research", []string{"候选方案对比", "适用条件", "优势与代价"}},
 		{"technical-overall-solution", []string{"选型结论与依据", "总体架构图", "组件职责", "关键链路"}},
-		{"technical-key-solutions", []string{"关键机制设计", "必要接口与数据模型", "异常与恢复设计"}},
-		{"technical-direction-approval", []string{"汇总的方案设计文档", "审核结论与反馈"}},
-		{"technical-solution-benefits", []string{"目标与收益映射", "验证计划", "已有结果及证据状态"}},
-		{"technical-solution-delivery", []string{"实施阶段", "依赖与责任", "发布验证", "风险与回滚"}},
-		{"technical-solution-writing", []string{"完整技术方案文档", "必要附录"}},
-		{"technical-solution-review", []string{"What–Why–How 与范文对照报告", "问题清单", "审校结论"}},
+		{"technical-key-solutions", []string{"关键模块设计", "必要接口与数据模型", "异常与恢复设计"}},
+		{"technical-decision-recording", []string{"决策清单", "备选比较", "后果与边界"}},
+		{"technical-direction-approval", []string{"汇总的技术判断文档", "审核结论与反馈"}},
+		{"technical-solution-delivery", []string{"实施阶段", "依赖与责任", "发布验证", "风险与回滚", "协作与经验"}},
+		{"technical-solution-benefits", []string{"目标与收益映射", "验证计划", "已有结果及证据状态", "替代证据"}},
+		{"technical-retrospective-planning", []string{"正确判断", "弯路与经验", "后续规划"}},
+		{"technical-summary-writing", []string{"摘要"}},
+		{"technical-solution-writing", []string{"完整技术文档"}},
+		{"technical-solution-review", []string{"审校报告", "问题清单"}},
 		{"technical-solution-approval", []string{"最终发布文档", "人的审核结论与反馈"}},
 	} {
 		t.Run(want.skill, func(t *testing.T) {

@@ -20,20 +20,26 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if got := []string{loaded.Workflow.Stages[0].Name, loaded.Workflow.Stages[1].Name, loaded.Workflow.Stages[2].Name}; !reflect.DeepEqual(got, []string{"业务问题", "技术判断", "结果与规划"}) {
+		t.Fatalf("Stage names = %v", got)
+	}
 	wantSteps := []Step{
-		{ID: "frame_requirement_background", Name: "需求背景", Executor: StepExecutorAgent},
-		{ID: "analyze_core_problem", Name: "核心问题", Executor: StepExecutorAgent},
-		{ID: "define_design_objectives", Name: "设计目标", Executor: StepExecutorAgent},
-		{ID: "confirm_technical_problem", Name: "问题审核", Executor: StepExecutorHuman},
-		{ID: "research_solution_options", Name: "方案调研", Executor: StepExecutorAgent},
-		{ID: "design_overall_solution", Name: "总体方案", Executor: StepExecutorAgent},
-		{ID: "design_key_solutions", Name: "难点解法", Executor: StepExecutorAgent},
-		{ID: "confirm_solution_direction", Name: "方案审核", Executor: StepExecutorHuman},
-		{ID: "evaluate_solution_benefits", Name: "方案收益", Executor: StepExecutorAgent},
-		{ID: "plan_solution_delivery", Name: "落地规划", Executor: StepExecutorAgent},
-		{ID: "write_technical_solution", Name: "方案成文", Executor: StepExecutorAgent},
-		{ID: "review_technical_solution", Name: "方案审校", Executor: StepExecutorAgent},
-		{ID: "confirm_technical_solution", Name: "方案终审", Executor: StepExecutorHuman},
+		{ID: "frame_requirement_background", Name: "业务背景", Executor: StepExecutorAgent},
+		{ID: "define_goals_and_problems", Name: "目标与问题定义", Executor: StepExecutorAgent},
+		{ID: "define_business_constraints", Name: "业务特点与技术约束", Executor: StepExecutorAgent},
+		{ID: "confirm_technical_problem", Name: "问题与约束审核", Executor: StepExecutorHuman},
+		{ID: "research_solution_options", Name: "业界/业内方案调研", Executor: StepExecutorAgent},
+		{ID: "design_overall_solution", Name: "总体方案设计", Executor: StepExecutorAgent},
+		{ID: "design_key_solutions", Name: "关键模块设计", Executor: StepExecutorAgent},
+		{ID: "record_technical_decisions", Name: "核心技术决策与取舍", Executor: StepExecutorAgent},
+		{ID: "confirm_solution_direction", Name: "方案与决策审核", Executor: StepExecutorHuman},
+		{ID: "plan_solution_delivery", Name: "落地路径与风险控制", Executor: StepExecutorAgent},
+		{ID: "evaluate_solution_benefits", Name: "结果收益", Executor: StepExecutorAgent},
+		{ID: "write_retrospective_and_roadmap", Name: "复盘与后续规划", Executor: StepExecutorAgent},
+		{ID: "write_summary", Name: "摘要", Executor: StepExecutorAgent},
+		{ID: "write_technical_solution", Name: "文档组装", Executor: StepExecutorAgent},
+		{ID: "review_technical_solution", Name: "文档审校", Executor: StepExecutorAgent},
+		{ID: "confirm_technical_solution", Name: "文档终审", Executor: StepExecutorHuman},
 	}
 	wantIDs := make([]string, 0, len(wantSteps))
 	for _, want := range wantSteps {
@@ -47,19 +53,22 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		t.Fatalf("Steps = %v, want %v", got, wantIDs)
 	}
 	wantSkills := map[string]string{
-		"frame_requirement_background_flow": "technical-background-framing",
-		"analyze_core_problem_flow":         "technical-problem-analysis",
-		"define_design_objectives_flow":     "technical-objective-setting",
-		"confirm_technical_problem_flow":    "technical-problem-approval",
-		"research_solution_options_flow":    "technical-solution-research",
-		"design_overall_solution_flow":      "technical-overall-solution",
-		"design_key_solutions_flow":         "technical-key-solutions",
-		"confirm_solution_direction_flow":   "technical-direction-approval",
-		"evaluate_solution_benefits_flow":   "technical-solution-benefits",
-		"plan_solution_delivery_flow":       "technical-solution-delivery",
-		"write_technical_solution_flow":     "technical-solution-writing",
-		"review_technical_solution_flow":    "technical-solution-review",
-		"confirm_technical_solution_flow":   "technical-solution-approval",
+		"frame_requirement_background_flow":    "technical-background-framing",
+		"define_goals_and_problems_flow":       "technical-goals-and-problems",
+		"define_business_constraints_flow":     "technical-business-constraints",
+		"confirm_technical_problem_flow":       "technical-problem-approval",
+		"research_solution_options_flow":       "technical-solution-research",
+		"design_overall_solution_flow":         "technical-overall-solution",
+		"design_key_solutions_flow":            "technical-key-solutions",
+		"record_technical_decisions_flow":      "technical-decision-recording",
+		"confirm_solution_direction_flow":      "technical-direction-approval",
+		"plan_solution_delivery_flow":          "technical-solution-delivery",
+		"evaluate_solution_benefits_flow":      "technical-solution-benefits",
+		"write_retrospective_and_roadmap_flow": "technical-retrospective-planning",
+		"write_summary_flow":                   "technical-summary-writing",
+		"write_technical_solution_flow":        "technical-solution-writing",
+		"review_technical_solution_flow":       "technical-solution-review",
+		"confirm_technical_solution_flow":      "technical-solution-approval",
 	}
 	for promptID, skillID := range wantSkills {
 		skilled := loaded.Workflow.Prompts[promptID].Skills
@@ -71,16 +80,19 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	if _, ok := loaded.Workflow.Condition("agent_approved"); ok {
 		t.Fatal("technical-solution-design must require human approval")
 	}
-	assertWorkflowRoute(t, loaded, "frame_requirement_background", []string{"background_defined"}, "analyze_core_problem", false)
-	assertWorkflowRoute(t, loaded, "analyze_core_problem", []string{"core_problem_defined"}, "define_design_objectives", false)
-	assertWorkflowRoute(t, loaded, "define_design_objectives", []string{"design_objectives_defined"}, "confirm_technical_problem", false)
+	assertWorkflowRoute(t, loaded, "frame_requirement_background", []string{"background_defined"}, "define_goals_and_problems", false)
+	assertWorkflowRoute(t, loaded, "define_goals_and_problems", []string{"goals_and_problems_defined"}, "define_business_constraints", false)
+	assertWorkflowRoute(t, loaded, "define_business_constraints", []string{"business_constraints_defined"}, "confirm_technical_problem", false)
 	assertWorkflowRoute(t, loaded, "confirm_technical_problem", []string{"problem_document_published", "panorama_card_published", "technical_problem_approved"}, "research_solution_options", false)
 	assertWorkflowRoute(t, loaded, "research_solution_options", []string{"solution_research_completed"}, "design_overall_solution", false)
 	assertWorkflowRoute(t, loaded, "design_overall_solution", []string{"overall_solution_designed", "architecture_diagram_written"}, "design_key_solutions", false)
-	assertWorkflowRoute(t, loaded, "design_key_solutions", []string{"key_solutions_designed"}, "confirm_solution_direction", false)
-	assertWorkflowRoute(t, loaded, "confirm_solution_direction", []string{"solution_document_published", "panorama_card_published", "solution_direction_approved"}, "evaluate_solution_benefits", false)
-	assertWorkflowRoute(t, loaded, "evaluate_solution_benefits", []string{"solution_benefits_defined"}, "plan_solution_delivery", false)
-	assertWorkflowRoute(t, loaded, "plan_solution_delivery", []string{"delivery_plan_defined"}, "write_technical_solution", false)
+	assertWorkflowRoute(t, loaded, "design_key_solutions", []string{"key_modules_designed"}, "record_technical_decisions", false)
+	assertWorkflowRoute(t, loaded, "record_technical_decisions", []string{"technical_decisions_recorded"}, "confirm_solution_direction", false)
+	assertWorkflowRoute(t, loaded, "confirm_solution_direction", []string{"solution_document_published", "panorama_card_published", "solution_direction_approved"}, "plan_solution_delivery", false)
+	assertWorkflowRoute(t, loaded, "plan_solution_delivery", []string{"delivery_plan_defined"}, "evaluate_solution_benefits", false)
+	assertWorkflowRoute(t, loaded, "evaluate_solution_benefits", []string{"results_and_benefits_defined"}, "write_retrospective_and_roadmap", false)
+	assertWorkflowRoute(t, loaded, "write_retrospective_and_roadmap", []string{"retrospective_and_roadmap_defined"}, "write_summary", false)
+	assertWorkflowRoute(t, loaded, "write_summary", []string{"summary_defined"}, "write_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "write_technical_solution", []string{"technical_solution_written"}, "review_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "review_technical_solution", []string{"technical_solution_review_passed", "technical_solution_review_written"}, "confirm_technical_solution", false)
 	assertWorkflowRoute(t, loaded, "confirm_technical_solution", []string{"technical_solution_document_published", "panorama_card_published", "technical_solution_approved"}, "", true)
@@ -90,19 +102,23 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		backStep  string
 	}{
 		{"background_changed", "frame_requirement_background"},
-		{"problem_changed", "analyze_core_problem"},
-		{"objectives_changed", "define_design_objectives"},
+		{"goals_and_problems_changed", "define_goals_and_problems"},
+		{"business_constraints_changed", "define_business_constraints"},
 		{"research_changed", "research_solution_options"},
 		{"overall_solution_changed", "design_overall_solution"},
-		{"key_solutions_changed", "design_key_solutions"},
-		{"benefits_changed", "evaluate_solution_benefits"},
+		{"key_modules_changed", "design_key_solutions"},
+		{"technical_decisions_changed", "record_technical_decisions"},
 		{"delivery_changed", "plan_solution_delivery"},
+		{"results_changed", "evaluate_solution_benefits"},
+		{"retrospective_changed", "write_retrospective_and_roadmap"},
+		{"summary_changed", "write_summary"},
 		{"presentation_changed", "write_technical_solution"},
 	}
 	for _, conditionID := range []string{
-		"background_defined", "core_problem_defined", "design_objectives_defined", "technical_problem_approved",
-		"solution_research_completed", "overall_solution_designed", "key_solutions_designed", "solution_direction_approved",
-		"solution_benefits_defined", "delivery_plan_defined", "technical_solution_written",
+		"background_defined", "goals_and_problems_defined", "business_constraints_defined", "technical_problem_approved",
+		"solution_research_completed", "overall_solution_designed", "key_modules_designed", "technical_decisions_recorded",
+		"solution_direction_approved", "delivery_plan_defined", "results_and_benefits_defined",
+		"retrospective_and_roadmap_defined", "summary_defined", "technical_solution_written",
 		"technical_solution_review_passed", "technical_solution_approved",
 	} {
 		condition, _ := loaded.Workflow.Condition(conditionID)
@@ -113,7 +129,7 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 	for _, item := range feedback[:3] {
 		assertWorkflowLoop(t, loaded, "confirm_technical_problem", []string{"problem_document_published", "panorama_card_published", item.condition}, item.backStep)
 	}
-	for _, item := range feedback[:6] {
+	for _, item := range feedback[:7] {
 		assertWorkflowLoop(t, loaded, "confirm_solution_direction", []string{"solution_document_published", "panorama_card_published", item.condition}, item.backStep)
 	}
 	for _, item := range feedback {
@@ -124,8 +140,8 @@ func TestProductionTechnicalSolutionDesignWorkflow(t *testing.T) {
 		assertWorkflowLoop(t, loaded, "review_technical_solution", []string{"technical_solution_review_written", item.condition}, item.backStep)
 		assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"technical_solution_document_published", "panorama_card_published", item.condition}, item.backStep)
 	}
-	if got := len(loaded.Workflow.Conditions); got != 28 {
-		t.Fatalf("Condition count = %d, want 28", got)
+	if got := len(loaded.Workflow.Conditions); got != 34 {
+		t.Fatalf("Condition count = %d, want 34", got)
 	}
 }
 

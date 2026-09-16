@@ -111,6 +111,9 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 		}
 	}
 	localBuildGuardGit(t, repository, "init", "-q")
+	localBuildGuardGit(t, repository, "config", "core.fsmonitor", "false")
+	localBuildGuardGit(t, repository, "config", "maintenance.auto", "false")
+	localBuildGuardGit(t, repository, "config", "gc.auto", "0")
 	localBuildGuardGit(t, repository, "add", ".")
 	localBuildGuardGit(t, repository, "-c", "user.name=Guard Test", "-c", "user.email=guard@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture")
 	bin := t.TempDir()

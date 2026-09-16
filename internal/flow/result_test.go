@@ -18,7 +18,7 @@ func TestEvaluateResultRoutesTechnicalReviewAndInvalidatesByProducer(t *testing.
 	}
 	reviewState := state.State{Outputs: map[string]state.RegisteredOutput{
 		"background_section_path": {
-			Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-background.md"`), ProducerStepID: "frame_requirement_background",
+			Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`), ProducerStepID: "frame_requirement_background",
 		},
 		"technical_solution_path": {
 			Type: workflow.OutputPath, Value: json.RawMessage(`"technical-solution.md"`), ProducerStepID: "write_technical_solution",
@@ -122,7 +122,8 @@ func TestEvaluateResultRoutesTechnicalReviewAndInvalidatesByProducer(t *testing.
 	t.Run("multiple Loop Routes for one target are rejected", func(t *testing.T) {
 		ambiguous := loaded.Workflow
 		ambiguous.Loops = cloneLoopRoutes(loaded.Workflow.Loops)
-		ambiguous.Loops["review_technical_solution"] = append(ambiguous.Loops["review_technical_solution"], ambiguous.Loops["review_technical_solution"][8])
+		routes := ambiguous.Loops["review_technical_solution"]
+		ambiguous.Loops["review_technical_solution"] = append(routes, routes[len(routes)-1])
 		request := resultRequest("review_technical_solution", backRoute("write_technical_solution"),
 			condition("technical_solution_review_written", flowidl.OutputType_path, ".technical-solution/review.md"),
 			condition("presentation_changed", flowidl.OutputType_enum_value, "presentation"),

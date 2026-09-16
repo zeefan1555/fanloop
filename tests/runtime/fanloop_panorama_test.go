@@ -19,9 +19,9 @@ func TestTechnicalSolutionPanoramaStagesAreFixed(t *testing.T) {
 	content := string(decodeCard(t, rendered.stdout).Data.Content)
 
 	for stage, want := range map[string][]string{
-		"问题定义": {"需求背景", "核心问题", "设计目标", "问题审核"},
-		"方案设计": {"方案调研", "总体方案", "难点解法", "方案审核"},
-		"方案成文": {"方案收益", "落地规划", "方案成文", "方案审校", "方案终审"},
+		"业务问题":  {"业务背景", "目标与问题定义", "业务特点与技术约束", "问题与约束审核"},
+		"技术判断":  {"业界/业内方案调研", "总体方案设计", "关键模块设计", "核心技术决策与取舍", "方案与决策审核"},
+		"结果与规划": {"落地路径与风险控制", "结果收益", "复盘与后续规划", "摘要", "文档组装", "文档审校", "文档终审"},
 	} {
 		got := panoramaStageSteps(t, content, stage)
 		if len(got) != len(want) {
@@ -40,7 +40,7 @@ func TestTechnicalSolutionInitialPromptExposesEvidenceContract(t *testing.T) {
 	initialized := run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Evidence Contract")
 	assertSuccess(t, initialized, "flow.init")
 	content := string(initialized.stdout)
-	for _, want := range []string{"具体业务场景", "定量事实", "来源和证据状态"} {
+	for _, want := range []string{"具体业务场景", "核心指标", "来源和证据状态"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("flow.init response does not expose %q:\n%s", want, content)
 		}

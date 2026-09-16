@@ -181,10 +181,11 @@ func TestLocalInstallerExposesOnlyWorkflowSkillAndPreservesAtomicSkillDirectorie
 		t.Fatalf("install with atomic Skill directories: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
 	for _, skillID := range []string{
-		"technical-background-framing", "technical-problem-analysis", "technical-objective-setting",
+		"technical-background-framing", "technical-goals-and-problems", "technical-business-constraints",
 		"technical-problem-approval", "technical-solution-research", "technical-overall-solution",
-		"technical-key-solutions", "technical-direction-approval", "technical-solution-benefits",
-		"technical-solution-delivery", "technical-solution-writing", "technical-solution-review",
+		"technical-key-solutions", "technical-decision-recording", "technical-direction-approval",
+		"technical-solution-delivery", "technical-solution-benefits", "technical-retrospective-planning",
+		"technical-summary-writing", "technical-solution-writing", "technical-solution-review",
 		"technical-solution-approval",
 	} {
 		path := filepath.Join(dataRoot, "releases", fixture.Version, "skills", "technical-solution-design", skillID, "SKILL.md")
