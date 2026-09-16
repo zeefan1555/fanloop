@@ -18,8 +18,8 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；需求确认、研发实现、独立 Sub-agent 验收、唯一 PR 合并与本地 CLI 更新顺序推进。
 
 生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
-Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建拒绝缺失同名 Skill
-组、未知 Skill 组和跨 Workflow SkillBinding。
+Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建和 Doctor 拒绝 live
+配置中缺失同名 Skill 组、未知 Skill 组和跨 Workflow SkillBinding。
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `technical-solution` 对应 `technical-solution-design`，`fanloop-maintenance` 对应
@@ -92,14 +92,18 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 
 ## 本地构建与验证
 
-`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、统一入口、
-两套 Workflow、它们引用的 Skills 和范文的本地目录；标准输出是构建目录的绝对路径。显式输出
-目录必须尚不存在，默认在 `dist/` 下新建唯一 `local-*` 目录。
+`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、统一入口和
+Workflow 的本地目录；标准输出是构建目录的绝对路径。`skills/` 与 `exemplars/` 不进入 Release，
+也不参与 CLI 的 dirty 版本摘要。显式输出目录必须尚不存在，默认在 `dist/` 下新建唯一
+`local-*` 目录。
 
 Release Manifest schema 3 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、组件路径及
-Skill/Workflow SHA-256；没有平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后复用
-目录安装，验证和 Doctor 成功才切换 `~/.fanloop/current`。更新仍从选定源码重新构建安装，
-已有 Requirement 的绑定内容及固定控制器不随 `current` 隐式改变。
+统一入口/Workflow SHA-256；没有平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后复用
+目录安装，验证和 Doctor 成功才切换 `~/.fanloop/current`，并原子维护
+`~/.fanloop/config/current -> <源码仓库>`。Status 每次从该 live 配置根解析原子 Skill 的绝对路径，
+因此 Skill 和范文随源码拉取即时更新，不改变 CLI 版本。Workflow、入口与二进制仍按 Release 固定；
+已有 Requirement 的 Workflow digest 和固定控制器语义不变。完整决策见
+[ADR-0099](./adr/0099-load-skills-from-live-configuration.md)。
 
 GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发布；构建不依赖 Node.js、GoReleaser
 或 tar/xz。完整决定见 [ADR-0095](./adr/0095-local-source-builds.md)。

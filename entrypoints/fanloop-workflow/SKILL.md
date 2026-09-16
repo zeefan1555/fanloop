@@ -38,7 +38,7 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
 
 1. 使用启动阶段或上一次响应后读取的最新 `flow status`；仅按启动协议初始化新流程。
 2. 只使用最新 `data.state.current`：读取扁平 `context`、`prompt`、`conditions`、`available_routes` 和已有 `outputs`。
-3. 完整执行 `current.prompt`。每个结构化 Skill 都以 `path` 给出与当前运行 Release 匹配的绝对 `SKILL.md`；使用前必须完整读取该文件，不得按 `id` 去全局 Skills Root 猜测或搜索。依次使用 `optional=false` 的 Skills；`optional=true` 只在对应 Prompt 的条件成立时使用。`path` 缺失或不可读时停止执行并运行 `doctor`，不得 fallback 到其他同名 Skill。
+3. 完整执行 `current.prompt`。每个结构化 Skill 都以 `path` 给出 live 配置仓库中的绝对 `SKILL.md`；每次 Status 后都重新读取，不缓存旧内容，不得按 `id` 去全局 Skills Root 猜测或搜索。依次使用 `optional=false` 的 Skills；`optional=true` 只在对应 Prompt 的条件成立时使用。`path` 缺失或不可读时停止执行并运行 `doctor`，不得 fallback 到 Release 副本或其他同名 Skill。
 4. 工作尚未形成退出结论时上报：
 
    `flow report progress --step-id <当前 Step ID> --status <in_progress|fixing|blocked> --summary <摘要> [--evidence '<JSON>']`

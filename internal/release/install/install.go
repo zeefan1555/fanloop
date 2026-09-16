@@ -13,12 +13,15 @@ import (
 	"github.com/zeefan1555/fanloop/internal/doctor"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/skillconfig"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 var skillNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 type Request struct {
 	Source         string
+	ConfigSource   string
 	DataRoot       string
 	SkillRoots     release.SkillRoots
 	ReplaceInvalid bool
@@ -34,7 +37,7 @@ type Result struct {
 
 func Run(request Request) (Result, error) {
 	for name, path := range map[string]string{
-		"source": request.Source, "data root": request.DataRoot,
+		"source": request.Source, "configuration source": request.ConfigSource, "data root": request.DataRoot,
 		"Codex Skills root": request.SkillRoots.Codex, "Agent Skills root": request.SkillRoots.Agent,
 		"Trae Skills root": request.SkillRoots.Trae, "Claude Skills root": request.SkillRoots.Claude,
 	} {
@@ -47,7 +50,20 @@ func Run(request Request) (Result, error) {
 		return Result{}, fmt.Errorf("release manifest: %w", err)
 	}
 	sourceBinary := filepath.Join(request.Source, "bin", "fanloop")
-	if result := (doctor.Runtime{ReleaseRoot: request.Source, BinaryPath: sourceBinary}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
+	configSource, err := filepath.EvalSymlinks(request.ConfigSource)
+	if err != nil {
+		return Result{}, fmt.Errorf("configuration source: %w", err)
+	}
+	request.ConfigSource = configSource
+	definitions, err := workflow.List()
+	if err != nil {
+		return Result{}, fmt.Errorf("embedded Workflows: %w", err)
+	}
+	configuredSkills, err := skillconfig.Validate(request.ConfigSource, definitions)
+	if err != nil {
+		return Result{}, fmt.Errorf("Skill configuration: %w", err)
+	}
+	if result := (doctor.Runtime{ReleaseRoot: request.Source, BinaryPath: sourceBinary, ConfigRoot: request.ConfigSource}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 		return Result{}, fmt.Errorf("Doctor rejected staged release %s", manifest.ReleaseVersion)
 	}
 
@@ -61,6 +77,14 @@ func Run(request Request) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	configToCreate, configExternal, err := preflightManagedLink(linkPlan{
+		path: skillconfig.InstalledRoot(request.DataRoot), target: request.ConfigSource,
+	})
+	if err != nil {
+		return Result{}, err
+	}
+	linksToCreate = append(linksToCreate, configToCreate...)
+	externalLinks = append(externalLinks, configExternal...)
 	obsoleteLinks, err := preflightObsoleteSkillLinks(request)
 	if err != nil {
 		return Result{}, err
@@ -73,7 +97,7 @@ func Run(request Request) (Result, error) {
 		}
 		existing, loadErr := release.Load(target)
 		healthy := loadErr == nil && reflect.DeepEqual(existing, manifest) &&
-			(doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop")}).Run("").Status != opsidl.DoctorStatus_unhealthy
+			(doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop"), ConfigRoot: request.ConfigSource}).Run("").Status != opsidl.DoctorStatus_unhealthy
 		if !healthy {
 			if !request.ReplaceInvalid {
 				return Result{}, fmt.Errorf("refusing to replace immutable release %s", manifest.ReleaseVersion)
@@ -99,7 +123,7 @@ func Run(request Request) (Result, error) {
 		if err := copyTree(request.Source, temporary); err != nil {
 			return Result{}, err
 		}
-		if result := (doctor.Runtime{ReleaseRoot: temporary, BinaryPath: filepath.Join(temporary, "bin", "fanloop")}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
+		if result := (doctor.Runtime{ReleaseRoot: temporary, BinaryPath: filepath.Join(temporary, "bin", "fanloop"), ConfigRoot: request.ConfigSource}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 			return Result{}, fmt.Errorf("Doctor rejected copied release %s", manifest.ReleaseVersion)
 		}
 		if replaceExisting {
@@ -157,8 +181,8 @@ func Run(request Request) (Result, error) {
 		_ = os.RemoveAll(backup)
 	}
 
-	skills := make([]string, len(manifest.Skills))
-	for index, skill := range manifest.Skills {
+	skills := make([]string, len(configuredSkills))
+	for index, skill := range configuredSkills {
 		skills[index] = skill.Name
 	}
 	return Result{
@@ -188,27 +212,35 @@ func preflightSkillLinks(request Request, manifest release.Manifest) ([]linkPlan
 			path:   filepath.Join(root, skill.Name),
 			target: filepath.Join(request.DataRoot, "current", filepath.FromSlash(skill.Path)),
 		}
-		info, err := os.Lstat(plan.path)
-		if os.IsNotExist(err) {
-			toCreate = append(toCreate, plan)
-			continue
-		}
+		create, replace, err := preflightManagedLink(plan)
 		if err != nil {
 			return nil, nil, err
 		}
-		if info.Mode()&os.ModeSymlink == 0 {
-			return nil, nil, fmt.Errorf("refusing to replace non-Fanloop path %s", plan.path)
-		}
-		target, err := os.Readlink(plan.path)
-		if err != nil {
-			return nil, nil, err
-		}
-		if filepath.Clean(target) != filepath.Clean(plan.target) {
-			toCreate = append(toCreate, plan)
-			external = append(external, linkPlan{path: plan.path, target: target})
-		}
+		toCreate = append(toCreate, create...)
+		external = append(external, replace...)
 	}
 	return toCreate, external, nil
+}
+
+func preflightManagedLink(plan linkPlan) ([]linkPlan, []linkPlan, error) {
+	info, err := os.Lstat(plan.path)
+	if os.IsNotExist(err) {
+		return []linkPlan{plan}, nil, nil
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		return nil, nil, fmt.Errorf("refusing to replace non-Fanloop path %s", plan.path)
+	}
+	target, err := os.Readlink(plan.path)
+	if err != nil {
+		return nil, nil, err
+	}
+	if filepath.Clean(target) == filepath.Clean(plan.target) {
+		return nil, nil, nil
+	}
+	return []linkPlan{plan}, []linkPlan{{path: plan.path, target: target}}, nil
 }
 
 func preflightObsoleteSkillLinks(request Request) ([]linkPlan, error) {

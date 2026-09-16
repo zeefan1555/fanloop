@@ -47,6 +47,20 @@ func TestLocalBuildGuardAllowsRepositoryOutputWithLiteralPath(t *testing.T) {
 	}
 }
 
+func TestLocalBuildGuardDoesNotVersionLiveSkillChanges(t *testing.T) {
+	repository, environment := localBuildGuardRepository(t)
+	skill := filepath.Join(repository, "skills", "example", "SKILL.md")
+	if err := os.WriteFile(skill, []byte("changed live configuration\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(filepath.Join(repository, "scripts", "build-local.sh"), filepath.Join(t.TempDir(), "build"))
+	command.Env = environment
+	output, err := command.CombinedOutput()
+	if err != nil || !strings.Contains(string(output), "Building 1.2.3 from") || strings.Contains(string(output), "1.2.3-dev.") {
+		t.Fatalf("Skill-only change affected the CLI version: %v\n%s", err, output)
+	}
+}
+
 func TestLocalBuildGuardRejectsOutputInsideCopiedOrGitTrees(t *testing.T) {
 	for _, parent := range []string{"skills", "entrypoints", "workflows", ".git", "skills-link"} {
 		t.Run(parent, func(t *testing.T) {
