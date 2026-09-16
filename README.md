@@ -74,10 +74,12 @@ Agent 的统一入口是 `fanloop-workflow` Skill。它按以下闭环推进：
 flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow status
 ```
 
-`technical-solution-design` 的十三个 Step 按问题定义、方案设计和方案成文三阶段推进，各步产物写在 Requirement Root：
+`technical-solution-design` 的十六个 Step 按业务问题、技术判断和结果与规划三阶段推进。文章第 0 至
+第 10 章各有一个独立 Agent Step 和 Markdown 产物，另保留三个 Human Gate、文档组装与独立审校。
+主要产物写在 Requirement Root：
 
-- `.technical-solution/problem.md`
-- `.technical-solution/proposal.md`
+- `.technical-solution/sections/00-summary.md`
+- `.technical-solution/sections/01-business-background.md` 至 `10-retrospective-and-roadmap.md`
 - `technical-solution.md`
 - `.technical-solution/architecture.mmd`
 - `.technical-solution/review.md`

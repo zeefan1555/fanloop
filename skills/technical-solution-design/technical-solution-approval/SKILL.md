@@ -1,51 +1,36 @@
 ---
 name: technical-solution-approval
-description: 发布完整飞书技术方案，等待人工终审并把反馈精确分类到九个最早受影响层。用于 technical-solution-design 的方案终审 Step；不得代替人批准或直接修改方案。
+description: 发布完整飞书技术文档，等待人工终审并把反馈精确分类到最早受影响章。用于 technical-solution-design 的文档终审 Step；不得代替人批准或直接修改文档。
 ---
 
-# 终审技术方案
+# 终审技术文档
 
 ## 产物列表
 
 | 逻辑产物 | 承载与完整性要求 |
 |---|---|
-| 最终发布文档 | 稳定飞书文档 `<项目>｜技术方案`；与当前通过审校的 `technical-solution.md`、架构图、明确引用的辅助图及必要附录一致，发布后回读 |
-| 人的审核结论与反馈 | 人在本次终审中的明确回复；批准或修改意见按既有 Condition 上报，完整原文与影响分析保存在 Evidence；等待时没有终审结论 |
+| 最终发布文档 | 稳定飞书文档 `<项目>｜技术文档`；与已通过审校的本地正文和图一致 |
+| 人的审核结论与反馈 | 人的本轮明确回复；完整原文与影响分析保存在 Evidence |
 
-Panorama 是既有审核展示事实。最终方案应推导完整、可以实施和验证；发布和 Agent 审校均不能代替人的终审。
+读取 `technical-solution.md`、主架构图、正文引用的辅助图和最新
+`.technical-solution/review.md`。先确认独立审校已通过，正文恰好包含第 0 至第 10 章。
 
-## 执行
+使用当前宿主的 `lark-doc` 能力按稳定标题 `<项目>｜技术文档` 精确查找：唯一命中更新、零命中
+创建、多命中阻塞。发布后用返回 URL 回读，确认十一章顺序、摘要行数、图文和关键表格完整；允许 `###`
+按真实内容组织，禁止 `####`、手工 `1.1` 和附录章节。发布和 Agent 审校均不能代替人的终审。
 
-读取 `technical-solution.md`、`.technical-solution/architecture.mmd` 和最新
-`.technical-solution/review.md`。先确认审校已通过，正文保留九个规定语义章节且图文一致。
+向人展示已验证 URL、业务价值、核心问题、方案、关键取舍、结果、贡献边界、复用边界、规划、
+审校结论和最新 Panorama，再等待本次进入该 Step 后的全新明确回复。
 
-`<项目>` 取最新 `flow status` 中的 Requirement 标题。使用当前宿主的 `lark-doc` 能力按稳定标题 `<项目>｜技术方案` 精确查找：唯一命中更新、零命中创建、
-多命中阻塞；创建结果不确定时先重新查找。发布 `technical-solution.md` 后使用返回 URL 回读，确认
-正文非空，九个 `##` 按序；允许 `###` 按真实内容组织，但禁止 `####` 和手工 `1.1`，所有 `###`
-均归属当前语义章节，主架构图、正文引用的辅助图与关键表格存在。失败时报告 blocked，不返回成功
-Condition。
+修改意见按最早受影响章分类为：`background_changed`、`goals_and_problems_changed`、
+`business_constraints_changed`、`research_changed`、`overall_solution_changed`、
+`key_modules_changed`、`technical_decisions_changed`、`delivery_changed`、`results_changed`、
+`retrospective_changed`、`summary_changed`；只涉及最终标题、顺序或图文呈现时使用
+`presentation_changed`。
 
-向人展示已验证 URL、方案结论、关键取舍、收益、落地风险、审校结论和最新 Panorama，然后等待
-本次进入该 Step 后的全新明确回复。修改意见按最早受影响层分类：
+- 明确批准：同时上报 `technical_solution_document_published`、`panorama_card_published` 与
+  `technical_solution_approved`，流程结束；
+- 明确修改：同时上报同一文档 URL、Panorama 与一项 feedback Condition；
+- 含糊、沉默或继续讨论：继续等待。
 
-| 层级 | Condition | 回流 Step |
-|---|---|---|
-| 需求背景 | `background_changed` | `frame_requirement_background` |
-| 核心问题 | `problem_changed` | `analyze_core_problem` |
-| 设计目标 | `objectives_changed` | `define_design_objectives` |
-| 方案调研 | `research_changed` | `research_solution_options` |
-| 总体方案 | `overall_solution_changed` | `design_overall_solution` |
-| 难点解法 | `key_solutions_changed` | `design_key_solutions` |
-| 方案收益 | `benefits_changed` | `evaluate_solution_benefits` |
-| 落地规划 | `delivery_changed` | `plan_solution_delivery` |
-| 仅排版、措辞、图文呈现 | `presentation_changed` | `write_technical_solution` |
-
-回流前向人展示反馈原文、最早受影响层、保留内容、失效产物和回流 Step。多层变化只选最靠上的
-一层；沉默、“看过”或继续讨论不算批准。
-
-- 明确批准：同时上报 `technical_solution_document_published=<已回读 URL>`、
-  `panorama_card_published` 与 `technical_solution_approved`，流程结束；
-- 明确修改：同时上报同一文档 URL、`panorama_card_published` 与一项 feedback Condition；
-- 尚需讨论：继续等待。
-
-Evidence 保存人的完整原始回复、飞书 URL、正式方案、架构图、审校报告和影响分析。
+Evidence 保存完整原始回复、飞书 URL、正式文档、架构图、审校报告、保留内容、失效产物和回流 Step。

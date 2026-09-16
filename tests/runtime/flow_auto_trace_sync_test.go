@@ -190,18 +190,18 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	}
 	first := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "started")
 	assertSuccess(t, first, "flow.report.progress")
-	assertRegistryFields(t, registryFieldsPath, "In Progress", "问题定义 / 问题定义 / 需求背景")
+	assertRegistryFields(t, registryFieldsPath, "In Progress", "业务问题 / 业务问题 / 业务背景")
 
 	second := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_requirement_background", "--status", "blocked", "--summary", "waiting")
 	assertSuccess(t, second, "flow.report.progress")
-	assertRegistryFields(t, registryFieldsPath, "Blocked", "问题定义 / 问题定义 / 需求背景")
+	assertRegistryFields(t, registryFieldsPath, "Blocked", "业务问题 / 业务问题 / 业务背景")
 
 	third := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "frame_requirement_background",
-		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-background.md"`),
-		"--next-step-id", "analyze_core_problem", "--summary", "background defined")
+		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),
+		"--next-step-id", "define_goals_and_problems", "--summary", "background defined")
 	assertSuccess(t, third, "flow.report.result")
-	assertRegistryFields(t, registryFieldsPath, "In Progress", "问题定义 / 问题定义 / 核心问题")
+	assertRegistryFields(t, registryFieldsPath, "In Progress", "业务问题 / 业务问题 / 目标与问题定义")
 
 	log := string(readFile(t, logPath))
 	if got := strings.Count(log, "docs +update"); got != 3 {
@@ -222,7 +222,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 		t.Fatalf("automatic sync must use only the lark-cli bot identity:\n%s", log)
 	}
 	traceContent := string(readFile(t, traceContentPath))
-	for _, want := range []string{"# Workflow Trace", "问题定义/问题定义/需求背景 → 问题定义/问题定义/核心问题", "background_section_path"} {
+	for _, want := range []string{"# Workflow Trace", "业务问题/业务问题/业务背景 → 业务问题/业务问题/目标与问题定义", "background_section_path"} {
 		if !strings.Contains(traceContent, want) {
 			t.Fatalf("auto-synced Trace content does not contain %q:\n%s", want, traceContent)
 		}

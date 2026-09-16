@@ -4,16 +4,16 @@ flow:
   frame_requirement_background:
     - prompt_ref: {file: prompt.yaml, prompt_id: frame_requirement_background_flow}
       when: {any_of: [[background_defined]]}
-      next_step_id: analyze_core_problem
+      next_step_id: define_goals_and_problems
 
-  analyze_core_problem:
-    - prompt_ref: {file: prompt.yaml, prompt_id: analyze_core_problem_flow}
-      when: {any_of: [[core_problem_defined]]}
-      next_step_id: define_design_objectives
+  define_goals_and_problems:
+    - prompt_ref: {file: prompt.yaml, prompt_id: define_goals_and_problems_flow}
+      when: {any_of: [[goals_and_problems_defined]]}
+      next_step_id: define_business_constraints
 
-  define_design_objectives:
-    - prompt_ref: {file: prompt.yaml, prompt_id: define_design_objectives_flow}
-      when: {any_of: [[design_objectives_defined]]}
+  define_business_constraints:
+    - prompt_ref: {file: prompt.yaml, prompt_id: define_business_constraints_flow}
+      when: {any_of: [[business_constraints_defined]]}
       next_step_id: confirm_technical_problem
 
   confirm_technical_problem:
@@ -33,22 +33,37 @@ flow:
 
   design_key_solutions:
     - prompt_ref: {file: prompt.yaml, prompt_id: design_key_solutions_flow}
-      when: {any_of: [[key_solutions_designed]]}
+      when: {any_of: [[key_modules_designed]]}
+      next_step_id: record_technical_decisions
+
+  record_technical_decisions:
+    - prompt_ref: {file: prompt.yaml, prompt_id: record_technical_decisions_flow}
+      when: {any_of: [[technical_decisions_recorded]]}
       next_step_id: confirm_solution_direction
 
   confirm_solution_direction:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_solution_direction_flow}
       when: {any_of: [[solution_document_published, panorama_card_published, solution_direction_approved]]}
-      next_step_id: evaluate_solution_benefits
-
-  evaluate_solution_benefits:
-    - prompt_ref: {file: prompt.yaml, prompt_id: evaluate_solution_benefits_flow}
-      when: {any_of: [[solution_benefits_defined]]}
       next_step_id: plan_solution_delivery
 
   plan_solution_delivery:
     - prompt_ref: {file: prompt.yaml, prompt_id: plan_solution_delivery_flow}
       when: {any_of: [[delivery_plan_defined]]}
+      next_step_id: evaluate_solution_benefits
+
+  evaluate_solution_benefits:
+    - prompt_ref: {file: prompt.yaml, prompt_id: evaluate_solution_benefits_flow}
+      when: {any_of: [[results_and_benefits_defined]]}
+      next_step_id: write_retrospective_and_roadmap
+
+  write_retrospective_and_roadmap:
+    - prompt_ref: {file: prompt.yaml, prompt_id: write_retrospective_and_roadmap_flow}
+      when: {any_of: [[retrospective_and_roadmap_defined]]}
+      next_step_id: write_summary
+
+  write_summary:
+    - prompt_ref: {file: prompt.yaml, prompt_id: write_summary_flow}
+      when: {any_of: [[summary_defined]]}
       next_step_id: write_technical_solution
 
   write_technical_solution:

@@ -3,35 +3,38 @@ id: technical-solution-design
 
 stages:
   - id: problem
-    name: 问题定义
+    name: 业务问题
     jobs:
       - id: problem
-        name: 问题定义
+        name: 业务问题
         steps:
-          - {id: frame_requirement_background, name: 需求背景, executor: agent}
-          - {id: analyze_core_problem, name: 核心问题, executor: agent}
-          - {id: define_design_objectives, name: 设计目标, executor: agent}
-          - {id: confirm_technical_problem, name: 问题审核, executor: human}
+          - {id: frame_requirement_background, name: 业务背景, executor: agent}
+          - {id: define_goals_and_problems, name: 目标与问题定义, executor: agent}
+          - {id: define_business_constraints, name: 业务特点与技术约束, executor: agent}
+          - {id: confirm_technical_problem, name: 问题与约束审核, executor: human}
 
   - id: solution
-    name: 方案设计
+    name: 技术判断
     jobs:
       - id: solution
-        name: 方案设计
+        name: 技术判断
         steps:
-          - {id: research_solution_options, name: 方案调研, executor: agent}
-          - {id: design_overall_solution, name: 总体方案, executor: agent}
-          - {id: design_key_solutions, name: 难点解法, executor: agent}
-          - {id: confirm_solution_direction, name: 方案审核, executor: human}
+          - {id: research_solution_options, name: 业界/业内方案调研, executor: agent}
+          - {id: design_overall_solution, name: 总体方案设计, executor: agent}
+          - {id: design_key_solutions, name: 关键模块设计, executor: agent}
+          - {id: record_technical_decisions, name: 核心技术决策与取舍, executor: agent}
+          - {id: confirm_solution_direction, name: 方案与决策审核, executor: human}
 
   - id: document
-    name: 方案成文
+    name: 结果与规划
     jobs:
       - id: document
-        name: 方案成文
+        name: 结果与规划
         steps:
-          - {id: evaluate_solution_benefits, name: 方案收益, executor: agent}
-          - {id: plan_solution_delivery, name: 落地规划, executor: agent}
-          - {id: write_technical_solution, name: 方案成文, executor: agent}
-          - {id: review_technical_solution, name: 方案审校, executor: agent}
-          - {id: confirm_technical_solution, name: 方案终审, executor: human}
+          - {id: plan_solution_delivery, name: 落地路径与风险控制, executor: agent}
+          - {id: evaluate_solution_benefits, name: 结果收益, executor: agent}
+          - {id: write_retrospective_and_roadmap, name: 复盘与后续规划, executor: agent}
+          - {id: write_summary, name: 摘要, executor: agent}
+          - {id: write_technical_solution, name: 文档组装, executor: agent}
+          - {id: review_technical_solution, name: 文档审校, executor: agent}
+          - {id: confirm_technical_solution, name: 文档终审, executor: human}

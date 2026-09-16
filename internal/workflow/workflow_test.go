@@ -36,7 +36,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(loaded.Workflow.OrderedStepIDs()) != 13 || len(loaded.Workflow.Conditions) != 28 {
+	if len(loaded.Workflow.OrderedStepIDs()) != 16 || len(loaded.Workflow.Conditions) != 34 {
 		t.Fatalf("real Bundle shape = steps:%d conditions:%d", len(loaded.Workflow.OrderedStepIDs()), len(loaded.Workflow.Conditions))
 	}
 	pinned, err := LoadRef(loaded.Ref)
@@ -53,7 +53,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	if len(problemPrompt.Skills) != 1 || problemPrompt.Skills[0].ID != "technical-background-framing" || problemPrompt.Skills[0].Optional == nil || *problemPrompt.Skills[0].Optional {
 		t.Fatalf("problem Prompt Skills = %#v", problemPrompt.Skills)
 	}
-	if routes := loaded.Workflow.Loops["confirm_technical_solution"]; len(routes) != 9 {
+	if routes := loaded.Workflow.Loops["confirm_technical_solution"]; len(routes) != 12 {
 		t.Fatalf("confirm_technical_solution Loop Routes = %#v", routes)
 	}
 	if _, err := Load("fixture"); !errors.Is(err, fs.ErrNotExist) {
