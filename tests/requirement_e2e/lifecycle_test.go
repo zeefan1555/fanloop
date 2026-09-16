@@ -41,6 +41,9 @@ type routeCurrent struct {
 		StepName  string `json:"step_name"`
 		Executor  string `json:"executor"`
 	} `json:"context"`
+	Execution struct {
+		Status string `json:"status"`
+	} `json:"execution"`
 	Prompt struct {
 		Content string `json:"content"`
 	} `json:"prompt"`
@@ -73,9 +76,10 @@ type routeWhen struct {
 }
 
 type routeSelection struct {
-	NextStepID *string `json:"next_step_id,omitempty"`
-	BackStepID *string `json:"back_step_id,omitempty"`
-	Terminal   *bool   `json:"terminal,omitempty"`
+	NextStepID       *string `json:"next_step_id,omitempty"`
+	BackStepID       *string `json:"back_step_id,omitempty"`
+	Terminal         *bool   `json:"terminal,omitempty"`
+	StartCurrentStep *bool   `json:"start_current_step,omitempty"`
 }
 
 type routeCase struct {
@@ -254,6 +258,10 @@ func runLinearRouteDemo(t *testing.T, binary string, demoInput *bufio.Scanner) {
 		if status.State.Current == nil {
 			t.Fatal("running Status omitted current Step")
 		}
+		if status.State.Current.Execution.Status == "awaiting_confirmation" {
+			startLinearStep(t, binary, root, status.State.Current)
+			status = readRouteStatus(t, binary, root)
+		}
 		current := status.State.Current
 		stepID := current.Context.StepID
 		_, seen := stepOrder[stepID]
@@ -318,6 +326,31 @@ func runLinearRouteDemo(t *testing.T, binary string, demoInput *bufio.Scanner) {
 	verifyFinalWorkflowDemo(t, binary, paths, reports, len(progressed))
 	writeWorkflowDemoReport(t, paths, len(stepOrder), len(flowAlternatives), len(loopAlternatives), reports)
 	fmt.Printf("\n=== 完整 Requirement 生命周期完成 ===\nSteps: %d/%d\nFlow alternatives: %d/%d\nLifecycle Loop alternatives: %d/%d\nReports: %d\nStatus: completed\nRequirement Root: %s\nReport: %s\n", len(stepOrder), len(linearLoopConditions), len(flowAlternatives), len(linearLoopConditions), len(loopAlternatives), expectedLoops, reports, root, filepath.Join(paths.RunRoot, "E2E_REPORT.md"))
+}
+
+func startLinearStep(t *testing.T, binary, root string, current *routeCurrent) {
+	t.Helper()
+	confirmed := true
+	condition := agentConditionResult{ConditionID: "step_scope_confirmed"}
+	condition.Output.Type = "enum_value"
+	condition.Output.Value = "confirmed"
+	request := agentResultRequest{
+		StepID:           current.Context.StepID,
+		ConditionResults: []agentConditionResult{condition},
+		Summary:          "e2e-mock step confirmed: " + current.Context.StepID,
+		Route:            routeSelection{StartCurrentStep: &confirmed},
+	}
+	request.Evidence = append(request.Evidence, struct {
+		Source  string `json:"source"`
+		Content string `json:"content"`
+		Ref     string `json:"ref"`
+	}{Source: "human", Content: "confirmed", Ref: "step-start:" + current.Context.StepID})
+	raw := routeCLISuccess(t, binary, mustPrettyJSON(t, request), "flow", "report", "result", "--root", root, "--input", "-")
+	var response routeEnvelope[routeResultData]
+	decodeRouteJSON(t, raw, &response)
+	if !response.OK || response.Data.Effect != "started" || response.Data.State.Current == nil || response.Data.State.Current.Execution.Status != "in_progress" {
+		t.Fatalf("Step start failed for %s: %s", current.Context.StepID, raw)
+	}
 }
 
 func newWorkflowDemoPaths(t *testing.T) workflowDemoPaths {
