@@ -85,7 +85,10 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"--config-source", "FANLOOP_CONFIG_SOURCE", "$HOME/.fanloop",
 		},
 		"entrypoints/fanloop-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "common_skills", "common_conditions", "execution.status=awaiting_confirmation", "不执行业务 `current.prompt`", "--start-current-step", "--jump-step-id <ID>", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+		},
+		"entrypoints/fanloop-workflow/agents/openai.yaml": {
+			"execution.status", "common_skills", "common_conditions", "start/jump Route", "开工后再执行业务 Prompt",
 		},
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
