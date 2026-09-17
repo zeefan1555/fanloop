@@ -82,16 +82,15 @@ func TestMaintainerLifecycleMergesAndUpdatesLocal(t *testing.T) {
 		conditionResult("reviewed_head_frozen", "string", "\""+reviewedHead+"\""),
 		conditionResult("code_review_document_published", "url", "\"https://example.com/review\""),
 		conditionResult("panorama_presented", "path", "\".fanloop/card/review.md\""))
-	advance("execute_agent_acceptance", "confirm_human_acceptance",
+	advance("execute_agent_acceptance", "confirm_main_agent_acceptance",
 		conditionResult("agent_acceptance_passed", "enum_value", "\"passed\""),
 		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
 		conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""),
 		conditionResult("panorama_presented", "path", "\".fanloop/card/acceptance.md\""))
-	advance("confirm_human_acceptance", "merge_and_update_local",
-		conditionResult("human_acceptance_passed", "enum_value", "\"passed\""),
-		conditionResult("human_acceptance_result_recorded", "string", "\"decision-acceptance\""),
-		conditionResult("human_review_written", "path", "\"human-review.md\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/human-acceptance.md\""))
+	advance("confirm_main_agent_acceptance", "merge_and_update_local",
+		conditionResult("main_agent_acceptance_passed", "enum_value", "\"passed\""),
+		conditionResult("main_agent_acceptance_recorded", "path", "\"main-agent-review.md\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/main-agent-acceptance.md\""))
 
 	mergeCommit := "3333333333333333333333333333333333333333"
 	completed := run(binary, "flow", "report", "result", "--root", root,

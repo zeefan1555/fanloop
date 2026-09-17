@@ -14,7 +14,7 @@ description: 在 fanloop-maintainer 任意运行中 Step 按 human 明确决定�
 5. `implement_code`
 6. `review_code`
 7. `execute_agent_acceptance`
-8. `confirm_human_acceptance`
+8. `confirm_main_agent_acceptance`
 9. `merge_and_update_local`
 
 目标严格晚于 source 时选 Flow，等于或早于 source 时选 Loop。目标含糊、未知、不唯一或未出现在 `available_routes` 时继续澄清，不写文件、不提交 Result。

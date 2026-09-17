@@ -4,7 +4,7 @@
   "commands": [
     {
       "exit_code": 0,
-      "stdout": "{\n  \"ok\": true,\n  \"data\": {\n    \"release_version\": \"dev\",\n    \"commit_sha\": \"unknown\",\n    \"state_schema\": {\n      \"read_versions\": [\n        13\n      ],\n      \"write_version\": 13\n    },\n    \"skills\": [],\n    \"workflows\": [\n      {\n        \"id\": \"fanloop-maintainer\",\n        \"digest\": \"sha256:b71ee44afde74207161f8366dd9d7701a2160eb42caec7d009ee53b63b28b667\"\n      },\n      {\n        \"id\": \"material-flashcards\",\n        \"digest\": \"sha256:14eaf31c1d7b06872dc67fc1a0d7498dbe201c335d8d333c2fea3f1c9aefd1c7\"\n      },\n      {\n        \"id\": \"technical-solution-design\",\n        \"digest\": \"sha256:c3aaf022e15c025e828b2d7716da799046c1bfae3dcaef9db1a237c63e606854\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"command\": \"version\"\n  },\n  \"_notice\": {}\n}\n",
+      "stdout": "{\n  \"ok\": true,\n  \"data\": {\n    \"release_version\": \"dev\",\n    \"commit_sha\": \"unknown\",\n    \"state_schema\": {\n      \"read_versions\": [\n        13\n      ],\n      \"write_version\": 13\n    },\n    \"skills\": [],\n    \"workflows\": [\n      {\n        \"id\": \"fanloop-maintainer\",\n        \"digest\": \"sha256:1eab83846fbf0d40e1e67c92917fe292a7e1e4e45ba4b7114f6006006c5826bb\"\n      },\n      {\n        \"id\": \"material-flashcards\",\n        \"digest\": \"sha256:14eaf31c1d7b06872dc67fc1a0d7498dbe201c335d8d333c2fea3f1c9aefd1c7\"\n      },\n      {\n        \"id\": \"technical-solution-design\",\n        \"digest\": \"sha256:c3aaf022e15c025e828b2d7716da799046c1bfae3dcaef9db1a237c63e606854\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"command\": \"version\"\n  },\n  \"_notice\": {}\n}\n",
       "stderr": ""
     },
     {

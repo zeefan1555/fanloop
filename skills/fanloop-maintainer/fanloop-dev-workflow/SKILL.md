@@ -9,7 +9,7 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 
 尚未初始化 Requirement 时，先检查预期 Git diff。若全部变更位于 `skills/**` 或 `exemplars/**`，且不需要
 修改 Workflow YAML、CLI/Runtime、IDL、测试基础设施、构建、安装或发布逻辑，则这是纯 live Skill 配置
-变更：不创建、不初始化 `fanloop-maintainer`，直接完成最小修改和受影响的聚焦检查，再按普通 Git/PR
+变更：执行子 Agent不创建、不初始化 `fanloop-maintainer`，直接完成最小修改和受影响的聚焦检查，再按普通 Git/PR
 流程交付。任何非 live 配置文件进入预期 diff，或影响面无法确定时，都必须启动完整自迭代流程。已经
 初始化的 Requirement 不因后续范围缩小而废弃，继续按绑定 Workflow 推进。
 
@@ -23,17 +23,19 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 `$HOME/.fanloop/current` 或手改 State 绕过 `WORKFLOW_MISMATCH`。新 Requirement 的 `flow init` 使用全局 current。
 需要在全局 current 切换前保护已有 Requirement 时，使用本 Skill 的 `scripts/pin-controller-release.sh`。
 
-候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。human 验收后，最终 Step 自动合并
+候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。主 Agent 验收后，最终 Step 自动合并
 唯一 PR，把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交更新全局 current。
 
 ## 当前 Step
 
 1. 只使用最新 `data.state.current` 的 prompt、skills、conditions、available_routes 与 outputs。每个 Skill 按 Status 给出的绝对 `SKILL.md` 完整读取。
 2. 进入 Step 后立即按 `panorama_presented` 把 Panorama 作为第一条用户可见消息单独展示，不得先发进度前缀或人工问题。展示成功后同一轮继续；真正的人工问题只能随后发送，最终回复不重复 Panorama。未完成时上报 Progress；形成事实后从当前 Conditions 选完整 `when.any_of` 组合并显式选择 next/back/terminal。
-3. 需求澄清只接受真实 human 决定；方案确认是 Agent 自主评审；最终验收 `confirm_human_acceptance` 是 Human Step。Developer 不得自批或将沉默当成通过。
+3. 执行子 Agent持有 Requirement Root、Status 和 Route，并直接完成受管实现。需求批准、`confirm_main_agent_acceptance` 最终验收和 main 集成确认必须向主 Agent申请明确决定；执行子 Agent不得自批或将沉默当成通过。
 4. 任意运行中 Step 只在 human 明确指定唯一目标时使用 `fanloop-dev-human-step-jump`。跳转只改变位置，不伪造被跨过 Step 的完成事实。
-5. `review_code` 冻结 `review_base` / `reviewed_head`；Agent 验收使用一个无实现上下文的全新 Sub-agent 和隔离候选 CLI；人类验收后由 `merge_and_update_local` 创建或更新唯一 PR、等待 required checks、自动 squash merge，并更新源码 worktree 与全局 current。
-6. 主分支、source HEAD、工作树或报告身份漂移时按 YAML 回流；仅 `merge_and_update_local` 中的 `origin/main` 正常前进留在本 Step 合入并重跑短门禁。PR 已合并后的本地失败只重试同一 merge commit。
+5. `implement_code` 由当前执行子 Agent直接完成；主 Agent只监督，可通过 follow-up 要求修复、补证据或重跑验证，但不接管 Flow 或源码修改。
+6. `review_code` 冻结 `review_base` / `reviewed_head`；独立 Review 和 Agent 验收分别使用不继承实现上下文的全新 Sub-agent，由执行子 Agent派发、聚合并上报 Result。
+7. `confirm_main_agent_acceptance` 由执行子 Agent向主 Agent申请最终决定；通过后由 `merge_and_update_local` 创建或更新唯一 PR、等待 required checks、自动 squash merge，并更新源码 worktree 与全局 current。
+8. 主分支、source HEAD、工作树或报告身份漂移时按 YAML 回流；仅 `merge_and_update_local` 中的 `origin/main` 正常前进留在本 Step 合入并重跑短门禁，再向主 Agent申请集成确认。PR 已合并后的本地失败只重试同一 merge commit。
 
 ## 最终回复
 

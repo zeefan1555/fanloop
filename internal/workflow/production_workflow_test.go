@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -251,7 +252,7 @@ func TestProductionMaterialFlashcardsWorkflow(t *testing.T) {
 	}
 }
 
-func TestProductionMaintainerMatchesReviewedTreeloopTopology(t *testing.T) {
+func TestProductionMaintainerUsesMainAgentAcceptanceTopology(t *testing.T) {
 	loaded, err := Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
@@ -267,7 +268,7 @@ func TestProductionMaintainerMatchesReviewedTreeloopTopology(t *testing.T) {
 		{"implement_code", "代码实现与过程 CR", "implement", "implement", StepExecutorAgent},
 		{"review_code", "整体 Code Review", "implement", "implement", StepExecutorAgent},
 		{"execute_agent_acceptance", "Agent 端到端测试", "test", "test", StepExecutorAgent},
-		{"confirm_human_acceptance", "人类端到端测试", "test", "test", StepExecutorHuman},
+		{"confirm_main_agent_acceptance", "主 Agent 验收决策", "test", "test", StepExecutorAgent},
 		{"merge_and_update_local", "PR 合码与本地更新", "test", "test", StepExecutorAgent},
 	}
 	wantSteps := make([]string, 0, len(wants))
@@ -309,22 +310,23 @@ func TestProductionMaintainerMatchesReviewedTreeloopTopology(t *testing.T) {
 	assertWorkflowRouteAnyOf(t, loaded, "design_technical_solution", [][]string{{"spec_written", "tickets_written", "technical_solution_document_published", "panorama_presented"}, jump}, "confirm_technical_solution", false)
 	assertWorkflowRouteAnyOf(t, loaded, "confirm_technical_solution", [][]string{{"technical_solution_review_passed", "panorama_presented"}, jump}, "implement_code", false)
 	assertWorkflowRouteAnyOf(t, loaded, "implement_code", [][]string{{"implementation_completed", "implementation_report_written", "panorama_presented"}, jump}, "review_code", false)
-	assertWorkflowRouteAnyOf(t, loaded, "execute_agent_acceptance", [][]string{{"agent_acceptance_passed", "acceptance_report_written", "acceptance_document_published", "panorama_presented"}, jump}, "confirm_human_acceptance", false)
-	assertWorkflowRouteAnyOf(t, loaded, "confirm_human_acceptance", [][]string{{"human_acceptance_passed", "human_acceptance_result_recorded", "human_review_written", "panorama_presented"}, {"human_acceptance_skipped", "human_acceptance_result_recorded", "human_review_written", "panorama_presented"}, jump}, "merge_and_update_local", false)
+	assertWorkflowRouteAnyOf(t, loaded, "execute_agent_acceptance", [][]string{{"agent_acceptance_passed", "acceptance_report_written", "acceptance_document_published", "panorama_presented"}, jump}, "confirm_main_agent_acceptance", false)
+	assertWorkflowRouteAnyOf(t, loaded, "confirm_main_agent_acceptance", [][]string{{"main_agent_acceptance_passed", "main_agent_acceptance_recorded", "panorama_presented"}, jump}, "merge_and_update_local", false)
 	assertWorkflowRouteAnyOf(t, loaded, "merge_and_update_local", [][]string{
 		{"handoff_main_unchanged", "merge_request_published", "remote_checks_passed", "review_comment_synced", "code_merged", "source_repository_updated", "local_cli_updated", "delivery_record_written", "panorama_presented"},
-		{"handoff_main_integrated", "handoff_integration_review_passed", "handoff_integration_tests_passed", "handoff_integration_human_verified", "merge_request_published", "remote_checks_passed", "review_comment_synced", "code_merged", "source_repository_updated", "local_cli_updated", "delivery_record_written", "panorama_presented"},
+		{"handoff_main_integrated", "handoff_integration_review_passed", "handoff_integration_tests_passed", "handoff_integration_main_agent_verified", "merge_request_published", "remote_checks_passed", "review_comment_synced", "code_merged", "source_repository_updated", "local_cli_updated", "delivery_record_written", "panorama_presented"},
 	}, "", true)
 	assertWorkflowLoop(t, loaded, "confirm_technical_solution", []string{"technical_solution_review_failed", "panorama_presented"}, "design_technical_solution")
 	assertWorkflowLoop(t, loaded, "review_code", []string{"code_review_blocked", "review_report_written", "code_review_document_published", "panorama_presented"}, "implement_code")
 	assertWorkflowLoop(t, loaded, "execute_agent_acceptance", []string{"agent_acceptance_failed", "requirements_changed", "acceptance_report_written", "acceptance_document_published", "panorama_presented"}, "clarify_requirements")
-	assertWorkflowLoop(t, loaded, "confirm_human_acceptance", []string{"requirements_changed", "human_acceptance_result_recorded", "human_review_written", "panorama_presented"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "confirm_main_agent_acceptance", []string{"requirements_changed", "main_agent_acceptance_recorded", "panorama_presented"}, "clarify_requirements")
+	assertWorkflowLoop(t, loaded, "confirm_main_agent_acceptance", []string{"implementation_changes_requested", "main_agent_acceptance_recorded", "panorama_presented"}, "implement_code")
 	assertWorkflowLoop(t, loaded, "merge_and_update_local", []string{"merge_request_published", "remote_checks_failed", "panorama_presented"}, "implement_code")
 
 	for _, removed := range []string{
-		"confirm_requirements", "merge_code", "update_local_cli", "handoff_merge_request", "maintain_verification_skill",
+		"confirm_requirements", "merge_code", "update_local_cli", "handoff_merge_request", "confirm_human_acceptance", "maintain_verification_skill",
 		"maintain_feature_map", "execute_test_cases", "coordinate_eval", "execute_eval_candidates",
-		"judge_eval", "publish_candidate", "verify_ci_gates",
+		"judge_eval", "publish_candidate", "verify_ci_gates", "confirm_human_acceptance",
 	} {
 		if _, _, ok := loaded.Workflow.FindStep(removed); ok {
 			t.Fatalf("maintainer Workflow still contains removed Step %s", removed)
@@ -333,6 +335,8 @@ func TestProductionMaintainerMatchesReviewedTreeloopTopology(t *testing.T) {
 	for _, removed := range []string{
 		"agent_approved", "implementation_required", "implementation_not_required", "review_passed",
 		"review_failed", "candidate_head_frozen", "merge_request_handed_off", "handoff_record_written",
+		"human_acceptance_passed", "human_acceptance_skipped", "human_acceptance_result_recorded",
+		"human_review_written", "handoff_integration_human_verified",
 	} {
 		if _, ok := loaded.Workflow.Condition(removed); ok {
 			t.Fatalf("maintainer Workflow still contains removed Condition %s", removed)
@@ -356,11 +360,16 @@ func TestProductionMaintainerMatchesReviewedTreeloopTopology(t *testing.T) {
 			t.Fatalf("Condition %s Output = %#v", conditionID, condition.Output)
 		}
 	}
-	if got := len(loaded.Workflow.Conditions); got != 53 {
-		t.Fatalf("maintainer Conditions = %d, want 53", got)
+	if got := len(loaded.Workflow.Conditions); got != 51 {
+		t.Fatalf("maintainer Conditions = %d, want 51", got)
 	}
-	if flowRoutes != 38 || loopRoutes != 45 || len(loaded.Workflow.Prompts) != 58 {
-		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 38/45/58", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
+	if flowRoutes != 38 || loopRoutes != 45 || len(loaded.Workflow.Prompts) != 57 {
+		t.Fatalf("maintainer route/prompt counts = flow:%d loop:%d prompts:%d, want 38/45/57", flowRoutes, loopRoutes, len(loaded.Workflow.Prompts))
+	}
+	for promptID, prompt := range loaded.Workflow.Prompts {
+		if strings.Contains(prompt.Prompt, "./tests/run-e2e") {
+			t.Fatalf("maintainer Prompt %s still requires retired ./tests/run-e2e", promptID)
+		}
 	}
 }
 

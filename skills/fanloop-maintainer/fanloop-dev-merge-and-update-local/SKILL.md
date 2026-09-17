@@ -5,19 +5,20 @@ description: 在 fanloop-maintainer 最终 Step 合并唯一 PR，并把精确 m
 
 # Merge And Update Local
 
-只接受整体 Review、本地验证、Agent 验收和 human 验收覆盖的同一 `review_base` / `reviewed_head`。
+只接受整体 Review、本地验证、Agent 验收和主 Agent 验收覆盖的同一 `review_base` / `reviewed_head`。
 
 1. 读取可选的 `delivery-record.md`，再用 `gh pr list --head <branch> --base main --state all` 查找唯一
-   PR。若 PR 已 merged，要求远端 head 等于 `final_head`、merge commit 第一 parent 等于 `final_base`；
-   记录存在时必须与远端一致，记录缺失时从这些远端事实重建并回读。源码 worktree tracked-clean 且
-   `HEAD` 只能等于 `reviewed_head` 或该 merge commit；随后跳过候选和 PR 阶段，只重试未完成的源码/CLI
-   更新。其他情况执行下列正常路径。
+   PR。若 PR 已 merged，要求远端 head 等于 `final_head`、merge commit 恰好一个 parent 且等于
+   `final_base`、该提交可达 `origin/main`、final head 的 required checks 仍全部成功且 Review comment
+   receipt 可回读；记录存在时必须与远端一致，记录缺失时从这些远端事实重建并回读。源码 worktree
+   tracked-clean 且 `HEAD` 只能等于 `reviewed_head`、`final_head` 或该 merge commit；随后跳过候选和 PR
+   写操作，只重试未完成的源码/CLI 更新。其他情况执行下列正常路径。
 2. `git fetch origin`，要求源码 worktree tracked-clean、`HEAD == reviewed_head` 且 merge-base 等于
    `review_base`。`origin/main == review_base` 时保留 unchanged 事实；只有 main 前进时在本 Step
-   合入精确 SHA，按 Prompt 完成集成 Review、测试和 human 核验。
+   合入精确 SHA，按 Prompt 完成集成 Review、测试和主 Agent 核验。
 3. 用同一条 `gh pr list --head <branch> --base main --state all` 结果处理 PR。零命中才 push/create，唯一
    open PR 幂等更新，唯一 merged PR 回读并复用其 merge commit；多命中 blocked。PR 描述必须幂等包含
-   背景、问题、解法、影响、验证、`ADR impact`、human 结论和交付边界。回读 state、target、head SHA、
+   背景、问题、解法、影响、验证、`ADR impact`、主 Agent 结论和交付边界。回读 state、target、head SHA、
    base SHA、merge commit、描述和 merge-base。
 4. 回读 active main Ruleset 的 required checks；`test (ubuntu-latest)`、`test (macos-latest)`、`requirement-e2e`、
    `install-doctor`、`governance` 必须在 final head 全部成功。同步并回读已有 Review 评论。
@@ -28,7 +29,7 @@ description: 在 fanloop-maintainer 最终 Step 合并唯一 PR，并把精确 m
    ```
 
    禁止 `--admin`、直接 push main 或创建第二个 PR。只接受回读 `state=MERGED`、非空 merge commit、
-   merge commit 第一 parent 等于 `final_base`，且该提交可达最新 `origin/main`。立即把这些不可变事实
+   merge commit 恰好一个 parent 且等于 `final_base`，且该提交可达最新 `origin/main`。立即把这些不可变事实
    写入并回读 `delivery-record.md`，供失败重入使用。
 6. 在切换全局 current 前执行
    `../fanloop-dev-workflow/scripts/pin-controller-release.sh <ABSOLUTE_REQUIREMENT_ROOT>`，并回读固定

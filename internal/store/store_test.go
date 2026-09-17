@@ -182,7 +182,7 @@ func TestMaintainerTracePanoramaShowsThreeStageDelivery(t *testing.T) {
 	for _, want := range []string{
 		"TechDesign：**仓库范围确定（Ready）** → 需求澄清 → 方案设计 → 方案自主评审",
 		"Implement：代码实现与过程 CR → 整体 Code Review",
-		"Test：Agent 端到端测试 → 人类端到端测试 → PR 合码与本地更新",
+		"Test：Agent 端到端测试 → 主 Agent 验收决策 → PR 合码与本地更新",
 	} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)

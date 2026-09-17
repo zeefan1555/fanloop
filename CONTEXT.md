@@ -76,17 +76,17 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 是 TechDesign / Implement / Test 三阶段九步单线闭环。需求澄清保留真实 human 决定，
-方案确认由 Agent 自主评审。实现阶段运行聚焦测试、`run-unit`、`run-e2e` 和独立整体 CR；Review 核验后冻结 `review_base` / `reviewed_head`。
+`fanloop-maintainer` 是 TechDesign / Implement / Test 三阶段九步单线闭环。用户先与主 Agent 对齐目录、目标、
+范围和验收标准；主 Agent派生执行子 Agent并持续监督，执行子 Agent持有 Requirement Root、最新 Status、Route 与受管实现。需求批准由执行子 Agent向主 Agent申请，方案确认由执行子 Agent自主评审；实现阶段运行聚焦测试、`run-unit` 和独立整体 CR；Review 核验后冻结 `review_base` / `reviewed_head`。
 
 **Agent Acceptance / Delivery**
 冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current；恰好一个全新 Sub-agent 只使用隔离
 CLI、叶子 Help 和需求中 1 至 3 个公开场景做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户
-凭据。通过后进入 human 端到端验收；最后 `merge_and_update_local` 发布唯一 PR、回读 final pair 和 required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交原子更新全局 CLI。该流程不发布远端制品，也不触碰其他 checkout。
+凭据。通过后执行子 Agent在 `confirm_main_agent_acceptance` 请求主 Agent核验同一候选；最后 `merge_and_update_local` 在 main 前进时再次请求主 Agent确认集成，随后由执行子 Agent发布唯一 PR、回读 final pair 和 required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交原子更新全局 CLI。该流程不发布远端制品，也不触碰其他 checkout。
 
 **Maintainer Reports**
-需求、方案、Review、Agent 验收和 human 验收分别维护 `requirements.md`、`spec.md`、
-`review-report.md`、`acceptance-report.md` 和 `human-review.md`；最终交付另写 `delivery-record.md`。需求、方案、
+需求、方案、Review、Agent 验收和主 Agent 验收分别维护 `requirements.md`、`spec.md`、
+`review-report.md`、`acceptance-report.md` 和 `main-agent-review.md`；最终交付另写 `delivery-record.md`。需求、方案、
 Review 和 Agent 验收使用 Requirement 稳定标题的唯一飞书文档，并在上报 URL 前语义回读。
 Panorama 按 YAML Output description 展示 URL；候选变化使下游事实失效。
 

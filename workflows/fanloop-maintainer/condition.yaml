@@ -150,9 +150,9 @@ conditions:
   handoff_integration_tests_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: handoff_integration_tests_condition}
     output: {key: handoff_integration_tests_result, type: enum_value, values: [passed]}
-  handoff_integration_human_verified:
-    prompt_ref: {file: prompt.yaml, prompt_id: handoff_integration_human_condition}
-    output: {key: handoff_integration_human_receipt_id, type: string}
+  handoff_integration_main_agent_verified:
+    prompt_ref: {file: prompt.yaml, prompt_id: handoff_integration_main_agent_condition}
+    output: {key: handoff_integration_main_agent_receipt_id, type: string}
 
   agent_acceptance_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: agent_acceptance_condition}
@@ -169,20 +169,13 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: acceptance_document_condition}
     output: {key: acceptance_document_url, type: url, description: Agent 验收报告}
 
-  human_acceptance_passed:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_condition}
-    output: {key: human_acceptance_result, type: enum_value, values: [passed]}
+  main_agent_acceptance_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_condition}
+    output: {key: main_agent_acceptance_result, type: enum_value, values: [passed]}
     exclusive_group: maintainer_decision_outcome
-  human_acceptance_skipped:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_condition}
-    output: {key: human_acceptance_result, type: enum_value, values: [skipped]}
-    exclusive_group: maintainer_decision_outcome
-  human_acceptance_result_recorded:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_acceptance_result_condition}
-    output: {key: human_acceptance_result_receipt_id, type: string}
-  human_review_written:
-    prompt_ref: {file: prompt.yaml, prompt_id: human_review_condition}
-    output: {key: human_review_path, type: path}
+  main_agent_acceptance_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_record_condition}
+    output: {key: main_agent_review_path, type: path}
 
   code_merged:
     prompt_ref: {file: prompt.yaml, prompt_id: code_merged_condition}

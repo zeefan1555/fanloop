@@ -52,9 +52,9 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 进入 `skipped_step_ids`，目标及下游 Outputs 失效；Card 与 Trace 将 skipped 显示为“已跳过”。完整
 决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
-Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`fanloop-maintainer.confirm_human_acceptance` 是最终
-human 验收点；需求澄清中的批准同样只接受真实 human 决定，Developer 不得自批。`technical-solution-design` 的三个 Human Step 必须同时具备已回读飞书
-文档 URL、`panorama_card_published` 与人的明确结论。审批 Skill 组织审核材料并按最早受影响层分类，
+Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`technical-solution-design` 的三个 Human Step
+必须同时具备已回读飞书文档 URL、`panorama_card_published` 与人的明确结论。`fanloop-maintainer` 不再包含
+Human Step：需求批准和 `confirm_main_agent_acceptance` 最终验收均由执行子 Agent整理真实产物并向主 Agent申请决定。审批 Skill 组织审核材料并按最早受影响层分类，
 Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
 Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
@@ -62,7 +62,8 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 [ADR-0087](./adr/0087-allow-agent-approval-at-human-steps.md)、
 [ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)、
 [ADR-0098](./adr/0098-use-eleven-section-technical-document-workflow.md)、
-[ADR-0100](./adr/0100-align-maintainer-with-treeloop-handoff.md)。
+[ADR-0100](./adr/0100-align-maintainer-with-treeloop-handoff.md) 与
+[ADR-0106](./adr/0106-drive-maintainer-with-main-agent-and-subagents.md)。
 
 ## 当前配置实例
 
@@ -79,13 +80,17 @@ optional `human-step-jump` 允许人在确认影响后跳到任意 Step。Step �
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
 `fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：TechDesign 包含仓库范围确定、需求澄清、方案设计和方案自主评审；
-Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、人类端到端测试和 PR 合码与本地更新。
+Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、主 Agent 验收决策和 PR 合码与本地更新。
 Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
-实现阶段运行聚焦测试、`./tests/run-unit`、`./tests/run-e2e` 和独立整体 CR；Review 阶段核验证据并冻结
+用户先与主 Agent 对齐目录和目标；主 Agent派生并持续监督只向其回报的执行子 Agent，执行子 Agent创建、
+持有并驱动 Requirement，且直接修改受管代码。实现阶段运行聚焦测试、`./tests/run-unit` 和独立整体 CR；Review 阶段核验证据并冻结
 `review_base` / `reviewed_head`。Agent 验收在一次性数据目录安装候选，由恰好一个无实现上下文的全新
-Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。human 验收通过或明确跳过后，
-`merge_and_update_local` 发布唯一 PR、校验精确 final head 的 Ruleset/required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。合码后的本地失败保留 merge commit 并在原 Step 重试。
+Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。执行子 Agent向主 Agent申请候选
+验收决定，并在 main 前进时再次申请集成确认；`merge_and_update_local` 由执行子 Agent发布唯一 PR、校验精确 final head 的
+Ruleset/required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。合码后的本地失败保留 merge commit 并在原 Step 重试。
+黑盒公开 CLI 证据只承担可直接观测的 candidate/Doctor、九步 Panorama、Step ID/名称和旧 Step 缺失；
+非当前 Step 的 executor 与 Route/Condition 语义由五份生产 YAML 和聚焦 contract test 证明，验收不伪造批准跨过治理边界。
 
 ## 当前持久化版本
 
@@ -117,12 +122,11 @@ GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发�
 新增 Workflow 的发布改动只包含五份 YAML、同名 Skill 组和场景路由。配置-only 契约测试会临时
 构造第三套 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。
 
-仓库级门禁只有两个：
+仓库级本地门禁只有一个：
 
 ```bash
 ./tests/run-unit
-./tests/run-e2e
 ```
 
-前者覆盖格式、IDL 新鲜度、静态检查、Go 测试与 Contract；后者从当前工作树构建一次 CLI，
-执行技术方案完整生命周期，并为两套生产 Workflow 动态遍历全部 Flow/Loop Route。
+它覆盖格式、IDL 新鲜度、静态检查、Go 测试与 Contract。完整 Requirement lifecycle 与生产 Workflow
+Route Matrix 由 CI 的 `requirement-e2e` 执行；本地用户表面由隔离候选的 Verification Skill 验证。
