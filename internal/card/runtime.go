@@ -46,7 +46,7 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
 	}
-	loaded, err := workflow.LoadRef(projection.Release.Workflow.Ref())
+	loaded, err := workflow.Load(projection.Release.Workflow.ID)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, err.Error(), nil)
 	}

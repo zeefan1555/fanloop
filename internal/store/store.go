@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/zeefan1555/fanloop/errs"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
@@ -104,9 +105,15 @@ func (s *Store) LoadBound() (state.State, workflow.Loaded, *erroridl.PublicError
 	if failure != nil {
 		return state.State{}, workflow.Loaded{}, failure
 	}
-	loaded, err := workflow.LoadRef(current.Release.Workflow.Ref())
+	loaded, err := workflow.Load(current.Release.Workflow.ID)
 	if err != nil {
 		return state.State{}, workflow.Loaded{}, errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, err.Error(), nil)
+	}
+	if current.CurrentStepID != nil {
+		if _, _, ok := loaded.Workflow.FindStep(*current.CurrentStepID); !ok {
+			message := fmt.Sprintf("current_step_id %q references an unknown Step; current legal Step IDs: %s", *current.CurrentStepID, strings.Join(loaded.Workflow.OrderedStepIDs(), ", "))
+			return state.State{}, workflow.Loaded{}, errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, message, nil)
+		}
 	}
 	if err := current.ValidateAgainst(loaded.Workflow); err != nil {
 		return state.State{}, workflow.Loaded{}, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
@@ -115,7 +122,7 @@ func (s *Store) LoadBound() (state.State, workflow.Loaded, *erroridl.PublicError
 	if failure != nil {
 		return state.State{}, workflow.Loaded{}, failure
 	}
-	if err := state.ValidateHistory(events, current, loaded.Workflow); err != nil {
+	if err := state.ValidateHistory(events, current, loaded); err != nil {
 		return state.State{}, workflow.Loaded{}, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
 	}
 	return current, loaded, nil
@@ -166,7 +173,7 @@ func (s *Store) commitLocked(next state.State, event state.Event) *erroridl.Publ
 		return failure
 	}
 	events = append(events, event)
-	loaded, err := workflow.LoadRef(next.Release.Workflow.Ref())
+	loaded, err := workflow.Load(next.Release.Workflow.ID)
 	if err != nil {
 		return corrupt(err.Error())
 	}
@@ -260,7 +267,7 @@ func (s *Store) validateCommit(events []state.Event, next state.State, event sta
 	if _, err := state.DecodeEvent(eventContent); err != nil {
 		return corrupt(err.Error())
 	}
-	loaded, err := workflow.LoadRef(next.Release.Workflow.Ref())
+	loaded, err := workflow.Load(next.Release.Workflow.ID)
 	if err != nil {
 		return corrupt(err.Error())
 	}
@@ -269,6 +276,9 @@ func (s *Store) validateCommit(events []state.Event, next state.State, event sta
 	}
 	if next.LastEventID != event.ID || event.Workflow != next.Release.Workflow || event.ID == "" || event.OccurredAt.IsZero() {
 		return corrupt("new event does not match the next state")
+	}
+	if err := event.ValidateAgainst(loaded.Workflow); err != nil {
+		return corrupt(err.Error())
 	}
 	if s.Exists() {
 		previous, failure := s.Load()
@@ -281,7 +291,7 @@ func (s *Store) validateCommit(events []state.Event, next state.State, event sta
 	} else if len(events) != 0 {
 		return corrupt("event history exists without state")
 	}
-	if err := state.ValidateHistory(append(events, event), next, loaded.Workflow); err != nil {
+	if err := state.ValidateHistory(append(events, event), next, loaded); err != nil {
 		return corrupt(err.Error())
 	}
 	return nil

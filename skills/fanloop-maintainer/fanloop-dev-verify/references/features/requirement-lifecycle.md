@@ -21,5 +21,6 @@ available Routes, Prompt and absolute Skill paths. Progress through a small appr
 
 ## Gotchas
 
-Status is a fresh control-plane read, not a cache. Historical Requirement roots or a different CLI release cannot prove the
-current candidate. Human Steps require a real human decision; a verification run stops before them unless explicitly scoped.
+Status is a fresh control-plane read, not a cache. An older CLI may create a real cross-release fixture, but every tested
+drive and assertion must use the current candidate. Historical Requirement roots alone cannot prove the candidate. Human
+Steps require a real human decision; a verification run stops before them unless explicitly scoped.
