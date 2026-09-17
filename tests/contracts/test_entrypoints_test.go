@@ -11,9 +11,9 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl"
 )
 
-func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
+func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 	repo := repositoryRoot(t)
-	entrypoints := []string{"tests/run-unit", "tests/run-e2e"}
+	entrypoints := []string{"tests/run-unit"}
 	actual, err := filepath.Glob(filepath.Join(repo, "tests/run-*"))
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +32,23 @@ func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
 			t.Errorf("%s is not executable", relative)
 		}
 	}
+	ciRunner := filepath.Join(repo, ".github", "scripts", "run-requirement-validation")
+	info, err := os.Stat(ciRunner)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
+		t.Fatalf("CI Requirement validation runner is not executable: %v", err)
+	}
+	content, err := os.ReadFile(ciRunner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"TestRequirementWorkflowE2E", "route_matrix.py"} {
+		if !strings.Contains(string(content), required) {
+			t.Errorf("CI Requirement validation runner is missing %q", required)
+		}
+	}
+	if strings.Contains(string(content), "verify-smoke") || strings.Contains(string(content), "verify smoke") {
+		t.Error("CI Requirement validation runner still duplicates candidate verify smoke")
+	}
 
 	for _, relative := range []string{
 		"scripts/test.sh",
@@ -48,10 +65,13 @@ func TestRepositoryHasTwoPublicTestEntrypoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, command := range []string{"./tests/run-unit", "./tests/run-e2e"} {
+	for _, command := range []string{"./tests/run-unit"} {
 		if !strings.Contains(string(agents), command) {
 			t.Errorf("AGENTS.md does not require %s", command)
 		}
+	}
+	if strings.Contains(string(agents), "./tests/run-e2e") {
+		t.Error("AGENTS.md still requires the retired local E2E entrypoint")
 	}
 }
 
@@ -91,13 +111,13 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"execution.status", "common_skills", "common_conditions", "start/jump Route", "开工后再执行业务 Prompt",
 		},
 		".github/workflows/ci.yml": {
-			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./tests/run-e2e", "BOTMUX_CHAT_ID", "docs/research",
+			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./.github/scripts/run-requirement-validation", "BOTMUX_CHAT_ID", "docs/research",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
 			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
-			"implementation-report.md", "review_base", "./tests/run-unit", "./tests/run-e2e", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>",
+			"implementation-report.md", "review_base", "./tests/run-unit", "隔离公开 CLI 证据", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
 			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
@@ -118,7 +138,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
-			"review_base", "implementation_head", "./tests/run-unit", "./tests/run-e2e", "fanloop-dev-verify/references/features/", "review-report.md", "reviewed_head_frozen",
+			"review_base", "implementation_head", "./tests/run-unit", "fanloop-dev-verify/references/features/", "review-report.md", "reviewed_head_frozen",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-decision-receipt/SKILL.md": {
 			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=human", "host_turn", "Developer 不得自批",
