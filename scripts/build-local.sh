@@ -51,13 +51,14 @@ source_fingerprint() {
 commit="$(git rev-parse HEAD)"
 source_status="$(git status --porcelain -- "${source_paths[@]}")"
 source_digest="$(source_fingerprint)"
-version="$(<"$repo_root/VERSION")"
-if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+base_version="$(<"$repo_root/VERSION")"
+if [[ ! "$base_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "VERSION must contain a semantic version such as 1.2.3" >&2
   exit 1
 fi
+version="$base_version-dev.${commit:0:12}"
 if [[ -n "$source_status" ]]; then
-  version+="-dev.${source_digest:0:12}"
+  version="$base_version-dev.${source_digest:0:12}"
 fi
 printf 'Building %s from %s in %s\n' "$version" "$commit" "$build_root" >&2
 

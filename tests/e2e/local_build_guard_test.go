@@ -49,6 +49,7 @@ func TestLocalBuildGuardAllowsRepositoryOutputWithLiteralPath(t *testing.T) {
 
 func TestLocalBuildGuardDoesNotVersionLiveSkillChanges(t *testing.T) {
 	repository, environment := localBuildGuardRepository(t)
+	commit := strings.TrimSpace(localBuildGuardGit(t, repository, "rev-parse", "HEAD"))
 	skill := filepath.Join(repository, "skills", "example", "SKILL.md")
 	if err := os.WriteFile(skill, []byte("changed live configuration\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -56,8 +57,32 @@ func TestLocalBuildGuardDoesNotVersionLiveSkillChanges(t *testing.T) {
 	command := exec.Command(filepath.Join(repository, "scripts", "build-local.sh"), filepath.Join(t.TempDir(), "build"))
 	command.Env = environment
 	output, err := command.CombinedOutput()
-	if err != nil || !strings.Contains(string(output), "Building 1.2.3 from") || strings.Contains(string(output), "1.2.3-dev.") {
+	if err != nil || !strings.Contains(string(output), "Building 1.2.3-dev."+commit[:12]+" from") {
 		t.Fatalf("Skill-only change affected the CLI version: %v\n%s", err, output)
+	}
+}
+
+func TestLocalBuildGuardUsesDistinctStableVersionsForCleanCommits(t *testing.T) {
+	repository, environment := localBuildGuardRepository(t)
+	buildVersion := func(outputRoot string) string {
+		t.Helper()
+		commit := strings.TrimSpace(localBuildGuardGit(t, repository, "rev-parse", "HEAD"))
+		command := exec.Command(filepath.Join(repository, "scripts", "build-local.sh"), outputRoot)
+		command.Env = environment
+		output, err := command.CombinedOutput()
+		version := "1.2.3-dev." + commit[:12]
+		if err != nil || !strings.Contains(string(output), "Building "+version+" from "+commit) {
+			t.Fatalf("clean local build did not use the commit identity: %v\n%s", err, output)
+		}
+		return version
+	}
+
+	first := buildVersion(filepath.Join(t.TempDir(), "first"))
+	localBuildGuardGit(t, repository, "-c", "user.name=Guard Test", "-c", "user.email=guard@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "--allow-empty", "-qm", "second")
+	second := buildVersion(filepath.Join(t.TempDir(), "second"))
+	repeated := buildVersion(filepath.Join(t.TempDir(), "repeated"))
+	if first == second || second != repeated {
+		t.Fatalf("clean build versions = first %q, second %q, repeated %q", first, second, repeated)
 	}
 }
 

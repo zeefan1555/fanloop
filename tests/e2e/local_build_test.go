@@ -67,7 +67,7 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	versionPattern := regexp.MustCompile("^" + regexp.QuoteMeta(strings.TrimSpace(string(baseVersion))) + `(?:-dev\.[0-9a-f]{12})?$`)
+	versionPattern := regexp.MustCompile("^" + regexp.QuoteMeta(strings.TrimSpace(string(baseVersion))) + `-dev\.[0-9a-f]{12}$`)
 	if err := json.Unmarshal(installOutput, &installed); err != nil || !installed.OK || !versionPattern.MatchString(installed.Data.ReleaseVersion) {
 		t.Fatalf("local install did not return its local release: %v\n%s", err, installOutput)
 	}

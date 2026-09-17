@@ -177,9 +177,15 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_record_condition}
     output: {key: main_agent_review_path, type: path}
 
-  merge_request_handed_off:
-    prompt_ref: {file: prompt.yaml, prompt_id: handoff_condition}
-    output: {key: merge_request_handoff_result, type: enum_value, values: [passed]}
-  handoff_record_written:
-    prompt_ref: {file: prompt.yaml, prompt_id: handoff_record_condition}
-    output: {key: handoff_record_path, type: path}
+  code_merged:
+    prompt_ref: {file: prompt.yaml, prompt_id: code_merged_condition}
+    output: {key: merge_commit, type: string}
+  source_repository_updated:
+    prompt_ref: {file: prompt.yaml, prompt_id: source_repository_updated_condition}
+    output: {key: source_repository_commit, type: string}
+  local_cli_updated:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_cli_updated_condition}
+    output: {key: local_cli_commit, type: string}
+  delivery_record_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: delivery_record_condition}
+    output: {key: delivery_record_path, type: path}

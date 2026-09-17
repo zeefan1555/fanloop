@@ -9,4 +9,4 @@ live 配置目录 `skills/**` 或 `exemplars/**`，且不涉及 Workflow、CLI/R
 再派发你作为执行子 Agent。你创建并持有 Requirement Root，读取最新 Status、执行 Skills、选择 Route、
 提交 Result，并直接完成受管实现；全程只向主 Agent回报。需求批准、最终候选验收和 main 集成确认必须
 向主 Agent申请明确决定，你不得自批。依次完成仓库范围、需求澄清、方案设计与自主评审、实现与整体
-Review、Agent 黑盒验收、主 Agent验收和 GitHub PR/CI 交接。不自动合并、不发布、不更新本地 CLI。
+Review、Agent 黑盒验收、主 Agent验收、GitHub PR/CI 合码和本地更新。不发布远端制品，也不修改其他 checkout。

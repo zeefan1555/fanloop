@@ -23,8 +23,8 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 `$HOME/.fanloop/current` 或手改 State 绕过 `WORKFLOW_MISMATCH`。新 Requirement 的 `flow init` 使用全局 current。
 需要在全局 current 切换前保护已有 Requirement 时，使用本 Skill 的 `scripts/pin-controller-release.sh`。
 
-候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。本 Workflow 只交付 PR，不自动合并、
-不发布、不更新本地 CLI。
+候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。主 Agent 验收后，最终 Step 自动合并
+唯一 PR，把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交更新全局 current。
 
 ## 当前 Step
 
@@ -34,7 +34,8 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 4. 任意运行中 Step 只在 human 明确指定唯一目标时使用 `fanloop-dev-human-step-jump`。跳转只改变位置，不伪造被跨过 Step 的完成事实。
 5. `implement_code` 由当前执行子 Agent直接完成；主 Agent只监督，可通过 follow-up 要求修复、补证据或重跑验证，但不接管 Flow 或源码修改。
 6. `review_code` 冻结 `review_base` / `reviewed_head`；独立 Review 和 Agent 验收分别使用不继承实现上下文的全新 Sub-agent，由执行子 Agent派发、聚合并上报 Result。
-7. 主分支、source HEAD、工作树或报告身份漂移时按 YAML 回流；仅 `handoff_merge_request` 中的 `origin/main` 正常前进留在本 Step 合入并重跑短门禁，再向主 Agent申请集成确认。
+7. `confirm_main_agent_acceptance` 由执行子 Agent向主 Agent申请最终决定；通过后由 `merge_and_update_local` 创建或更新唯一 PR、等待 required checks、自动 squash merge，并更新源码 worktree 与全局 current。
+8. 主分支、source HEAD、工作树或报告身份漂移时按 YAML 回流；仅 `merge_and_update_local` 中的 `origin/main` 正常前进留在本 Step 合入并重跑短门禁，再向主 Agent申请集成确认。PR 已合并后的本地失败只重试同一 merge commit。
 
 ## 最终回复
 

@@ -30,4 +30,4 @@ stages:
         steps:
           - {id: execute_agent_acceptance, name: Agent 端到端测试, executor: agent}
           - {id: confirm_main_agent_acceptance, name: 主 Agent 验收决策, executor: agent}
-          - {id: handoff_merge_request, name: MR 门禁与交接, executor: agent}
+          - {id: merge_and_update_local, name: PR 合码与本地更新, executor: agent}
