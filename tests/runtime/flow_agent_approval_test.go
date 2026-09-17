@@ -38,9 +38,9 @@ func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 	}
 }
 
-func TestMaintainerLifecycleMergesAndUpdatesLocal(t *testing.T) {
+func TestMaintainerFourStepLifecycleMergesAndUpdatesLocal(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Three-stage delivery"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Four-step delivery"), "flow.init")
 
 	advance := func(step, next string, conditions ...string) {
 		t.Helper()
@@ -50,58 +50,40 @@ func TestMaintainerLifecycleMergesAndUpdatesLocal(t *testing.T) {
 		}
 		assertSuccess(t, run(binary, args...), "flow.report.result")
 	}
-	advance("bootstrap_techdesign", "clarify_requirements",
-		conditionResult("repository_workspace_prepared", "path", "\"issue-workspace\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/bootstrap.md\""))
-	advance("clarify_requirements", "design_technical_solution",
-		conditionResult("requirements_grilled", "path", "\"requirements.md\""),
-		conditionResult("requirements_document_published", "url", "\"https://example.com/requirements\""),
+	advance("define_verification_contract", "build_until_verified",
+		conditionResult("verification_contract_written", "path", "\"requirements.md\""),
 		conditionResult("requirements_approved", "enum_value", "\"approved\""),
-		conditionResult("requirements_approval_recorded", "string", "\"decision-requirements\""),
-		conditionResult("requirements_evidence_written", "path", "\"requirements.md\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/requirements.md\""))
-	advance("design_technical_solution", "confirm_technical_solution",
-		conditionResult("spec_written", "path", "\"spec.md\""),
-		conditionResult("tickets_written", "path", "\"issues\""),
-		conditionResult("technical_solution_document_published", "url", "\"https://example.com/design\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/design.md\""))
-	advance("confirm_technical_solution", "implement_code",
-		conditionResult("technical_solution_review_passed", "enum_value", "\"passed\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/design-review.md\""))
-	reviewBase := "1111111111111111111111111111111111111111"
-	reviewedHead := "2222222222222222222222222222222222222222"
-	advance("implement_code", "review_code",
-		conditionResult("implementation_completed", "string", "\""+reviewedHead+"\""),
-		conditionResult("implementation_report_written", "path", "\"implementation-report.md\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/implementation.md\""))
-	advance("review_code", "execute_agent_acceptance",
-		conditionResult("code_review_approved", "enum_value", "\"Approve\""),
-		conditionResult("local_validation_passed", "enum_value", "\"passed\""),
-		conditionResult("review_report_written", "path", "\"review-report.md\""),
-		conditionResult("review_base_frozen", "string", "\""+reviewBase+"\""),
-		conditionResult("reviewed_head_frozen", "string", "\""+reviewedHead+"\""),
-		conditionResult("code_review_document_published", "url", "\"https://example.com/review\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/review.md\""))
-	advance("execute_agent_acceptance", "confirm_main_agent_acceptance",
-		conditionResult("agent_acceptance_passed", "enum_value", "\"passed\""),
-		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
-		conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/acceptance.md\""))
-	advance("confirm_main_agent_acceptance", "merge_and_update_local",
+		conditionResult("requirements_decision_recorded", "string", "\"decision-requirements\""),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/define.md\""))
+	base := "1111111111111111111111111111111111111111"
+	head := "2222222222222222222222222222222222222222"
+	identity := `{"candidate_head":"` + head + `","git_tree":"tree-1","binary_sha256":"sha256:binary","verification_contract_sha256":"sha256:contract","feature_impact_sha256":"sha256:impact"}`
+	advance("build_until_verified", "certify_candidate",
+		conditionResult("self_validation_passed", "enum_value", "\"passed\""),
+		conditionResult("verification_report_written", "path", "\"verification-report.md\""),
+		conditionResult("candidate_identity_recorded", "object", identity),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/build.md\""))
+	certification := `{"certification_base":"` + base + `","certification_head":"` + head + `","git_tree":"tree-1","binary_sha256":"sha256:binary","verification_assets_sha256":"sha256:assets"}`
+	advance("certify_candidate", "merge_and_update_local",
+		conditionResult("independent_review_passed", "enum_value", "\"passed\""),
+		conditionResult("blackbox_verification_passed", "enum_value", "\"passed\""),
 		conditionResult("main_agent_acceptance_passed", "enum_value", "\"passed\""),
-		conditionResult("main_agent_acceptance_recorded", "path", "\"main-agent-review.md\""),
-		conditionResult("panorama_presented", "path", "\".fanloop/card/main-agent-acceptance.md\""))
+		conditionResult("certification_report_written", "path", "\"certification-report.md\""),
+		conditionResult("certification_identity_frozen", "object", certification),
+		conditionResult("panorama_presented", "path", "\".fanloop/card/certify.md\""))
 
 	mergeCommit := "3333333333333333333333333333333333333333"
 	completed := run(binary, "flow", "report", "result", "--root", root,
 		"--step-id", "merge_and_update_local",
-		"--condition-result", conditionResult("handoff_main_unchanged", "enum_value", "\"unchanged\""),
+		"--condition-result", conditionResult("delivery_main_unchanged", "enum_value", "\"unchanged\""),
 		"--condition-result", conditionResult("merge_request_published", "url_list", `["https://github.com/zeefan1555/fanloop/pull/7"]`),
 		"--condition-result", conditionResult("remote_checks_passed", "enum_value", "\"passed\""),
 		"--condition-result", conditionResult("review_comment_synced", "string", "\"comment-7\""),
 		"--condition-result", conditionResult("code_merged", "string", "\""+mergeCommit+"\""),
+		"--condition-result", conditionResult("merge_tree_verified", "enum_value", "\"passed\""),
 		"--condition-result", conditionResult("source_repository_updated", "string", "\""+mergeCommit+"\""),
 		"--condition-result", conditionResult("local_cli_updated", "string", "\""+mergeCommit+"\""),
+		"--condition-result", conditionResult("post_merge_smoke_passed", "enum_value", "\"passed\""),
 		"--condition-result", conditionResult("delivery_record_written", "path", "\"delivery-record.md\""),
 		"--condition-result", conditionResult("panorama_presented", "path", "\".fanloop/card/handoff.md\""),
 		"--terminal", "--summary", "PR merged and local CLI updated")

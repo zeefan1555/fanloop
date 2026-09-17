@@ -1,29 +1,21 @@
 ---
 name: fanloop-dev-agent-acceptance
-description: 从冻结 reviewed_head 做隔离安装，再由恰好一个无实现上下文的全新 Sub-agent 使用公开 CLI 完成真实黑盒验收。
+description: 对冻结 certification_head 做隔离安装，并由无源码上下文的全新 Sub-agent 使用公开 CLI 完成黑盒认证。
 ---
 
-# Agent 自动化验收
+# Independent Black-box Verification
 
-只验收工作树干净且 `HEAD == reviewed_head` 的已 Review 候选。同时要求 `origin/main == review_base` 且 merge-base 等于 review_base。任何源码、测试或验证资产变化都使本 Step 失效。
+只接受工作树 clean 且 HEAD/tree 与冻结 certification identity 一致的候选。创建隔离
+`FANLOOP_DATA_HOME` 和四类 Skill Root，清除 Botmux 环境，从 certification_head 执行
+`./scripts/install-local.sh`。回读隔离 version、binary SHA-256、Doctor，并证明全局 current 未变。
 
-## 隔离候选
+派发恰好一个不继承实现上下文的全新 Sub-agent。它只能获得隔离 CLI 绝对路径、环境变量、
+`fanloop-dev-verify/SKILL.md`、Feature Map 和 requirements.md 的 Acceptance Set；不得读取源码、内部 Go、
+私有 helper 或历史 Requirement。先读取叶子 `--help`，再用公开 CLI 驱动全部 Acceptance Set，保存 argv、
+stdout、stderr、退出码、Status/Event/文件与副作用证据。
 
-1. 记录全局 `$HOME/.fanloop/current` 的真实目标、版本与 commit。本 Step 不重复运行实现阶段已覆盖的全量测试。
-2. 创建临时目录，把 `FANLOOP_DATA_HOME`、`FANLOOP_CODEX_SKILLS_ROOT`、`FANLOOP_AGENT_SKILLS_ROOT`、`FANLOOP_TRAE_SKILLS_ROOT`、`FANLOOP_CLAUDE_SKILLS_ROOT` 全部指向其中的独立路径；清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID` 后，从 reviewed_head 执行 `./scripts/install-local.sh`。
-3. 只使用隔离 `current/bin/fanloop` 回读 release 目标、version commit 和 Doctor。commit 必须精确等于 reviewed_head，Doctor 必须 healthy。禁止修改或切换全局 current。
+`verify smoke` 只证明隔离安装、初始化、第一次 Route 推进、取证与清理，不能替代 Acceptance Set 或受影响
+Feature 验收。Cleanup 后证据必须仍存在，全局 current 必须未变。
 
-## 单个 Sub-agent 黑盒
-
-派发恰好一个全新 Sub-agent。它只获得：隔离 CLI 的绝对路径、隔离环境变量、相邻
-`fanloop-dev-verify/SKILL.md` 的路径、requirements.md 中已批准的 **1 至 3** 个场景、各自独立预期与停止边界；不获得实现上下文。
-
-Sub-agent 必须先读取 Verification Skill 和相关 Feature 页面，再为每个场景创建全新 Requirement Root；只能先读相关叶子 `--help`，再使用公开 CLI 驱动场景并记录 argv、stdout、stderr、退出码、前后 Status/Event/文件证据。不得读取源码、内部 Go 包、私有 helper、历史 Requirement 或其他实现材料；不得修改候选、push、建 PR、合并或更新全局 CLI；不得使用机器人、Botmux、用户凭据、Card/Trace 远端集成。
-
-## 结论与产物
-
-执行子 Agent复核黑盒 Sub-agent 原始证据，清理隔离安装和所有测试 Root，再证明全局 current 未变。把 review_base、reviewed_head、隔离安装、version/Doctor、场景证据、cleanup 和结论写入 `acceptance-report.md`。
-
-用包含 Requirement 身份的稳定标题查找文档：零命中创建，唯一命中更新，多命中 blocked。发布唯一飞书 Agent 验收报告，并语义回读正文非空、reviewed_head、场景与结论一致。
-
-全部场景通过才上报 `agent_acceptance_passed`、`acceptance_report_written`、`acceptance_document_published`。确定产品失败时上报 `agent_acceptance_failed`、两份报告和恰好一个最早责任回流；候选漂移上报 `candidate_changed`；基础设施失败保持 blocked。
+全部通过返回 passed 和原始 receipt；确定产品失败返回 failed；基础设施、权限或外部环境不可达返回
+blocked。不得修改候选、push、建 PR、合并或更新全局 CLI。

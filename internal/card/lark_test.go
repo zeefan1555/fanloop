@@ -16,7 +16,7 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "confirm_main_agent_acceptance"
+	stepID := "certify_candidate"
 	current := state.State{
 		Requirement:        state.Requirement{Title: "Flow card"},
 		CurrentStepID:      &stepID,
@@ -26,34 +26,22 @@ func TestCardShowsHumanReadableStateOutputsAndEvidence(t *testing.T) {
 			Source: state.EvidenceHuman, Content: "请修改方案", Ref: "om_feedback",
 		}},
 		Outputs: map[string]state.RegisteredOutput{
-			"requirement_document_url": {
-				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/requirements"`), ProducerStepID: "clarify_requirements",
-			},
-			"technical_design_document_url": {
-				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/design"`), ProducerStepID: "design_technical_solution",
-			},
-			"code_review_document_url": {
-				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/review"`), ProducerStepID: "review_code",
-			},
-			"acceptance_document_url": {
-				Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/acceptance"`), ProducerStepID: "execute_agent_acceptance",
+			"merge_request_urls": {
+				Type: workflow.OutputURLList, Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/pull/123"]`), ProducerStepID: "merge_and_update_local",
 			},
 		},
 	}
 	markdown := renderMarkdown(cardidl.CardView_current, current, loaded.Workflow)
 	for _, want := range []string{
-		"Test · 主 Agent 验收决策",
-		"[需求确认报告](https://bytedance.larkoffice.com/docx/requirements)",
-		"[技术方案文档](https://bytedance.larkoffice.com/docx/design)",
-		"[Code Review 报告](https://bytedance.larkoffice.com/docx/review)",
-		"[Agent 验收报告](https://bytedance.larkoffice.com/docx/acceptance)",
+		"Certify · 独立候选认证",
+		"[PR 1](https://github.com/zeefan1555/fanloop/pull/123)",
 		"waiting for approval",
 	} {
 		if !strings.Contains(markdown, want) {
 			t.Fatalf("card Markdown is missing %q:\n%s", want, markdown)
 		}
 	}
-	for _, internalID := range []string{"requirement_document_url", "requirements_approved", "design_technical_solution", "bootstrap_techdesign", "confirm_main_agent_acceptance"} {
+	for _, internalID := range []string{"merge_request_urls", "main_agent_acceptance_passed", "certify_candidate", "merge_and_update_local"} {
 		if strings.Contains(markdown, internalID) {
 			t.Fatalf("card Markdown exposes internal ID %q:\n%s", internalID, markdown)
 		}
@@ -106,7 +94,7 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "bootstrap_techdesign"
+	stepID := "define_verification_contract"
 	current := state.State{
 		Requirement:        state.Requirement{Title: "Compact card"},
 		CurrentStepID:      &stepID,
@@ -118,14 +106,15 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded.Workflow)
 	for _, want := range []string{
 		"# 后端研发交付 · Compact card `Ready` `0%`",
-		"TechDesign · 仓库范围确定",
+		"Define · 目标与验收契约",
 		"## 状态全景",
-		"TechDesign：**仓库范围确定（Ready）** → 需求澄清 → 方案设计 → 方案自主评审",
-		"Implement：代码实现与过程 CR → 整体 Code Review",
-		"Test：Agent 端到端测试 → 主 Agent 验收决策 → PR 合码与本地更新",
+		"Define：**目标与验收契约（Ready）**",
+		"Build：实现与自主验证",
+		"Certify：独立候选认证",
+		"Deliver：PR 合码与本地更新",
 		"整体进度：0%",
 		"## 各阶段 Output",
-		"| TechDesign | Implement | Test |",
+		"| Define | Build | Certify | Deliver |",
 		"> **当前执行证据**",
 		"**🚧 当前进行中**",
 	} {
@@ -133,7 +122,7 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 			t.Fatalf("compact Markdown is missing %q:\n%s", want, markdown)
 		}
 	}
-	for _, oldLayout := range []string{"`bootstrap_techdesign`", "当前 Prompt", "可上报 Condition", "正常方向", "## Workflow 全景"} {
+	for _, oldLayout := range []string{"`define_verification_contract`", "当前 Prompt", "可上报 Condition", "正常方向", "## Workflow 全景"} {
 		if strings.Contains(markdown, oldLayout) {
 			t.Fatalf("compact Markdown still contains old layout %q:\n%s", oldLayout, markdown)
 		}
@@ -145,7 +134,7 @@ func TestMarkdownAndLarkUseTheSamePanoramaContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "implement_code"
+	stepID := "build_until_verified"
 	current := state.State{
 		Requirement: state.Requirement{Title: "Shared panorama"}, CurrentStepID: &stepID,
 		CurrentStepStatus: state.StepInProgress, CurrentStepSummary: "running focused tests",
@@ -172,7 +161,7 @@ func TestCardMarkdownShowsCLILogBesideTrace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "implement_code"
+	stepID := "build_until_verified"
 	current := state.State{
 		Requirement: state.Requirement{Title: "Maintainer card"}, CurrentStepID: &stepID, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{}, Integrations: state.Integrations{Trace: &state.TraceBinding{

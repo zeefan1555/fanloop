@@ -2,143 +2,82 @@ schema_version: 2
 
 prompts:
   panorama_delivery_condition:
-    prompt: |
-      进入当前 Step 后立即把最新 Panorama 作为第一条用户可见消息完整展示。展示成功后，panorama_presented 输出本次非 dry-run render 返回的精确 snapshot_path；失败时保持 blocked，不提交 Result 或选择 Route。
+    prompt: 进入当前 Step 后立即把最新 Panorama 作为第一条用户可见消息完整展示；成功后返回本次非 dry-run render 的精确 snapshot_path，失败时保持 blocked。
     skills:
-      - {id: fanloop-dev-panorama, prompt: 按当前宿主展示 renderer 生成的唯一 Panorama，并返回精确 snapshot_path。, optional: false}
+      - {id: fanloop-dev-panorama, prompt: 展示 renderer 生成的唯一 Panorama，并返回精确 snapshot_path。, optional: false}
 
-  human_step_jump_condition:
+  define_verification_contract_flow:
     prompt: |
-      只有 human 明确指定目标 Step 时才执行 required Skills。先复用并展示当前 Requirement 的匹配记录，再收集缺失产物，记录 source、target、跨过或失效内容及用户原始决定。只上报三项跳转 Condition 与 panorama_presented；目标 Step 继续执行正常 Prompt 和客观门禁。Developer 不得自批。
+      准备独立 Issue Workspace、源码 worktree 和最新 main 基线。把用户已对齐的目标、范围、非目标、风险边界、Acceptance Set 与 Feature Impact Set 写入并回读 requirements.md。Acceptance Set 保留一至三个端到端场景；Feature Impact Set 列出全部受影响 Feature、公开入口以及关键成功和失败状态。每个场景固定公开命令、独立预期、退出码、可观察状态、副作用、证据和停止位置。
+
+      执行子 Agent向主 Agent申请批准或拒绝，不得自批。使用 decision receipt 记录明确决定。批准前不得修改受管代码；批准时上报 verification_contract_written、requirements_approved、requirements_decision_recorded 与 panorama_presented。拒绝时上报对应拒绝组合并终止。飞书只作为可选阅读投影，不是 Route 必需事实。
     skills:
-      - {id: fanloop-dev-human-step-jump, prompt: 复用和收集当前 Requirement 产物，由真实 human 确认目标并安全执行 Step 跳转。, optional: false}
-      - {id: fanloop-dev-decision-receipt, prompt: 安全写入并精确回读 Step jump 的真实 human 决定和证据。, optional: false}
-  human_step_jump_context_condition: {prompt: human_step_jump_context_written 输出已回读且从 Requirement Root 可解析的 .scratch/human-step-jump-context.md；该文件指向 Issue Workspace 中本次复用、补充、缺失、影响与 human 回执。, skills: []}
-  human_step_jump_record_condition: {prompt: human_step_jump_recorded 输出精确回读的唯一 decision receipt ID；receipt 必须对应本次最终 source、target、跨过或失效内容和真实 human。, skills: []}
-  human_step_jump_route: {prompt: 只改变当前 Workflow 位置；被跨过 Step 不执行也不产生完成事实，目标 Step 按正常 Prompt 和门禁继续。, skills: []}
-
-  bootstrap_techdesign_flow:
-    prompt: |
-      准备并回读独立 Issue Workspace、源码 Worktree 与最新 main 基线。仓库范围变化时上报 repository_scope_changed；成功时上报 repository_workspace_prepared 与 panorama_presented。
-    skills:
-      - {id: fanloop-dev-bootstrap, prompt: 准备可审计的 Issue Workspace、最新 main 基线和只读调查环境。, optional: false}
-
-  clarify_requirements_flow:
-    prompt: |
-      使用绑定 Skills 完成 design-tree/frontier 澄清，自行调查代码、日志、当前五份 YAML 和相关 ADR。每轮决定立即写入 requirements.md，只保留一套交付路径并确定最少公开 Test Seams；frontier 为空后发布并回读同一份飞书需求文档。
-
-      执行子 Agent整理已与用户对齐的目标、范围、验收条件和完整计划后，向主 Agent申请批准或拒绝；不得自行批准，也不直接向用户索取内部流程确认。用 fanloop-dev-decision-receipt 记录主 Agent actor、原始决定与证据。批准时把决定与 receipt 写回 requirements.md，更新并回读同一需求文档，再同时上报 requirements_grilled、requirements_document_published、requirements_approved、requirements_approval_recorded、requirements_evidence_written 与 panorama_presented。拒绝时上报拒绝组合并终止；用户主动修改需求时留在当前 Step 或上报 requirements_changed 自环。主 Agent决定、发布或回读不完整时不得编码。
-    skills:
-      - {id: fanloop-dev-grill-with-docs, prompt: 编排需求澄清、完整计划、飞书发布，并向主 Agent申请和记录需求决定。, optional: false}
-      - {id: fanloop-dev-grilling, prompt: 按 design-tree/frontier 规则完成分轮批量询问。, optional: false}
-      - {id: fanloop-dev-decision-receipt, prompt: 安全写入并精确回读主 Agent 需求决定和证据。, optional: false}
-      - {id: fanloop-dev-domain-modeling, prompt: 挑战含混术语并整理 CONTEXT/ADR 候选，不在确认前改仓库真值。, optional: false}
-  clarify_requirements_rejected_terminal:
-    prompt: |
-      主 Agent 已明确拒绝当前完整计划。保留 requirements.md、需求飞书文档和 decision receipt 后结束，不进入方案、实现或交付。
+      - {id: fanloop-dev-bootstrap, prompt: 准备独立工作区、源码 worktree 和最新 main 基线。, optional: false}
+      - {id: fanloop-dev-grill-with-docs, prompt: 生成 requirements.md、Acceptance Set、Feature Impact Set 并记录主 Agent决定。, optional: false}
+      - {id: fanloop-dev-grilling, prompt: 按 design-tree/frontier 澄清仍未闭合的目标和边界。, optional: false}
+      - {id: fanloop-dev-domain-modeling, prompt: 挑战含混术语并整理需进入契约真值或 ADR 的决定。, optional: false}
+      - {id: fanloop-dev-decision-receipt, prompt: 安全记录并回读主 Agent需求决定。, optional: false}
+  define_verification_contract_rejected_terminal:
+    prompt: 主 Agent已拒绝当前 Verification Contract；保留 requirements.md 与 decision receipt 后结束。
     skills: []
 
-  design_technical_solution_flow:
+  build_until_verified_flow:
     prompt: |
-      只根据已批准 requirements.md 生成 spec.md，并把最少纵向 Tickets 写入 issues/。每张 Ticket 保留已批准验证路径与独立预期；适用 TDD 的行为记录公开 Test Seam、最小 red 命令与目标失败信号，不适用项记录理由和替代检查。发布并回读同一技术方案飞书文档。完成时上报 spec_written、tickets_written、technical_solution_document_published 与 panorama_presented；需求事实缺失时回需求澄清，执行路径或 Test Seam 不可靠时留在方案设计修订。
+      当前执行 Agent直接在同一实现上下文完成方案、最小修改和自主验证。复杂度确实需要跨模块协调、方案取舍或并行拆分时才创建 spec.md 或 Tickets；它们不是独立门禁。持续执行：建立或复现基线 -> 最小修改 -> 聚焦测试 -> ./tests/run-unit -> 按 Feature Impact Set 使用真实公开 CLI 验证 -> 捕获证据和副作用 -> 分类失败并修复。
+
+      用户表面变化时同步维护 Verification Skill 与 Feature Map。源码、测试或验证资产任一变化都产生新候选并使旧证据失效。只有存在新的可证伪假设时继续重试；同一失败重复且无新证据、环境或授权不可达时保持 blocked。需求或验收契约变化时上报 requirements_changed 回 Define。
+
+      全部通过后提交当前分支，要求工作树 clean。记录 candidate_head、Git tree、候选 binary SHA-256、Acceptance/Impact 覆盖、run ID、manifest/snapshot、失败分类、修复和 ADR impact 到 verification-report.md。上报 self_validation_passed、verification_report_written、candidate_identity_recorded 与 panorama_presented。本 Step 不 push、不创建 PR。
     skills:
-      - {id: fanloop-dev-to-spec, prompt: 把确认需求生成本地 Spec，并发布和回读技术方案飞书文档。, optional: false}
-      - {id: fanloop-dev-to-tickets, prompt: 把 Spec 拆成最少、可独立验证的纵向 Tickets。, optional: false}
-
-  confirm_technical_solution_flow:
-    prompt: |
-      本 Step 由 Agent 自主评审，不发起人工审批。逐项对照 requirements.md、spec.md、全部 Tickets、相关 ADR 和仓库事实，确认没有 Open Question，每个验收条件都有可靠公开 Test Seam，所有 Ticket 都是最少纵向切片，影响文件与非目标完整，方案不改变未获批准的 Workflow、IDL、Schema 或外部行为。全部为真时上报 technical_solution_review_passed 与 panorama_presented；任一项为假时列出具体缺口，上报 technical_solution_review_failed 与 panorama_presented 回到方案设计。
-    skills: []
-
-  implement_code_flow:
-    prompt: |
-      当前执行子 Agent持有 Requirement Root、最新 Status 和 Route，直接根据 spec.md 与 Tickets 在同一实现上下文按依赖顺序完成受管修改，并只向主 Agent回报。主 Agent负责监督，可通过 follow-up 要求修复、补证据或重跑验证，但不接管 Flow 或源码修改。使用已约定公开 Seam 做适用的 TDD，不为纯非执行文档制造 red。
-
-      全部实现完成后 fetch origin 并记录 review_base；从同一工作树运行计划中的聚焦测试与 ./tests/run-unit。通过后派发不继承实现上下文的独立 Reviewer 审查全部累计 diff；P0/P1 在当前 Step 修复并由原 Reviewer复核。最终提交到当前分支，证明受测受审 tree 等于 implementation_head 且工作树 clean。把命令、退出码、findings、修复和 ADR impact 写入 implementation-report.md。成功上报 implementation_completed=<完整 HEAD>、implementation_report_written 与 panorama_presented。本 Step 不 push、不创建或更新 PR。
-    skills:
-      - {id: fanloop-dev-tdd, prompt: 在已约定公开 Seam 上完成适用行为的 red-green；不适用项记录理由与替代检查。, optional: false}
-      - {id: fanloop-dev-implement, prompt: 完成实现、聚焦与完整验证、独立整体 CR、修复复核、提交和实现报告。, optional: false}
+      - {id: fanloop-dev-tdd, prompt: 在已约定公开 Test Seam 上完成适用的 red-green；不适用项记录理由。, optional: false}
+      - {id: fanloop-dev-implement, prompt: 持续完成实现、自验证、失败诊断、修复、候选提交和 verification-report.md。, optional: false}
       - {id: fanloop-dev-maintain-verification, prompt: 用户表面变化时维护 Verification Skill 与 Feature Map，并完成 source + live 验证。, optional: true}
+      - {id: fanloop-dev-to-spec, prompt: 仅在复杂度确实需要时生成辅助 Spec。, optional: true}
+      - {id: fanloop-dev-to-tickets, prompt: 仅在存在可独立并行的纵向工作时生成辅助 Tickets。, optional: true}
 
-  review_code_flow:
+  certify_candidate_flow:
     prompt: |
-      从 implementation-report.md 核验实现阶段完整测试和独立审查的原始证据、finding 关闭情况、最终 Verdict、review_base 和 implementation_head。只接受 Approve 或 Recommend，且聚焦测试与 ./tests/run-unit 全部通过并覆盖最终 HEAD；证据缺失、审查 Block 或验证失败时发布回读报告后回实现。
+      fetch origin 并冻结 certification_base、certification_head、Git tree 和候选 binary SHA-256；要求 origin/main=certification_base、HEAD=certification_head、工作树 clean 且 merge-base 正确。并行派发两个不继承实现上下文的全新 Sub-agent：独立 Reviewer 读取 requirements.md、相关 ADR 和完整 diff；独立 Verifier 不读源码，只用隔离 candidate CLI、叶子 Help、Feature Map 和 Acceptance Set 做真实黑盒验证。
 
-      fetch origin，确认 origin/main=review_base、HEAD=implementation_head、工作树 clean 且 git merge-base(review_base, HEAD)=review_base；任一不成立上报 candidate_changed。通过后令 reviewed_head=HEAD，把证据定稿到 review-report.md，发布并语义回读同一飞书 Code Review 文档。Result 前再次核验身份，只在一致时上报 code_review_approved 或 code_review_recommended、local_validation_passed、review_report_written、review_base_frozen、reviewed_head_frozen、code_review_document_published 与 panorama_presented。本 Step 不重复运行测试或整体 CR，不 push、不创建 PR。
+      执行子 Agent聚合前再次核验候选身份。Review 与黑盒都通过后，向主 Agent申请最终候选决定并记录 receipt。把原始回执、身份、覆盖和决定写入 certification-report.md。通过时上报 independent_review_passed、blackbox_verification_passed、main_agent_acceptance_passed、certification_report_written、certification_identity_frozen 与 panorama_presented。Review、黑盒或主 Agent要求修改时写完报告并选择对应失败 Condition 回 Build；目标变化回 Define；基础设施不可达保持 blocked。
     skills:
-      - {id: fanloop-dev-code-review, prompt: 核验实现阶段测试与审查覆盖最终候选，定稿发布回读 Review 报告并冻结身份。, optional: false}
-
-  execute_agent_acceptance_flow:
-    prompt: |
-      只接受 review_code 冻结且通过本地总验证的 review_base 与 reviewed_head；本 Step 不依赖 PR。安装前、场景后和 Result 前都 fetch，并要求 origin/main=review_base、HEAD=reviewed_head、工作树 clean、merge-base 等于 review_base；任一不成立上报 candidate_changed，不冒充 agent_acceptance_failed。
-
-      在隔离 FANLOOP_DATA_HOME 与四类 Skill Root 中从 reviewed_head 执行 ./scripts/install-local.sh，回读隔离 current、version commit 和 Doctor，并证明全局 current 未变。派发恰好一个无实现上下文的全新 Sub-agent，只使用该 CLI 绝对路径、叶子 --help 和 requirements.md 中一至三个公开场景完成真实黑盒验收；不得读源码、调用私有 helper、修改候选、使用机器人/Botmux/用户凭据或触碰全局 current。把原始命令、输出、退出码、状态、清理和结论写入 acceptance-report.md，发布并语义回读同一 Agent 验收飞书文档。全部通过上报 agent_acceptance_passed、acceptance_report_written、acceptance_document_published 与 panorama_presented；确定产品失败携带恰好一个最早责任回流；基础设施失败保持 blocked。
-    skills:
-      - {id: fanloop-dev-agent-acceptance, prompt: 用隔离候选 CLI 和一个独立 Sub-agent 完成真实黑盒验收。, optional: false}
-      - {id: fanloop-dev-verify, prompt: 按 Feature Map 使用隔离候选和公开 CLI 完成真实黑盒验证并保留证据。, optional: false}
-
-  confirm_main_agent_acceptance_flow:
-    prompt: |
-      执行子 Agent fetch 并校验 origin/main=review_base、HEAD=reviewed_head、工作树 clean、merge-base 等于 review_base；漂移时上报 candidate_changed。候选一致时逐项整理整体 Review、本地验证、隔离 CLI、Agent 验收报告和一至三个批准场景的原始证据，向主 Agent申请最终验收决定，不直接向用户请求确认，也不得自行批准。
-
-      收到主 Agent明确决定后，执行子 Agent用 fanloop-dev-decision-receipt 记录其 actor、decision 和证据，并把同一 reviewed pair、决定、receipt 与逐项核验结果写入 main-agent-review.md。主 Agent通过时上报 main_agent_acceptance_passed、main_agent_acceptance_recorded 与 panorama_presented；要求修改实现时上报 implementation_changes_requested 回 implement_code，用户主动改变目标、范围或验收标准时上报 requirements_changed 回 clarify_requirements。
-    skills:
-      - {id: fanloop-dev-decision-receipt, prompt: 安全写入并精确回读主 Agent 最终验收决定和证据。, optional: false}
+      - {id: fanloop-dev-code-review, prompt: 对冻结候选执行独立整体 Review 并返回原始回执。, optional: false}
+      - {id: fanloop-dev-agent-acceptance, prompt: 对冻结候选执行无源码上下文的公开 CLI 黑盒验证。, optional: false}
+      - {id: fanloop-dev-verify, prompt: 使用隔离候选、Feature Map 和 Acceptance Set 保留真实验证证据。, optional: false}
+      - {id: fanloop-dev-decision-receipt, prompt: 安全记录并回读主 Agent最终候选决定。, optional: false}
 
   merge_and_update_local_flow:
     prompt: |
-      只接受整体 Review、本地总验证、Agent 验收和 main-agent-review.md 覆盖同一 review_base 与 reviewed_head 的事实。先跨 open/merged 状态查找唯一 PR 并读取可选的 delivery-record.md；若 PR 已 merged，要求远端 head=final_head、merge commit 恰好一个 parent 且等于 final_base、可达 origin/main、final head 的 required checks 仍全部成功且 Review comment receipt 可回读，已有记录必须一致，记录缺失时从远端事实重建并回读；源码 worktree clean 且 HEAD 等于 reviewed_head、final_head 或该 merge commit，随后跳过候选和 PR 写操作，只重试未完成的本地更新。未合并时按 fanloop-dev-merge-and-update-local fetch，要求 HEAD=reviewed_head、工作树 clean、merge-base 等于 review_base。origin/main=review_base 时上报 handoff_main_unchanged，并以 review_base/reviewed_head 为最终 pair。
+      只处理 certification-report.md 覆盖的同一 certification_base、certification_head、Git tree 和候选 binary SHA-256。先 fetch origin；若 origin/main 已前进，只记录新的完整 main SHA，上报 delivery_main_advanced 与 panorama_presented 回 Build，Deliver 不合入 main、不修改候选，也不保留单独的集成确认。
 
-      若只有 origin/main 前进，在当前 Step 合入 fetch 得到的精确 SHA。普通冲突使用 resolving-merge-conflicts，保留已批准需求行为与 main 新行为；若必须扩大范围或改变未批准的 IDL、Workflow Step/拓扑/executor、Schema 或公开语义，保持 blocked。merge 后记录 final_base、final_head 和 handoff-integration-report.md，对集成变化做独立 CR，运行受影响聚焦测试与 ./tests/run-unit；执行子 Agent再向主 Agent申请确认集成仍保持原批准需求，记录明确决定后上报 handoff_main_integrated、handoff_integration_review_passed、handoff_integration_tests_passed 与 handoff_integration_main_agent_verified。
+      main 未变化时，上报 delivery_main_unchanged；幂等创建或更新当前分支到 main 的唯一 PR，等待精确 certification_head 的 required checks，并同步既有 Review 结论。产品类检查失败上报 remote_product_checks_failed 回 Build；基础设施失败保持 blocked。全部通过后用 --auto --squash --match-head-commit 合并，禁止 --admin、直接 push main 或第二个 PR。
 
-      跨 open/merged 状态查找当前分支到 main 的唯一 GitHub PR；零命中才以最终 pair 幂等 push/create，唯一 open PR 幂等更新，唯一 merged PR 复用其 merge commit，多命中 blocked。幂等更新 PR 描述的背景、问题、解法、影响、验证、ADR impact、主 Agent 结论和交付边界并回读；再回读 remote target HEAD、PR state/head/base/merge commit 与 merge-base，open PR 必须分别等于最终 base、最终 head、最终 base。等待 required checks 在最终 head 全部成功，随后同步既有 Review 结论到 PR 评论。合码前再次 fetch；main 再前进时留在本 Step 重做集成短门禁。执行 gh pr merge <PR_URL> --repo zeefan1555/fanloop --auto --squash --match-head-commit <FINAL_HEAD>，禁止 --admin；只有回读 PR 为 MERGED、merge commit 非空、恰好一个 parent 且等于 final_base，并可达 origin/main 才上报 code_merged，并立即把不可变 PR/merge 事实写入 delivery-record.md 供失败重入。
-
-      在切换全局 current 前先固定当前 Requirement 控制器。要求本 Requirement 的源码 worktree clean，将它更新为 detached merge commit，回读 HEAD 后上报 source_repository_updated；不得切换、重置或清理其他 checkout。清除 FANLOOP_CONFIG_SOURCE、FANLOOP_CONFIG_ROOT、FANLOOP_DATA_HOME、四类 Skill Root 和 Botmux 覆盖并从该 merge commit 执行 ./scripts/install-local.sh，回读全局 current、version commit 与 Doctor；精确匹配且 healthy 后上报 local_cli_updated。补全 Requirement、branch、PR、final pair、merge commit、checks、Review comment、源码 worktree与 active CLI 到 delivery-record.md 并回读。全部一致时上报 delivery_record_written 与 panorama_presented 后 terminal。PR 已合并但本地更新失败时保持 blocked，记录 merge commit，重试同一提交，不创建或合并第二个 PR。
+      回读 MERGED 和唯一 merge commit，要求 merge commit 恰好一个 parent 且等于 certification_base、可达 origin/main，并验证 merge commit tree 等于 certification_head tree。固定当前 Requirement 控制器，只把本 Requirement 的 clean 源码 worktree 切到 detached merge commit；从该提交更新全局 current，回读 version 和 Doctor，再运行 post-merge verify smoke。全部通过后写入 delivery-record.md，上报 merge_request_published、remote_checks_passed、review_comment_synced、code_merged、merge_tree_verified、source_repository_updated、local_cli_updated、post_merge_smoke_passed、delivery_record_written 与 panorama_presented 后 terminal。已合并后的本地失败只重试同一 merge commit。
     skills:
-      - {id: fanloop-dev-merge-and-update-local, prompt: 合并唯一 PR，并把精确 merge commit 更新到源码 worktree 和本机 current。, optional: false}
-      - {id: resolving-merge-conflicts, prompt: 仅在最终 Step 合入最新 main 出现冲突时保留两边已批准行为，不发明新行为。, optional: true}
-      - {id: fanloop-dev-decision-receipt, prompt: 仅在 main 前进并完成集成短门禁时记录主 Agent 集成确认。, optional: true}
+      - {id: fanloop-dev-merge-and-update-local, prompt: 交付已认证候选，校验 merge tree，并从精确 merge commit 更新源码 worktree和全局 current。, optional: false}
 
-  workspace_condition: {prompt: repository_workspace_prepared 输出 Issue Workspace 路径；范围变化时上报 repository_scope_changed。, skills: []}
-  requirements_document_condition: {prompt: requirements_grilled 输出包含完整计划、公开 Test Seams 与有效主 Agent 决定的 requirements.md 路径。, skills: []}
-  requirements_document_published_condition: {prompt: requirements_document_published 输出已更新并回读的同一需求飞书文档 URL。, skills: []}
-  requirements_decision_condition: {prompt: 主 Agent 根据已对齐目标选择 requirements_approved 或 requirements_rejected；二者只能一个。, skills: []}
-  requirements_approval_record_condition: {prompt: requirements_approval_recorded 输出精确回读的唯一主 Agent decision receipt ID。, skills: []}
-  requirements_evidence_condition: {prompt: requirements_evidence_written 输出已写入原始决定与 receipt 的 requirements.md 路径。, skills: []}
-  requirements_changed_condition: {prompt: 需求、确认决策或验收条件变化时上报 requirements_changed。, skills: []}
-  spec_condition: {prompt: spec_written 输出本地 spec.md 路径。, skills: []}
-  tickets_condition: {prompt: tickets_written 输出 Issue Workspace 下固定 issues/ 目录。, skills: []}
-  technical_solution_document_published_condition: {prompt: technical_solution_document_published 输出已发布并回读的同一技术方案飞书文档 URL。, skills: []}
-  technical_solution_review_condition: {prompt: Agent 自主评审全部完成判据为真时上报 technical_solution_review_passed；存在具体缺口时上报 technical_solution_review_failed；二者只能一个。, skills: []}
-  technical_solution_change_condition: {prompt: 需求明确但执行路径或批准 Test Seam 不可靠时上报 technical_solution_changes_requested。, skills: []}
-  implementation_condition: {prompt: 最终提交内容已由聚焦测试、./tests/run-unit 和独立整体 CR 覆盖且工作树 clean 时上报 implementation_completed=当前完整 HEAD；需要修改候选时上报 implementation_changes_requested。, skills: []}
-  candidate_change_condition: {prompt: 当前 HEAD、review_base、reviewed_head、merge-base、remote target、PR head、工作树或报告身份不一致时上报 candidate_changed；merge_and_update_local 中仅 origin/main 前进必须留在当前 Step 集成。, skills: []}
-  implementation_report_condition: {prompt: implementation_report_written 输出覆盖 implementation_head、TDD 或替代验证、聚焦与完整测试、独立整体 CR、修复复核、ADR impact 和最终内容身份的 implementation-report.md。, skills: []}
-  local_validation_condition: {prompt: 聚焦测试与 ./tests/run-unit 全部覆盖 clean 的最终候选时上报 local_validation_passed；任一失败上报 local_validation_failed。, skills: []}
-  code_review_condition: {prompt: 按 review_base...reviewed_head 的独立整体审查结论选择 code_review_approved、code_review_recommended 或 code_review_blocked。, skills: []}
-  code_review_document_condition: {prompt: code_review_document_published 输出由 review-report.md 发布并回读、同时记录 review_base、reviewed_head、Verdict 与本地总验证状态的飞书文档 URL。, skills: []}
-  review_report_condition: {prompt: review_report_written 输出记录 review_base、reviewed_head、需求/Spec/Tickets、Test Seam、ADR、Workflow/YAML/IDL、Verdict 与本地总验证的 review-report.md。, skills: []}
-  review_base_condition: {prompt: review_base_frozen 输出 Review 前 fetch 得到、在最终报告发布前重新确认仍等于 origin/main 且满足 merge-base 关系的完整 SHA。, skills: []}
-  reviewed_head_condition: {prompt: reviewed_head_frozen 输出整体 Review 与最终本地验证同时覆盖、且工作树 clean 的完整 SHA。, skills: []}
-  merge_request_condition: {prompt: merge_request_published 输出唯一 GitHub PR URL；target=main、source branch 和最终 pair 的 base/head/merge-base 必须精确一致。, skills: []}
-  remote_checks_condition: {prompt: 按 GitHub required checks 在最终 head 的真实终态选择 remote_checks_passed 或 remote_checks_failed；pending 不提交 Result。, skills: []}
-  review_comment_condition: {prompt: review_comment_synced 输出把既有整体 Review 结论同步到 PR 评论后的回读 receipt；存在 main 集成时还必须同步集成 CR 结论，不重新执行前序整体 Review。, skills: []}
-  handoff_main_unchanged_condition: {prompt: fetch 后 origin/main 仍等于 review_base、HEAD 仍等于 reviewed_head、工作树 clean 且 merge-base 正确时上报 handoff_main_unchanged。, skills: []}
-  handoff_main_integration_condition: {prompt: handoff_main_integrated 输出记录原 review_base/reviewed_head、final_base/final_head、merge commit、冲突文件与 handoff-integration-report.md 的对象。, skills: []}
-  handoff_integration_review_condition: {prompt: 独立 CR 覆盖 reviewed_head..final_head 与 final_base...final_head 且无 Block 时上报 handoff_integration_review_passed。, skills: []}
-  handoff_integration_tests_condition: {prompt: 受影响聚焦测试与 ./tests/run-unit 在 final_head 全部通过时上报 handoff_integration_tests_passed。, skills: []}
-  code_merged_condition: {prompt: 只有唯一 PR 已按精确 final head squash 合并、状态为 MERGED、merge commit 非空、恰好一个 parent 且等于 final_base，并可达 origin/main 时，code_merged 才输出完整 merge commit SHA。, skills: []}
-  source_repository_updated_condition: {prompt: source_repository_updated 只在本 Requirement 的干净源码 worktree 已更新到 detached merge commit 且 HEAD 精确回读一致时输出该 SHA；不得修改其他 checkout。, skills: []}
-  local_cli_updated_condition: {prompt: local_cli_updated 只在全局 current 的 version commit 精确等于 merge commit 且 Doctor healthy 时输出该 SHA。, skills: []}
-  delivery_record_condition: {prompt: delivery_record_written 输出记录 Requirement、branch、PR URL、final base/head、merge commit、checks、Review comment、源码 worktree 与 active CLI 的 delivery-record.md。, skills: []}
-  handoff_integration_main_agent_condition: {prompt: 主 Agent 查看精确 final_base/final_head、独立 CR 和集成测试后确认仍保持原批准需求，并上报自身决定回执。, skills: []}
-  agent_acceptance_condition: {prompt: reviewed pair 的隔离安装、Doctor 与全新 Sub-agent 公开 CLI 场景全部通过时上报 agent_acceptance_passed；确定产品失败时上报 agent_acceptance_failed 并选择恰好一个回流原因。, skills: []}
-  acceptance_report_condition: {prompt: acceptance_report_written 输出包含 review_base、reviewed_head、隔离安装、场景原始结果、cleanup 与结论的 acceptance-report.md。, skills: []}
-  acceptance_document_condition: {prompt: acceptance_document_published 输出由 acceptance-report.md 创建或更新并语义回读成功的 Agent 验收飞书文档 URL。, skills: []}
-  main_agent_acceptance_condition: {prompt: 主 Agent 逐项核验同一 reviewed pair 的 Review、本地验证与独立黑盒验收全部通过时上报 main_agent_acceptance_passed。, skills: []}
-  main_agent_acceptance_record_condition: {prompt: main_agent_acceptance_recorded 输出记录 review_base、reviewed_head、主 Agent actor、决定回执和逐项核验结果的 main-agent-review.md。, skills: []}
-
-  back_to_repository_scope: {prompt: 回到仓库范围确定，重建 Issue Workspace 或基线并失效该 Step 及下游 Output。, skills: []}
-  back_to_requirements: {prompt: 回到需求澄清，补齐或重新确认需求并失效该 Step 及下游 Output。, skills: []}
-  back_to_technical_solution: {prompt: 回到方案设计，修订方案或 Test Seam 并失效方案及下游 Output。, skills: []}
-  back_to_implementation: {prompt: 回到代码实现，必要时先把候选更新到当前 origin/main，再修复并提交新 HEAD；旧 Review、两级验收和远端门禁全部失效。, skills: []}
+  verification_contract_condition: {prompt: verification_contract_written 输出包含 Acceptance Set、Feature Impact Set、边界、风险与停止条件的 requirements.md。, skills: []}
+  requirements_decision_condition: {prompt: 根据主 Agent明确决定选择 requirements_approved 或 requirements_rejected；二者只能一个。, skills: []}
+  requirements_decision_record_condition: {prompt: requirements_decision_recorded 输出精确回读的主 Agent decision receipt ID。, skills: []}
+  requirements_changed_condition: {prompt: 目标、范围、验收标准或治理契约变化时上报 requirements_changed。, skills: []}
+  self_validation_condition: {prompt: 聚焦测试、./tests/run-unit 和 Feature Impact Set 的真实公开 CLI 验证全部覆盖最终候选时上报 self_validation_passed。, skills: []}
+  verification_report_condition: {prompt: verification_report_written 输出引用原始 run/manifest/snapshot 并记录候选身份、覆盖、失败分类、修复和 ADR impact 的 verification-report.md。, skills: []}
+  candidate_identity_condition: {prompt: candidate_identity_recorded 输出严格对象，至少包含 candidate_head、git_tree、binary_sha256、verification_contract_sha256 和 feature_impact_sha256。, skills: []}
+  candidate_change_condition: {prompt: HEAD、Git tree、binary、验证资产、工作树或报告身份不一致时上报 candidate_changed。, skills: []}
+  independent_review_condition: {prompt: 按独立 Reviewer 原始结论选择 independent_review_passed 或 independent_review_failed。, skills: []}
+  blackbox_verification_condition: {prompt: 按无源码上下文 Verifier 原始结论选择 blackbox_verification_passed 或 blackbox_verification_failed。, skills: []}
+  main_agent_acceptance_condition: {prompt: 按主 Agent明确最终决定选择 main_agent_acceptance_passed 或 main_agent_changes_requested。, skills: []}
+  certification_report_condition: {prompt: certification_report_written 输出引用独立 Review、黑盒证据、候选身份和主 Agent决定的 certification-report.md。, skills: []}
+  certification_identity_condition: {prompt: certification_identity_frozen 输出严格对象，至少包含 certification_base、certification_head、git_tree、binary_sha256 和 verification_assets_sha256。, skills: []}
+  delivery_main_condition: {prompt: origin/main 等于 certification_base 时上报 delivery_main_unchanged；前进时上报 delivery_main_advanced=<新完整 SHA> 并回 Build。, skills: []}
+  merge_request_condition: {prompt: merge_request_published 输出当前分支到 main 的唯一 GitHub PR URL。, skills: []}
+  remote_checks_condition: {prompt: 精确 certification_head 的 required checks 全部成功时上报 remote_checks_passed；确定产品失败时上报 remote_product_checks_failed；基础设施失败不提交 Result。, skills: []}
+  review_comment_condition: {prompt: review_comment_synced 输出独立 Review 结论同步到 PR 评论后的回读 receipt。, skills: []}
+  code_merged_condition: {prompt: code_merged 输出回读 MERGED、单 parent 且可达 origin/main 的完整 merge commit SHA。, skills: []}
+  merge_tree_condition: {prompt: merge commit tree 与 certification_head tree 完全相同时上报 merge_tree_verified。, skills: []}
+  source_repository_updated_condition: {prompt: source_repository_updated 输出本 Requirement 源码 worktree detached 到的 merge commit SHA。, skills: []}
+  local_cli_updated_condition: {prompt: local_cli_updated 输出全局 current version 回读的 merge commit SHA，且 Doctor healthy。, skills: []}
+  post_merge_smoke_condition: {prompt: 从 merge commit 安装的全局 current 完成 fanloop verify smoke 时上报 post_merge_smoke_passed。, skills: []}
+  delivery_record_condition: {prompt: delivery_record_written 输出记录 PR、checks、head/tree、merge commit/tree、源码 worktree、active CLI、Doctor 和 smoke 的 delivery-record.md。, skills: []}
+  back_to_define: {prompt: 回到 Define，重新冻结 Verification Contract；旧候选、认证和交付证据全部失效。, skills: []}
+  back_to_build: {prompt: 回到 Build，产生并验证新候选；旧认证、PR checks 和交付证据全部失效。, skills: []}

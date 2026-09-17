@@ -150,18 +150,18 @@ func TestResultSelectsSharedConditionsByExplicitFlowTarget(t *testing.T) {
 	}
 	payload := FlowResultPayload{
 		ConditionResults: []ConditionResult{
-			{ConditionID: "human_step_jump_requested", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"jump_requested"`)}},
-			{ConditionID: "human_step_jump_context_written", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".scratch/human-step-jump-context.md"`)}},
-			{ConditionID: "human_step_jump_recorded", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"jump-receipt"`)}},
-			{ConditionID: "panorama_presented", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".scratch/panorama.json"`)}},
+			{ConditionID: "verification_contract_written", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`)}},
+			{ConditionID: "requirements_approved", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`)}},
+			{ConditionID: "requirements_decision_recorded", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`)}},
+			{ConditionID: "panorama_presented", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`)}},
 		},
-		Summary: "human selected review",
+		Summary: "verification contract approved",
 		Effect:  ResultAdvanced,
 		Transition: Transition{
-			Direction: TransitionFlow, FromStepID: "bootstrap_techdesign", ToStepID: "review_code",
+			Direction: TransitionFlow, FromStepID: "define_verification_contract", ToStepID: "build_until_verified",
 		},
 		OutputChanges: OutputChanges{Accepted: []string{
-			"human_step_jump_context_path", "human_step_jump_receipt_id", "human_step_jump_result", "panorama_snapshot_path",
+			"verification_contract_path", "requirements_decision", "requirements_decision_receipt_id", "panorama_snapshot_path",
 		}},
 	}
 	if err := validateResultAgainst(loaded.Workflow, payload); err != nil {

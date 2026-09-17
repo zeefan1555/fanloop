@@ -53,8 +53,8 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
 Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`technical-solution-design` 的三个 Human Step
-必须同时具备已回读飞书文档 URL、`panorama_card_published` 与人的明确结论。`fanloop-maintainer` 不再包含
-Human Step：需求批准和 `confirm_main_agent_acceptance` 最终验收均由执行子 Agent整理真实产物并向主 Agent申请决定。审批 Skill 组织审核材料并按最早受影响层分类，
+必须同时具备已回读飞书文档 URL、`panorama_card_published` 与人的明确结论。`fanloop-maintainer` 不包含
+Human Step：Define 的需求批准和 Certify 的最终候选验收均由执行子 Agent整理真实产物并向主 Agent申请决定。审批 Skill 组织审核材料并按最早受影响层分类，
 Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
 Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
@@ -63,7 +63,8 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 [ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)、
 [ADR-0098](./adr/0098-use-eleven-section-technical-document-workflow.md)、
 [ADR-0100](./adr/0100-align-maintainer-with-treeloop-handoff.md) 与
-[ADR-0106](./adr/0106-drive-maintainer-with-main-agent-and-subagents.md)。
+[ADR-0106](./adr/0106-drive-maintainer-with-main-agent-and-subagents.md) 与
+[ADR-0108](./adr/0108-collapse-maintainer-into-four-step-verification-loop.md)。
 
 ## 当前配置实例
 
@@ -79,9 +80,9 @@ optional `human-step-jump` 允许人在确认影响后跳到任意 Step。Step �
 最终呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
-`fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：TechDesign 包含仓库范围确定、需求澄清、方案设计和方案自主评审；
-Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、主 Agent 验收决策和 PR 合码与本地更新。
-Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
+`fanloop-maintainer` 使用 4 Stage / 4 Job / 4 Step：Define 冻结目标与验收契约，Build 持续实现和自主验证，
+Certify 并行执行独立 Review 与黑盒验收并记录主 Agent决定，Deliver 合并唯一 PR、校验 tree 并更新本地
+CLI。Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
 用户先与主 Agent 对齐目录和目标；主 Agent派生并持续监督只向其回报的执行子 Agent，执行子 Agent创建、
 持有并驱动 Requirement，且直接修改受管代码。实现阶段运行聚焦测试、`./tests/run-unit` 和独立整体 CR；Review 阶段核验证据并冻结

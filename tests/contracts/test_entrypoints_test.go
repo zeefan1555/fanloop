@@ -100,7 +100,7 @@ func TestLocalBuildReplacesDistributionEntrypoints(t *testing.T) {
 	}
 }
 
-func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
+func TestMaintainerFourStepVerificationAssetsAreComplete(t *testing.T) {
 	repo := repositoryRoot(t)
 	if _, err := os.Stat(filepath.Join(repo, "FEATURE_MAP.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("retired root FEATURE_MAP.md remains: %v", err)
@@ -119,13 +119,13 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./.github/scripts/run-requirement-validation", "BOTMUX_CHAT_ID", "docs/research",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
-			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读", "执行子 Agent", "向主 Agent申请", "不得自批",
+			"一至三个", "公开入口", "独立预期", "requirements.md", "Acceptance Set", "Feature Impact Set", "执行子 Agent", "向主 Agent申请", "批准前不得修改",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
-			"implementation-report.md", "review_base", "./tests/run-unit", "隔离公开 CLI 证据", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>", "执行子 Agent", "直接完成", "只向主 Agent回报", "不接管实现",
+			"verification-report.md", "./tests/run-unit", "真实公开 CLI", "fanloop-dev-maintain-verification/SKILL.md", "candidate_head", "git_tree", "binary_sha256", "可证伪假设", "本 Step 不 push",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
-			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
+			"certification_head", "FANLOOP_DATA_HOME", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "verify smoke", "blocked",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
 			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "references/features/README.md", "INVALID_ARGUMENT", ".fanloop/log/cli.jsonl", ".fanloop/trace/events.jsonl",
@@ -134,28 +134,22 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "执行子 Agent不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_main_agent_acceptance", "持有 Requirement Root", "直接完成受管实现", "向主 Agent申请明确决定", "merge_and_update_local", "自动合并", "全局 current", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
+			"纯 live Skill 配置变更直接交付", "`skills/**`", "bound-release-home/current/bin/fanloop", "define_verification_contract", "build_until_verified", "certify_candidate", "merge_and_update_local", "持有 Requirement", "受管实现", "主 Agent负责需求批准和最终候选决定", "main 前进时不修改代码", "全局 current", "Panorama 必须作为第一条用户可见消息",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
-			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
+			"`skills/**`", "直接修改和聚焦验证", "Define -> Build -> Certify -> Deliver", "前进时回 Build",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/scripts/pin-controller-release.sh": {
 			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
 		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
-			"review_base", "implementation_head", "./tests/run-unit", "fanloop-dev-verify/references/features/", "review-report.md", "reviewed_head_frozen",
+			"requirements.md", "Feature Impact", "./tests/run-unit", "verification-report.md", "不得在本任务中修改代码", "passed 或 failed",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-decision-receipt/SKILL.md": {
-			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=agent|human", "host_turn", "主 Agent决定", "Step 跳转必须为 human",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-human-step-jump/SKILL.md": {
-			"human_step_jump_requested", "available_routes", "source", "target", "fanloop-dev-decision-receipt", "不伪造被跨过",
+			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=agent", "host_turn", "主 Agent明确决定",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-merge-and-update-local/SKILL.md": {
-			"origin/main", "review_base", "reviewed_head", "final_head", "--state all", "记录缺失时", "唯一 merged PR", "恰好一个 parent", "Review comment", "ADR impact", "主 Agent 结论", "交付边界", "required checks", "test (ubuntu-latest)", "requirement-e2e", "--match-head-commit", "禁止 `--admin`", "pin-controller-release.sh", "detached merge", "FANLOOP_CONFIG_SOURCE", "FANLOOP_CONFIG_ROOT", "./scripts/install-local.sh", "delivery-record.md", "local_cli_updated",
-		},
-		"skills/fanloop-maintainer/resolving-merge-conflicts/SKILL.md": {
-			"两个 parent", "保留已批准需求行为", "不发明新功能", "blocked",
+			"origin/main", "certification_base", "certification_head", "delivery_main_advanced", "唯一 PR", "恰好一个 parent", "Review", "ADR impact", "test (ubuntu-latest)", "requirement-e2e", "--match-head-commit", "禁止 `--admin`", "detached merge", "./scripts/install-local.sh", "delivery-record.md", "^{tree}", "fanloop verify smoke",
 		},
 	}
 	for relative, snippets := range contracts {
@@ -185,8 +179,8 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	workflowContract := string(maintainerEntry)
-	if strings.Contains(workflowContract, "agent_approved") || strings.Contains(workflowContract, "gh pr merge") {
-		t.Error("maintainer entry still documents retired approval or auto-merge behavior")
+	if strings.Contains(workflowContract, "human-step-jump") || strings.Contains(workflowContract, "confirm_main_agent_acceptance") {
+		t.Error("maintainer entry still documents retired nine-step behavior")
 	}
 	for _, retired := range []string{
 		".agents/skills/verify-fanloop",
@@ -200,6 +194,8 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh",
 		"skills/fanloop-maintainer/fanloop-dev-merge-code",
 		"skills/fanloop-maintainer/fanloop-dev-update-local-cli",
+		"skills/fanloop-maintainer/fanloop-dev-human-step-jump",
+		"skills/fanloop-maintainer/resolving-merge-conflicts",
 	} {
 		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(retired))); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("retired maintainer asset remains: %s", retired)

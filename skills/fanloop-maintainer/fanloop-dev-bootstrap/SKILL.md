@@ -1,6 +1,6 @@
 ---
 name: fanloop-dev-bootstrap
-description: 为 Fanloop CLI 反馈创建隔离 Issue Workspace 与源码 Worktree，固定 main 诊断基线。用于 fanloop-maintainer Workflow 的 bootstrap_techdesign Step；不定义问题、不修改代码。
+description: 为 Fanloop CLI 变更创建隔离 Issue Workspace 与源码 Worktree，并固定 Define Step 使用的 main 基线。
 ---
 
 # 准备 Fanloop CLI 维护工作区
@@ -12,10 +12,7 @@ description: 为 Fanloop CLI 反馈创建隔离 Issue Workspace 与源码 Worktr
    创建或复用隔离 Worktree；已有 Worktree 非干净或基线不一致时停止并报告，不重置、不删除用户改动。
 3. 记录 Issue slug、源码路径、`main@<sha>`、基线来源、当前分支或 detached 状态和
    `git status --short` 到 `<issue-workspace>/bootstrap.md`。
-4. bootstrap 阶段只准备只读诊断环境。不得创建开发提交、修改产品文件、输出实施计划，
-   也不得恢复 `fanloop_dev` build tag、Overlay 或专用安装器。
-5. 回读文件与 Git 事实；一致时返回 `repository_workspace_prepared`，其 Output 为
-   Issue Workspace 路径。
+4. 本 Skill 只准备环境，不修改产品文件，也不得恢复 `fanloop_dev` build tag、Overlay 或专用安装器。
+5. 回读文件与 Git 事实，把 workspace、worktree、branch 和 main SHA 写入 requirements.md 的基线部分。
 
-完成标准：诊断明确基于已记录的 `main` 基线；用户已有改动未被覆盖；后续
-`clarify_requirements` 可以直接在该 Worktree 只读复现。
+完成标准：诊断明确基于已记录的 `main` 基线；用户已有改动未被覆盖；Define 可继续生成 Verification Contract。

@@ -41,7 +41,7 @@ func TestMaintainerTraceUsesSelfIterationRegistry(t *testing.T) {
 		}
 	}
 
-	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root, "--step-id", "bootstrap_techdesign", "--status", "in_progress", "--summary", "started"), "flow.report.progress")
+	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root, "--step-id", "define_verification_contract", "--status", "in_progress", "--summary", "started"), "flow.report.progress")
 	log := string(readFile(t, logPath))
 	for _, want := range []string{"--base-token Lu15bIcOuaAscosQe9ecddhtnBg", "--table-id tblW1KFyrKtUeNF4", "--view-id vew5zFcUtJ"} {
 		if !strings.Contains(log, want) {
@@ -136,10 +136,10 @@ func TestMaintainerTraceSyncRecordsIndependentCLILogFailure(t *testing.T) {
 	}
 }
 
-func TestMaintainerDryRunAcceptsIssueWorkspaceDirectoryOutput(t *testing.T) {
+func TestMaintainerDryRunAcceptsVerificationContractPath(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	workspace := filepath.Join(root, "issue-workspace")
-	if err := os.Mkdir(workspace, 0o700); err != nil {
+	contract := filepath.Join(root, "requirements.md")
+	if err := os.WriteFile(contract, []byte("# Contract\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,11 +147,13 @@ func TestMaintainerDryRunAcceptsIssueWorkspaceDirectoryOutput(t *testing.T) {
 	reported := run(binary, "flow", "report", "result",
 		"--root", root,
 		"--dry-run",
-		"--step-id", "bootstrap_techdesign",
-		"--condition-result", conditionResult("repository_workspace_prepared", "path", `"issue-workspace"`),
-		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/bootstrap.md"`),
-		"--next-step-id", "clarify_requirements",
-		"--summary", "Issue Workspace prepared",
+		"--step-id", "define_verification_contract",
+		"--condition-result", conditionResult("verification_contract_written", "path", `"requirements.md"`),
+		"--condition-result", conditionResult("requirements_approved", "enum_value", `"approved"`),
+		"--condition-result", conditionResult("requirements_decision_recorded", "string", `"decision-requirements"`),
+		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/define.md"`),
+		"--next-step-id", "build_until_verified",
+		"--summary", "Verification contract prepared",
 	)
 	assertSuccess(t, reported, "flow.report.result")
 }
