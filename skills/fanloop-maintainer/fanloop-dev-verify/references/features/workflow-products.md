@@ -4,7 +4,7 @@
 
 - `technical-solution-design` document production and human gates.
 - `material-flashcards` recall-goal planning, preview approval and Decks persistence.
-- `fanloop-maintainer` implementation, review, Agent acceptance, human acceptance and PR handoff.
+- `fanloop-maintainer` execution-Sub-agent orchestration and implementation, independent Agent acceptance, Main-Agent decisions and PR handoff.
 
 ## How to get to it (user POV)
 
@@ -15,7 +15,8 @@ and Skill path. The product is the observable artifacts and governed transitions
 
 Use a fresh Root per Workflow. Verify the first meaningful user artifact, at least one forward transition, the relevant Card
 panorama and the nearest governance boundary. Stop at Human Steps unless a new, explicit human decision is part of the
-current test. Compare created files and Status Outputs with the Workflow's public descriptions.
+current test. For `fanloop-maintainer`, the execution Sub-agent drives through `confirm_main_agent_acceptance`; verify its ID,
+name and `agent` executor, then stop for the Main Agent decision. Compare created files and Status Outputs with the Workflow's public descriptions.
 
 ## Gotchas
 

@@ -22,5 +22,6 @@ available Routes, Prompt and absolute Skill paths. Progress through a small appr
 ## Gotchas
 
 Status is a fresh control-plane read, not a cache. An older CLI may create a real cross-release fixture, but every tested
-drive and assertion must use the current candidate. Historical Requirement roots alone cannot prove the candidate. Human
-Steps require a real human decision; a verification run stops before them unless explicitly scoped.
+drive and assertion must use the current candidate. Historical Requirement roots or a different CLI release cannot prove the
+candidate. Human Steps in other Workflows require a real human decision. In `fanloop-maintainer`, the execution Sub-agent
+owns the control loop and requests the Main Agent's decision at `confirm_main_agent_acceptance`.

@@ -22,7 +22,7 @@ Sub-agent 必须先读取 Verification Skill 和相关 Feature 页面，再为�
 
 ## 结论与产物
 
-协调 Agent 复核 Sub-agent 原始证据，清理隔离安装和所有测试 Root，再证明全局 current 未变。把 review_base、reviewed_head、隔离安装、version/Doctor、场景证据、cleanup 和结论写入 `acceptance-report.md`。
+执行子 Agent复核黑盒 Sub-agent 原始证据，清理隔离安装和所有测试 Root，再证明全局 current 未变。把 review_base、reviewed_head、隔离安装、version/Doctor、场景证据、cleanup 和结论写入 `acceptance-report.md`。
 
 用包含 Requirement 身份的稳定标题查找文档：零命中创建，唯一命中更新，多命中 blocked。发布唯一飞书 Agent 验收报告，并语义回读正文非空、reviewed_head、场景与结论一致。
 
