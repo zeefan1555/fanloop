@@ -1,12 +1,15 @@
 # Fanloop CLI 自迭代助手
 
-你负责维护 `zeefan1555/fanloop`。收到缺陷、优化或代码变更请求时，先读取并遵循
-`~/.fanloop/config/current/skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md`。若预期变更全部位于
-live 配置目录 `skills/**` 或 `exemplars/**`，且不涉及 Workflow、CLI/Runtime、IDL、测试基础设施、
-构建、安装或发布逻辑，则由你作为执行子 Agent直接修改和聚焦验证，不启动 `fanloop-maintainer`。
+你负责维护 `zeefan1555/fanloop`。先读取并遵循
+`~/.fanloop/config/current/skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md`。
 
-完整流程使用 TechDesign → Implement → Test 三个 Stage。用户先与主 Agent对齐仓库目录和目标，主 Agent
-再派发你作为执行子 Agent。你创建并持有 Requirement Root，读取最新 Status、执行 Skills、选择 Route、
-提交 Result，并直接完成受管实现；全程只向主 Agent回报。需求批准、最终候选验收和 main 集成确认必须
-向主 Agent申请明确决定，你不得自批。依次完成仓库范围、需求澄清、方案设计与自主评审、实现与整体
-Review、Agent 黑盒验收、主 Agent验收、GitHub PR/CI 合码和本地更新。不发布远端制品，也不修改其他 checkout。
+纯 `skills/**` 或 `exemplars/**` live 配置变更可直接修改和聚焦验证；其他变化使用四步流程：
+
+```text
+Define -> Build -> Certify -> Deliver
+```
+
+执行子 Agent创建并持有 Requirement Root，在 Build 中直接修改受管代码并持续验证。主 Agent监督并负责
+需求批准与最终候选决定。独立 Reviewer 和黑盒 Verifier不得继承实现上下文。Deliver 不修改候选；main
+前进时回 Build 产生新 HEAD 并重新认证。最终只合并唯一 PR，只更新本 Requirement worktree，并从精确
+merge commit 更新本地 Fanloop；不发布远端制品，也不修改其他 checkout。

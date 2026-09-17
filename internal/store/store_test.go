@@ -165,7 +165,7 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 	}
 }
 
-func TestMaintainerTracePanoramaShowsThreeStageDelivery(t *testing.T) {
+func TestMaintainerTracePanoramaShowsFourStepDelivery(t *testing.T) {
 	loaded, err := workflow.Load("fanloop-maintainer")
 	if err != nil {
 		t.Fatal(err)
@@ -180,9 +180,10 @@ func TestMaintainerTracePanoramaShowsThreeStageDelivery(t *testing.T) {
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"TechDesign：**仓库范围确定（Ready）** → 需求澄清 → 方案设计 → 方案自主评审",
-		"Implement：代码实现与过程 CR → 整体 Code Review",
-		"Test：Agent 端到端测试 → 主 Agent 验收决策 → PR 合码与本地更新",
+		"Define：**目标与验收契约（Ready）**",
+		"Build：实现与自主验证",
+		"Certify：独立候选认证",
+		"Deliver：PR 合码与本地更新",
 	} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)
@@ -216,9 +217,9 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 		Release:       state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID: &step, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{
-			"requirement_document_url":      {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/Requirements"`), ProducerStepID: "clarify_requirements"},
-			"technical_design_document_url": {Type: workflow.OutputURL, Value: json.RawMessage(`"https://bytedance.larkoffice.com/docx/Design"`), ProducerStepID: "design_technical_solution"},
-			"artifact_urls":                 {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://example.com/artifacts/123"]`), ProducerStepID: "review_code"},
+			"verification_contract_path": {Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`), ProducerStepID: "define_verification_contract"},
+			"verification_report_path":   {Type: workflow.OutputPath, Value: json.RawMessage(`"verification-report.md"`), ProducerStepID: "build_until_verified"},
+			"merge_request_urls":         {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/pull/123"]`), ProducerStepID: "merge_and_update_local"},
 		},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
 			DocumentURL: "https://bytedance.larkoffice.com/docx/Trace", Registry: traceconfig.RegistryProduction,
@@ -228,9 +229,9 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"| requirement_document_url | url | clarify_requirements | https://bytedance.larkoffice.com/docx/Requirements |",
-		"| technical_design_document_url | url | design_technical_solution | https://bytedance.larkoffice.com/docx/Design |",
-		"| artifact_urls | url_list | review_code | [\"https://example.com/artifacts/123\"] |",
+		"| verification_contract_path | path | define_verification_contract | requirements.md |",
+		"| verification_report_path | path | build_until_verified | verification-report.md |",
+		"| merge_request_urls | url_list | merge_and_update_local | [\"https://github.com/zeefan1555/fanloop/pull/123\"] |",
 		"📜 CLI 日志：[查看完整输入输出](https://bytedance.larkoffice.com/docx/CLILog)",
 	} {
 		if !strings.Contains(projection, want) {
@@ -294,12 +295,15 @@ func TestCommitValidatesNewResultAgainstCurrentRoutesAcrossDigests(t *testing.T)
 		t.Fatal(failure)
 	}
 
-	target := "clarify_requirements"
+	target := "certify_candidate"
 	next := current
 	next.CurrentStepID = &target
 	next.CurrentStepSummary = "invalid route"
 	next.Outputs = map[string]state.RegisteredOutput{
-		"issue_workspace_path": {Type: workflow.OutputPath, Value: json.RawMessage(`"issue-workspace"`), ProducerStepID: step},
+		"verification_contract_path":       {Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`), ProducerStepID: step},
+		"requirements_decision":            {Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`), ProducerStepID: step},
+		"requirements_decision_receipt_id": {Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`), ProducerStepID: step},
+		"panorama_snapshot_path":           {Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`), ProducerStepID: step},
 	}
 	next.LastEventID = "e2"
 	next.UpdatedAt = now.Add(time.Minute)
@@ -307,10 +311,15 @@ func TestCommitValidatesNewResultAgainstCurrentRoutesAcrossDigests(t *testing.T)
 		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: next.UpdatedAt, Kind: state.EventFlowResult,
 		Command: "flow.report.result", Workflow: oldRef, CausedByEventID: "e1",
 		Payload: state.Payload(state.FlowResultPayload{
-			ConditionResults: []state.ConditionResult{{ConditionID: "repository_workspace_prepared", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"issue-workspace"`)}}},
-			Summary:          "invalid route", Effect: state.ResultAdvanced,
+			ConditionResults: []state.ConditionResult{
+				{ConditionID: "verification_contract_written", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`)}},
+				{ConditionID: "requirements_approved", Output: state.OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`)}},
+				{ConditionID: "requirements_decision_recorded", Output: state.OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`)}},
+				{ConditionID: "panorama_presented", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`)}},
+			},
+			Summary: "invalid route", Effect: state.ResultAdvanced,
 			Transition:    state.Transition{Direction: state.TransitionFlow, FromStepID: step, ToStepID: target},
-			OutputChanges: state.OutputChanges{Accepted: []string{"issue_workspace_path"}},
+			OutputChanges: state.OutputChanges{Accepted: []string{"verification_contract_path", "requirements_decision", "requirements_decision_receipt_id", "panorama_snapshot_path"}},
 		}),
 	}
 	if failure := local.Commit(next, result); failure == nil || failure.Code != erroridl.ErrorCode_STATE_CORRUPT || !strings.Contains(failure.Message, "Flow Route") {

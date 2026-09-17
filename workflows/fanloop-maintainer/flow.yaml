@@ -1,162 +1,25 @@
 schema_version: 5
 
 flow:
-  bootstrap_techdesign:
-    - prompt_ref: {file: prompt.yaml, prompt_id: bootstrap_techdesign_flow}
-      when:
-        any_of:
-          - [repository_workspace_prepared, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: clarify_requirements
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: design_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: review_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: execute_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
-
-  clarify_requirements:
-    - prompt_ref: {file: prompt.yaml, prompt_id: clarify_requirements_flow}
-      when:
-        any_of:
-          - [requirements_grilled, requirements_document_published, requirements_approved, requirements_approval_recorded, requirements_evidence_written, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: design_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: clarify_requirements_rejected_terminal}
-      when: {any_of: [[requirements_grilled, requirements_document_published, requirements_rejected, requirements_approval_recorded, requirements_evidence_written, panorama_presented]]}
+  define_verification_contract:
+    - prompt_ref: {file: prompt.yaml, prompt_id: define_verification_contract_flow}
+      when: {any_of: [[verification_contract_written, requirements_approved, requirements_decision_recorded, panorama_presented]]}
+      next_step_id: build_until_verified
+    - prompt_ref: {file: prompt.yaml, prompt_id: define_verification_contract_rejected_terminal}
+      when: {any_of: [[verification_contract_written, requirements_rejected, requirements_decision_recorded, panorama_presented]]}
       terminal: true
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: review_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: execute_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
 
-  design_technical_solution:
-    - prompt_ref: {file: prompt.yaml, prompt_id: design_technical_solution_flow}
-      when:
-        any_of:
-          - [spec_written, tickets_written, technical_solution_document_published, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: confirm_technical_solution
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: review_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: execute_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
+  build_until_verified:
+    - prompt_ref: {file: prompt.yaml, prompt_id: build_until_verified_flow}
+      when: {any_of: [[self_validation_passed, verification_report_written, candidate_identity_recorded, panorama_presented]]}
+      next_step_id: certify_candidate
 
-  confirm_technical_solution:
-    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_technical_solution_flow}
-      when:
-        any_of:
-          - [technical_solution_review_passed, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: implement_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: review_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: execute_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
-
-  implement_code:
-    - prompt_ref: {file: prompt.yaml, prompt_id: implement_code_flow}
-      when:
-        any_of:
-          - [implementation_completed, implementation_report_written, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: review_code
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: execute_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
-
-  review_code:
-    - prompt_ref: {file: prompt.yaml, prompt_id: review_code_flow}
-      when:
-        any_of:
-          - [code_review_approved, local_validation_passed, review_report_written, review_base_frozen, reviewed_head_frozen, code_review_document_published, panorama_presented]
-          - [code_review_recommended, local_validation_passed, review_report_written, review_base_frozen, reviewed_head_frozen, code_review_document_published, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: execute_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
-
-  execute_agent_acceptance:
-    - prompt_ref: {file: prompt.yaml, prompt_id: execute_agent_acceptance_flow}
-      when:
-        any_of:
-          - [agent_acceptance_passed, acceptance_report_written, acceptance_document_published, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: confirm_main_agent_acceptance
-    - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
-      when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: merge_and_update_local
-
-  confirm_main_agent_acceptance:
-    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_main_agent_acceptance_flow}
-      when:
-        any_of:
-          - [main_agent_acceptance_passed, main_agent_acceptance_recorded, panorama_presented]
-          - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
+  certify_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: certify_candidate_flow}
+      when: {any_of: [[independent_review_passed, blackbox_verification_passed, main_agent_acceptance_passed, certification_report_written, certification_identity_frozen, panorama_presented]]}
       next_step_id: merge_and_update_local
 
   merge_and_update_local:
     - prompt_ref: {file: prompt.yaml, prompt_id: merge_and_update_local_flow}
-      when:
-        any_of:
-          - [handoff_main_unchanged, merge_request_published, remote_checks_passed, review_comment_synced, code_merged, source_repository_updated, local_cli_updated, delivery_record_written, panorama_presented]
-          - [handoff_main_integrated, handoff_integration_review_passed, handoff_integration_tests_passed, handoff_integration_main_agent_verified, merge_request_published, remote_checks_passed, review_comment_synced, code_merged, source_repository_updated, local_cli_updated, delivery_record_written, panorama_presented]
+      when: {any_of: [[delivery_main_unchanged, merge_request_published, remote_checks_passed, review_comment_synced, code_merged, merge_tree_verified, source_repository_updated, local_cli_updated, post_merge_smoke_passed, delivery_record_written, panorama_presented]]}
       terminal: true

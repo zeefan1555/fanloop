@@ -167,7 +167,7 @@ func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t 
 			t.Fatalf("candidate %s failed on old Requirement: %v\nstdout: %s\nstderr: %s", name, result.err, result.stdout, result.stderr)
 		}
 	}
-	assertCandidate("progress", "flow", "report", "progress", "--root", oldRoot, "--step-id", "bootstrap_techdesign", "--status", "in_progress", "--summary", "continued by candidate")
+	assertCandidate("progress", "flow", "report", "progress", "--root", oldRoot, "--step-id", "define_verification_contract", "--status", "in_progress", "--summary", "continued by candidate")
 	assertCandidate("card", "card", "render", "--root", oldRoot, "--view", "current", "--format", "markdown")
 	assertCandidate("trace", "trace", "status", "--root", oldRoot)
 	assertCandidate("sync", "trace", "sync", "--root", oldRoot)
