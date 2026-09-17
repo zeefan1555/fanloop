@@ -438,6 +438,10 @@ func validTraceTargetResults(values []TraceTargetResult) bool {
 }
 
 func (value Event) ValidateAgainst(definition workflow.Workflow) error {
+	return value.validateAgainst(definition, true)
+}
+
+func (value Event) validateAgainst(definition workflow.Workflow, validateResultRoute bool) error {
 	switch value.Kind {
 	case EventFlowInitialized:
 		payload, _ := EventPayloadAs[FlowInitializedPayload](value)
@@ -452,17 +456,26 @@ func (value Event) ValidateAgainst(definition workflow.Workflow) error {
 		}
 	case EventFlowResult:
 		payload, _ := EventPayloadAs[FlowResultPayload](value)
-		if err := validateResultAgainst(definition, payload); err != nil {
+		var err error
+		if validateResultRoute {
+			err = validateResultAgainst(definition, payload)
+		} else {
+			err = validateHistoricalResultAgainst(definition, payload)
+		}
+		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func ValidateHistory(events []Event, current State, definition workflow.Workflow) error {
+func ValidateHistory(events []Event, current State, loaded workflow.Loaded) error {
 	if len(events) == 0 {
 		return fmt.Errorf("event history is empty")
 	}
+	definition := loaded.Workflow
+	// Cross-digest Results were admitted by their original Bundle; current Routes govern only new writes.
+	validateResultRoutes := current.Release.Workflow.Digest == loaded.Ref.Digest
 	outputs := map[string]RegisteredOutput{}
 	var cursor *StepState
 	summary := ""
@@ -483,7 +496,7 @@ func ValidateHistory(events []Event, current State, definition workflow.Workflow
 		if index == 0 && event.CausedByEventID != "" || index > 0 && event.CausedByEventID != events[index-1].ID {
 			return fmt.Errorf("event history cause does not match the previous event")
 		}
-		if err := event.ValidateAgainst(definition); err != nil {
+		if err := event.validateAgainst(definition, validateResultRoutes); err != nil {
 			return fmt.Errorf("event %q: %w", event.ID, err)
 		}
 		switch event.Kind {
@@ -637,16 +650,9 @@ func validateResultAgainst(definition workflow.Workflow, payload FlowResultPaylo
 		}
 		return nil
 	}
-	accepted, err := registeredOutputs(definition, payload.Transition.FromStepID, payload.ConditionResults)
+	conditionIDs, err := validateResultConditionsAgainst(definition, payload)
 	if err != nil {
 		return err
-	}
-	if !slices.Equal(sortedKeys(accepted), sortedCopy(payload.OutputChanges.Accepted)) {
-		return fmt.Errorf("accepted Output changes do not match ConditionResults")
-	}
-	conditionIDs := make(map[string]bool, len(payload.ConditionResults))
-	for _, result := range payload.ConditionResults {
-		conditionIDs[result.ConditionID] = true
 	}
 	if payload.Transition.Direction == TransitionFlow {
 		flowMatches := matchingFlowRoutes(definition.Flows[payload.Transition.FromStepID], conditionIDs, payload.Transition.ToStepID, payload.Effect == ResultCompleted)
@@ -671,6 +677,36 @@ func validateResultAgainst(definition workflow.Workflow, payload FlowResultPaylo
 		return fmt.Errorf("Result does not select exactly one Loop Route")
 	}
 	return nil
+}
+
+func validateHistoricalResultAgainst(definition workflow.Workflow, payload FlowResultPayload) error {
+	if payload.Effect == ResultStarted || payload.Effect == ResultJumped {
+		return validateResultAgainst(definition, payload)
+	}
+	if _, err := validateResultConditionsAgainst(definition, payload); err != nil {
+		return err
+	}
+	if payload.Effect != ResultCompleted {
+		if _, _, ok := definition.FindStep(payload.Transition.ToStepID); !ok {
+			return fmt.Errorf("Result transition references an unknown Step")
+		}
+	}
+	return nil
+}
+
+func validateResultConditionsAgainst(definition workflow.Workflow, payload FlowResultPayload) (map[string]bool, error) {
+	accepted, err := registeredOutputs(definition, payload.Transition.FromStepID, payload.ConditionResults)
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Equal(sortedKeys(accepted), sortedCopy(payload.OutputChanges.Accepted)) {
+		return nil, fmt.Errorf("accepted Output changes do not match ConditionResults")
+	}
+	conditionIDs := make(map[string]bool, len(payload.ConditionResults))
+	for _, result := range payload.ConditionResults {
+		conditionIDs[result.ConditionID] = true
+	}
+	return conditionIDs, nil
 }
 
 func entryStepStatus(definition workflow.Workflow) StepStatus {

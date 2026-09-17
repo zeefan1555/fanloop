@@ -45,7 +45,7 @@ func (runtime Runtime) Sync(ctx context.Context, root string, request *traceidl.
 		current.LastEventID, current.UpdatedAt = startedEventID, runtime.now()
 		started := state.Event{
 			SchemaVersion: state.CurrentEventSchemaVersion, ID: startedEventID, OccurredAt: current.UpdatedAt,
-			Kind: state.EventTraceSyncStarted, Command: "trace.sync", Workflow: state.WorkflowRefFrom(loaded.Ref), CausedByEventID: previousEventID,
+			Kind: state.EventTraceSyncStarted, Command: "trace.sync", Workflow: current.Release.Workflow, CausedByEventID: previousEventID,
 			Payload: state.Payload(state.TraceSyncStartedPayload{Targets: targetNames(results)}),
 		}
 		if failure := local.Commit(current, started); failure != nil {
@@ -99,7 +99,7 @@ func (runtime Runtime) Sync(ctx context.Context, root string, request *traceidl.
 	current.LastEventID, current.UpdatedAt = eventID, now
 	event := state.Event{
 		SchemaVersion: state.CurrentEventSchemaVersion, ID: eventID, OccurredAt: now, Kind: state.EventTraceSynced,
-		Command: "trace.sync", Workflow: state.WorkflowRefFrom(loaded.Ref), CausedByEventID: causedBy,
+		Command: "trace.sync", Workflow: current.Release.Workflow, CausedByEventID: causedBy,
 		Payload: state.Payload(state.TraceSyncedPayload{Outcome: state.TraceSyncOutcome(outcome.String()), Targets: durableTargets(results)}),
 	}
 	if failure := local.Commit(current, event); failure != nil {

@@ -102,7 +102,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	if err := current.ValidateAgainst(loaded.Workflow); err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateHistory(events, current, loaded.Workflow); err != nil {
+	if err := ValidateHistory(events, current, loaded); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -138,7 +138,7 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 			},
 		})},
 	}
-	if err := ValidateHistory(events, current, loaded.Workflow); err == nil {
+	if err := ValidateHistory(events, current, loaded); err == nil {
 		t.Fatal("expected incomplete invalidation to be rejected")
 	}
 }

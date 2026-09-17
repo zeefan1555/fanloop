@@ -267,6 +267,61 @@ func TestCommitRejectsProgressWithAnOutputPayload(t *testing.T) {
 	}
 }
 
+func TestCommitValidatesNewResultAgainstCurrentRoutesAcrossDigests(t *testing.T) {
+	root := t.TempDir()
+	local, failure := New(root)
+	if failure != nil {
+		t.Fatal(failure)
+	}
+	loaded, err := workflow.Load("fanloop-maintainer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldRef := state.WorkflowRef{ID: loaded.Ref.ID, Digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+	now := time.Date(2026, 9, 17, 0, 0, 0, 0, time.UTC)
+	step, _ := loaded.Workflow.FirstStepID()
+	current := state.State{
+		SchemaVersion: state.CurrentStateSchemaVersion, Requirement: state.Requirement{Title: "Cross digest Store"},
+		Release: state.Release{Version: "old", Workflow: oldRef}, CurrentStepID: &step, CurrentStepStatus: state.StepReady,
+		CurrentStepSummary: "workflow initialized", Outputs: map[string]state.RegisteredOutput{}, Integrations: state.Integrations{},
+		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
+	}
+	initialized := state.Event{
+		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: state.EventFlowInitialized,
+		Command: "flow.init", Workflow: oldRef, Payload: state.Payload(state.FlowInitializedPayload{StepID: step, StepStatus: state.StepReady}),
+	}
+	if failure := local.Commit(current, initialized); failure != nil {
+		t.Fatal(failure)
+	}
+
+	target := "clarify_requirements"
+	next := current
+	next.CurrentStepID = &target
+	next.CurrentStepSummary = "invalid route"
+	next.Outputs = map[string]state.RegisteredOutput{
+		"issue_workspace_path": {Type: workflow.OutputPath, Value: json.RawMessage(`"issue-workspace"`), ProducerStepID: step},
+	}
+	next.LastEventID = "e2"
+	next.UpdatedAt = now.Add(time.Minute)
+	result := state.Event{
+		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: next.UpdatedAt, Kind: state.EventFlowResult,
+		Command: "flow.report.result", Workflow: oldRef, CausedByEventID: "e1",
+		Payload: state.Payload(state.FlowResultPayload{
+			ConditionResults: []state.ConditionResult{{ConditionID: "repository_workspace_prepared", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"issue-workspace"`)}}},
+			Summary:          "invalid route", Effect: state.ResultAdvanced,
+			Transition:    state.Transition{Direction: state.TransitionFlow, FromStepID: step, ToStepID: target},
+			OutputChanges: state.OutputChanges{Accepted: []string{"issue_workspace_path"}},
+		}),
+	}
+	if failure := local.Commit(next, result); failure == nil || failure.Code != erroridl.ErrorCode_STATE_CORRUPT || !strings.Contains(failure.Message, "Flow Route") {
+		t.Fatalf("failure = %#v", failure)
+	}
+	events, failure := local.Events()
+	if failure != nil || len(events) != 1 {
+		t.Fatalf("events = %d, failure = %v", len(events), failure)
+	}
+}
+
 func TestConcurrentCommitsFromOneEventTailAreSerialized(t *testing.T) {
 	root := t.TempDir()
 	local, current := committedWorkflow(t, root)

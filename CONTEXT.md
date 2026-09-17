@@ -8,6 +8,13 @@
 **Workflow Bundle**
 不可拆分、不可变、可版本化的五文件流程包：`workflow.yaml` 注册 Stage/Job/Step，`flow.yaml` 声明正常 Route，`condition.yaml` 声明原子 Condition 与 OutputSpec，`loop.yaml` 声明回流 Route，`prompt.yaml` 保存 Prompt 与 SkillBinding。Release 和 State 绑定五文件规范化语义的同一个 digest。
 
+**Requirement Workflow Resolution**
+当前 Schema 的 Requirement 运行时按持久 Workflow ID 加载当前 Bundle；持久 Release version 与 Workflow
+`id + digest` 只作为不可变 provenance，继续写入 State、Output Registry、Event 和 Card Projection。
+跨 digest 回放不使用当前 Route predicate 重判历史 Result，但仍校验 Step、Condition、Output、因果链、
+失效集合和 replay tail；所有新 Result 继续严格服从当前 Route。Release artifact、Manifest、安装和打包
+仍使用严格 `id + digest` 完整性校验。
+
 **Stage / Job / Step**
 显式执行层级。`step_id` 在 Workflow 内唯一；同一 Requirement 最多有一个活动 Step。
 

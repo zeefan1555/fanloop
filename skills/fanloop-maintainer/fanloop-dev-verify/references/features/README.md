@@ -14,6 +14,7 @@ Fanloop 用户可见行为的验证索引。契约真值仍是叶子 `--help`、
 
 - [Installation and health](installation-health.md)
 - [Workflow selection](workflow-selection.md)
+- [Cross-release continuation](cross-release-continuation.md)
 - [Requirement lifecycle](requirement-lifecycle.md)
 - [Progress and result](progress-and-result.md)
 - [Routing and recovery](routing-and-recovery.md)

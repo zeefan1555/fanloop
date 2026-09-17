@@ -171,7 +171,7 @@ func (value Projection) Validate() error {
 	if err := current.Validate(); err != nil {
 		return fmt.Errorf("invalid Card projection: %w", err)
 	}
-	loaded, err := workflow.LoadRef(value.Release.Workflow.Ref())
+	loaded, err := workflow.Load(value.Release.Workflow.ID)
 	if err != nil {
 		return err
 	}

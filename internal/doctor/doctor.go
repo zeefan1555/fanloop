@@ -231,15 +231,15 @@ func requirementChecks(root string) []*idl.DoctorCheck {
 	var loaded workflow.Loaded
 	bindingOK := jsonErr == nil && loose.Release.Workflow.ID != ""
 	if bindingOK {
-		loaded, err = workflow.LoadRef(loose.Release.Workflow.Ref())
+		loaded, err = workflow.Load(loose.Release.Workflow.ID)
 		bindingOK = err == nil
 	}
 	if jsonErr != nil {
 		checks = append(checks, skipped("workflow_binding", "State JSON is unavailable."))
 	} else if !bindingOK {
-		checks = append(checks, check("workflow_binding", statusFail, "Bound Workflow is missing or does not match its digest.", "Use the release containing the bound Workflow."))
+		checks = append(checks, check("workflow_binding", statusFail, "Current Workflow is unavailable for the persisted ID.", "Install a release containing the Workflow."))
 	} else {
-		checks = append(checks, check("workflow_binding", statusPass, "Bound Workflow is available and immutable.", ""))
+		checks = append(checks, check("workflow_binding", statusPass, "Current Workflow is available for the persisted ID.", ""))
 	}
 
 	outputContent, outputReadErr := os.ReadFile(filepath.Join(root, ".fanloop", "output", "state.json"))
@@ -281,7 +281,7 @@ func requirementChecks(root string) []*idl.DoctorCheck {
 	if eventsFailure != nil {
 		eventsErr = eventsFailure
 	} else {
-		eventsErr = validateEvents(events, strict, strictErr == nil && outputsErr == nil, loaded.Workflow, bindingOK)
+		eventsErr = validateEvents(events, strict, strictErr == nil && outputsErr == nil, loaded, bindingOK)
 	}
 	if eventsErr != nil {
 		checks = append(checks, check("events", statusFail, "Event history is invalid: "+eventsErr.Error(), "Repair or restore .fanloop/trace/events.jsonl."))
@@ -338,9 +338,9 @@ func validateOutputs(current state.State, definition workflow.Workflow) error {
 	return nil
 }
 
-func validateEvents(events []state.Event, current state.State, hasState bool, definition workflow.Workflow, hasWorkflow bool) error {
+func validateEvents(events []state.Event, current state.State, hasState bool, loaded workflow.Loaded, hasWorkflow bool) error {
 	if hasState && hasWorkflow {
-		return state.ValidateHistory(events, current, definition)
+		return state.ValidateHistory(events, current, loaded)
 	}
 	if len(events) == 0 {
 		return fmt.Errorf("event history is empty")

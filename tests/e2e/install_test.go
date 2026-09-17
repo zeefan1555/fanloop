@@ -86,7 +86,7 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	}
 }
 
-func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges(t *testing.T) {
+func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t *testing.T) {
 	repository := repositoryRoot(t)
 	home := t.TempDir()
 	dataRoot := filepath.Join(home, ".fanloop")
@@ -135,9 +135,53 @@ func TestPinnedControllerKeepsRequirementOnInitializingReleaseWhenCurrentChanges
 	if err := os.Chmod(controllerBinary, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	oldState, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var oldStateHeader struct {
+		Release struct {
+			Workflow struct {
+				Digest string `json:"digest"`
+			} `json:"workflow"`
+		} `json:"release"`
+	}
+	if err := json.Unmarshal(oldState, &oldStateHeader); err != nil {
+		t.Fatal(err)
+	}
 	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", oldRoot)
-	if globalOldStatus.err == nil || !strings.Contains(globalOldStatus.stderr, "WORKFLOW_MISMATCH") {
-		t.Fatalf("candidate current unexpectedly controlled old Requirement: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
+	if globalOldStatus.err != nil || !strings.Contains(globalOldStatus.stdout, "candidate main") || !strings.Contains(globalOldStatus.stdout, oldStateHeader.Release.Workflow.Digest) {
+		t.Fatalf("candidate current did not continue old Requirement with current Workflow and persisted provenance: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
+	}
+	after, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(after, oldState) {
+		t.Fatal("candidate status rewrote old Requirement provenance")
+	}
+	assertCandidate := func(name string, args ...string) {
+		t.Helper()
+		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
+		if result.err != nil {
+			t.Fatalf("candidate %s failed on old Requirement: %v\nstdout: %s\nstderr: %s", name, result.err, result.stdout, result.stderr)
+		}
+	}
+	assertCandidate("progress", "flow", "report", "progress", "--root", oldRoot, "--step-id", "bootstrap_techdesign", "--status", "in_progress", "--summary", "continued by candidate")
+	assertCandidate("card", "card", "render", "--root", oldRoot, "--view", "current", "--format", "markdown")
+	assertCandidate("trace", "trace", "status", "--root", oldRoot)
+	assertCandidate("sync", "trace", "sync", "--root", oldRoot)
+	assertCandidate("doctor", "doctor", "--root", oldRoot)
+	for _, path := range []string{
+		filepath.Join(oldRoot, ".fanloop", "flow", "state.json"),
+		filepath.Join(oldRoot, ".fanloop", "output", "state.json"),
+		filepath.Join(oldRoot, ".fanloop", "trace", "events.jsonl"),
+		filepath.Join(oldRoot, ".fanloop", "card", "projection.json"),
+	} {
+		content, err := os.ReadFile(path)
+		if err != nil || !bytes.Contains(content, []byte(oldStateHeader.Release.Workflow.Digest)) {
+			t.Fatalf("candidate changed old Workflow provenance in %s: %v\n%s", path, err, content)
+		}
 	}
 
 	controllerHome := filepath.Join(oldRoot, "bound-release-home")

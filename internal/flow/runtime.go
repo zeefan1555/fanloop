@@ -128,7 +128,7 @@ func (runtime Runtime) Status(_ context.Context, root string, request *flowidl.F
 		return nil, failure
 	}
 	response := &flowidl.FlowStatusResponse{
-		Requirement: workflowview.Requirement(current.Requirement), Workflow: workflowview.WorkflowRef(loaded.Ref), State: workflowview.Project(loaded.Workflow, current),
+		Requirement: workflowview.Requirement(current.Requirement), Workflow: workflowview.WorkflowRef(current.Release.Workflow.Ref()), State: workflowview.Project(loaded.Workflow, current),
 	}
 	if err := response.IsValid(); err != nil {
 		return nil, internalError(err)
