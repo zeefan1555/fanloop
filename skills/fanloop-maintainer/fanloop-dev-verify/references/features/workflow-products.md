@@ -15,8 +15,10 @@ and Skill path. The product is the observable artifacts and governed transitions
 
 Use a fresh Root per Workflow. Verify the first meaningful user artifact, at least one forward transition, the relevant Card
 panorama and the nearest governance boundary. Stop at Human Steps unless a new, explicit human decision is part of the
-current test. For `fanloop-maintainer`, the execution Sub-agent drives through `confirm_main_agent_acceptance`; verify its ID,
-name and `agent` executor, then stop for the Main Agent decision. Compare created files and Status Outputs with the Workflow's public descriptions.
+current test. For `fanloop-maintainer`, public CLI black-box evidence verifies the exact candidate, Doctor, nine-step Panorama,
+the `confirm_main_agent_acceptance` ID/name and absence of `confirm_human_acceptance`. Production Bundle contract tests verify
+its `agent` executor and Route/Condition semantics; do not fabricate approvals merely to make a non-current executor observable.
+The execution Sub-agent stops for the Main Agent decision. Compare created files and Status Outputs with the Workflow's public descriptions.
 
 ## Gotchas
 

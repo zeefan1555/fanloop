@@ -89,6 +89,8 @@ Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。执行子 Agent向主 Agent申请候选
 验收决定，并在 main 前进时再次申请集成确认；`handoff_merge_request` 由执行子 Agent发布唯一 PR、校验精确 final head 的
 Ruleset/required checks、同步 Review 并交接；不自动合并或更新本地 CLI。
+黑盒公开 CLI 证据只承担可直接观测的 candidate/Doctor、九步 Panorama、Step ID/名称和旧 Step 缺失；
+非当前 Step 的 executor 与 Route/Condition 语义由五份生产 YAML 和聚焦 contract test 证明，验收不伪造批准跨过治理边界。
 
 ## 当前持久化版本
 

@@ -41,8 +41,9 @@ ADR-0100 的 GitHub PR/CI 交接、精确候选身份、不自动合并、不发
 
 本地验证只采用聚焦 Bundle、Route、Step、Skill 和入口契约测试及 `./tests/run-unit`；已退役的
 `./tests/run-e2e` 不再是生产 Workflow 门禁。最终候选另从隔离 Release
-启动全新 Requirement，由无实现上下文的 Sub-agent只用公开 CLI 验证第八步 ID、名称、executor 和
-Panorama。
+启动全新 Requirement，由无实现上下文的 Sub-agent只用公开 CLI 证明精确 candidate、Doctor、九步
+Panorama、第八步 ID/名称和旧 Step 缺失；第八步 `executor=agent` 及 Route/Condition 语义由生产
+Bundle 与 contract test 证明，不伪造批准以跨过治理边界。
 
 人工审核记录：用户先回复“确认按上述 YAML / Step diff 实施”，随后在职责边界修订为“主 Agent只监督、
 执行子 Agent驱动 Flow 并实现、三类决定回请主 Agent”后回复“继续”。最新 Receipt：
