@@ -29,7 +29,7 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 ## 当前 Step
 
 1. 只使用最新 `data.state.current` 的 prompt、skills、conditions、available_routes 与 outputs。每个 Skill 按 Status 给出的绝对 `SKILL.md` 完整读取。
-2. 进入 Step 后先按 `panorama_presented` 展示一次 Panorama。未完成时上报 Progress；形成事实后从当前 Conditions 选完整 `when.any_of` 组合并显式选择 next/back/terminal。
+2. 进入 Step 后立即按 `panorama_presented` 把 Panorama 作为第一条用户可见消息单独展示，不得先发进度前缀或人工问题。展示成功后同一轮继续；真正的人工问题只能随后发送，最终回复不重复 Panorama。未完成时上报 Progress；形成事实后从当前 Conditions 选完整 `when.any_of` 组合并显式选择 next/back/terminal。
 3. 需求澄清只接受真实 human 决定；方案确认是 Agent 自主评审；最终验收 `confirm_human_acceptance` 是 Human Step。Developer 不得自批或将沉默当成通过。
 4. 任意运行中 Step 只在 human 明确指定唯一目标时使用 `fanloop-dev-human-step-jump`。跳转只改变位置，不伪造被跨过 Step 的完成事实。
 5. `review_code` 冻结 `review_base` / `reviewed_head`；Agent 验收使用一个无实现上下文的全新 Sub-agent 和隔离候选 CLI；人类验收后由 `handoff_merge_request` 创建或更新唯一 PR、等待 required checks 并交接。
@@ -37,11 +37,5 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 
 ## 最终回复
 
-遵循通用 `fanloop-workflow` 的 renderer-owned 最终回复契约。结束一轮普通回复前紧邻执行：
-
-~~~bash
-<REQUIREMENT_CONTROLLER> flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
-<REQUIREMENT_CONTROLLER> card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
-~~~
-
-本轮最终普通回复必须完整原样展示 render 响应的 `data.content`。任一命令失败即以真实错误阻塞并停止；不得手工 fallback、复用旧 render 或快照。
+遵循通用 `fanloop-workflow` 的 Panorama-first 契约：Panorama 已在进入 Step 时单独展示，最终回复不重新
+render 或重复。需要 human 输入时，只在 Panorama 下方展示当前完整问题。

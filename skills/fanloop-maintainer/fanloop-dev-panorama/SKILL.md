@@ -28,6 +28,12 @@ blocked，不渲染、不发送。
 先读取最新 `flow status`，再只执行对应的一个分支。所有分支都必须执行一次非 dry-run render，只使用
 本次成功响应的精确 `data.snapshot_path`；不得扫描 `.fanloop/card` 猜最新文件。
 
+### 统一事实门
+
+所有宿主严格按 Render、Deliver、Verify、Report 的顺序执行。Panorama 必须是进入新 Step 后第一条
+用户可见消息，不得先发进度前缀、澄清问题或确认问题。只有本次 render 的完整内容已经在当前宿主通道
+展示成功，才返回 `panorama_presented`；生成快照、取得路径或准备好发送动作都不能单独满足该 Condition。
+
 ### `botmux`
 
 ```bash
@@ -43,8 +49,13 @@ botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUN
 fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown
 ```
 
-成功后保留响应的 `data.content`；过程中的 commentary 和工具输出仅作中间反馈，本轮最终普通回复必须完整展示同一份 Panorama。
-不展示 JSON envelope，不自行拼装内容。
+成功后保留响应的 `data.content`，并把它原样作为进入该 Step 后的第一条用户可见消息单独发送；不加
+前缀或摘要，不展示 JSON envelope，不自行拼装内容。使用宿主可继续执行的用户可见消息通道，例如
+Codex commentary。消息实际发出后即完成 Deliver/Verify，保留 ConditionResult 并在同一轮继续执行
+Prompt、提交 Result 或进入后续 Agent Step；真正的人工问题只能随后发送，最终回复不得重复 Panorama。
+
+宿主没有可继续执行的用户可见消息通道时报告 blocked。工具输出、日志、只保存在上下文、回复“稍后
+发送”或只展示摘要都不满足 `panorama_presented`。
 
 ### `aime`
 

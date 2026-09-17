@@ -15,7 +15,8 @@ caller only needs presentation content and no local snapshot.
 
 Render immediately after init and after a transition. Capture response content, projection and snapshot count. Verify the
 panorama identifies the current Stage/Job/Step and that a real render creates a new immutable snapshot while dry-run does
-not. Use returned content directly when presenting it to a human.
+not. Use returned content directly as the first user-visible message after entering a Step; any human question must follow
+below it, and the final reply must not repeat the panorama.
 
 ## Gotchas
 

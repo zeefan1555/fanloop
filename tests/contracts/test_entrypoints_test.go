@@ -105,10 +105,10 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"--config-source", "FANLOOP_CONFIG_SOURCE", "$HOME/.fanloop",
 		},
 		"entrypoints/fanloop-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "common_skills", "common_conditions", "execution.status=awaiting_confirmation", "不执行业务 `current.prompt`", "--start-current-step", "--jump-step-id <ID>", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "common_skills", "common_conditions", "execution.status=awaiting_confirmation", "不执行业务 `current.prompt`", "--start-current-step", "--jump-step-id <ID>", "Panorama 是进入新 Step 后第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
 		},
 		"entrypoints/fanloop-workflow/agents/openai.yaml": {
-			"execution.status", "common_skills", "common_conditions", "start/jump Route", "开工后再执行业务 Prompt",
+			"execution.status", "common_skills", "common_conditions", "start/jump Route", "开工后再执行业务 Prompt", "Panorama 作为第一条用户可见消息", "人工问题随后发送",
 		},
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./.github/scripts/run-requirement-validation", "BOTMUX_CHAT_ID", "docs/research",
@@ -129,7 +129,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "handoff_merge_request", "不自动合并", "<REQUIREMENT_CONTROLLER> flow status", "<REQUIREMENT_CONTROLLER> card render",
+			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "handoff_merge_request", "不自动合并", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
 			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
@@ -307,7 +307,7 @@ func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
 		"skills/material-flashcards/material-flashcards-panorama/SKILL.md": {
 			"只依据系统或开发者上下文中已经声明的当前 Agent 人设", "Botmux Agent：`botmux`",
 			"AIME Agent：`aime`", "Aiden Agent：`aiden`", "Codex、Claude Code 和 Trae：`local_agent`",
-			"botmux send --card-file", "本轮最终普通回复必须完整展示同一份 Panorama", "不自行拼装内容",
+			"botmux send --card-file", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不得重复 Panorama", "不自行拼装内容",
 			`--content "$(cat -- "$card_file")"`, "渲染前确认 Current Evidence 为空",
 			"卡片正文", "个人细节", "来源内容", "findings", "反馈",
 		},
@@ -351,6 +351,42 @@ func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
 		if err != nil {
 			t.Errorf("walk %s: %v", root, err)
 		}
+	}
+}
+
+func TestPanoramaPrecedesHumanQuestion(t *testing.T) {
+	repo := repositoryRoot(t)
+	paths := []string{
+		"entrypoints/fanloop-workflow/SKILL.md",
+		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md",
+		"skills/fanloop-maintainer/fanloop-dev-panorama/SKILL.md",
+		"skills/technical-solution-design/technical-solution-panorama/SKILL.md",
+		"skills/material-flashcards/material-flashcards-panorama/SKILL.md",
+	}
+	for _, relative := range paths {
+		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(content)
+		for _, required := range []string{"第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不"} {
+			if !strings.Contains(text, required) {
+				t.Errorf("%s is missing Panorama-first rule %q", relative, required)
+			}
+		}
+		if strings.Contains(text, "本轮最终普通回复必须完整展示同一份 Panorama") {
+			t.Errorf("%s still requires Panorama at the bottom of the final reply", relative)
+		}
+	}
+
+	entrypoint, err := os.ReadFile(filepath.Join(repo, "entrypoints", "fanloop-workflow", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	panorama := strings.Index(string(entrypoint), "Panorama 是进入新 Step 后第一条用户可见消息")
+	question := strings.Index(string(entrypoint), "## 人类提问顺序")
+	if panorama < 0 || question < 0 || panorama > question {
+		t.Fatalf("Panorama-first rule must precede the human-question protocol")
 	}
 }
 
