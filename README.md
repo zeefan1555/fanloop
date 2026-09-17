@@ -135,8 +135,10 @@ fanloop flow init \
 
 ```bash
 ./tests/run-unit
-./tests/run-e2e
 ```
+
+完整 Requirement lifecycle 与全部生产 Workflow Route Matrix 由 CI 的 `requirement-e2e` check 运行；本地真实
+用户路径使用 `fanloop verify` 和 Verification Skill 验证。
 
 项目级闭环验证说明与行为地图位于
 [`skills/fanloop-maintainer/fanloop-dev-verify/`](./skills/fanloop-maintainer/fanloop-dev-verify/)。它从当前

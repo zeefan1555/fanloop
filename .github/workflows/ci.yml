@@ -41,7 +41,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Run Requirement E2E and Route Matrix
-        run: ./tests/run-e2e
+        run: ./.github/scripts/run-requirement-validation
 
   install-doctor:
     runs-on: ubuntu-latest
