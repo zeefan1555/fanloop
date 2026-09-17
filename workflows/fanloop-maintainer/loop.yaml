@@ -191,7 +191,7 @@ loop:
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
       back_step_id: confirm_main_agent_acceptance
 
-  handoff_merge_request:
+  merge_and_update_local:
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
       back_step_id: bootstrap_techdesign
@@ -223,4 +223,4 @@ loop:
       back_step_id: confirm_main_agent_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      back_step_id: handoff_merge_request
+      back_step_id: merge_and_update_local

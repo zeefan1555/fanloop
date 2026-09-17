@@ -25,8 +25,8 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、统一入口和
 校验清单的可运行目录；`skills/` 与 `exemplars/` 是源码仓库中的 live 配置，不进入构建目录。
-根级 `VERSION` 是 CLI 版本真值；Skill/范文改动不改变 CLI 版本，其他未提交源码改动显示对应的
-`-dev.<摘要>` 预发布版本。
+根级 `VERSION` 是 CLI 基础版本真值；本地源码构建使用 `VERSION-dev.<提交或内容摘要>`，同一提交
+可幂等复用，不同提交不会覆盖同名不可变 Release。Skill/范文改动不改变未提交构建的内容摘要。
 
 只构建、直接运行：
 

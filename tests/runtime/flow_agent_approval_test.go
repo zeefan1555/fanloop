@@ -38,7 +38,7 @@ func TestTechnicalSolutionWorkflowRejectsAgentApproval(t *testing.T) {
 	}
 }
 
-func TestMaintainerLifecycleEndsAfterMainAgentAcceptanceAndPRHandoff(t *testing.T) {
+func TestMaintainerLifecycleMergesAndUpdatesLocal(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Three-stage delivery"), "flow.init")
 
@@ -87,21 +87,24 @@ func TestMaintainerLifecycleEndsAfterMainAgentAcceptanceAndPRHandoff(t *testing.
 		conditionResult("acceptance_report_written", "path", "\"acceptance-report.md\""),
 		conditionResult("acceptance_document_published", "url", "\"https://example.com/acceptance\""),
 		conditionResult("panorama_presented", "path", "\".fanloop/card/acceptance.md\""))
-	advance("confirm_main_agent_acceptance", "handoff_merge_request",
+	advance("confirm_main_agent_acceptance", "merge_and_update_local",
 		conditionResult("main_agent_acceptance_passed", "enum_value", "\"passed\""),
 		conditionResult("main_agent_acceptance_recorded", "path", "\"main-agent-review.md\""),
 		conditionResult("panorama_presented", "path", "\".fanloop/card/main-agent-acceptance.md\""))
 
+	mergeCommit := "3333333333333333333333333333333333333333"
 	completed := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "handoff_merge_request",
+		"--step-id", "merge_and_update_local",
 		"--condition-result", conditionResult("handoff_main_unchanged", "enum_value", "\"unchanged\""),
 		"--condition-result", conditionResult("merge_request_published", "url_list", `["https://github.com/zeefan1555/fanloop/pull/7"]`),
 		"--condition-result", conditionResult("remote_checks_passed", "enum_value", "\"passed\""),
 		"--condition-result", conditionResult("review_comment_synced", "string", "\"comment-7\""),
-		"--condition-result", conditionResult("merge_request_handed_off", "enum_value", "\"passed\""),
-		"--condition-result", conditionResult("handoff_record_written", "path", "\"handoff-record.md\""),
+		"--condition-result", conditionResult("code_merged", "string", "\""+mergeCommit+"\""),
+		"--condition-result", conditionResult("source_repository_updated", "string", "\""+mergeCommit+"\""),
+		"--condition-result", conditionResult("local_cli_updated", "string", "\""+mergeCommit+"\""),
+		"--condition-result", conditionResult("delivery_record_written", "path", "\"delivery-record.md\""),
 		"--condition-result", conditionResult("panorama_presented", "path", "\".fanloop/card/handoff.md\""),
-		"--terminal", "--summary", "PR handed off")
+		"--terminal", "--summary", "PR merged and local CLI updated")
 	assertSuccess(t, completed, "flow.report.result")
 	assertFlowEffect(t, completed.stdout, "completed", "")
 }
