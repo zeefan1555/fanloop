@@ -98,7 +98,9 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 			"botmux send --card-file",
 			"lark-cli im +messages-reply",
 			"aiden-bot-cli send-card --card-file",
-			"本轮最终普通回复必须完整展示同一份 Panorama",
+			"第一条用户可见消息",
+			"真正的人工问题只能随后发送",
+			"最终回复不得重复 Panorama",
 			"不自行拼装内容",
 			"不得跨模式 fallback、双发、扫描旧快照",
 		} {
@@ -252,7 +254,7 @@ func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
 	}
 }
 
-func TestWorkflowEntryOwnsProtocolAndFinalPanorama(t *testing.T) {
+func TestWorkflowEntryOwnsProtocolAndPanoramaFirst(t *testing.T) {
 	path, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -268,13 +270,12 @@ func TestWorkflowEntryOwnsProtocolAndFinalPanorama(t *testing.T) {
 		"flow init",
 		"`current.prompt`",
 		"`available_routes`",
-		"flow status --root <ABSOLUTE_REQUIREMENT_ROOT>",
-		"card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run",
+		"`panorama_presented` 或 `panorama_card_published`",
 		"`data.content`",
-		"本轮最终普通回复必须完整展示同一份 Panorama",
-		"不展示 JSON envelope，不自行拼装、压缩或重排内容",
-		"任一命令失败即以真实错误阻塞并停止",
-		"不得手工 fallback、复用旧 render 或快照",
+		"Panorama 是进入新 Step 后第一条用户可见消息",
+		"真正的人工问题只能随后发送",
+		"最终回复不得重新 render、重复或改写它",
+		"展示失败时按 Skill 上报 blocked",
 	} {
 		if !strings.Contains(skill, value) {
 			t.Fatalf("fanloop-workflow Skill does not contain %q", value)
@@ -296,12 +297,11 @@ func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
 		t.Fatal("maintainer Workflow entry still requires an online update")
 	}
 	for _, value := range []string{
-		"通用 `fanloop-workflow` 的 renderer-owned 最终回复契约",
-		"flow status --root <ABSOLUTE_REQUIREMENT_ROOT>",
-		"card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run",
-		"本轮最终普通回复必须完整原样展示 render 响应的 `data.content`",
-		"任一命令失败即以真实错误阻塞并停止",
-		"不得手工 fallback、复用旧 render 或快照",
+		"通用 `fanloop-workflow` 的 Panorama-first 契约",
+		"第一条用户可见消息",
+		"真正的人工问题只能随后发送",
+		"最终回复不重新",
+		"只在 Panorama 下方展示当前完整问题",
 	} {
 		if !strings.Contains(skill, value) {
 			t.Fatalf("maintainer Workflow entry does not contain %q", value)
