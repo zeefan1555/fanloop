@@ -1,4 +1,4 @@
 interface:
   display_name: "Fanloop Workflow"
   short_description: "按照 Fanloop Workflow 安全推进需求"
-  default_prompt: "使用 $fanloop-workflow 推进当前需求：读取最新 flow status 的 execution.status、Prompt、Conditions、common_skills、common_conditions 和 available_routes；等待开工确认时先执行公共 Skill 并使用 start/jump Route，开工后再执行业务 Prompt；提交 Result 时把所选 route 原样上报。"
+  default_prompt: "使用 $fanloop-workflow 推进当前需求：读取最新 flow status 的 execution.status、Prompt、Conditions、common_skills、common_conditions 和 available_routes；进入新 Step 时先把 Panorama 作为第一条用户可见消息单独展示，人工问题随后发送；等待开工确认时先执行公共 Skill 并使用 start/jump Route，开工后再执行业务 Prompt；提交 Result 时把所选 route 原样上报。"

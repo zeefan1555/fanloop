@@ -39,6 +39,17 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码分析、文档生成或研发交付。
 
+## Panorama Condition 门禁
+
+最新 `current.conditions[]` 包含 `panorama_presented` 或 `panorama_card_published` 时，立即执行该
+Condition Prompt 绑定的 required Panorama Skill，保留它返回的完整 ConditionResult；进入当前 Step
+后执行一次，后续 Result 中原样携带。
+progress 和人工交互不重复展示。展示失败时按 Skill 上报 blocked，不提交 Result 或选择 Route。
+
+Panorama 是进入新 Step 后第一条用户可见消息，不得先发进度前缀或人工问题。`local_agent` 由 Panorama
+Skill 使用宿主可继续执行的用户可见消息通道完整发送 `data.content`；成功后同一轮继续；真正的人工问题只能随后发送，
+最终回复不重复该 Panorama。宿主缺少这种通道时按 Panorama Skill blocked。
+
 ## 执行当前 Step
 
 1. 使用启动阶段或上一次响应后读取的最新 `flow status`；仅按启动协议初始化新流程。
@@ -66,24 +77,12 @@ Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻
 
 1. 禁止调用 `botmux ask` 或其他结构化问答模式；问题只通过当前会话的普通回复发送。
 2. 先完成承载最新状态的非 dry-run 写命令：新 Requirement 使用 `flow init`；Result 进入 Human Step 时复用该 `flow report result`；Agent Step 新增人工依赖时使用 `flow report progress --status blocked`。
-3. Human Step 选择人工路径时，按当前 Prompt/Skill 展示审核材料，并按 Condition 绑定 Skill 原样展示 Panorama、保留本次 `panorama_snapshot_path` 后，才能请求人工决定；CLI 写命令不会代为发送。
+3. Human Step 选择人工路径时，按当前 Prompt/Skill 准备审核材料，并按 Condition 绑定 Skill 把 Panorama 作为第一条用户可见消息原样展示；保留本次 `panorama_snapshot_path` 后，才能在其下方请求人工决定。CLI 写命令不会代为发送。
 4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama 快照。
 
 State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 
 ## 最终普通回复
 
-每次准备结束一轮普通回复时，先紧邻使用本轮已经解析的 Requirement 控制器执行以下两个参数序列；
-`<REQUIREMENT_CONTROLLER>` 表示上文固定控制器及其五个环境变量，未固定时才表示全局 `fanloop`，不是
-可省略的装饰占位符：
-
-```bash
-<REQUIREMENT_CONTROLLER> flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
-<REQUIREMENT_CONTROLLER> card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown --dry-run
-```
-
-成功后保留响应的 `data.content`；过程中的 commentary 和工具输出仅作中间反馈，本轮最终普通回复必须完整展示同一份 Panorama。不展示 JSON envelope，不自行拼装、压缩或重排内容。
-
-任一命令失败即以真实错误阻塞并停止；不得手工 fallback、复用旧 render 或快照。
-
-对用户只说明当前 Stage/Job/Step、已接受结果及下一项真实依赖。
+Panorama 已由绑定 Skill 在进入 Step 时单独展示，最终回复不得重新 render、重复或改写它。需要人工输入时，
+只在 Panorama 之后展示当前完整问题；否则只说明当前 Stage/Job/Step、已接受结果及下一项真实依赖。
