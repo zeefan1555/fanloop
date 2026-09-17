@@ -70,6 +70,11 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 			t.Errorf("AGENTS.md does not require %s", command)
 		}
 	}
+	for _, contract := range []string{"执行子 Agent 创建并持有 Requirement Root", "直接修改受管代码", "只向主 Agent回报", "不得自行批准", "不自动合并、发布或更新全局 CLI"} {
+		if !strings.Contains(string(agents), contract) {
+			t.Errorf("AGENTS.md does not define maintainer contract %q", contract)
+		}
+	}
 	if strings.Contains(string(agents), "./tests/run-e2e") {
 		t.Error("AGENTS.md still requires the retired local E2E entrypoint")
 	}
@@ -114,10 +119,10 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./.github/scripts/run-requirement-validation", "BOTMUX_CHAT_ID", "docs/research",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
-			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读",
+			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读", "执行子 Agent", "向主 Agent申请", "不得自批",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
-			"implementation-report.md", "review_base", "./tests/run-unit", "隔离公开 CLI 证据", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>",
+			"implementation-report.md", "review_base", "./tests/run-unit", "隔离公开 CLI 证据", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>", "执行子 Agent", "直接完成", "只向主 Agent回报", "不接管实现",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
 			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
@@ -129,7 +134,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "handoff_merge_request", "不自动合并", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
+			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "执行子 Agent不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_main_agent_acceptance", "持有 Requirement Root", "直接完成受管实现", "向主 Agent申请明确决定", "handoff_merge_request", "不自动合并", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
 			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
@@ -141,7 +146,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"review_base", "implementation_head", "./tests/run-unit", "fanloop-dev-verify/references/features/", "review-report.md", "reviewed_head_frozen",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-decision-receipt/SKILL.md": {
-			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=human", "host_turn", "Developer 不得自批",
+			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=agent|human", "host_turn", "主 Agent决定", "Step 跳转必须为 human",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-human-step-jump/SKILL.md": {
 			"human_step_jump_requested", "available_routes", "source", "target", "fanloop-dev-decision-receipt", "不伪造被跨过",

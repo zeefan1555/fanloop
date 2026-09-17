@@ -16,6 +16,18 @@
 
 完成标准：逐项对照澄清来源与目标分支相对 merge base 的 diff；每个已确认的行为、边界和验收条件都能定位到已跟踪文件。
 
+## 主 Agent 监督自迭代
+
+触发条件：使用 `fanloop-maintainer` 维护 Fanloop 自身。
+
+1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；只有用户主动改变已对齐内容时才重新询问用户。
+2. 执行子 Agent 创建并持有 Requirement Root，持续读取最新 `flow status`、执行当前 Prompt/Skills、选择 Route、提交 Progress/Result，并直接修改受管代码直到 PR 交接。主 Agent 不创建或驱动 Requirement，也不直接修改受管代码。
+3. 执行子 Agent只向主 Agent回报，不直接联系用户。到达需求批准、最终候选验收或 main 集成确认时，必须向主 Agent申请明确决定并等待回复，不得自行批准。
+4. 执行子 Agent每次读取最新 Status 和当前 Step 的全部必需 Skills，逐项核验真实产物后上报 Progress 或 Result。主 Agent发现偏差时通过 follow-up 要求其继续修复、补证据或重跑验证。
+5. 独立 Code Review 和公开 CLI 黑盒验收继续使用不继承实现上下文的全新 Sub-agent，由执行子 Agent派发、聚合并推进；不得把实现上下文中的自证当作独立验收。
+
+完成标准：主 Agent完成对齐、派发、监督和三类决定；执行子 Agent独立驱动 Workflow、完成受管实现并交付 PR，所有决定都能回溯到主 Agent明确回复。
+
 ## YAML 架构真值与人工审核
 
 触发条件：变更 Workflow YAML，或修改其模型、加载、校验、Schema 与执行语义。
@@ -48,7 +60,7 @@
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。
 
-完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过才可自动合码。合并后还必须把精确 merge commit 从干净 detached worktree 安装为本地 current，并回读 version commit 与 Doctor。
+完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过后只交付唯一 PR；不自动合并、发布或更新全局 CLI。
 
 ## ADR 一致性
 
