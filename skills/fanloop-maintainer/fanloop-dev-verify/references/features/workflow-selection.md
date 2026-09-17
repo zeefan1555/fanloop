@@ -19,5 +19,6 @@ and digest are bound.
 
 ## Gotchas
 
-Selection only applies before initialization. An initialized Requirement keeps its bound Workflow digest; changing live
-Skill content does not rebind Workflow semantics. Use a new Root for each selection variant.
+Selection only applies before initialization. An initialized Requirement keeps its persisted Workflow ID and digest as
+provenance, while a supporting newer CLI resolves runtime semantics from its current Bundle with that ID. Changing live
+Skill content does not change the persisted Workflow reference. Use a new Root for each selection variant.
