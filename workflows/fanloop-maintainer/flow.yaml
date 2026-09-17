@@ -28,7 +28,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   clarify_requirements:
     - prompt_ref: {file: prompt.yaml, prompt_id: clarify_requirements_flow}
@@ -57,7 +57,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   design_technical_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: design_technical_solution_flow}
@@ -80,7 +80,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   confirm_technical_solution:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_technical_solution_flow}
@@ -100,7 +100,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   implement_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: implement_code_flow}
@@ -117,7 +117,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   review_code:
     - prompt_ref: {file: prompt.yaml, prompt_id: review_code_flow}
@@ -132,7 +132,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   execute_agent_acceptance:
     - prompt_ref: {file: prompt.yaml, prompt_id: execute_agent_acceptance_flow}
@@ -143,7 +143,7 @@ flow:
       next_step_id: confirm_human_acceptance
     - prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_route}
       when: {any_of: [[human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]]}
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
   confirm_human_acceptance:
     - prompt_ref: {file: prompt.yaml, prompt_id: confirm_human_acceptance_flow}
@@ -152,12 +152,12 @@ flow:
           - [human_acceptance_passed, human_acceptance_result_recorded, human_review_written, panorama_presented]
           - [human_acceptance_skipped, human_acceptance_result_recorded, human_review_written, panorama_presented]
           - [human_step_jump_requested, human_step_jump_context_written, human_step_jump_recorded, panorama_presented]
-      next_step_id: handoff_merge_request
+      next_step_id: merge_and_update_local
 
-  handoff_merge_request:
-    - prompt_ref: {file: prompt.yaml, prompt_id: handoff_merge_request_flow}
+  merge_and_update_local:
+    - prompt_ref: {file: prompt.yaml, prompt_id: merge_and_update_local_flow}
       when:
         any_of:
-          - [handoff_main_unchanged, merge_request_published, remote_checks_passed, review_comment_synced, merge_request_handed_off, handoff_record_written, panorama_presented]
-          - [handoff_main_integrated, handoff_integration_review_passed, handoff_integration_tests_passed, handoff_integration_human_verified, merge_request_published, remote_checks_passed, review_comment_synced, merge_request_handed_off, handoff_record_written, panorama_presented]
+          - [handoff_main_unchanged, merge_request_published, remote_checks_passed, review_comment_synced, code_merged, source_repository_updated, local_cli_updated, delivery_record_written, panorama_presented]
+          - [handoff_main_integrated, handoff_integration_review_passed, handoff_integration_tests_passed, handoff_integration_human_verified, merge_request_published, remote_checks_passed, review_comment_synced, code_merged, source_repository_updated, local_cli_updated, delivery_record_written, panorama_presented]
       terminal: true

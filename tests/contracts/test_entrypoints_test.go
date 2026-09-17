@@ -129,7 +129,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "handoff_merge_request", "不自动合并", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
+			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_human_acceptance", "merge_and_update_local", "自动合并", "全局 current", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
 		},
 		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
 			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
@@ -146,11 +146,8 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		"skills/fanloop-maintainer/fanloop-dev-human-step-jump/SKILL.md": {
 			"human_step_jump_requested", "available_routes", "source", "target", "fanloop-dev-decision-receipt", "不伪造被跨过",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-mr-gate/SKILL.md": {
-			"origin/main", "review_base", "reviewed_head", "final base", "required checks", "test (ubuntu)", "requirement-e2e", "不 approve", "不 merge",
-		},
-		"skills/fanloop-maintainer/fanloop-dev-mr-handoff/SKILL.md": {
-			"handoff-record.md", "PR URL", "final base/head", "required checks", "不 approve", "不 merge", "不更新本地 CLI",
+		"skills/fanloop-maintainer/fanloop-dev-merge-and-update-local/SKILL.md": {
+			"origin/main", "review_base", "reviewed_head", "--state all", "记录缺失时", "唯一 merged PR", "第一 parent", "ADR impact", "human 结论", "交付边界", "required checks", "test (ubuntu-latest)", "requirement-e2e", "--match-head-commit", "禁止 `--admin`", "pin-controller-release.sh", "detached merge", "FANLOOP_CONFIG_SOURCE", "FANLOOP_CONFIG_ROOT", "./scripts/install-local.sh", "delivery-record.md", "local_cli_updated",
 		},
 		"skills/fanloop-maintainer/resolving-merge-conflicts/SKILL.md": {
 			"两个 parent", "保留已批准需求行为", "不发明新功能", "blocked",

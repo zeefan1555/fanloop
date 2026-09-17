@@ -23,8 +23,8 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 `$HOME/.fanloop/current` 或手改 State 绕过 `WORKFLOW_MISMATCH`。新 Requirement 的 `flow init` 使用全局 current。
 需要在全局 current 切换前保护已有 Requirement 时，使用本 Skill 的 `scripts/pin-controller-release.sh`。
 
-候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。本 Workflow 只交付 PR，不自动合并、
-不发布、不更新本地 CLI。
+候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。human 验收后，最终 Step 自动合并
+唯一 PR，把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交更新全局 current。
 
 ## 当前 Step
 
@@ -32,8 +32,8 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 2. 进入 Step 后立即按 `panorama_presented` 把 Panorama 作为第一条用户可见消息单独展示，不得先发进度前缀或人工问题。展示成功后同一轮继续；真正的人工问题只能随后发送，最终回复不重复 Panorama。未完成时上报 Progress；形成事实后从当前 Conditions 选完整 `when.any_of` 组合并显式选择 next/back/terminal。
 3. 需求澄清只接受真实 human 决定；方案确认是 Agent 自主评审；最终验收 `confirm_human_acceptance` 是 Human Step。Developer 不得自批或将沉默当成通过。
 4. 任意运行中 Step 只在 human 明确指定唯一目标时使用 `fanloop-dev-human-step-jump`。跳转只改变位置，不伪造被跨过 Step 的完成事实。
-5. `review_code` 冻结 `review_base` / `reviewed_head`；Agent 验收使用一个无实现上下文的全新 Sub-agent 和隔离候选 CLI；人类验收后由 `handoff_merge_request` 创建或更新唯一 PR、等待 required checks 并交接。
-6. 主分支、source HEAD、工作树或报告身份漂移时按 YAML 回流；仅 `handoff_merge_request` 中的 `origin/main` 正常前进留在本 Step 合入并重跑短门禁。
+5. `review_code` 冻结 `review_base` / `reviewed_head`；Agent 验收使用一个无实现上下文的全新 Sub-agent 和隔离候选 CLI；人类验收后由 `merge_and_update_local` 创建或更新唯一 PR、等待 required checks、自动 squash merge，并更新源码 worktree 与全局 current。
+6. 主分支、source HEAD、工作树或报告身份漂移时按 YAML 回流；仅 `merge_and_update_local` 中的 `origin/main` 正常前进留在本 Step 合入并重跑短门禁。PR 已合并后的本地失败只重试同一 merge commit。
 
 ## 最终回复
 

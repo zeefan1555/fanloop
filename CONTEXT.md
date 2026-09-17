@@ -82,11 +82,11 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 **Agent Acceptance / Delivery**
 冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current；恰好一个全新 Sub-agent 只使用隔离
 CLI、叶子 Help 和需求中 1 至 3 个公开场景做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户
-凭据。通过后进入 human 端到端验收；最后 `handoff_merge_request` 发布唯一 PR、回读 final pair 和 required checks、同步 Review 并交接。不自动合并、发布或更新全局 CLI。
+凭据。通过后进入 human 端到端验收；最后 `merge_and_update_local` 发布唯一 PR、回读 final pair 和 required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交原子更新全局 CLI。该流程不发布远端制品，也不触碰其他 checkout。
 
 **Maintainer Reports**
 需求、方案、Review、Agent 验收和 human 验收分别维护 `requirements.md`、`spec.md`、
-`review-report.md`、`acceptance-report.md` 和 `human-review.md`；交接另写 `handoff-record.md`。需求、方案、
+`review-report.md`、`acceptance-report.md` 和 `human-review.md`；最终交付另写 `delivery-record.md`。需求、方案、
 Review 和 Agent 验收使用 Requirement 稳定标题的唯一飞书文档，并在上报 URL 前语义回读。
 Panorama 按 YAML Output description 展示 URL；候选变化使下游事实失效。
 

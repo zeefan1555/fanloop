@@ -122,7 +122,7 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 		"## 状态全景",
 		"TechDesign：**仓库范围确定（Ready）** → 需求澄清 → 方案设计 → 方案自主评审",
 		"Implement：代码实现与过程 CR → 整体 Code Review",
-		"Test：Agent 端到端测试 → 人类端到端测试 → MR 门禁与交接",
+		"Test：Agent 端到端测试 → 人类端到端测试 → PR 合码与本地更新",
 		"整体进度：0%",
 		"## 各阶段 Output",
 		"| TechDesign | Implement | Test |",

@@ -79,13 +79,13 @@ optional `human-step-jump` 允许人在确认影响后跳到任意 Step。Step �
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
 `fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：TechDesign 包含仓库范围确定、需求澄清、方案设计和方案自主评审；
-Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、人类端到端测试和 MR 门禁与交接。
+Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、人类端到端测试和 PR 合码与本地更新。
 Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
 实现阶段运行聚焦测试、`./tests/run-unit`、`./tests/run-e2e` 和独立整体 CR；Review 阶段核验证据并冻结
 `review_base` / `reviewed_head`。Agent 验收在一次性数据目录安装候选，由恰好一个无实现上下文的全新
 Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。human 验收通过或明确跳过后，
-`handoff_merge_request` 发布唯一 PR、校验精确 final head 的 Ruleset/required checks、同步 Review 并交接；不自动合并或更新本地 CLI。
+`merge_and_update_local` 发布唯一 PR、校验精确 final head 的 Ruleset/required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。合码后的本地失败保留 merge commit 并在原 Step 重试。
 
 ## 当前持久化版本
 

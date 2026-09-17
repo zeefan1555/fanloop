@@ -4,7 +4,7 @@
 
 - `technical-solution-design` document production and human gates.
 - `material-flashcards` recall-goal planning, preview approval and Decks persistence.
-- `fanloop-maintainer` implementation, review, Agent acceptance, human acceptance and PR handoff.
+- `fanloop-maintainer` implementation, review, Agent acceptance, human acceptance, PR merge and local activation.
 
 ## How to get to it (user POV)
 
