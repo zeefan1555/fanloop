@@ -22,7 +22,8 @@ description: 从当前 Fanloop 候选建立隔离环境，按 Feature Map 驱动
 每个新 session 首次 Drive 前运行 `fanloop version`、`fanloop doctor` 与 `fanloop verify doctor`。任何意外结果后重新 Doctor；
 Doctor 不健康时先保存输出并停止驱动，不在错误实例上继续尝试。
 
-完成标准：候选身份明确，Doctor healthy，Workflow 与 live Skill 配置来自本次隔离环境。
+完成标准：候选身份明确，Doctor healthy，Workflow YAML 与绑定 Skills 来自本次隔离环境的
+`current/workflows`。
 
 ## Drive
 

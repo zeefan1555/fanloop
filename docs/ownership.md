@@ -5,18 +5,17 @@ orchestration directory.
 
 | Boundary | Paths | Owns |
 | --- | --- | --- |
-| Live Skill configuration | `skills/`, `exemplars/` | Agent instructions and examples read directly from the configured source checkout |
-| Workflow | `workflows/`, `internal/workflow/` | Stage, Step, output, gate, failure target and feedback policy |
-| Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec}/`, `errs/` | Command behavior, state changes and Lark execution |
+| Live Workflow configuration | `workflows/`, `exemplars/`, installed `current/workflows/` | Five-file Workflow definitions, bound Agent instructions, seed content and live edits |
+| Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
+| Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback editor |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts and E2E gates |
-| Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh` | Matched source builds, directory installation, diagnosis and atomic current switching |
+| Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh` | Immutable CLI builds, first-seed live configuration, diagnosis and nested Release switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
 flags, State or Event schemas, release manifests, or reviewed contract Goldens
 cross boundaries. They require review from Quality plus every affected owning
-boundary. The required review check always runs `./tests/run-unit`; code changes also run
-`./tests/run-e2e` and attach its report path. Path filters
-must not skip it.
+boundary. The required review check always runs `./tests/run-unit`; user-visible behavior also requires an isolated
+candidate, Doctor, the affected public scenarios and fresh-context black-box acceptance. Path filters must not skip it.
 
 Contract Goldens change only after explicit review with:
 

@@ -32,7 +32,7 @@ if [[ $# -eq 1 ]]; then
 else
   build_root="$(mktemp -d "$build_root")"
 fi
-source_paths=(. ':(exclude)skills' ':(exclude)skills/**' ':(exclude)exemplars' ':(exclude)exemplars/**')
+source_paths=(. ':(exclude)exemplars' ':(exclude)exemplars/**' ':(exclude)workflows' ':(exclude)workflows/**')
 case "$build_root/" in
   "$repo_root/"*) source_paths+=(":(exclude,literal)${build_root#"$repo_root/"}") ;;
 esac
@@ -62,17 +62,12 @@ if [[ -n "$source_status" ]]; then
 fi
 printf 'Building %s from %s in %s\n' "$version" "$commit" "$build_root" >&2
 
-mkdir "$build_root/bin" "$build_root/workflows"
+mkdir "$build_root/bin"
 export GOOS="$(go env GOHOSTOS)" GOARCH="$(go env GOHOSTARCH)" CGO_ENABLED=0
 go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X github.com/zeefan1555/fanloop/internal/buildinfo.ReleaseVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.Commit=$commit" \
   -o "$build_root/bin/fanloop" . >&2
 cp -R "$repo_root/entrypoints" "$build_root/"
-for workflow_source in "$repo_root"/workflows/*/; do
-  workflow_name="$(basename "$workflow_source")"
-  mkdir "$build_root/workflows/$workflow_name"
-  cp "$workflow_source"*.yaml "$build_root/workflows/$workflow_name/"
-done
 go run ./tools/release-manifest --version "$version" --source "$repo_root" \
   --dist "$build_root" --output "$build_root/release.json" >&2
 if [[ "$(git rev-parse HEAD)" != "$commit" || "$(git status --porcelain -- "${source_paths[@]}")" != "$source_status" || "$(source_fingerprint)" != "$source_digest" ]]; then

@@ -578,14 +578,14 @@ func releaseFromIDL(value *storageidl.Release) Release {
 }
 
 func workflowRefToIDL(value WorkflowRef) *commonidl.WorkflowRef {
-	return &commonidl.WorkflowRef{Id: value.ID, Digest: value.Digest}
+	return &commonidl.WorkflowRef{Id: value.ID}
 }
 
 func workflowRefFromIDL(value *commonidl.WorkflowRef) WorkflowRef {
 	if value == nil {
 		return WorkflowRef{}
 	}
-	return WorkflowRef{ID: value.Id, Digest: value.Digest}
+	return WorkflowRef{ID: value.Id}
 }
 
 func evidenceToIDL(values []Evidence) ([]*storageidl.Evidence, error) {
@@ -674,8 +674,7 @@ func OutputsFromStorageIDL(values map[string]*storageidl.RegisteredOutput) (map[
 
 func validateEventEnvelope(value Event) error {
 	if value.SchemaVersion != CurrentEventSchemaVersion || value.ID == "" || value.OccurredAt.IsZero() ||
-		value.Kind == "" || value.Command == "" || value.Workflow.ID == "" ||
-		value.Workflow.Digest == "" || value.Payload == nil {
+		value.Kind == "" || value.Command == "" || value.Workflow.ID == "" || value.Payload == nil {
 		return fmt.Errorf("invalid event envelope")
 	}
 	return ValidateEventPayload(value)

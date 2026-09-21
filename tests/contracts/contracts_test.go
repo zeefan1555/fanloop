@@ -64,7 +64,7 @@ func TestGeneratedIDLGoPackagesStayUnderInternalIDL(t *testing.T) {
 	packages := map[string]string{
 		"cardidl": "card.go", "cliidl": "cli.go", "commonidl": "common.go", "erroridl": "error.go",
 		"flowidl": "flow.go", "opsidl": "ops.go", "releaseidl": "release.go", "storageidl": "storage.go", "traceidl": "trace.go",
-		"verifyidl": "verify.go", "yamlidl": "yaml.go",
+		"verifyidl": "verify.go", "yamlidl": "yaml.go", "dashboardidl": "dashboard.go",
 	}
 	for name, generatedFile := range packages {
 		if _, err := os.Stat(filepath.Join(repo, name)); !os.IsNotExist(err) {
@@ -292,6 +292,7 @@ func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 func runCase(t *testing.T, binary, casePath string, value contractCase) contractResult {
 	t.Helper()
 	root := t.TempDir()
+	copyTree(t, filepath.Join(repositoryRoot(t), "workflows"), filepath.Join(root, ".fanloop-user", "current", "workflows"))
 	before := filepath.Join(filepath.Dir(casePath), "before")
 	if _, err := os.Stat(before); err == nil {
 		copyTree(t, before, root)
@@ -460,18 +461,24 @@ func snapshot(t *testing.T, root string) map[string]fileResult {
 	t.Helper()
 	result := map[string]fileResult{}
 	if err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil || entry.IsDir() {
+		if walkErr != nil {
 			return walkErr
+		}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		if relative == ".fanloop-user" && entry.IsDir() {
+			return filepath.SkipDir
+		}
+		if entry.IsDir() {
+			return nil
 		}
 		info, err := entry.Info()
 		if err != nil {
 			return err
 		}
 		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		relative, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
 		}

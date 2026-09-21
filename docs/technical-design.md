@@ -12,14 +12,15 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-当前携带两套 Bundle：
+源码提供三套首次安装配置：
 
 - `technical-solution-design`：十六步技术文档流程，第 0 至第 10 章各有独立 Step 和产物，按业务问题、技术判断和结果与规划三阶段推进。
 - `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；TechDesign、Implement 与 Test 依次完成方案自主评审、两级验收和 PR/CI 交接。
+- `material-flashcards`：九步材料理解、知识选择、卡片审核与持久化闭环。
 
-生产目录严格保持 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设公共
-Skill 组例外。统一入口位于 `entrypoints/fanloop-workflow/`；Release 构建和 Doctor 拒绝 live
-配置中缺失同名 Skill 组、未知 Skill 组和跨 Workflow SkillBinding。
+生产目录固定为 `workflows/<workflow-id>/{五份 YAML,skills/<skill-id>/SKILL.md}`。统一入口位于
+`entrypoints/fanloop-workflow/`；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
+额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `technical-solution` 对应 `technical-solution-design`，`fanloop-maintenance` 对应
@@ -95,8 +96,8 @@ Ruleset/required checks、同步 Review、自动 squash merge，把本 Requireme
 ## 当前持久化版本
 
 - Workflow / Flow / Condition / Loop / Prompt：`7 / 5 / 3 / 4 / 2`
-- Flow State / Event / Output Registry：`13 / 13 / 3`
-- Card Projection / Card Binding / Trace Config / CLI Log：`6 / 2 / 2 / 2`
+- Flow State / Event / Output Registry：`14 / 14 / 4`
+- Card Projection / Card Binding / Trace Config / CLI Log：`7 / 2 / 2 / 2`
 
 Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命令、文件位置和恢复提示均不
 提供旧产品身份的兼容入口。
@@ -104,22 +105,27 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 ## 本地构建与验证
 
 `./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、统一入口和
-Workflow 的本地目录；标准输出是构建目录的绝对路径。`skills/` 与 `exemplars/` 不进入 Release，
+Manifest 的本地 Release；标准输出是构建目录的绝对路径。`workflows/` 与 `exemplars/` 不进入 Release，
 也不参与 CLI 的 dirty 版本摘要。显式输出目录必须尚不存在，默认在 `dist/` 下新建唯一
 `local-*` 目录。
 
-Release Manifest schema 3 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、组件路径及
-统一入口/Workflow SHA-256；没有平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后复用
-目录安装，验证和 Doctor 成功才切换 `~/.fanloop/current`，并原子维护
-`~/.fanloop/config/current -> <源码仓库>`。Status 每次从该 live 配置根解析原子 Skill 的绝对路径，
-因此 Skill 和范文随源码拉取即时更新，不改变 CLI 版本。Workflow、入口与二进制仍按 Release 固定；
-已有 Requirement 的 Workflow digest 和固定控制器语义不变。完整决策见
-[ADR-0099](./adr/0099-load-skills-from-live-configuration.md)。
+Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、Storage Schema 支持与
+统一入口 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
+复用目录安装：首次安装从已校验的配置源播种 `~/.fanloop/current/workflows`，后续升级完整保留其字节；
+只有 `~/.fanloop/current/release` 原子切换不可变 CLI Release。稳定的 `current/bin`、`entrypoints` 与
+`release.json` 通过该 selector 一起切换。每次 CLI 调用按 State 中的 Workflow ID 重新加载 live YAML 与
+Skill，不持久化或比较 Workflow digest。完整决策见
+[ADR-0108](./adr/0108-use-live-workflows-and-local-dashboard.md)。
+
+`fanloop dashboard` 复用同一个 live 根，以 Go 标准库提供 loopback-only 的嵌入式编辑器。API 只允许
+已有五份 YAML 与 `SKILL.md`，读取返回 SHA-256，保存执行乐观并发、候选 Bundle 校验和原子替换；页面每
+两秒轮询，干净编辑器自动刷新，脏编辑器遇到外部变化时标记 stale。它不包含账号、远程监听、Daemon、
+创建、删除、重命名或可视化拓扑编辑。
 
 GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发布；构建不依赖 Node.js、GoReleaser
 或 tar/xz。完整决定见 [ADR-0095](./adr/0095-local-source-builds.md)。
 
-新增 Workflow 的发布改动只包含五份 YAML、同名 Skill 组和场景路由。配置-only 契约测试会临时
+新增 Workflow 的默认配置改动只包含一个完整 Workflow 目录和场景路由。配置-only 契约测试会临时
 构造第三套 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。
 
 仓库级本地门禁只有一个：

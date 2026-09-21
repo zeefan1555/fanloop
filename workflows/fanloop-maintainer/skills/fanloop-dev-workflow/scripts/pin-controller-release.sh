@@ -10,10 +10,9 @@ requirement_root="$(cd "$1" && pwd -P)"
 controller_home="$requirement_root/bound-release-home"
 skill_roots="$controller_home/skill-roots"
 controller_binary="$controller_home/current/bin/fanloop"
-source_config="$(cd "${FANLOOP_CONFIG_ROOT:-$HOME/.fanloop/config/current}" && pwd -P)"
+source_config="$(cd "${FANLOOP_CONFIG_ROOT:-$HOME/.fanloop/current}" && pwd -P)"
 controller_env=(
   "FANLOOP_DATA_HOME=$controller_home"
-  "FANLOOP_CONFIG_ROOT=$controller_home/config/current"
   "FANLOOP_CODEX_SKILLS_ROOT=$skill_roots/codex"
   "FANLOOP_AGENT_SKILLS_ROOT=$skill_roots/agent"
   "FANLOOP_TRAE_SKILLS_ROOT=$skill_roots/trae"
@@ -43,12 +42,11 @@ if [[ -e "$controller_home" || -L "$controller_home" ]]; then
   exit 0
 fi
 
-source_release="$(cd "$HOME/.fanloop/current" && pwd -P)"
+source_release="$(cd "$HOME/.fanloop/current/release" && pwd -P)"
 source_binary="$source_release/bin/fanloop"
 
 env \
   -u FANLOOP_DATA_HOME \
-  -u FANLOOP_CONFIG_ROOT \
   -u FANLOOP_CODEX_SKILLS_ROOT \
   -u FANLOOP_AGENT_SKILLS_ROOT \
   -u FANLOOP_TRAE_SKILLS_ROOT \

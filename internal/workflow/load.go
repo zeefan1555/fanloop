@@ -2,9 +2,6 @@ package workflow
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,29 +21,49 @@ var configIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var ErrInvalidSelector = errors.New("invalid workflow selector")
 
 func Load(id string) (Loaded, error) {
-	if !workflowIDPattern.MatchString(id) {
-		return Loaded{}, fmt.Errorf("invalid workflow id %q", id)
-	}
-	return LoadRef(Ref{ID: id})
-}
-
-func LoadRef(ref Ref) (Loaded, error) {
-	if !workflowIDPattern.MatchString(ref.ID) {
-		return Loaded{}, fmt.Errorf("invalid workflow reference")
-	}
-	source, err := sourceForBundle(ref.ID)
+	root, err := DefaultRoot()
 	if err != nil {
 		return Loaded{}, err
 	}
-	loaded, err := loadBundle(source, ref.ID)
+	return LoadFrom(root, id)
+}
+
+func LoadFrom(root, id string) (Loaded, error) {
+	if !workflowIDPattern.MatchString(id) {
+		return Loaded{}, fmt.Errorf("invalid workflow id %q", id)
+	}
+	return loadFromRef(root, Ref{ID: id})
+}
+
+func LoadRef(ref Ref) (Loaded, error) {
+	root, err := DefaultRoot()
+	if err != nil {
+		return Loaded{}, err
+	}
+	return loadFromRef(root, ref)
+}
+
+func loadFromRef(root string, ref Ref) (Loaded, error) {
+	if !workflowIDPattern.MatchString(ref.ID) {
+		return Loaded{}, fmt.Errorf("invalid workflow reference")
+	}
+	if err := requireRealWorkflowRoot(root); err != nil {
+		return Loaded{}, err
+	}
+	bundleRoot := filepath.Join(root, ref.ID)
+	if err := requireRealDirectory(bundleRoot); err != nil {
+		return Loaded{}, fmt.Errorf("Workflow %q: %w", ref.ID, err)
+	}
+	loaded, err := loadBundle(os.DirFS(root), ref.ID)
 	if err != nil {
 		return Loaded{}, err
 	}
 	if loaded.Ref.ID != ref.ID {
 		return Loaded{}, fmt.Errorf("workflow path does not match its id")
 	}
-	if ref.Digest != "" && loaded.Ref.Digest != ref.Digest {
-		return Loaded{}, fmt.Errorf("workflow digest mismatch")
+	loaded.SkillPaths, err = loadSkillPaths(bundleRoot, loaded.Workflow)
+	if err != nil {
+		return Loaded{}, err
 	}
 	return loaded, nil
 }
@@ -59,6 +76,9 @@ func LoadSelector(selector string) (Loaded, error) {
 }
 
 func LoadDirectory(root string) (Loaded, error) {
+	if err := requireRealWorkflowRoot(root); err != nil {
+		return Loaded{}, err
+	}
 	if err := requireExactBundleFiles(os.DirFS(root), "."); err != nil {
 		return Loaded{}, err
 	}
@@ -74,20 +94,31 @@ func LoadDirectory(root string) (Loaded, error) {
 }
 
 func List() ([]Loaded, error) {
+	root, err := DefaultRoot()
+	if err != nil {
+		return nil, err
+	}
+	return ListFrom(root)
+}
+
+func ListFrom(root string) ([]Loaded, error) {
+	if err := requireRealWorkflowRoot(root); err != nil {
+		return nil, err
+	}
 	result := []Loaded{}
-	for _, source := range sources() {
-		paths, err := fs.Glob(source, "*/workflow.yaml")
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if entry.Type()&os.ModeSymlink != 0 || !entry.IsDir() || !workflowIDPattern.MatchString(entry.Name()) {
+			return nil, fmt.Errorf("invalid Workflow directory %q", entry.Name())
+		}
+		loaded, err := LoadFrom(root, entry.Name())
 		if err != nil {
 			return nil, err
 		}
-		for _, path := range paths {
-			id := strings.SplitN(path, "/", 2)[0]
-			loaded, err := LoadRef(Ref{ID: id})
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, loaded)
-		}
+		result = append(result, loaded)
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Ref.ID < result[j].Ref.ID
@@ -95,20 +126,30 @@ func List() ([]Loaded, error) {
 	return result, nil
 }
 
-func sourceForBundle(root string) (fs.FS, error) {
-	var found fs.FS
-	for _, source := range sources() {
-		if err := requireExactBundleFiles(source, root); err == nil {
-			if found != nil {
-				return nil, fmt.Errorf("duplicate workflow bundle %q", root)
-			}
-			found = source
+func requireRealWorkflowRoot(root string) error {
+	absolute, err := filepath.Abs(root)
+	if err != nil {
+		return err
+	}
+	// The data root itself may be a managed symlink, but current and its
+	// workflows child must remain real directories.
+	for _, path := range []string{filepath.Dir(absolute), absolute} {
+		if err := requireRealDirectory(path); err != nil {
+			return fmt.Errorf("Workflow root must use real directories: %w", err)
 		}
 	}
-	if found == nil {
-		return nil, fmt.Errorf("workflow %q not found: %w", root, fs.ErrNotExist)
+	return nil
+}
+
+func requireRealDirectory(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
 	}
-	return found, nil
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%s is not a real directory", path)
+	}
+	return nil
 }
 
 func loadBundle(source fs.FS, root string) (Loaded, error) {
@@ -162,11 +203,7 @@ func DecodeBundle(workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML []
 	if err := ValidateBundle(&value, flow.SchemaVersion, condition.SchemaVersion, loop.SchemaVersion, prompt.SchemaVersion); err != nil {
 		return Loaded{}, err
 	}
-	digest, err := bundleDigest(authoring, flow, condition, loop, prompt)
-	if err != nil {
-		return Loaded{}, err
-	}
-	return Loaded{Workflow: value, Ref: Ref{ID: value.ID, Digest: digest}}, nil
+	return Loaded{Workflow: value, Ref: Ref{ID: value.ID}}, nil
 }
 
 func decodeYAML(content []byte, destination any) error {
@@ -185,22 +222,6 @@ func decodeYAML(content []byte, destination any) error {
 	return nil
 }
 
-func bundleDigest(authoring yamlidl.WorkflowDocument, flow yamlidl.FlowDocument, condition yamlidl.ConditionDocument, loop yamlidl.LoopDocument, prompt yamlidl.PromptDocument) (string, error) {
-	canonical := struct {
-		Workflow  yamlidl.WorkflowDocument  `json:"workflow"`
-		Flow      yamlidl.FlowDocument      `json:"flow"`
-		Condition yamlidl.ConditionDocument `json:"condition"`
-		Loop      yamlidl.LoopDocument      `json:"loop"`
-		Prompt    yamlidl.PromptDocument    `json:"prompt"`
-	}{authoring, flow, condition, loop, prompt}
-	content, err := json.Marshal(canonical)
-	if err != nil {
-		return "", err
-	}
-	digest := sha256.Sum256(content)
-	return "sha256:" + hex.EncodeToString(digest[:]), nil
-}
-
 func requireExactBundleFiles(files fs.FS, root string) error {
 	entries, err := fs.ReadDir(files, root)
 	if err != nil {
@@ -211,6 +232,9 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 		missing[name] = true
 	}
 	for _, entry := range entries {
+		if entry.Name() == "skills" && entry.IsDir() && entry.Type()&fs.ModeSymlink == 0 {
+			continue
+		}
 		if !missing[entry.Name()] {
 			return fmt.Errorf("unexpected Workflow Bundle entry %s", entry.Name())
 		}
@@ -229,6 +253,47 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 		}
 	}
 	return nil
+}
+
+func loadSkillPaths(bundleRoot string, definition Workflow) (map[string]string, error) {
+	root := filepath.Join(bundleRoot, "skills")
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, fmt.Errorf("read Workflow Skills: %w", err)
+	}
+	paths := make(map[string]string, len(entries))
+	for _, entry := range entries {
+		if entry.Type()&os.ModeSymlink != 0 || !entry.IsDir() || !workflowIDPattern.MatchString(entry.Name()) {
+			return nil, fmt.Errorf("invalid Skill directory %q", entry.Name())
+		}
+		path := filepath.Join(root, entry.Name(), "SKILL.md")
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("Skill %q is missing regular SKILL.md", entry.Name())
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(string(content)) == "" {
+			return nil, fmt.Errorf("Skill %q has empty SKILL.md", entry.Name())
+		}
+		paths[entry.Name()] = path
+	}
+	for _, binding := range allSkillBindings(definition) {
+		if paths[binding.ID] == "" {
+			return nil, fmt.Errorf("Workflow %s uses unknown Skill %q", definition.ID, binding.ID)
+		}
+	}
+	return paths, nil
+}
+
+func allSkillBindings(definition Workflow) []SkillBinding {
+	result := append([]SkillBinding(nil), definition.CommonSkills...)
+	for _, prompt := range definition.Prompts {
+		result = append(result, prompt.Skills...)
+	}
+	return result
 }
 
 func BundleFileNames() []string {

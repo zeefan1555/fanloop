@@ -1,9 +1,9 @@
 namespace go commonidl
 
 struct WorkflowRef {
-  1: required string id     (vt.min_size = "1"),
+  1: required string id (vt.min_size = "1"),
   // field 2 retired: Workflow has no business version.
-  3: required string digest (vt.min_size = "1"),
+  // field 3 retired: live Workflow content is not versioned or pinned.
 }
 
 enum CommandRisk {

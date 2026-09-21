@@ -13,7 +13,7 @@ func newVersionCommand(ioStreams streams) *cobra.Command {
 	var controls operationControls
 	command := operationCommand("version")
 	command.Long = `Purpose:
-  Show the active coordinated Release, commit, State Schema support, Skills, and Workflows.
+  Show the active CLI Release, commit, State Schema support, and global entrypoint Skill.
 
 Effect:
   Read only. It inspects installed release metadata and does not change local or remote state.

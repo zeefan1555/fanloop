@@ -25,9 +25,6 @@ func (p *WorkflowRef) IsValid() error {
 	if len(p.Id) < int(1) {
 		return fmt.Errorf("field Id min_len rule failed, current value: %d", len(p.Id))
 	}
-	if len(p.Digest) < int(1) {
-		return fmt.Errorf("field Digest min_len rule failed, current value: %d", len(p.Digest))
-	}
 	return nil
 }
 func (p *DriftNotice) IsValid() error {

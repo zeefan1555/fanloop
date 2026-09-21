@@ -22,7 +22,7 @@ description: 把已确认的 Fanloop CLI requirements.md 生成为 Issue Workspa
 - 会影响 Agent 下一步决策的 `effect`、`transition`、最新 `state.current`、有效 `outputs`、
   `invalidated_outputs`、`meta` 和 `_notice`。
 
-动态 event ID、绝对路径、时间和 Workflow digest 可使用明确占位符，但不得用字段摘要、伪代码
+动态 event ID、绝对路径和时间可使用明确占位符，但不得用字段摘要、伪代码
 或删减决策字段的片段冒充真实返回结构。
 
 只落盘人或 Agent 通过当前 Workflow 批准的内容；缺少或冲突的决策返回需求澄清。不要发布外部

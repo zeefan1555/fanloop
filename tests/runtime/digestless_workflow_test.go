@@ -9,35 +9,47 @@ import (
 	"testing"
 )
 
-const oldWorkflowDigest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-
-func TestCurrentSchemaRequirementContinuesAcrossWorkflowDigestChange(t *testing.T) {
+func TestCurrentSchemaRequirementReloadsLiveWorkflowAndSkill(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Digestless continuation"), "flow.init")
-	rewriteRequirementProvenance(t, root)
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Live reload"), "flow.init")
+	liveWorkflow := filepath.Join(filepath.Dir(binary), ".fanloop-user", "current", "workflows", "fanloop-maintainer")
+	promptPath := filepath.Join(liveWorkflow, "prompt.yaml")
+	prompt := readFile(t, promptPath)
+	marker := "live prompt reload marker"
+	updated := bytes.Replace(prompt, []byte("准备并回读独立 Issue Workspace"), []byte(marker), 1)
+	if bytes.Equal(updated, prompt) {
+		t.Fatal("prompt fixture replacement did not match")
+	}
+	if err := os.WriteFile(promptPath, updated, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	skillPath := filepath.Join(liveWorkflow, "skills", "fanloop-dev-bootstrap", "SKILL.md")
+	skillMarker := "live skill reload marker"
+	if err := os.WriteFile(skillPath, append(readFile(t, skillPath), []byte("\n"+skillMarker+"\n")...), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	status := run(binary, "flow", "status", "--root", root)
 	assertSuccess(t, status, "flow.status")
-	for _, want := range []string{`"step_id": "bootstrap_techdesign"`, `"id": "fanloop-dev-bootstrap"`} {
+	for _, want := range []string{`"step_id": "bootstrap_techdesign"`, `"id": "fanloop-dev-bootstrap"`, marker, skillPath} {
 		if !strings.Contains(status.stdout, want) {
-			t.Fatalf("current Workflow projection is missing %s:\n%s", want, status.stdout)
+			t.Fatalf("live Workflow projection is missing %s:\n%s", want, status.stdout)
 		}
 	}
-	if !strings.Contains(status.stdout, oldWorkflowDigest) {
-		t.Fatalf("status replaced persisted Workflow provenance:\n%s", status.stdout)
+	if !strings.Contains(string(readFile(t, skillPath)), skillMarker) {
+		t.Fatal("live Skill edit was not preserved")
 	}
 
-	progress := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "bootstrap_techdesign", "--status", "in_progress", "--summary", "continue with current bundle")
+	progress := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "bootstrap_techdesign", "--status", "in_progress", "--summary", "continue with live bundle")
 	assertSuccess(t, progress, "flow.report.progress")
 	assertSuccess(t, run(binary, "card", "render", "--root", root, "--view", "current", "--format", "markdown"), "card.render")
 	assertSuccess(t, run(binary, "trace", "status", "--root", root), "trace.status")
 	assertSuccess(t, run(binary, "trace", "sync", "--root", root), "trace.sync")
 
 	doctor := run(binary, "doctor", "--root", root)
-	if doctor.exitCode != 0 || strings.Contains(doctor.stdout, "workflow digest mismatch") || !strings.Contains(doctor.stdout, `"id": "workflow_binding"`) {
-		t.Fatalf("doctor rejected digest-only provenance drift: exit=%d\nstdout=%s\nstderr=%s", doctor.exitCode, doctor.stdout, doctor.stderr)
+	if doctor.exitCode != 0 || !strings.Contains(doctor.stdout, `"id": "workflow_binding"`) {
+		t.Fatalf("doctor rejected compatible live reload: exit=%d\nstdout=%s\nstderr=%s", doctor.exitCode, doctor.stdout, doctor.stderr)
 	}
-	assertPersistedProvenance(t, root)
 }
 
 func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *testing.T) {
@@ -100,8 +112,8 @@ func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *te
 			messages: []string{`Output \"issue_workspace_path\" is not valid at the current Step`},
 		},
 		{
-			name:    "invalid historical Condition",
-			prepare: prepareDigestDifferentRequirementAfterBootstrap,
+			name:    "invalid historical Condition Output",
+			prepare: prepareRequirementAfterBootstrap,
 			breakState: func(t *testing.T, root string) {
 				mutateFlowResult(t, root, func(result map[string]any) {
 					conditions := result["condition_results"].([]any)
@@ -110,11 +122,11 @@ func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *te
 			},
 			exitCode: 5,
 			code:     "STATE_CORRUPT",
-			messages: []string{`Condition \"implementation_completed\" is not available at Step \"bootstrap_techdesign\"`},
+			messages: []string{`Condition \"implementation_completed\" has invalid Output`},
 		},
 		{
 			name:    "historical transition tail mismatch",
-			prepare: prepareDigestDifferentRequirementAfterBootstrap,
+			prepare: prepareRequirementAfterBootstrap,
 			breakState: func(t *testing.T, root string) {
 				mutateFlowResult(t, root, func(result map[string]any) {
 					result["transition"].(map[string]any)["to_step_id"] = "design_technical_solution"
@@ -132,8 +144,6 @@ func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *te
 			assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", test.name), "flow.init")
 			if test.prepare != nil {
 				test.prepare(t, binary, root)
-			} else {
-				rewriteRequirementProvenance(t, root)
 			}
 			test.breakState(t, root)
 			paths, before := requirementFacts(t, root)
@@ -150,7 +160,7 @@ func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *te
 	}
 }
 
-func TestDigestDifferentRequirementPreservesCorruptionInvariants(t *testing.T) {
+func TestLiveWorkflowRequirementPreservesCorruptionInvariants(t *testing.T) {
 	tests := []struct {
 		name    string
 		corrupt func(*testing.T, string)
@@ -190,7 +200,7 @@ func TestDigestDifferentRequirementPreservesCorruptionInvariants(t *testing.T) {
 			name: "Output registry binding mismatch",
 			corrupt: func(t *testing.T, root string) {
 				mutateJSONObject(t, filepath.Join(root, ".fanloop", "output", "state.json"), func(value map[string]any) {
-					value["workflow"].(map[string]any)["digest"] = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+					value["workflow"].(map[string]any)["id"] = "material-flashcards"
 				})
 			},
 		},
@@ -200,7 +210,6 @@ func TestDigestDifferentRequirementPreservesCorruptionInvariants(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			binary, root := buildCLI(t), t.TempDir()
 			assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", test.name), "flow.init")
-			rewriteRequirementProvenance(t, root)
 			test.corrupt(t, root)
 			paths, before := requirementFacts(t, root)
 
@@ -210,45 +219,12 @@ func TestDigestDifferentRequirementPreservesCorruptionInvariants(t *testing.T) {
 	}
 }
 
-func TestDigestDifferentRequirementDoesNotRevalidateHistoricalRoutes(t *testing.T) {
-	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Historical route drift"), "flow.init")
-	prepareDigestDifferentRequirementAfterBootstrap(t, binary, root)
-
-	mutateFlowResult(t, root, func(result map[string]any) {
-		conditions := result["condition_results"].([]any)
-		result["condition_results"] = conditions[:1]
-		result["output_changes"].(map[string]any)["accepted"] = []any{"issue_workspace_path"}
-	})
-	for _, path := range []string{
-		filepath.Join(root, ".fanloop", "output", "state.json"),
-		filepath.Join(root, ".fanloop", "card", "projection.json"),
-	} {
-		mutateJSONObject(t, path, func(value map[string]any) {
-			delete(value["outputs"].(map[string]any), "panorama_snapshot_path")
-		})
-	}
-
-	assertSuccess(t, run(binary, "flow", "status", "--root", root), "flow.status")
-	assertSuccess(t, run(binary, "card", "render", "--root", root, "--view", "current", "--format", "markdown", "--dry-run"), "card.render")
-
-	paths, before := requirementFacts(t, root)
-	currentResult := run(binary, "flow", "report", "result", "--root", root, "--step-id", "clarify_requirements",
-		"--condition-result", conditionResult("requirements_grilled", "path", `"requirements.md"`),
-		"--next-step-id", "design_technical_solution", "--summary", "missing current route gates")
-	if currentResult.exitCode == 0 || !strings.Contains(currentResult.stderr, "ROUTE_NOT_MATCHED") {
-		t.Fatalf("new Result bypassed current Route validation: exit=%d\nstdout=%s\nstderr=%s", currentResult.exitCode, currentResult.stdout, currentResult.stderr)
-	}
-	assertFactsUnchanged(t, paths, before)
-}
-
-func prepareDigestDifferentRequirementAfterBootstrap(t *testing.T, binary, root string) {
+func prepareRequirementAfterBootstrap(t *testing.T, binary, root string) {
 	t.Helper()
 	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root, "--step-id", "bootstrap_techdesign",
 		"--condition-result", conditionResult("repository_workspace_prepared", "path", `"issue-workspace"`),
 		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/bootstrap.json"`),
 		"--next-step-id", "clarify_requirements", "--summary", "bootstrap complete"), "flow.report.result")
-	rewriteRequirementProvenance(t, root)
 }
 
 func mutateFlowResult(t *testing.T, root string, mutate func(map[string]any)) {
@@ -285,39 +261,6 @@ func assertFactsUnchanged(t *testing.T, paths []string, before [][]byte) {
 	for index, path := range paths {
 		if after := readFile(t, path); !bytes.Equal(after, before[index]) {
 			t.Fatalf("rejected command changed %s", path)
-		}
-	}
-}
-
-func rewriteRequirementProvenance(t *testing.T, root string) {
-	t.Helper()
-	mutateJSONObject(t, filepath.Join(root, ".fanloop", "flow", "state.json"), func(value map[string]any) {
-		value["release"].(map[string]any)["version"] = "0.5.0"
-		value["release"].(map[string]any)["workflow"].(map[string]any)["digest"] = oldWorkflowDigest
-	})
-	mutateJSONObject(t, filepath.Join(root, ".fanloop", "output", "state.json"), func(value map[string]any) {
-		value["workflow"].(map[string]any)["digest"] = oldWorkflowDigest
-	})
-	mutateEvents(t, root, func(event map[string]any) {
-		event["workflow"].(map[string]any)["digest"] = oldWorkflowDigest
-	})
-	mutateJSONObject(t, filepath.Join(root, ".fanloop", "card", "projection.json"), func(value map[string]any) {
-		value["release"].(map[string]any)["version"] = "0.5.0"
-		value["release"].(map[string]any)["workflow"].(map[string]any)["digest"] = oldWorkflowDigest
-	})
-}
-
-func assertPersistedProvenance(t *testing.T, root string) {
-	t.Helper()
-	for _, path := range []string{
-		filepath.Join(root, ".fanloop", "flow", "state.json"),
-		filepath.Join(root, ".fanloop", "output", "state.json"),
-		filepath.Join(root, ".fanloop", "trace", "events.jsonl"),
-		filepath.Join(root, ".fanloop", "card", "projection.json"),
-	} {
-		content := readFile(t, path)
-		if !bytes.Contains(content, []byte(oldWorkflowDigest)) {
-			t.Fatalf("persisted provenance changed in %s:\n%s", path, content)
 		}
 	}
 }

@@ -15,13 +15,13 @@ const (
 	//
 	// This file owns every Fanloop-defined structured JSON/JSONL document under
 	// .fanloop. It defines file schemas only: no public CLI methods or RPC service.
-	FLOW_STATE_SCHEMA_VERSION = 13
+	FLOW_STATE_SCHEMA_VERSION = 14
 
-	EVENT_SCHEMA_VERSION = 13
+	EVENT_SCHEMA_VERSION = 14
 
-	OUTPUT_REGISTRY_SCHEMA_VERSION = 3
+	OUTPUT_REGISTRY_SCHEMA_VERSION = 4
 
-	CARD_PROJECTION_SCHEMA_VERSION = 6
+	CARD_PROJECTION_SCHEMA_VERSION = 7
 
 	CARD_BINDING_SCHEMA_VERSION = 2
 

@@ -19,13 +19,13 @@ func TestDecodeRejectsWorkflowBusinessVersionField(t *testing.T) {
 	if err := json.Unmarshal(content, &document); err != nil {
 		t.Fatal(err)
 	}
-	document["workflows"].([]any)[0].(map[string]any)["version"] = "1.0.0"
+	document["workflows"] = []any{map[string]any{"id": "technical-solution-design"}}
 	content, err = json.Marshal(document)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Decode(content); err == nil {
-		t.Fatal("release.json with a retired Workflow version field was accepted")
+		t.Fatal("release.json with retired Workflow artifacts was accepted")
 	}
 }
 
@@ -41,23 +41,8 @@ func TestDecodeUsesGeneratedChildValidation(t *testing.T) {
 	}
 }
 
-func TestValidateAcceptsGroupedSkillPaths(t *testing.T) {
-	manifest := validTestManifest()
-	manifest.Workflows = append(manifest.Workflows, &Workflow{
-		Id: "fanloop-maintainer", Path: "workflows/fanloop-maintainer", Sha256: manifest.Skills[0].Sha256,
-	})
-	manifest.Skills = append(manifest.Skills, &Skill{
-		Name: "fanloop-dev-tdd", Version: "1.2.3",
-		Path: "skills/fanloop-maintainer/fanloop-dev-tdd", Sha256: manifest.Skills[0].Sha256,
-	})
-	if err := manifest.Validate(); err != nil {
-		t.Fatalf("grouped Skill paths were rejected: %v", err)
-	}
-}
-
 func TestValidateAllowsOnlyPackagedWorkflowEntrypoint(t *testing.T) {
 	manifest := validTestManifest()
-	manifest.Skills = manifest.Skills[1:]
 	if err := manifest.Validate(); err != nil {
 		t.Fatalf("entrypoint-only release rejected: %v", err)
 	}
@@ -66,14 +51,13 @@ func TestValidateAllowsOnlyPackagedWorkflowEntrypoint(t *testing.T) {
 func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
 	tests := []struct{ path, want string }{
 		{"skills/ai-test", "invalid or duplicate skill"},
-		{"skills/common/ai-test", `unknown Workflow group "common"`},
-		{"skills/fanloop-workflow/common/ai-test", "invalid or duplicate skill"},
-		{"skills/Common/ai-test", "invalid or duplicate skill"},
+		{"skills/common/ai-test", "invalid or duplicate skill"},
 		{"entrypoints/ai-test", "invalid or duplicate skill"},
 	}
 	for _, test := range tests {
 		t.Run(test.path, func(t *testing.T) {
 			manifest := validTestManifest()
+			manifest.Skills[0].Name = "ai-test"
 			manifest.Skills[0].Path = test.path
 			if err := manifest.Validate(); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("Validate() error = %v", err)
@@ -84,13 +68,13 @@ func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
 
 func TestDecodeRequiresExposedWorkflowSkill(t *testing.T) {
 	manifest := validTestManifest()
-	manifest.Skills = manifest.Skills[:1]
+	manifest.Skills = nil
 	content, err := json.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Decode(content); err == nil || !strings.Contains(err.Error(), ExposedSkillName) {
-		t.Fatalf("release without %s = %v", ExposedSkillName, err)
+	if _, err := Decode(content); err == nil {
+		t.Fatalf("release without %s was accepted", ExposedSkillName)
 	}
 }
 
@@ -142,11 +126,7 @@ func validTestManifest() Manifest {
 		Cli:            &CLIRelease{Version: "1.2.3", BinarySha256: digest},
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
 		Skills: []*Skill{
-			{Name: "ai-test", Version: "1.2.3", Path: "skills/technical-solution-design/ai-test", Sha256: digest},
 			{Name: ExposedSkillName, Version: "1.2.3", Path: ExposedSkillPath, Sha256: digest},
-		},
-		Workflows: []*Workflow{
-			{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest},
 		},
 	}
 }

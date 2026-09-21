@@ -13,7 +13,7 @@ import (
 
 func TestEveryEventPayloadRoundTripsThroughStorageThriftUnion(t *testing.T) {
 	now := time.Date(2026, 8, 18, 1, 2, 3, 4, time.UTC)
-	workflowRef := WorkflowRef{ID: "fanloop", Digest: "sha256:test"}
+	workflowRef := WorkflowRef{ID: "fanloop"}
 	result := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
 			ConditionID: "repository_workspace_prepared",
@@ -67,7 +67,7 @@ func TestMaintainerTraceBindingRoundTripsCLILogDocument(t *testing.T) {
 		SchemaVersion: CurrentStateSchemaVersion,
 		Requirement:   Requirement{Title: "Maintainer"},
 		Release: Release{Version: "dev", Workflow: WorkflowRef{
-			ID: "fanloop-maintainer", Digest: "sha256:test",
+			ID: "fanloop-maintainer",
 		}},
 		CurrentStepID: &step, CurrentStepStatus: StepReady,
 		Outputs: map[string]RegisteredOutput{},
@@ -113,7 +113,7 @@ func TestMaintainerTraceBindingRoundTripsCLILogDocument(t *testing.T) {
 func TestStorageEventRejectsKindPayloadMismatch(t *testing.T) {
 	event := Event{
 		SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: time.Now().UTC(),
-		Kind: EventFlowInitialized, Command: "flow.init", Workflow: WorkflowRef{ID: "fanloop", Digest: "sha256:test"},
+		Kind: EventFlowInitialized, Command: "flow.init", Workflow: WorkflowRef{ID: "fanloop"},
 		Payload: Payload(FlowInitializedPayload{StepID: "bootstrap_techdesign", StepStatus: StepReady}),
 	}
 	content, err := EncodeEvent(event)

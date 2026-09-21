@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/release"
-	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -31,16 +30,6 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	if !equalStrings(gotSkills, wantSkills) {
 		t.Fatalf("Skills = %v, want %v", gotSkills, wantSkills)
 	}
-	gotWorkflows := make([]string, len(manifest.Workflows))
-	for index, item := range manifest.Workflows {
-		gotWorkflows[index] = item.Id
-		if item.Sha256 == "" {
-			t.Fatalf("Workflow is not pinned: %#v", item)
-		}
-	}
-	if !equalStrings(gotWorkflows, []string{"fanloop-maintainer", "material-flashcards", "technical-solution-design"}) {
-		t.Fatalf("Workflows = %v", gotWorkflows)
-	}
 	content, err := json.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)
@@ -55,32 +44,20 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	if strings.Contains(string(content), `"assets"`) {
 		t.Fatal("local manifest contains distribution assets")
 	}
-	workflowPath := filepath.Join(dist, "workflows", "technical-solution-design", "workflow.yaml")
-	workflowContent, err := os.ReadFile(workflowPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	changed := strings.Replace(string(workflowContent), "name: 业务问题", "name: 不同的业务问题", 1)
-	if changed == string(workflowContent) {
-		t.Fatal("test did not change Workflow")
-	}
-	if err := os.WriteFile(workflowPath, []byte(changed), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := build("1.2.3", source, dist); err == nil || !strings.Contains(err.Error(), "checksum mismatch") {
-		t.Fatalf("valid but changed Workflow accepted: %v", err)
+	if strings.Contains(string(content), `"workflows"`) {
+		t.Fatal("local manifest contains live Workflow artifacts")
 	}
 }
 
 func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", "..", "skills"))
+	root, err := filepath.Abs(filepath.Join("..", "..", "workflows"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, relative := range []string{
-		"fanloop-maintainer/fanloop-dev-panorama/SKILL.md",
-		"material-flashcards/material-flashcards-panorama/SKILL.md",
-		"technical-solution-design/technical-solution-panorama/SKILL.md",
+		"fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md",
+		"material-flashcards/skills/material-flashcards-panorama/SKILL.md",
+		"technical-solution-design/skills/technical-solution-panorama/SKILL.md",
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
 		if err != nil {
@@ -108,11 +85,11 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 				t.Fatalf("%s does not contain %q", relative, value)
 			}
 		}
-		if relative == "fanloop-maintainer/fanloop-dev-panorama/SKILL.md" &&
+		if relative == "fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md" &&
 			!strings.Contains(delivery, `{"condition_id":"panorama_presented"`) {
 			t.Fatalf("%s does not return the maintainer panorama condition", relative)
 		}
-		if relative != "fanloop-maintainer/fanloop-dev-panorama/SKILL.md" &&
+		if relative != "fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md" &&
 			!strings.Contains(delivery, `{"condition_id":"panorama_card_published"`) {
 			t.Fatalf("%s does not return the standard panorama condition", relative)
 		}
@@ -165,15 +142,15 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	loaded, err := workflow.LoadDirectory(bundleRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
 	entrypoint := filepath.Join(root, "entrypoints", release.ExposedSkillName, "SKILL.md")
 	if err := os.MkdirAll(filepath.Dir(entrypoint), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(entrypoint, []byte("---\nname: fanloop-workflow\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := workflow.LoadDirectory(bundleRoot)
+	if err != nil {
 		t.Fatal(err)
 	}
 	seenSkills := map[string]bool{}
@@ -186,7 +163,7 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 		}
 	}
 	for skillID := range seenSkills {
-		path := filepath.Join(root, "skills", workflowID, skillID, "SKILL.md")
+		path := filepath.Join(bundleRoot, "skills", skillID, "SKILL.md")
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -198,24 +175,21 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), routes, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	skills, err := skillconfig.Validate(root, []workflow.Loaded{loaded})
+	definitions, err := workflow.ListFrom(filepath.Join(root, "workflows"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(skills) == 0 {
+	if len(definitions) != 1 || len(definitions[0].SkillPaths) == 0 {
 		t.Fatal("config-only Workflow has no Skills")
 	}
 	exposed, err := discoverEntrypoint(root, "1.2.3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := release.Manifest{
-		Skills: []*release.Skill{exposed},
-		Workflows: []*release.Workflow{{
-			Id: workflowID, Path: "workflows/" + workflowID, Sha256: loaded.Ref.Digest,
-		}},
+	if exposed.Name != release.ExposedSkillName {
+		t.Fatalf("entrypoint = %#v", exposed)
 	}
-	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), manifest); err != nil {
+	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), definitions); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -236,8 +210,11 @@ func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
 		}
 	}
 	path := filepath.Join(filepath.Dir(entrypoint), "routes.yaml")
-	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "fanloop-maintainer"}, {Id: "material-flashcards"}, {Id: "technical-solution-design"}}}
-	if err := validateSelectorRoutes(path, manifest); err != nil {
+	definitions, err := workflow.ListFrom(filepath.Join("..", "..", "workflows"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateSelectorRoutes(path, definitions); err != nil {
 		t.Fatalf("production selector is invalid: %v", err)
 	}
 }
@@ -248,8 +225,8 @@ func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	manifest := release.Manifest{Workflows: []*release.Workflow{{Id: "technical-solution-design"}}}
-	if err := validateSelectorRoutes(path, manifest); err == nil || !strings.Contains(err.Error(), `unknown Workflow "missing"`) {
+	definitions := []workflow.Loaded{{Ref: workflow.Ref{ID: "technical-solution-design"}}}
+	if err := validateSelectorRoutes(path, definitions); err == nil || !strings.Contains(err.Error(), `unknown Workflow "missing"`) {
 		t.Fatalf("unknown selector target error = %v", err)
 	}
 }
@@ -287,7 +264,7 @@ func TestWorkflowEntryOwnsProtocolAndPanoramaFirst(t *testing.T) {
 }
 
 func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
-	path := filepath.Join("..", "..", "skills", "fanloop-maintainer", "fanloop-dev-workflow", "SKILL.md")
+	path := filepath.Join("..", "..", "workflows", "fanloop-maintainer", "skills", "fanloop-dev-workflow", "SKILL.md")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -317,9 +294,6 @@ func TestDirectoryVerificationRejectsIncompleteOrChangedBuild(t *testing.T) {
 		{name: "missing binary", path: "bin/fanloop", remove: true, want: "bin/fanloop"},
 		{name: "missing entrypoint", path: "entrypoints/fanloop-workflow/SKILL.md", remove: true, want: "checksum mismatch"},
 		{name: "changed entrypoint", path: "entrypoints/fanloop-workflow/SKILL.md", content: "changed", want: "checksum mismatch"},
-		{name: "missing Workflow", path: "workflows/technical-solution-design/flow.yaml", remove: true, want: "flow.yaml"},
-		{name: "invalid Workflow", path: "workflows/technical-solution-design/flow.yaml", content: "invalid: true", want: "Workflow"},
-		{name: "extra Workflow file", path: "workflows/technical-solution-design/guard.yaml", content: "extra", want: "guard.yaml"},
 		{name: "unmanifested Workflow", path: "workflows/orphan/README.md", content: "extra", want: "workflows/orphan/README.md"},
 		{name: "unmanifested Skill", path: "skills/orphan/SKILL.md", content: "extra", want: "skills/orphan/SKILL.md"},
 		{name: "symlink", path: "entrypoints/fanloop-workflow/link.md", symlink: true, want: "unsupported entry"},
@@ -333,21 +307,8 @@ func TestDirectoryVerificationRejectsIncompleteOrChangedBuild(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			bundlePath := "workflows/technical-solution-design"
-			for _, name := range workflow.BundleFileNames() {
-				content, err := os.ReadFile(filepath.Join("..", "..", bundlePath, name))
-				if err != nil {
-					t.Fatal(err)
-				}
-				writeTestFile(t, root, bundlePath+"/"+name, content)
-			}
-			loaded, err := workflow.LoadDirectory(filepath.Join(root, bundlePath))
-			if err != nil {
-				t.Fatal(err)
-			}
 			manifest := release.Manifest{
-				Skills:    []*release.Skill{{Name: release.ExposedSkillName, Path: skillPath, Sha256: digest}},
-				Workflows: []*release.Workflow{{Id: loaded.Ref.ID, Path: bundlePath, Sha256: loaded.Ref.Digest}},
+				Skills: []*release.Skill{{Name: release.ExposedSkillName, Path: skillPath, Sha256: digest}},
 			}
 			if _, err := verifyDirectory(root, manifest); err != nil {
 				t.Fatalf("valid directory rejected: %v", err)
@@ -388,7 +349,7 @@ func writeTestFile(t *testing.T, root, relative string, content []byte) {
 func writeTestReleaseDirectory(t *testing.T, source, destination string) {
 	t.Helper()
 	writeTestFile(t, destination, "bin/fanloop", []byte("test binary"))
-	for _, top := range []string{"entrypoints", "workflows"} {
+	for _, top := range []string{"entrypoints"} {
 		if err := filepath.WalkDir(filepath.Join(source, top), func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil || entry.IsDir() {
 				return walkErr
@@ -396,9 +357,6 @@ func writeTestReleaseDirectory(t *testing.T, source, destination string) {
 			relative, err := filepath.Rel(source, path)
 			if err != nil {
 				return err
-			}
-			if top == "workflows" && strings.Count(filepath.ToSlash(relative), "/") != 2 {
-				return nil
 			}
 			content, err := os.ReadFile(path)
 			if err != nil {

@@ -149,8 +149,8 @@ func TestRootCommandTreeMatchesIDLRegistry(t *testing.T) {
 	for _, spec := range idl.CommandSpecs() {
 		expected[spec.ID] = true
 	}
-	if len(actual) != 15 || len(expected) != 15 {
-		t.Fatalf("public command counts = Cobra %d, IDL %d; want 15", len(actual), len(expected))
+	if len(actual) != 16 || len(expected) != 16 {
+		t.Fatalf("public command counts = Cobra %d, IDL %d; want 16", len(actual), len(expected))
 	}
 	if command, _, err := root.Find([]string{"schema"}); err == nil && command.Name() == "schema" {
 		t.Fatal("root still exposes the retired schema command")
@@ -174,12 +174,13 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		}
 	}
 	want := map[string]bool{
-		"flow":    true,
-		"trace":   true,
-		"card":    true,
-		"verify":  true,
-		"version": true,
-		"doctor":  true,
+		"flow":      true,
+		"trace":     true,
+		"card":      true,
+		"verify":    true,
+		"version":   true,
+		"doctor":    true,
+		"dashboard": true,
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("domains = %#v, want %#v", got, want)

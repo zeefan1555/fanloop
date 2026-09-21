@@ -51,7 +51,7 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	}
 	if len(projected.Current.Prompt.Skills) != 1 || !strings.HasSuffix(
 		projected.Current.Prompt.Skills[0].Path,
-		filepath.FromSlash("skills/technical-solution-design/technical-problem-approval/SKILL.md"),
+		filepath.FromSlash("workflows/technical-solution-design/skills/technical-problem-approval/SKILL.md"),
 	) {
 		t.Fatalf("source Skill path was not resolved from the bound Workflow group: %#v", projected.Current.Prompt.Skills)
 	}
@@ -62,7 +62,7 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 		if view.Prompt.Content != conditionPrompt.Prompt || len(view.Prompt.Skills) != 1 ||
 			view.Prompt.Skills[0].Id != "technical-solution-panorama" ||
 			!strings.HasSuffix(view.Prompt.Skills[0].Path,
-				filepath.FromSlash("skills/technical-solution-design/technical-solution-panorama/SKILL.md")) {
+				filepath.FromSlash("workflows/technical-solution-design/skills/technical-solution-panorama/SKILL.md")) {
 			t.Fatalf("Condition Prompt or Skill was not resolved from the Workflow Bundle: %#v", view.Prompt)
 		}
 		return

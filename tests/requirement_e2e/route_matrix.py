@@ -690,7 +690,7 @@ def render_report(matrix: dict[str, Any]) -> str:
         f"- Flow：{metadata['flow_routes']} Route / {metadata['flow_alternatives']} alternatives。",
         f"- Loop：{metadata['loop_routes']} Route / {metadata['loop_alternatives']} alternatives。",
         f"- 负向与 dry-run：{sum(item['pass'] for item in checks)}/{len(checks)} PASS。",
-        f"- Commit：`{metadata['source_commit']}`；Workflow：`{metadata.get('workflow_digest')}`。",
+        f"- Commit：`{metadata['source_commit']}`；Workflow：`{metadata['workflow_id']}`。",
         f"- Source dirty：`{metadata['source_dirty']}`；执行前后不变：`{metadata['source_unchanged']}`；Binary SHA-256：`{metadata['binary_sha256']}`。",
         "- 每个场景均执行真实 CLI；mock 数据只验证路由机制，不代表业务事实。",
         "",
@@ -770,7 +770,7 @@ def main() -> int:
         ),
         "flow init",
     )
-    workflow_digest = init["data"]["workflow"]["digest"]
+    workflow_id = init["data"]["workflow"]["id"]
     trace_bind = ["trace", "bind", "--root", str(baseline), "--document-url", TRACE_DOCUMENT_URL]
     if args.workflow == "fanloop-maintainer":
         trace_bind.extend(["--cli-log-document-url", CLI_LOG_DOCUMENT_URL])
@@ -938,8 +938,7 @@ def main() -> int:
         "source_status_after": final_status.splitlines(),
         "binary": str(binary),
         "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
-        "workflow_id": args.workflow,
-        "workflow_digest": workflow_digest,
+        "workflow_id": workflow_id,
         **counts,
         "discovered": discovered,
         "executed": len(results),

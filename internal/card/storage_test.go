@@ -40,8 +40,8 @@ func TestProjectionWritesStorageThriftSchema(t *testing.T) {
 	if err := json.Unmarshal(content, &document); err != nil {
 		t.Fatal(err)
 	}
-	if document["schema_version"] != float64(6) {
-		t.Fatalf("schema_version = %v, want 6", document["schema_version"])
+	if document["schema_version"] != float64(7) {
+		t.Fatalf("schema_version = %v, want 7", document["schema_version"])
 	}
 	if _, err := LoadProjection(root); err != nil {
 		t.Fatal(err)

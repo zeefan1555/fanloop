@@ -10,23 +10,25 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-当前携带两套五文件 Workflow Bundle，不设置默认 Workflow：
+源码提供三套可用于首次安装的 Workflow，不设置默认 Workflow：
 
 - `technical-solution-design`：完成问题定义、方向推导、正式方案写作、独立审校和三级人工确认。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
+- `material-flashcards`：从材料中选择知识并生成、审核和持久化闪卡。
 
-业务配置严格按 `workflows/<workflow-id>/ ↔ skills/<workflow-id>/` 一一对应，不设例外。
-统一入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置。
+每套业务配置都位于 `workflows/<workflow-id>/`，五份 YAML 与 `skills/<skill-id>/` 共享同一个
+live 根目录。统一入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置。
 
-新增一套流程只需要增加同名 Workflow/Skill 目录和一条场景映射；不注册 Go 代码。Trace Registry
+新增一套流程只需要增加一个完整 Workflow 目录和一条场景映射；不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
 
 ## 本地构建与安装
 
-从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成包含 CLI、Workflow、统一入口和
-校验清单的可运行目录；`skills/` 与 `exemplars/` 是源码仓库中的 live 配置，不进入构建目录。
+从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成只包含 CLI、统一入口和
+校验清单的不可变 Release；Workflow YAML 与其绑定 Skills 不进入 Release。
 根级 `VERSION` 是 CLI 基础版本真值；本地源码构建使用 `VERSION-dev.<提交或内容摘要>`，同一提交
-可幂等复用，不同提交不会覆盖同名不可变 Release。Skill/范文改动不改变未提交构建的内容摘要。
+可幂等复用，不同提交不会覆盖同名不可变 Release。Workflow/Skill 与范文改动不改变未提交 CLI
+构建的内容摘要。
 
 只构建、直接运行：
 
@@ -47,11 +49,10 @@ fanloop_build_dir="$(./scripts/build-local.sh)"
 export PATH="$HOME/.fanloop/current/bin:$PATH"
 ```
 
-安装先校验二进制、Workflow、统一入口和 live Skill 配置，通过 Doctor 后原子切换
-`~/.fanloop/current`，并让 `~/.fanloop/config/current` 指向当前源码仓库。CLI 每次返回 Status 时都从
-该配置根解析 Skill 路径；之后只修改或拉取 `skills/`、`exemplars/` 即可立即生效，不需要重建或重装
-CLI。需要使用另一份配置仓库时，在安装时设置绝对路径 `FANLOOP_CONFIG_SOURCE`；运行时可用
-`FANLOOP_CONFIG_ROOT` 覆盖。
+安装先校验二进制、统一入口和配置源中的完整 Workflow 树。`~/.fanloop/current` 是稳定目录：
+`current/release` 原子选择不可变 CLI Release，`current/workflows` 是真实、可写、不会被后续升级覆盖的
+live 配置。首次安装从 `FANLOOP_CONFIG_SOURCE`（默认当前源码仓库）验证并播种该目录；之后 Fanloop
+每次调用都从这里重新加载 Workflow YAML 与绑定 Skill，因此 Dashboard 或外部编辑会在下一次命令生效。
 
 ## 使用
 
@@ -105,16 +106,26 @@ fanloop verify cleanup --run-id <RUN_ID> --dry-run
 
 流程状态只由 `.fanloop/flow/state.json` 管理。
 
+本地编辑 live Workflow：
+
+```bash
+fanloop dashboard
+```
+
+命令在 `127.0.0.1` 的随机空闲端口前台启动并打印 URL。页面只列出
+`~/.fanloop/current/workflows` 中已有的五份 YAML 和 `SKILL.md`，保存时执行路径白名单、SHA-256
+并发冲突、Workflow 校验与原子替换；不提供远程访问、创建、删除或重命名。
+
 ## 新增 Workflow
 
 ```text
 workflows/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
-skills/<workflow-id>/<skill-id>/SKILL.md
+workflows/<workflow-id>/skills/<skill-id>/SKILL.md
 entrypoints/fanloop-workflow/routes.yaml
 ```
 
-五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。构建和
-Doctor 会拒绝 live Skill 配置目录不一一对应、跨 Workflow SkillBinding、未知场景目标、缺失 Route
+五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。安装和
+Doctor 会拒绝缺失或多余文件、跨 Workflow SkillBinding、未知场景目标、符号链接、缺失 Route
 或图不变量错误。
 
 Human Step 的审批 Skill 展示审核材料，Panorama Skill 按当前宿主原样展示 renderer 生成的紧凑
@@ -141,7 +152,7 @@ fanloop flow init \
 用户路径使用 `fanloop verify` 和 Verification Skill 验证。
 
 项目级闭环验证说明与行为地图位于
-[`skills/fanloop-maintainer/fanloop-dev-verify/`](./skills/fanloop-maintainer/fanloop-dev-verify/)。它从当前
+[`workflows/fanloop-maintainer/skills/fanloop-dev-verify/`](./workflows/fanloop-maintainer/skills/fanloop-dev-verify/)。它从当前
 候选建立隔离安装，使用公开 CLI 驱动真实路径，并在清理临时环境后保留证据。验证地图由
 `fanloop-dev-maintain-verification` 按 source + live 方式维护；产品行为失败必须作为产品问题报告，不能
 通过改写地图掩盖。
@@ -159,8 +170,8 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。现有 CI 验证代码和本地安装，使用者自行从源码
 构建；不发布 npm 包、跨平台归档或 GitHub 二进制制品。构建与安装边界见
-[ADR-0095](./docs/adr/0095-local-source-builds.md)，live Skill 配置边界见
-[ADR-0099](./docs/adr/0099-load-skills-from-live-configuration.md)。代码授权仍为 `UNLICENSED`。
+[ADR-0095](./docs/adr/0095-local-source-builds.md)，live Workflow 与 Dashboard 边界见
+[ADR-0108](./docs/adr/0108-use-live-workflows-and-local-dashboard.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

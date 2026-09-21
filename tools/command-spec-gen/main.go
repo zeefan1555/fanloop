@@ -81,8 +81,8 @@ func collect(root *parser.Thrift, knownErrors map[string]bool) ([]command, error
 	if err := walk(root); err != nil {
 		return nil, err
 	}
-	if len(commands) != 15 {
-		return nil, fmt.Errorf("found %d public commands, want 15", len(commands))
+	if len(commands) != 16 {
+		return nil, fmt.Errorf("found %d public commands, want 16", len(commands))
 	}
 	return commands, nil
 }

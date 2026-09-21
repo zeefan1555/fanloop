@@ -11,6 +11,8 @@ cleanup() {
   rm -rf -- "$test_data_root" "$generated_root"
 }
 trap cleanup EXIT
+mkdir -p "$test_data_root/current"
+cp -R "$repo_root/workflows" "$test_data_root/current/workflows"
 export FANLOOP_DATA_HOME="$test_data_root"
 
 unformatted="$({

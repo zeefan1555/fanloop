@@ -6,7 +6,6 @@ import (
 	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 var (
@@ -25,34 +24,20 @@ func Get() (idl.VersionResponse, error) {
 		for index, item := range manifest.Skills {
 			skills[index] = &idl.SkillRelease{Name: item.Name, Version: item.Version}
 		}
-		workflows := make([]*idl.WorkflowRelease, len(manifest.Workflows))
-		for index, item := range manifest.Workflows {
-			workflows[index] = &idl.WorkflowRelease{Id: item.Id, Digest: item.Sha256}
-		}
 		return idl.VersionResponse{
 			ReleaseVersion: ReleaseVersion, StateSchema: manifest.StateSchema,
-			Skills: skills, Workflows: workflows, CommitSha: Commit,
+			Skills: skills, CommitSha: Commit,
 		}, nil
 	}
 	return GetEmbedded()
 }
 
 func GetEmbedded() (idl.VersionResponse, error) {
-	loaded, err := workflow.List()
-	if err != nil {
-		return idl.VersionResponse{}, err
-	}
-	workflows := make([]*idl.WorkflowRelease, 0, len(loaded))
-	for _, item := range loaded {
-		workflows = append(workflows, &idl.WorkflowRelease{Id: item.Ref.ID, Digest: item.Ref.Digest})
-	}
 	return idl.VersionResponse{
 		ReleaseVersion: ReleaseVersion,
 		StateSchema: &idl.StateSchemaSupport{
 			ReadVersions: []int32{int32(state.CurrentStateSchemaVersion)}, WriteVersion: int32(state.CurrentStateSchemaVersion),
 		},
-		Skills:    []*idl.SkillRelease{},
-		Workflows: workflows,
-		CommitSha: Commit,
+		Skills: []*idl.SkillRelease{}, CommitSha: Commit,
 	}, nil
 }

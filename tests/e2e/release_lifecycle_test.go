@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,23 +94,8 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 			t.Fatalf("matched release omitted %s: %s", want, version.stdout)
 		}
 	}
-	var response struct {
-		Data struct {
-			Workflows []map[string]any `json:"workflows"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal([]byte(version.stdout), &response); err != nil {
-		t.Fatal(err)
-	}
-	if len(response.Data.Workflows) != 3 {
-		t.Fatalf("Workflow releases = %#v, want three", response.Data.Workflows)
-	}
-	for _, item := range response.Data.Workflows {
-		id, idOK := item["id"].(string)
-		digest, ok := item["digest"].(string)
-		if len(item) != 2 || !idOK || id == "" || !ok || !strings.HasPrefix(digest, "sha256:") {
-			t.Fatalf("Workflow release = %#v, want only id and digest", item)
-		}
+	if strings.Contains(version.stdout, `"workflows"`) || strings.Contains(version.stdout, `"digest"`) {
+		t.Fatalf("version still exposes Workflow release identity: %s", version.stdout)
 	}
 }
 

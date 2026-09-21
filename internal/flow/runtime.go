@@ -84,7 +84,7 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		UpdatedAt:          now,
 	}
 	response := &flowidl.FlowInitResponse{
-		Effect: flowidl.InitEffect_initialized, Workflow: workflowview.WorkflowRef(loaded.Ref), State: workflowview.Project(loaded.Workflow, next),
+		Effect: flowidl.InitEffect_initialized, Workflow: workflowview.WorkflowRef(loaded.Ref), State: workflowview.ProjectLoaded(loaded, next),
 	}
 	if err := response.IsValid(); err != nil {
 		return nil, internalError(err)
@@ -128,7 +128,7 @@ func (runtime Runtime) Status(_ context.Context, root string, request *flowidl.F
 		return nil, failure
 	}
 	response := &flowidl.FlowStatusResponse{
-		Requirement: workflowview.Requirement(current.Requirement), Workflow: workflowview.WorkflowRef(current.Release.Workflow.Ref()), State: workflowview.Project(loaded.Workflow, current),
+		Requirement: workflowview.Requirement(current.Requirement), Workflow: workflowview.WorkflowRef(current.Release.Workflow.Ref()), State: workflowview.ProjectLoaded(loaded, current),
 	}
 	if err := response.IsValid(); err != nil {
 		return nil, internalError(err)
@@ -155,7 +155,7 @@ func (runtime Runtime) Progress(ctx context.Context, root string, request *flowi
 	current.CurrentStepSummary = request.Summary
 	current.CurrentEvidence = durableEvidence(request.Evidence)
 	current.UpdatedAt = runtime.now()
-	response := &flowidl.FlowProgressResponse{Effect: flowidl.ProgressEffect_status_updated, State: workflowview.Project(loaded.Workflow, current)}
+	response := &flowidl.FlowProgressResponse{Effect: flowidl.ProgressEffect_status_updated, State: workflowview.ProjectLoaded(loaded, current)}
 	if err := response.IsValid(); err != nil {
 		return nil, internalError(err)
 	}
@@ -225,7 +225,7 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 		current.CurrentEvidence = durableEvidence(request.Evidence)
 	}
 	response := &flowidl.FlowResultResponse{
-		Effect: evaluation.effect, Transition: evaluation.transition, State: workflowview.Project(loaded.Workflow, current),
+		Effect: evaluation.effect, Transition: evaluation.transition, State: workflowview.ProjectLoaded(loaded, current),
 		InvalidatedOutputs: append([]string{}, evaluation.invalidated...),
 	}
 	if !dryRun {

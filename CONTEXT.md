@@ -5,15 +5,17 @@
 **Requirement**
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
-**Workflow Bundle**
-不可拆分、不可变、可版本化的五文件流程包：`workflow.yaml` 注册 Stage/Job/Step，`flow.yaml` 声明正常 Route，`condition.yaml` 声明原子 Condition 与 OutputSpec，`loop.yaml` 声明回流 Route，`prompt.yaml` 保存 Prompt 与 SkillBinding。Release 和 State 绑定五文件规范化语义的同一个 digest。
+**Live Workflow**
+位于 `$FANLOOP_DATA_HOME/current/workflows/<workflow-id>/` 的可编辑流程配置。五份 YAML 共同定义执行图：
+`workflow.yaml` 注册 Stage/Job/Step，`flow.yaml` 声明正常 Route，`condition.yaml` 声明原子 Condition 与
+OutputSpec，`loop.yaml` 声明回流 Route，`prompt.yaml` 保存 Prompt 与 SkillBinding；绑定 Skill 位于同目录的
+`skills/<skill-id>/SKILL.md`。它不是 Release artifact，没有版本或 digest。
 
 **Requirement Workflow Resolution**
-当前 Schema 的 Requirement 运行时按持久 Workflow ID 加载当前 Bundle；持久 Release version 与 Workflow
-`id + digest` 只作为不可变 provenance，继续写入 State、Output Registry、Event 和 Card Projection。
-跨 digest 回放不使用当前 Route predicate 重判历史 Result，但仍校验 Step、Condition、Output、因果链、
-失效集合和 replay tail；所有新 Result 继续严格服从当前 Route。Release artifact、Manifest、安装和打包
-仍使用严格 `id + digest` 完整性校验。
+Requirement 只持久化 Workflow ID 与创建它的 CLI Release version。每次 CLI 调用都按该 ID 从同一个
+live 根重新加载五份 YAML 和绑定 Skills；历史 Event 不按当前 Route predicate 重判，但当前 Step、Output
+所有权、因果链、失效集合、replay tail 和所有新 Result 都必须与最新 live Workflow 兼容。旧 Storage
+Schema 不迁移，也不由新 CLI 读取。
 
 **Stage / Job / Step**
 显式执行层级。`step_id` 在 Workflow 内唯一；同一 Requirement 最多有一个活动 Step。
@@ -48,15 +50,15 @@ Agent 从最新 `available_routes` 选择 Route。CLI 只在该方向与目标�
 Progress 返回 `status_updated`。Result 返回 `advanced|looped|completed`，以及 direction、from_step_id 和可选 to_step_id。非 dry-run Result 还返回 EventID。
 
 **FlowState**
-由 State 和绑定 Bundle 派生。运行中返回扁平 CurrentContext、execution、Prompt/Skills、当前相关 Conditions、统一 `available_routes` 和有效 Outputs；完成后不含 current。
+由 State 和当前 live Workflow 派生。运行中返回扁平 CurrentContext、execution、Prompt/Skills、当前相关 Conditions、统一 `available_routes` 和有效 Outputs；完成后不含 current。
 
 ## 当前事实与投影
 
 **State / Output Registry**
-恢复执行的当前事实分开落盘：`.fanloop/flow/state.json` 保存 Requirement、Release/Workflow 绑定、活动 Step、Summary/Evidence、integration 和最后 Event 指针；`.fanloop/output/state.json` 保存当前有效 RegisteredOutputs。当前为 State/Event Schema 12、Output Registry Schema 3；字段、枚举和版本以 `idl/storage.thrift` 为唯一可编辑真值。
+恢复执行的当前事实分开落盘：`.fanloop/flow/state.json` 保存 Requirement、CLI Release/Workflow ID 绑定、活动 Step、Summary/Evidence、integration 和最后 Event 指针；`.fanloop/output/state.json` 保存当前有效 RegisteredOutputs。当前为 State/Event Schema 14、Output Registry Schema 4；字段、枚举和版本以 `idl/storage.thrift` 为唯一可编辑真值。
 
 **Event**
-不可变审计记录。Event Schema 12 使用 Thrift `EventPayload` union；落盘的 `kind` 与唯一 payload 成员一一对应，例如 `flow_progressed`、`flow_result`。Result Event 保存原始 ConditionResults、Evidence、Summary、Effect、Transition 和 accepted/invalidated OutputChanges。dry-run 和 rejected request 不产生 Event。
+不可变审计记录。Event Schema 14 使用 Thrift `EventPayload` union；落盘的 `kind` 与唯一 payload 成员一一对应，例如 `flow_progressed`、`flow_result`。Result Event 保存原始 ConditionResults、Evidence、Summary、Effect、Transition 和 accepted/invalidated OutputChanges。dry-run 和 rejected request 不产生 Event。
 
 **CLI Execution Log**
 Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root` 的真实叶子调用在结束后 best-effort 向 `.fanloop/log/cli.jsonl` 追加一条 schema 2 Thrift JSON，包括有序 arguments、实际消费的 stdin、完整 stdout/stderr、只读、失败和 `--dry-run`；`--input @file` 只记录参数中的路径，不把文件内容算作 stdin。Help 与无 Root 的 bootstrap/版本调用不记录。日志不脱敏、不截断，可能包含 URL、Evidence、密钥或 token；目录/文件权限保持 `0700/0600`。它不参与恢复、路由或 Doctor 健康判断，写入失败也不改变命令结果；当 `internal/traceconfig/registry.yaml` 选中的策略要求 CLI 日志文档时，`trace sync` 会把同步开始前的完整字节快照投影到该文档。
@@ -72,6 +74,11 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 
 **Agent 手册**
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。
+
+**Workflow Dashboard**
+`fanloop dashboard` 在随机 loopback 端口前台启动嵌入式页面，只读写 live Workflow 根中已有的五份 YAML
+和 `SKILL.md`。保存携带上次读取的 SHA-256；服务端拒绝 stale、越界、符号链接、无效 YAML 与空 Skill，
+并以原子替换提交。页面轮询外部变化，不覆盖已变脏的编辑器。
 
 ## 维护者验收
 
@@ -93,7 +100,7 @@ Panorama 按 YAML Output description 展示 URL；候选变化使下游事实失
 ## 公开契约
 
 **CommandSpec**
-11 个公开命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以五份 YAML 为真值。本地更新从选定源码执行 `./scripts/install-local.sh`；npm launcher 与 `fanloop update` 分发入口已移除。
+16 个公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地更新从选定源码执行 `./scripts/install-local.sh`；npm launcher 与 `fanloop update` 分发入口已移除。
 
 **统一结果信封**
 成功写 stdout，使用 `ok/data/meta/_notice`；错误写 stderr，包含稳定 type、code、message、hint 和 retryable。
@@ -102,4 +109,5 @@ Panorama 按 YAML Output description 展示 URL；候选变化使下游事实失
 真实 CLI 输出、退出码与文件副作用的受审快照。随机 ID、时间和临时路径仅在比较时规范化。
 
 **Release Manifest**
-一次发布中 CLI、统一 Workflow 入口、完整 Bundle、Schema 版本与文件摘要的唯一声明；字段和局部约束由 `idl/release.thrift` 定义。原子 Skills 位于独立 live 配置根，不进入 Release Manifest。
+一次发布中 CLI、统一 Workflow 入口、Storage Schema 支持与文件摘要的唯一声明；字段和局部约束由
+`idl/release.thrift` 定义。Workflow YAML 与绑定 Skills 均位于 live 配置根，不进入 Release Manifest。

@@ -166,9 +166,6 @@ func TestProductionMaterialFlashcardsWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Ref.Digest != "sha256:14eaf31c1d7b06872dc67fc1a0d7498dbe201c335d8d333c2fea3f1c9aefd1c7" {
-		t.Fatalf("material-flashcards digest = %s", loaded.Ref.Digest)
-	}
 	wants := []struct {
 		step, name, stage, job string
 		executor               StepExecutor

@@ -21,13 +21,11 @@ const (
 	ExposedSkillPath = "entrypoints/fanloop-workflow"
 )
 
-var skillGroupPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 var versionPattern = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z._+-]*$`)
 
 type Manifest releaseidl.ReleaseManifest
 type CLIRelease = releaseidl.CLIRelease
 type Skill = releaseidl.SkillArtifact
-type Workflow = releaseidl.WorkflowArtifact
 
 func Load(root string) (Manifest, error) {
 	content, err := os.ReadFile(filepath.Join(root, "release.json"))
@@ -68,19 +66,6 @@ func (value Manifest) Validate() error {
 	if value.StateSchema.WriteVersion <= 0 || !contains(value.StateSchema.ReadVersions, value.StateSchema.WriteVersion) {
 		return fmt.Errorf("writable state schema must also be readable")
 	}
-	workflowIDs := map[string]bool{}
-	for _, item := range value.Workflows {
-		if item == nil {
-			return fmt.Errorf("release contains nil workflow")
-		}
-		if err := item.IsValid(); err != nil {
-			return fmt.Errorf("invalid workflow %q: %w", item.Id, err)
-		}
-		if item.Path != "workflows/"+item.Id || workflowIDs[item.Id] {
-			return fmt.Errorf("invalid or duplicate workflow %q", item.Id)
-		}
-		workflowIDs[item.Id] = true
-	}
 	names := map[string]bool{}
 	for _, skill := range value.Skills {
 		if skill == nil {
@@ -93,13 +78,6 @@ func (value Manifest) Validate() error {
 			return fmt.Errorf("invalid or duplicate skill %q", skill.Name)
 		}
 		names[skill.Name] = true
-		if skill.Name == ExposedSkillName {
-			continue
-		}
-		group := strings.Split(skill.Path, "/")[1]
-		if !workflowIDs[group] {
-			return fmt.Errorf("Skill %q uses unknown Workflow group %q", skill.Name, group)
-		}
 	}
 	if !names[ExposedSkillName] {
 		return fmt.Errorf("release is missing exposed Skill %q", ExposedSkillName)
@@ -109,11 +87,7 @@ func (value Manifest) Validate() error {
 }
 
 func ValidSkillPath(path, name string) bool {
-	if name == ExposedSkillName {
-		return path == ExposedSkillPath
-	}
-	parts := strings.Split(path, "/")
-	return len(parts) == 3 && parts[0] == "skills" && skillGroupPattern.MatchString(parts[1]) && parts[2] == name
+	return name == ExposedSkillName && path == ExposedSkillPath
 }
 
 func (value Manifest) Skill(name string) (Skill, bool) {

@@ -24,8 +24,7 @@ func NewOutputRegistry(current State) OutputRegistry {
 }
 
 func (value OutputRegistry) Validate() error {
-	if value.SchemaVersion != CurrentOutputSchemaVersion || value.Workflow.ID == "" ||
-		value.Workflow.Digest == "" || value.Outputs == nil {
+	if value.SchemaVersion != CurrentOutputSchemaVersion || value.Workflow.ID == "" || value.Outputs == nil {
 		return fmt.Errorf("invalid Output Registry header")
 	}
 	for key, output := range value.Outputs {

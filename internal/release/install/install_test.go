@@ -106,3 +106,74 @@ func TestRemoveSkillLinksRejectsLinkChangedAfterPreflight(t *testing.T) {
 		t.Fatalf("changed Skill link -> %q (%v), want untouched %q", target, err, changedTarget)
 	}
 }
+
+func TestActivateCurrentKeepsStableDirectoryAndSwitchesNestedRelease(t *testing.T) {
+	dataRoot := t.TempDir()
+	current := filepath.Join(dataRoot, "current")
+	if err := os.MkdirAll(filepath.Join(current, "workflows"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(current, "workflows", "marker")
+	if err := os.WriteFile(marker, []byte("user-owned\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := activateCurrent(current, filepath.Join("..", "releases", "2.0.0")); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(current); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("current is not a stable directory: info=%v err=%v", info, err)
+	}
+	if target, err := os.Readlink(filepath.Join(current, "release")); err != nil || target != filepath.Join("..", "releases", "2.0.0") {
+		t.Fatalf("current/release -> %q (%v)", target, err)
+	}
+	if content, err := os.ReadFile(marker); err != nil || string(content) != "user-owned\n" {
+		t.Fatalf("live Workflow marker changed: %q (%v)", content, err)
+	}
+}
+
+func TestPreflightCurrentRejectsUnsafeReleaseEntry(t *testing.T) {
+	for _, kind := range []string{"file", "external-link"} {
+		t.Run(kind, func(t *testing.T) {
+			dataRoot := t.TempDir()
+			releasesRoot := filepath.Join(dataRoot, "releases")
+			current := filepath.Join(dataRoot, "current")
+			if err := os.MkdirAll(filepath.Join(current, "workflows"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			for name, target := range map[string]string{"bin": "release/bin", "entrypoints": "release/entrypoints", "release.json": "release/release.json"} {
+				if err := os.Symlink(target, filepath.Join(current, name)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			releasePath := filepath.Join(current, "release")
+			switch kind {
+			case "file":
+				if err := os.WriteFile(releasePath, []byte("owned by user\n"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			case "external-link":
+				if err := os.Symlink(t.TempDir(), releasePath); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			if err := preflightCurrent(current, releasesRoot); err == nil || !strings.Contains(err.Error(), "current/release") {
+				t.Fatalf("preflightCurrent accepted unsafe release entry: %v", err)
+			}
+		})
+	}
+}
+
+func TestAtomicSymlinkPreservesNonLinkPath(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "release")
+	if err := os.WriteFile(path, []byte("owned by user\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := atomicSymlink(path, "../releases/2.0.0"); err == nil || !strings.Contains(err.Error(), "non-link") {
+		t.Fatalf("atomicSymlink accepted non-link path: %v", err)
+	}
+	if content, err := os.ReadFile(path); err != nil || string(content) != "owned by user\n" {
+		t.Fatalf("atomicSymlink changed user path: %v %q", err, content)
+	}
+}

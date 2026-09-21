@@ -13,6 +13,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	stepStart := loaded.Workflow.StepStart
 	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
 	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
@@ -105,6 +106,12 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	if err := ValidateHistory(events, current, loaded); err != nil {
 		t.Fatal(err)
 	}
+	loaded.Workflow.Flows[first] = nil
+	loaded.Workflow.Loops[second] = nil
+	loaded.Workflow.StepStart = stepStart
+	if err := ValidateHistory(events, current, loaded); err != nil {
+		t.Fatalf("historical events were re-evaluated against live Routes or controls: %v", err)
+	}
 }
 
 func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
@@ -140,6 +147,49 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 	}
 	if err := ValidateHistory(events, current, loaded); err == nil {
 		t.Fatal("expected incomplete invalidation to be rejected")
+	}
+}
+
+func TestHistoricalControlResultsAreNotReevaluatedAgainstLiveControls(t *testing.T) {
+	loaded, err := workflow.Load("technical-solution-design")
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps := loaded.Workflow.OrderedStepIDs()
+	evidence := []Evidence{{Source: EvidenceHuman, Content: "approved"}}
+	started := FlowResultPayload{
+		ConditionResults: []ConditionResult{{
+			ConditionID: "step_scope_confirmed",
+			Output:      OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"confirmed"`)},
+		}},
+		Summary: "started", Effect: ResultStarted,
+		Transition: Transition{Direction: TransitionStart, FromStepID: steps[0], ToStepID: steps[0]},
+		Evidence:   evidence,
+	}
+	jumped := FlowResultPayload{
+		ConditionResults: []ConditionResult{{
+			ConditionID: "human_step_jump_requested",
+			Output:      OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"` + steps[1] + `"`)},
+		}},
+		Summary: "jumped", Effect: ResultJumped,
+		Transition: Transition{Direction: TransitionJump, FromStepID: steps[0], ToStepID: steps[1]},
+		Evidence:   evidence,
+	}
+	if err := validateResultAgainst(loaded.Workflow, started); err != nil {
+		t.Fatalf("valid start Result rejected before live edit: %v", err)
+	}
+	if err := validateResultAgainst(loaded.Workflow, jumped); err != nil {
+		t.Fatalf("valid jump Result rejected before live edit: %v", err)
+	}
+
+	loaded.Workflow.StepStart = nil
+	loaded.Workflow.Jump = nil
+	loaded.Workflow.CommonConditions = nil
+	if err := validateHistoricalResultAgainst(loaded.Workflow, started); err != nil {
+		t.Fatalf("historical start Result was re-evaluated against live controls: %v", err)
+	}
+	if err := validateHistoricalResultAgainst(loaded.Workflow, jumped); err != nil {
+		t.Fatalf("historical jump Result was re-evaluated against live controls: %v", err)
 	}
 }
 

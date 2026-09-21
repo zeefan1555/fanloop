@@ -1,17 +1,18 @@
 ---
 name: fanloop-dev-workflow
-description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置变更直接交付，其他变更沿 Maintainer Workflow 推进。
+description: 维护 zeefan1555/fanloop 自身的入口；本机 live Workflow 配置直接编辑，仓库变更沿 Maintainer Workflow 推进。
 ---
 
 # Fanloop Dev Workflow
 
 ## 适用边界
 
-尚未初始化 Requirement 时，先检查预期 Git diff。若全部变更位于 `skills/**` 或 `exemplars/**`，且不需要
-修改 Workflow YAML、CLI/Runtime、IDL、测试基础设施、构建、安装或发布逻辑，则这是纯 live Skill 配置
-变更：执行子 Agent不创建、不初始化 `fanloop-maintainer`，直接完成最小修改和受影响的聚焦检查，再按普通 Git/PR
-流程交付。任何非 live 配置文件进入预期 diff，或影响面无法确定时，都必须启动完整自迭代流程。已经
-初始化的 Requirement 不因后续范围缩小而废弃，继续按绑定 Workflow 推进。
+尚未初始化 Requirement 时，先区分本机 live 配置与仓库默认配置。若目标只在
+`$FANLOOP_DATA_HOME/current/workflows/**`（默认 `$HOME/.fanloop/current/workflows/**`），执行子 Agent不创建、
+不初始化 `fanloop-maintainer`，直接通过 Dashboard 或精确文件编辑完成修改并运行 Doctor；这类修改不产生
+仓库 Git diff。修改仓库中的 `workflows/**`（包括默认 YAML 与 Skills）、CLI/Runtime、IDL、测试基础设施、
+构建、安装或发布逻辑时，必须启动完整自迭代流程。已经初始化的 Requirement 不因后续范围缩小而废弃，
+继续按持久 Workflow ID 推进。
 
 始终执行：**读取 Status → 执行当前 Prompt/Skills → 上报 Progress 或 Result → 重新读取 Status**。`.fanloop`
 只由 CLI 管理；构造命令前读取目标叶子 `--help`。
@@ -20,7 +21,7 @@ description: 维护 zeefan1555/fanloop 自身的入口；纯 live Skill 配置�
 
 已有 Requirement 先按通用 `fanloop-workflow` 解析固定控制器。Status、Progress、Result、Doctor 与 Panorama
 始终使用同一 `<REQUIREMENT_CONTROLLER>` 及其 `skill-roots/{codex,agent,trae,claude}`；不得回退到
-`$HOME/.fanloop/current` 或手改 State 绕过 `WORKFLOW_MISMATCH`。新 Requirement 的 `flow init` 使用全局 current。
+`$HOME/.fanloop/current` 或手改 State 绕过失败。新 Requirement 的 `flow init` 使用全局 current。
 需要在全局 current 切换前保护已有 Requirement 时，使用本 Skill 的 `scripts/pin-controller-release.sh`。
 
 候选验收只安装到临时 `FANLOOP_DATA_HOME`，不改变全局 current。主 Agent 验收后，最终 Step 自动合并

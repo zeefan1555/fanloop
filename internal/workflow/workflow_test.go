@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -28,9 +29,6 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 		if len(item.Workflow.OrderedStepIDs()) != len(item.Workflow.Flows) || len(item.Workflow.OrderedStepIDs()) != len(item.Workflow.Loops) {
 			t.Fatalf("%s has steps=%d flow=%d loop=%d", item.Ref.ID, len(item.Workflow.OrderedStepIDs()), len(item.Workflow.Flows), len(item.Workflow.Loops))
 		}
-		if !strings.HasPrefix(item.Ref.Digest, "sha256:") {
-			t.Fatalf("invalid digest %q", item.Ref.Digest)
-		}
 	}
 	loaded, err := Load("technical-solution-design")
 	if err != nil {
@@ -45,9 +43,6 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	}
 	if pinned.Ref != loaded.Ref {
 		t.Fatalf("pinned Workflow = %#v, want %#v", pinned.Ref, loaded.Ref)
-	}
-	if _, err := LoadRef(Ref{ID: "technical-solution-design", Digest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); err == nil || !strings.Contains(err.Error(), "digest mismatch") {
-		t.Fatalf("digest mismatch error = %v", err)
 	}
 	problemPrompt := loaded.Workflow.Prompts["frame_requirement_background_flow"]
 	if len(problemPrompt.Skills) != 1 || problemPrompt.Skills[0].ID != "technical-background-framing" || problemPrompt.Skills[0].Optional == nil || *problemPrompt.Skills[0].Optional {
@@ -97,35 +92,89 @@ func TestWorkflowSelectorRejectsRetiredBusinessVersion(t *testing.T) {
 	}
 }
 
-func TestBundleDigestUsesNormalizedFiveFileSemantics(t *testing.T) {
-	workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML := validBundle()
-	first, err := DecodeBundle(workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML)
+func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
+	dataRoot := t.TempDir()
+	liveRoot := filepath.Join(dataRoot, "current", "workflows")
+	workflowID := "technical-solution-design"
+	sourceRoot := filepath.Join("..", "..", "workflows", workflowID)
+	targetRoot := filepath.Join(liveRoot, workflowID)
+	if err := os.CopyFS(targetRoot, os.DirFS(sourceRoot)); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+
+	before, err := Load(workflowID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := append([]byte("\n# comment\n"), workflowYAML...)
-	second, err := DecodeBundle(formatted, flowYAML, conditionYAML, loopYAML, promptYAML)
+	promptPath := filepath.Join(targetRoot, "prompt.yaml")
+	promptYAML, err := os.ReadFile(promptPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.Ref.Digest != second.Ref.Digest {
-		t.Fatalf("format-only edit changed digest: %s != %s", first.Ref.Digest, second.Ref.Digest)
+	updated := bytes.Replace(promptYAML, []byte("只写业务背景"), []byte("只写 live Workflow 背景"), 1)
+	if bytes.Equal(updated, promptYAML) {
+		t.Fatal("test fixture prompt replacement did not match")
 	}
-	explicitDefault := strings.Replace(string(flowYAML), "      next_step_id: confirm_note", "      next_step_id: confirm_note\n      terminal: false", 1)
-	second, err = DecodeBundle(workflowYAML, []byte(explicitDefault), conditionYAML, loopYAML, promptYAML)
+	if err := os.WriteFile(promptPath, updated, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	after, err := Load(workflowID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.Ref.Digest != second.Ref.Digest {
-		t.Fatalf("explicit default changed digest: %s != %s", first.Ref.Digest, second.Ref.Digest)
+	if reflect.DeepEqual(after.Workflow.Prompts, before.Workflow.Prompts) {
+		t.Fatal("second Load did not observe the edited live prompt.yaml")
 	}
-	changed := strings.Replace(string(promptYAML), "Write the note", "Write a reviewed note", 1)
-	third, err := DecodeBundle(workflowYAML, flowYAML, conditionYAML, loopYAML, []byte(changed))
-	if err != nil {
+	if err := os.WriteFile(promptPath, []byte("invalid: true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if first.Ref.Digest == third.Ref.Digest {
-		t.Fatal("prompt.yaml semantic edit did not change digest")
+	if _, err := Load(workflowID); err == nil {
+		t.Fatal("invalid live prompt.yaml did not fail closed")
+	}
+}
+
+func TestListFromRejectsSymlinkedLiveRootChain(t *testing.T) {
+	source := filepath.Join("..", "..", "workflows")
+	for _, test := range []struct {
+		name string
+		root func(*testing.T) string
+	}{
+		{
+			name: "Workflow root",
+			root: func(t *testing.T) string {
+				realRoot := filepath.Join(t.TempDir(), "real-workflows")
+				if err := os.CopyFS(realRoot, os.DirFS(source)); err != nil {
+					t.Fatal(err)
+				}
+				link := filepath.Join(t.TempDir(), "workflows")
+				if err := os.Symlink(realRoot, link); err != nil {
+					t.Fatal(err)
+				}
+				return link
+			},
+		},
+		{
+			name: "current ancestor",
+			root: func(t *testing.T) string {
+				dataRoot := t.TempDir()
+				legacy := filepath.Join(dataRoot, "releases", "legacy")
+				if err := os.CopyFS(filepath.Join(legacy, "workflows"), os.DirFS(source)); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(legacy, filepath.Join(dataRoot, "current")); err != nil {
+					t.Fatal(err)
+				}
+				return filepath.Join(dataRoot, "current", "workflows")
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := ListFrom(test.root(t)); err == nil || !strings.Contains(err.Error(), "real directory") {
+				t.Fatalf("ListFrom accepted symlinked live root: %v", err)
+			}
+		})
 	}
 }
 

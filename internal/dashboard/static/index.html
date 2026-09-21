@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fanloop Workflow Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <aside>
+      <header><strong>Fanloop</strong><span>Workflow editor</span></header>
+      <nav id="files" aria-label="Workflow files"></nav>
+    </aside>
+    <section class="workspace">
+      <div class="toolbar">
+        <div><strong id="title">Select a file</strong><span id="status">Ready</span></div>
+        <div class="actions">
+          <button id="refresh" type="button" title="Refresh file" aria-label="Refresh file">↻</button>
+          <button id="save" type="button" disabled>Save</button>
+        </div>
+      </div>
+      <textarea id="editor" spellcheck="false" disabled></textarea>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

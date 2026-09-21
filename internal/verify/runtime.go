@@ -18,19 +18,19 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/verifyidl"
 	"github.com/zeefan1555/fanloop/internal/release"
-	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 var runIDPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 type Runtime struct {
-	Executable string
-	DataRoot   string
-	ConfigRoot string
-	Now        func() time.Time
-	NewRunID   func() string
-	Run        func(context.Context, string, []string, []string) (commandResult, error)
+	Executable   string
+	DataRoot     string
+	WorkflowRoot string
+	Now          func() time.Time
+	NewRunID     func() string
+	Run          func(context.Context, string, []string, []string) (commandResult, error)
 }
 
 type commandResult struct {
@@ -57,14 +57,14 @@ var _ verifyidl.VerifyService = Runtime{}
 func DefaultRuntime() Runtime {
 	executable, _ := os.Executable()
 	dataRoot, _ := release.DefaultDataRoot()
-	configRoot, _ := skillconfig.DefaultRoot()
+	workflowRoot, _ := workflow.DefaultRoot()
 	return Runtime{
-		Executable: executable,
-		DataRoot:   dataRoot,
-		ConfigRoot: configRoot,
-		Now:        time.Now,
-		NewRunID:   state.NewEventID,
-		Run:        executeCommand,
+		Executable:   executable,
+		DataRoot:     dataRoot,
+		WorkflowRoot: workflowRoot,
+		Now:          time.Now,
+		NewRunID:     state.NewEventID,
+		Run:          executeCommand,
 	}
 }
 
@@ -131,7 +131,7 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 	if request == nil {
 		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "request is required")
 	}
-	if runtime.Executable == "" || runtime.DataRoot == "" || runtime.ConfigRoot == "" || runtime.Now == nil || runtime.NewRunID == nil {
+	if runtime.Executable == "" || runtime.DataRoot == "" || runtime.WorkflowRoot == "" || runtime.Now == nil || runtime.NewRunID == nil {
 		return nil, publicError(erroridl.ErrorCode_INTERNAL, "verification runtime is not configured")
 	}
 	runID := runtime.NewRunID()
@@ -199,17 +199,18 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 	var versionData struct {
 		ReleaseVersion string `json:"release_version"`
 		CommitSHA      string `json:"commit_sha"`
-		Workflows      []struct {
-			ID string `json:"id"`
-		} `json:"workflows"`
 	}
 	if err := decodeData(versionResult.Stdout, &versionData); err != nil {
 		return fail("version", err.Error(), "Repair the version output contract.", true)
 	}
-	if strings.TrimSpace(versionData.ReleaseVersion) == "" || strings.TrimSpace(versionData.CommitSHA) == "" || len(versionData.Workflows) == 0 || strings.TrimSpace(versionData.Workflows[0].ID) == "" {
+	if strings.TrimSpace(versionData.ReleaseVersion) == "" || strings.TrimSpace(versionData.CommitSHA) == "" {
 		return fail("version", "Version output omitted candidate identity.", "Repair the version output contract.", true)
 	}
-	workflowID := versionData.Workflows[0].ID
+	definitions, err := workflow.ListFrom(runtime.WorkflowRoot)
+	if err != nil || len(definitions) == 0 {
+		return fail("workflows", "Live Workflows are unavailable.", "Restore current/workflows.", true)
+	}
+	workflowID := definitions[0].Ref.ID
 	digest, err := fileSHA256(runtime.Executable)
 	if err != nil {
 		return fail("binary_digest", err.Error(), "Repair or rebuild the candidate.", true)
@@ -554,6 +555,9 @@ func (runtime Runtime) finishSmokeCleanup(ctx context.Context, env []string, evi
 
 func (runtime Runtime) isolatedEnvironment(workRoot string) ([]string, error) {
 	dataRoot := filepath.Join(workRoot, "data")
+	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(runtime.WorkflowRoot)); err != nil {
+		return nil, err
+	}
 	skillRoot := filepath.Join(workRoot, "skills")
 	roots := map[string]string{
 		"FANLOOP_CODEX_SKILLS_ROOT":  filepath.Join(skillRoot, "codex"),
@@ -576,7 +580,7 @@ func (runtime Runtime) isolatedEnvironment(workRoot string) ([]string, error) {
 		}
 	}
 	environment := withoutEnvironment(os.Environ(), "FANLOOP_DATA_HOME", "FANLOOP_CONFIG_ROOT", "FANLOOP_CODEX_SKILLS_ROOT", "FANLOOP_AGENT_SKILLS_ROOT", "FANLOOP_TRAE_SKILLS_ROOT", "FANLOOP_CLAUDE_SKILLS_ROOT", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID")
-	environment = append(environment, "FANLOOP_DATA_HOME="+dataRoot, "FANLOOP_CONFIG_ROOT="+runtime.ConfigRoot)
+	environment = append(environment, "FANLOOP_DATA_HOME="+dataRoot)
 	for name, path := range roots {
 		environment = append(environment, name+"="+path)
 	}

@@ -110,7 +110,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 			"--config-source", "FANLOOP_CONFIG_SOURCE", "$HOME/.fanloop",
 		},
 		"entrypoints/fanloop-workflow/SKILL.md": {
-			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "live 配置目录 `skills/**`", "不创建或初始化 `fanloop-maintainer`", "common_skills", "common_conditions", "execution.status=awaiting_confirmation", "不执行业务 `current.prompt`", "--start-current-step", "--jump-step-id <ID>", "Panorama 是进入新 Step 后第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
+			"固定控制器", "bound-release-home/current/bin/fanloop", "skill-roots/{codex,agent,trae,claude}", "不得回退到全局 current", "新 Requirement 的 `flow init` 始终使用全局 current", "$FANLOOP_DATA_HOME/current/workflows/**", "Dashboard", "不创建 Git diff", "不初始化 `fanloop-maintainer`", "common_skills", "common_conditions", "execution.status=awaiting_confirmation", "不执行业务 `current.prompt`", "--start-current-step", "--jump-step-id <ID>", "Panorama 是进入新 Step 后第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
 		},
 		"entrypoints/fanloop-workflow/agents/openai.yaml": {
 			"execution.status", "common_skills", "common_conditions", "start/jump Route", "开工后再执行业务 Prompt", "Panorama 作为第一条用户可见消息", "人工问题随后发送",
@@ -118,43 +118,43 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 		".github/workflows/ci.yml": {
 			"requirement-e2e", "install-doctor", "governance", "./tests/run-unit", "./.github/scripts/run-requirement-validation", "BOTMUX_CHAT_ID", "docs/research",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-grill-with-docs/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-grill-with-docs/SKILL.md": {
 			"1 至 3", "公开 CLI", "独立预期", "requirements.md", "稳定标题", "唯一飞书需求文档", "语义回读", "执行子 Agent", "向主 Agent申请", "不得自批",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-implement/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-implement/SKILL.md": {
 			"implementation-report.md", "review_base", "./tests/run-unit", "隔离公开 CLI 证据", "独立 Reviewer", "fanloop-dev-maintain-verification/SKILL.md", "implementation_completed=<完整 HEAD>", "执行子 Agent", "直接完成", "只向主 Agent回报", "不接管实现",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-agent-acceptance/SKILL.md": {
 			"reviewed_head", "review_base", "FANLOOP_DATA_HOME", "FANLOOP_CODEX_SKILLS_ROOT", "./scripts/install-local.sh", "fanloop-dev-verify/SKILL.md", "恰好一个", "全新 Sub-agent", "1 至 3", "公开 CLI", "叶子 `--help`", "不得读取源码", "全局 current 未变", "acceptance-report.md", "唯一飞书 Agent 验收报告", "基础设施失败保持 blocked",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-verify/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-verify/SKILL.md": {
 			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "references/features/README.md", "INVALID_ARGUMENT", ".fanloop/log/cli.jsonl", ".fanloop/trace/events.jsonl",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-maintain-verification/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-maintain-verification/SKILL.md": {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md": {
-			"纯 live Skill 配置变更直接交付", "若全部变更位于 `skills/**`", "执行子 Agent不创建、不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "WORKFLOW_MISMATCH", "review_base", "reviewed_head", "confirm_main_agent_acceptance", "持有 Requirement Root", "直接完成受管实现", "向主 Agent申请明确决定", "merge_and_update_local", "自动合并", "全局 current", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-workflow/SKILL.md": {
+			"本机 live Workflow 配置直接编辑", "$FANLOOP_DATA_HOME/current/workflows/**", "Dashboard", "不产生", "仓库 Git diff", "不初始化 `fanloop-maintainer`", "固定控制器", "$HOME/.fanloop/current", "review_base", "reviewed_head", "confirm_main_agent_acceptance", "持有 Requirement Root", "直接完成受管实现", "向主 Agent申请明确决定", "merge_and_update_local", "自动合并", "全局 current", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不重复",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-workflow/ref/role.md": {
-			"live 配置目录 `skills/**`", "直接修改和聚焦验证", "不启动 `fanloop-maintainer`",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-workflow/ref/role.md": {
+			"~/.fanloop/current/workflows/fanloop-maintainer/skills/fanloop-dev-workflow/SKILL.md", "Dashboard", "不创建仓库 Git diff", "不启动 `fanloop-maintainer`",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-workflow/scripts/pin-controller-release.sh": {
-			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current", "$HOME/.fanloop/config/current", "FANLOOP_CONFIG_ROOT=$controller_home/config/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
+		"workflows/fanloop-maintainer/skills/fanloop-dev-workflow/scripts/pin-controller-release.sh": {
+			"ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT", "$HOME/.fanloop/current/release", "$HOME/.fanloop/current", "--config-source", "flow status", "__install", "bound-release-home", "--replace-invalid", "doctor", `"status": "healthy"`,
 		},
-		"skills/fanloop-maintainer/fanloop-dev-code-review/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-code-review/SKILL.md": {
 			"review_base", "implementation_head", "./tests/run-unit", "fanloop-dev-verify/references/features/", "review-report.md", "reviewed_head_frozen",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-decision-receipt/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-decision-receipt/SKILL.md": {
 			"decision-receipts.jsonl", "idempotency_key", "fanloop-maintainer:<step_id>", "actor_type=agent|human", "host_turn", "主 Agent决定", "Step 跳转必须为 human",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-human-step-jump/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-human-step-jump/SKILL.md": {
 			"human_step_jump_requested", "available_routes", "source", "target", "fanloop-dev-decision-receipt", "不伪造被跨过",
 		},
-		"skills/fanloop-maintainer/fanloop-dev-merge-and-update-local/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/fanloop-dev-merge-and-update-local/SKILL.md": {
 			"origin/main", "review_base", "reviewed_head", "final_head", "--state all", "记录缺失时", "唯一 merged PR", "恰好一个 parent", "Review comment", "ADR impact", "主 Agent 结论", "交付边界", "required checks", "test (ubuntu-latest)", "requirement-e2e", "--match-head-commit", "禁止 `--admin`", "pin-controller-release.sh", "detached merge", "FANLOOP_CONFIG_SOURCE", "FANLOOP_CONFIG_ROOT", "./scripts/install-local.sh", "delivery-record.md", "local_cli_updated",
 		},
-		"skills/fanloop-maintainer/resolving-merge-conflicts/SKILL.md": {
+		"workflows/fanloop-maintainer/skills/resolving-merge-conflicts/SKILL.md": {
 			"两个 parent", "保留已批准需求行为", "不发明新功能", "blocked",
 		},
 	}
@@ -180,7 +180,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	if strings.Contains(string(entrypoint), "/current/skills/") {
 		t.Error("fanloop-workflow still references packaged atomic Skills")
 	}
-	maintainerEntry, err := os.ReadFile(filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-workflow", "SKILL.md"))
+	maintainerEntry, err := os.ReadFile(filepath.Join(repo, "workflows", "fanloop-maintainer", "skills", "fanloop-dev-workflow", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,16 +190,16 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 	}
 	for _, retired := range []string{
 		".agents/skills/verify-fanloop",
-		"skills/fanloop-maintainer/fanloop-dev-create-verification",
-		"skills/fanloop-maintainer/fanloop-dev-eval-coordinator",
-		"skills/fanloop-maintainer/fanloop-dev-eval-candidate",
-		"skills/fanloop-maintainer/fanloop-dev-eval-judge",
-		"skills/fanloop-maintainer/fanloop-dev-publish-candidate",
-		"skills/fanloop-maintainer/fanloop-dev-ci-gate",
-		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md",
-		"skills/fanloop-maintainer/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh",
-		"skills/fanloop-maintainer/fanloop-dev-merge-code",
-		"skills/fanloop-maintainer/fanloop-dev-update-local-cli",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-create-verification",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-eval-coordinator",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-eval-candidate",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-eval-judge",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-publish-candidate",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-ci-gate",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-agent-acceptance/ref/lark-agent-e2e.md",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-agent-acceptance/scripts/pin-controller-release.sh",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-merge-code",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-update-local-cli",
 	} {
 		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(retired))); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("retired maintainer asset remains: %s", retired)
@@ -209,7 +209,7 @@ func TestMaintainerThreeStageDeliveryAssetsAreComplete(t *testing.T) {
 
 func TestVerificationFeatureMapIsNavigable(t *testing.T) {
 	repo := repositoryRoot(t)
-	root := filepath.Join(repo, "skills", "fanloop-maintainer", "fanloop-dev-verify", "references", "features")
+	root := filepath.Join(repo, "workflows", "fanloop-maintainer", "skills", "fanloop-dev-verify", "references", "features")
 	index, err := os.ReadFile(filepath.Join(root, "README.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -281,32 +281,32 @@ func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
 		"workflows/material-flashcards/prompt.yaml": {
 			"候选数量由材料决定，不设固定数量或类型配额", "create-exclusive/no-replace", "不得自动创建第二个目标",
 		},
-		"skills/material-flashcards/flashcard/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard/SKILL.md": {
 			"Decks", "references/term-concept-card.md", "文件级校验",
 			`r"^##\s+"`, `r"^#{3,6}\s+"`, `r"decks/[^\s]+"`,
 		},
-		"skills/material-flashcards/flashcard/references/term-concept-card.md": {
+		"workflows/material-flashcards/skills/flashcard/references/term-concept-card.md": {
 			"定义型概念卡", "区分型概念卡", "运作型概念卡", "【Why", "【What", "【How",
 		},
-		"skills/material-flashcards/flashcard-goal-framing/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard-goal-framing/SKILL.md": {
 			"write_mode=create_new_only", "预览投递位置", "Vault 相对", "create-exclusive/no-replace", "blocked",
 		},
-		"skills/material-flashcards/flashcard-source-understanding/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard-source-understanding/SKILL.md": {
 			"来源事实", "被归因的判断", "用户理解", "unknown", "私密材料不得进入 Event / Trace / CLI 日志或未确认的群聊",
 		},
-		"skills/material-flashcards/flashcard-knowledge-selection/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard-knowledge-selection/SKILL.md": {
 			"0..N", "长期价值", "现实适用性", "分类级排除理由", "Vault 零写入", "新 Requirement",
 		},
-		"skills/material-flashcards/flashcard-card-planning/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard-card-planning/SKILL.md": {
 			"一张卡一个", "集合", "长枚举", "8 adopted / 8 partial / 4 non-goal", "term-concept-card.md",
 		},
-		"skills/material-flashcards/flashcard-quality-review/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard-quality-review/SKILL.md": {
 			"pass / fail / not-applicable", "不得修改任何输入", "最早受影响层", "20 rules", "不复制其规则",
 		},
-		"skills/material-flashcards/flashcard-preview-approval/SKILL.md": {
+		"workflows/material-flashcards/skills/flashcard-preview-approval/SKILL.md": {
 			"quality_review", "preview_record", "approval_record", "sender_type=human", "不得自行批准", "新的明确人类批准",
 		},
-		"skills/material-flashcards/material-flashcards-panorama/SKILL.md": {
+		"workflows/material-flashcards/skills/material-flashcards-panorama/SKILL.md": {
 			"只依据系统或开发者上下文中已经声明的当前 Agent 人设", "Botmux Agent：`botmux`",
 			"AIME Agent：`aime`", "Aiden Agent：`aiden`", "Codex、Claude Code 和 Trae：`local_agent`",
 			"botmux send --card-file", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不得重复 Panorama", "不自行拼装内容",
@@ -332,7 +332,7 @@ func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
 
 	for _, root := range []string{
 		filepath.Join(repo, "workflows", "material-flashcards"),
-		filepath.Join(repo, "skills", "material-flashcards"),
+		filepath.Join(repo, "workflows", "material-flashcards", "skills"),
 	} {
 		err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil {
@@ -360,10 +360,10 @@ func TestPanoramaPrecedesHumanQuestion(t *testing.T) {
 	repo := repositoryRoot(t)
 	paths := []string{
 		"entrypoints/fanloop-workflow/SKILL.md",
-		"skills/fanloop-maintainer/fanloop-dev-workflow/SKILL.md",
-		"skills/fanloop-maintainer/fanloop-dev-panorama/SKILL.md",
-		"skills/technical-solution-design/technical-solution-panorama/SKILL.md",
-		"skills/material-flashcards/material-flashcards-panorama/SKILL.md",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-workflow/SKILL.md",
+		"workflows/fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md",
+		"workflows/technical-solution-design/skills/technical-solution-panorama/SKILL.md",
+		"workflows/material-flashcards/skills/material-flashcards-panorama/SKILL.md",
 	}
 	for _, relative := range paths {
 		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
@@ -398,19 +398,19 @@ func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
 		"workflows/technical-solution-design/prompt.yaml": {
 			"0. 摘要", "10. 复盘与后续规划", "5 至 8 行", "2 至 3 个最关键模块", "晋升场景突出能力证据",
 		},
-		"skills/technical-solution-design/technical-solution-writing/SKILL.md": {
+		"workflows/technical-solution-design/skills/technical-solution-writing/SKILL.md": {
 			"十一个规定 `##`", "允许 `###`", "证据状态",
 		},
-		"skills/technical-solution-design/technical-solution-review/SKILL.md": {
+		"workflows/technical-solution-design/skills/technical-solution-review/SKILL.md": {
 			"第 0 至第 10 章", "允许 `###`", "适用边界",
 		},
-		"skills/technical-solution-design/technical-problem-approval/SKILL.md": {
+		"workflows/technical-solution-design/skills/technical-problem-approval/SKILL.md": {
 			"允许 `###`",
 		},
-		"skills/technical-solution-design/technical-direction-approval/SKILL.md": {
+		"workflows/technical-solution-design/skills/technical-direction-approval/SKILL.md": {
 			"允许 `###`",
 		},
-		"skills/technical-solution-design/technical-solution-approval/SKILL.md": {
+		"workflows/technical-solution-design/skills/technical-solution-approval/SKILL.md": {
 			"允许 `###`",
 		},
 	}
@@ -433,7 +433,7 @@ func TestTechnicalSolutionTemplateAllowsDynamicSubheadings(t *testing.T) {
 }
 
 func TestTechnicalSolutionReasoningReferences(t *testing.T) {
-	group := filepath.Join(repositoryRoot(t), "skills", "technical-solution-design")
+	group := filepath.Join(repositoryRoot(t), "workflows", "technical-solution-design", "skills")
 	want := filepath.Join(group, "technical-solution-review", "references", "reasoning.md")
 	info, err := os.Stat(want)
 	if err != nil {
@@ -469,7 +469,7 @@ func TestTechnicalSolutionReasoningReferences(t *testing.T) {
 }
 
 func TestTechnicalSolutionStepArtifactLists(t *testing.T) {
-	group := filepath.Join(repositoryRoot(t), "skills", "technical-solution-design")
+	group := filepath.Join(repositoryRoot(t), "workflows", "technical-solution-design", "skills")
 	rows := regexp.MustCompile(`(?m)^\|\s*([^|]+?)\s*\|`)
 	for _, want := range []struct {
 		skill     string

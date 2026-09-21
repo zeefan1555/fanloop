@@ -151,13 +151,13 @@ type ContextRef struct {
 }
 
 type Ref struct {
-	ID     string `json:"id"`
-	Digest string `json:"digest"`
+	ID string `json:"id"`
 }
 
 type Loaded struct {
-	Workflow Workflow
-	Ref      Ref
+	Workflow   Workflow
+	Ref        Ref
+	SkillPaths map[string]string
 }
 
 func (workflow Workflow) OrderedStepIDs() []string {

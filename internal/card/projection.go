@@ -154,7 +154,7 @@ func (value Projection) Validate() error {
 		return fmt.Errorf("unsupported Card projection schema_version %d", value.SchemaVersion)
 	}
 	if strings.TrimSpace(value.Requirement.Title) == "" || value.Release.Version == "" ||
-		value.Release.Workflow.ID == "" || value.Release.Workflow.Digest == "" ||
+		value.Release.Workflow.ID == "" ||
 		value.Outputs == nil || value.SourceEventID == "" || value.UpdatedAt.IsZero() {
 		return fmt.Errorf("invalid Card projection header")
 	}

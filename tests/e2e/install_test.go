@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
 type releaseFixture struct {
@@ -37,14 +36,14 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture, traeRoot, claudeRoot)
 	assertSkillLink(t, dataRoot, traeRoot)
 	assertSkillLink(t, dataRoot, claudeRoot)
-	currentBefore, _ := os.Readlink(filepath.Join(dataRoot, "current"))
+	currentBefore, _ := os.Readlink(filepath.Join(dataRoot, "current", "release"))
 
 	second := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot)
 	if second.err != nil {
 		t.Fatalf("repeat install: %v\nstdout: %s\nstderr: %s", second.err, second.stdout, second.stderr)
 	}
-	if currentAfter, _ := os.Readlink(filepath.Join(dataRoot, "current")); currentAfter != currentBefore {
-		t.Fatalf("repeat install changed current from %q to %q", currentBefore, currentAfter)
+	if currentAfter, _ := os.Readlink(filepath.Join(dataRoot, "current", "release")); currentAfter != currentBefore {
+		t.Fatalf("repeat install changed current/release from %q to %q", currentBefore, currentAfter)
 	}
 
 	runtimeCache := filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow", "__pycache__", "runtime.pyc")
@@ -77,7 +76,7 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 		{"trace", "render", "--help"}, {"trace", "sync", "--help"},
 		{"card", "render", "--help"}, {"verify", "doctor", "--help"},
 		{"verify", "smoke", "--help"}, {"verify", "snapshot", "--help"},
-		{"verify", "cleanup", "--help"}, {"version", "--help"}, {"doctor", "--help"},
+		{"verify", "cleanup", "--help"}, {"version", "--help"}, {"doctor", "--help"}, {"dashboard", "--help"},
 	} {
 		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
 		if result.err != nil || result.stderr != "" || !strings.Contains(result.stdout, "Request JSON:") {
@@ -86,7 +85,7 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	}
 }
 
-func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t *testing.T) {
+func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t *testing.T) {
 	repository := repositoryRoot(t)
 	home := t.TempDir()
 	dataRoot := filepath.Join(home, ".fanloop")
@@ -106,7 +105,7 @@ func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t 
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(oldRelease.ConfigSource, "skills", "fanloop-maintainer", "fanloop-dev-workflow", "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(oldRelease.ConfigSource, "workflows", "fanloop-maintainer", "skills", "fanloop-dev-workflow", "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(os.Environ(), "HOME="+home)
 	if output, err := pinned.CombinedOutput(); err != nil {
@@ -139,19 +138,9 @@ func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	var oldStateHeader struct {
-		Release struct {
-			Workflow struct {
-				Digest string `json:"digest"`
-			} `json:"workflow"`
-		} `json:"release"`
-	}
-	if err := json.Unmarshal(oldState, &oldStateHeader); err != nil {
-		t.Fatal(err)
-	}
 	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", oldRoot)
-	if globalOldStatus.err != nil || !strings.Contains(globalOldStatus.stdout, "candidate main") || !strings.Contains(globalOldStatus.stdout, oldStateHeader.Release.Workflow.Digest) {
-		t.Fatalf("candidate current did not continue old Requirement with current Workflow and persisted provenance: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
+	if globalOldStatus.err != nil || strings.Contains(globalOldStatus.stdout, "candidate main") || !strings.Contains(globalOldStatus.stdout, "最新 main 基线") {
+		t.Fatalf("upgraded CLI did not preserve and reload the existing live Workflow: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
 	}
 	after, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
 	if err != nil {
@@ -179,14 +168,14 @@ func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t 
 		filepath.Join(oldRoot, ".fanloop", "card", "projection.json"),
 	} {
 		content, err := os.ReadFile(path)
-		if err != nil || !bytes.Contains(content, []byte(oldStateHeader.Release.Workflow.Digest)) {
-			t.Fatalf("candidate changed old Workflow provenance in %s: %v\n%s", path, err, content)
+		if err != nil || bytes.Contains(content, []byte(`"digest"`)) {
+			t.Fatalf("durable Requirement fact unexpectedly contains Workflow digest in %s: %v\n%s", path, err, content)
 		}
 	}
 
 	controllerHome := filepath.Join(oldRoot, "bound-release-home")
 	controllerStatus := runBoundController(controllerHome, "flow", "status", "--root", oldRoot)
-	if controllerStatus.err != nil {
+	if controllerStatus.err != nil || strings.Contains(controllerStatus.stdout, "candidate main") {
 		t.Fatalf("pinned controller did not continue old Requirement: %v\nstdout: %s\nstderr: %s", controllerStatus.err, controllerStatus.stdout, controllerStatus.stderr)
 	}
 	controllerVersion := runBoundController(controllerHome, "version")
@@ -199,13 +188,30 @@ func TestCurrentReleaseContinuesRequirementWhilePinnedControllerRemainsUsable(t 
 		t.Fatal(err)
 	}
 	newInitialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", newRoot, "--workflow", "fanloop-maintainer", "--title", "Candidate current E2E")
-	if newInitialized.err != nil {
+	if newInitialized.err != nil || strings.Contains(newInitialized.stdout, "candidate main") {
 		t.Fatalf("candidate current did not initialize new Requirement: %v\nstdout: %s\nstderr: %s", newInitialized.err, newInitialized.stdout, newInitialized.stderr)
 	}
 	candidateVersion := runCurrent(dataRoot, codexRoot, agentsRoot, "version")
 	if candidateVersion.err != nil || !strings.Contains(candidateVersion.stdout, `"release_version": "1.2.4"`) {
 		t.Fatalf("candidate current version: %v\nstdout: %s\nstderr: %s", candidateVersion.err, candidateVersion.stdout, candidateVersion.stderr)
 	}
+}
+
+func TestReleaseUpgradeDoesNotRequireConfigurationSource(t *testing.T) {
+	repository := repositoryRoot(t)
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+	initial := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	if result := runInstaller(t, initial, dataRoot, codexRoot, agentsRoot); result.err != nil {
+		t.Fatalf("initial install: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+
+	upgrade := makeReleaseFixture(t, repository, "1.2.4", "1.2.4")
+	upgrade.ConfigSource = filepath.Join(t.TempDir(), "missing-configuration-source")
+	result := runInstaller(t, upgrade, dataRoot, codexRoot, agentsRoot)
+	if result.err != nil {
+		t.Fatalf("upgrade depends on configuration source: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.4"))
 }
 
 func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
@@ -235,7 +241,7 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		"technical-summary-writing", "technical-solution-writing", "technical-solution-review",
 		"technical-solution-approval",
 	} {
-		path := filepath.Join(fixture.ConfigSource, "skills", "technical-solution-design", skillID, "SKILL.md")
+		path := filepath.Join(fixture.ConfigSource, "workflows", "technical-solution-design", "skills", skillID, "SKILL.md")
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("configured %s Skill: %v", skillID, err)
 		}
@@ -245,12 +251,12 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		"flashcard-preview-approval", "flashcard-quality-review", "flashcard-source-understanding",
 		"material-flashcards-panorama",
 	} {
-		path := filepath.Join(fixture.ConfigSource, "skills", "material-flashcards", skillID, "SKILL.md")
+		path := filepath.Join(fixture.ConfigSource, "workflows", "material-flashcards", "skills", skillID, "SKILL.md")
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("configured %s Skill: %v", skillID, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(fixture.ConfigSource, "skills", "material-flashcards", "flashcard", "references", "term-concept-card.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(fixture.ConfigSource, "workflows", "material-flashcards", "skills", "flashcard", "references", "term-concept-card.md")); err != nil {
 		t.Fatalf("configured flashcard concept-card reference: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dataRoot, "releases", fixture.Version, "skills")); !os.IsNotExist(err) {
@@ -286,8 +292,9 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
-	assertFlowSkillPaths(t, initialized.stdout, fixture.ConfigSource)
-	liveSkill := filepath.Join(fixture.ConfigSource, "skills", "technical-solution-design", "technical-background-framing", "SKILL.md")
+	liveRoot := filepath.Join(dataRoot, "current", "workflows")
+	assertFlowSkillPaths(t, initialized.stdout, liveRoot)
+	liveSkill := filepath.Join(liveRoot, "technical-solution-design", "skills", "technical-background-framing", "SKILL.md")
 	content, err := os.ReadFile(liveSkill)
 	if err != nil {
 		t.Fatal(err)
@@ -316,7 +323,7 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if flashcards.err != nil {
 		t.Fatalf("initialize installed material-flashcards release: %v\nstdout: %s\nstderr: %s", flashcards.err, flashcards.stdout, flashcards.stderr)
 	}
-	assertFlowSkillPaths(t, flashcards.stdout, fixture.ConfigSource)
+	assertFlowSkillPaths(t, flashcards.stdout, liveRoot)
 }
 
 func TestLocalInstallerPreservesConflictingCurrentPaths(t *testing.T) {
@@ -344,7 +351,7 @@ func TestLocalInstallerPreservesConflictingCurrentPaths(t *testing.T) {
 				t.Fatal(err)
 			}
 			result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot)
-			if result.err == nil || !strings.Contains(result.stderr, "refusing to replace") {
+			if result.err == nil || (!strings.Contains(result.stderr, "refusing to replace") && !strings.Contains(result.stderr, "refusing invalid stable current path")) {
 				t.Fatalf("current conflict accepted: %v\n%s", result.err, result.stderr)
 			}
 			if content, err := os.ReadFile(marker); err != nil || string(content) != "preserve me\n" {
@@ -364,7 +371,7 @@ func TestLocalInstallerKeepsCurrentOnChecksumDoctorAndNameConflicts(t *testing.T
 	if result := runInstaller(t, good, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("seed install: %v\n%s", result.err, result.stderr)
 	}
-	currentBefore, _ := os.Readlink(filepath.Join(dataRoot, "current"))
+	currentBefore, _ := os.Readlink(filepath.Join(dataRoot, "current", "release"))
 
 	badChecksum := good
 	badChecksum.Directory = t.TempDir()
@@ -482,12 +489,12 @@ func TestDoctorRejectsBrokenLiveSkillConfiguration(t *testing.T) {
 	if result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install: %v\n%s", result.err, result.stderr)
 	}
-	path := filepath.Join(repository, "skills", "technical-solution-design", "technical-background-framing", "SKILL.md")
+	path := filepath.Join(dataRoot, "current", "workflows", "technical-solution-design", "skills", "technical-background-framing", "SKILL.md")
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
 	}
 	diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "doctor")
-	if diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skill_config"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
+	if diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "workflows"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
 		t.Fatalf("Doctor accepted broken live Skill configuration: %#v", diagnosed)
 	}
 }
@@ -571,7 +578,7 @@ func assertSkillLink(t *testing.T, dataRoot, skillsRoot string) {
 func assertFlowSkillPaths(t *testing.T, output, configRoot string) {
 	t.Helper()
 	skillPaths := map[string]string{}
-	matches, err := filepath.Glob(filepath.Join(configRoot, "skills", "*", "*", "SKILL.md"))
+	matches, err := filepath.Glob(filepath.Join(configRoot, "*", "skills", "*", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -605,7 +612,8 @@ func assertFlowSkillPaths(t *testing.T, output, configRoot string) {
 					t.Errorf("Flow Skill %q has no path: %#v", id, typed)
 				} else {
 					want := skillPaths[id]
-					if path != want {
+					resolvedPath, err := filepath.EvalSymlinks(path)
+					if err != nil || resolvedPath != want {
 						t.Errorf("Flow Skill %q path = %q, want %q", id, path, want)
 					} else if _, err := os.Stat(path); err != nil {
 						t.Errorf("Flow Skill %q path: %v", id, err)
@@ -626,7 +634,7 @@ func assertFlowSkillPaths(t *testing.T, output, configRoot string) {
 func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string, fixture releaseFixture, additionalRoots ...string) {
 	t.Helper()
 	version := fixture.Version
-	wantCurrent := filepath.Join("releases", version)
+	wantCurrent := filepath.Join("..", "releases", version)
 	assertCurrent(t, dataRoot, wantCurrent)
 	if _, err := os.Stat(filepath.Join(dataRoot, "releases", version, "bin", "fanloop")); err != nil {
 		t.Fatalf("installed binary: %v", err)
@@ -655,10 +663,16 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
 		assertSkillLink(t, dataRoot, root)
 	}
-	configTarget, err := filepath.EvalSymlinks(filepath.Join(dataRoot, "config", "current"))
-	wantConfig, wantErr := filepath.EvalSymlinks(fixture.ConfigSource)
-	if err != nil || wantErr != nil || configTarget != wantConfig {
-		t.Fatalf("live config = %q (%v), want %q (%v)", configTarget, err, wantConfig, wantErr)
+	liveRoot := filepath.Join(dataRoot, "current", "workflows")
+	info, err := os.Lstat(liveRoot)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("live Workflow root is not a real directory: %#v, %v", info, err)
+	}
+	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "workflows")) {
+		t.Fatal("first install did not seed the source Workflow tree byte-for-byte")
+	}
+	if _, err := os.Lstat(filepath.Join(dataRoot, "releases", version, "workflows")); !os.IsNotExist(err) {
+		t.Fatalf("immutable release contains live Workflows: %v", err)
 	}
 	for _, skill := range manifest.Skills {
 		if _, err := os.Stat(filepath.Join(dataRoot, "releases", version, filepath.FromSlash(skill.Path), "SKILL.md")); err != nil {
@@ -678,9 +692,20 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 
 func assertCurrent(t *testing.T, dataRoot, want string) {
 	t.Helper()
-	got, err := os.Readlink(filepath.Join(dataRoot, "current"))
+	current := filepath.Join(dataRoot, "current")
+	info, err := os.Lstat(current)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("current is not a stable directory: %#v (%v)", info, err)
+	}
+	got, err := os.Readlink(filepath.Join(current, "release"))
 	if err != nil || got != want {
-		t.Fatalf("current -> %q (%v), want %q", got, err, want)
+		t.Fatalf("current/release -> %q (%v), want %q", got, err, want)
+	}
+	for name, target := range map[string]string{"bin": "release/bin", "entrypoints": "release/entrypoints", "release.json": "release/release.json"} {
+		got, err := os.Readlink(filepath.Join(current, name))
+		if err != nil || got != target {
+			t.Fatalf("current/%s -> %q (%v), want %q", name, got, err, target)
+		}
 	}
 }
 
@@ -741,42 +766,14 @@ func writeReleaseFixture(t *testing.T, repository, staging, binary, releaseVersi
 			"name": name, "version": releaseVersion, "path": relative, "sha256": fixtureDirectoryDigest(t, skill),
 		})
 	}
-	workflowItems := []map[string]any{}
-	workflowPaths, err := filepath.Glob(filepath.Join(repository, "workflows", "*", "workflow.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, source := range workflowPaths {
-		sourceRoot := filepath.Dir(source)
-		relative, err := filepath.Rel(repository, sourceRoot)
-		if err != nil {
-			t.Fatal(err)
-		}
-		relative = filepath.ToSlash(relative)
-		targetRoot := filepath.Join(staging, filepath.FromSlash(relative))
-		for _, name := range workflow.BundleFileNames() {
-			sourcePath := filepath.Join(sourceRoot, name)
-			targetPath := filepath.Join(targetRoot, name)
-			copyTreeFile(t, sourcePath, targetPath)
-		}
-		loaded, decodeErr := workflow.LoadDirectory(targetRoot)
-		if decodeErr != nil {
-			t.Fatalf("read workflow Bundle %s: %v", targetRoot, decodeErr)
-		}
-		workflowItems = append(workflowItems, map[string]any{
-			"id": loaded.Ref.ID, "path": relative, "sha256": loaded.Ref.Digest,
-		})
-	}
-
 	manifest := map[string]any{
-		"schema_version": 3, "release_version": releaseVersion,
+		"schema_version": 4, "release_version": releaseVersion,
 		"cli": map[string]any{"version": releaseVersion, "binary_sha256": fixtureFileDigest(t, binary)},
 		"state_schema": map[string]any{
 			"read_versions": []int{state.CurrentStateSchemaVersion},
 			"write_version": state.CurrentStateSchemaVersion,
 		},
-		"skills":    skillItems,
-		"workflows": workflowItems,
+		"skills": skillItems,
 	}
 	content, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {

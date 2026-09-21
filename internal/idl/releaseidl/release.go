@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	RELEASE_MANIFEST_SCHEMA_VERSION = 3
+	RELEASE_MANIFEST_SCHEMA_VERSION = 4
 )
 
 type CLIRelease struct {
@@ -168,92 +168,12 @@ var fieldIDToName_SkillArtifact = map[int16]string{
 	4: "sha256",
 }
 
-type WorkflowArtifact struct {
-	Id string `thrift:"id,1,required" json:"id"`
-	// fields 2 and 3 retired: Workflow has no business version or default.
-	Path   string `thrift:"path,4,required" json:"path"`
-	Sha256 string `thrift:"sha256,5,required" json:"sha256"`
-}
-
-func NewWorkflowArtifact() *WorkflowArtifact {
-	return &WorkflowArtifact{}
-}
-
-func (p *WorkflowArtifact) InitDefault() {
-}
-
-func (p *WorkflowArtifact) GetId() (v string) {
-	return p.Id
-}
-
-func (p *WorkflowArtifact) GetPath() (v string) {
-	return p.Path
-}
-
-func (p *WorkflowArtifact) GetSha256() (v string) {
-	return p.Sha256
-}
-
-func (p *WorkflowArtifact) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("WorkflowArtifact(%+v)", *p)
-}
-
-func (p *WorkflowArtifact) DeepEqual(ano *WorkflowArtifact) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.Id) {
-		return false
-	}
-	if !p.Field4DeepEqual(ano.Path) {
-		return false
-	}
-	if !p.Field5DeepEqual(ano.Sha256) {
-		return false
-	}
-	return true
-}
-
-func (p *WorkflowArtifact) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.Id, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *WorkflowArtifact) Field4DeepEqual(src string) bool {
-
-	if strings.Compare(p.Path, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *WorkflowArtifact) Field5DeepEqual(src string) bool {
-
-	if strings.Compare(p.Sha256, src) != 0 {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_WorkflowArtifact = map[int16]string{
-	1: "id",
-	4: "path",
-	5: "sha256",
-}
-
 type ReleaseManifest struct {
 	SchemaVersion  int32                      `thrift:"schema_version,1,required" json:"schema_version"`
 	ReleaseVersion string                     `thrift:"release_version,2,required" json:"release_version"`
 	Cli            *CLIRelease                `thrift:"cli,3,required" json:"cli"`
 	StateSchema    *opsidl.StateSchemaSupport `thrift:"state_schema,4,required" json:"state_schema"`
 	Skills         []*SkillArtifact           `thrift:"skills,5,required,list<SkillArtifact>" json:"skills"`
-	Workflows      []*WorkflowArtifact        `thrift:"workflows,6,required,list<WorkflowArtifact>" json:"workflows"`
 }
 
 func NewReleaseManifest() *ReleaseManifest {
@@ -293,10 +213,6 @@ func (p *ReleaseManifest) GetSkills() (v []*SkillArtifact) {
 	return p.Skills
 }
 
-func (p *ReleaseManifest) GetWorkflows() (v []*WorkflowArtifact) {
-	return p.Workflows
-}
-
 func (p *ReleaseManifest) IsSetCli() bool {
 	return p.Cli != nil
 }
@@ -331,9 +247,6 @@ func (p *ReleaseManifest) DeepEqual(ano *ReleaseManifest) bool {
 		return false
 	}
 	if !p.Field5DeepEqual(ano.Skills) {
-		return false
-	}
-	if !p.Field6DeepEqual(ano.Workflows) {
 		return false
 	}
 	return true
@@ -380,19 +293,6 @@ func (p *ReleaseManifest) Field5DeepEqual(src []*SkillArtifact) bool {
 	}
 	return true
 }
-func (p *ReleaseManifest) Field6DeepEqual(src []*WorkflowArtifact) bool {
-
-	if len(p.Workflows) != len(src) {
-		return false
-	}
-	for i, v := range p.Workflows {
-		_src := src[i]
-		if !v.DeepEqual(_src) {
-			return false
-		}
-	}
-	return true
-}
 
 var fieldIDToName_ReleaseManifest = map[int16]string{
 	1: "schema_version",
@@ -400,5 +300,4 @@ var fieldIDToName_ReleaseManifest = map[int16]string{
 	3: "cli",
 	4: "state_schema",
 	5: "skills",
-	6: "workflows",
 }

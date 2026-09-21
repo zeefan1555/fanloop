@@ -364,7 +364,7 @@ func workflowRef(value *commonidl.WorkflowRef) workflow.Ref {
 	if value == nil {
 		return workflow.Ref{}
 	}
-	return workflow.Ref{ID: value.Id, Digest: value.Digest}
+	return workflow.Ref{ID: value.Id}
 }
 
 func reportWorkflowRef(root string) workflow.Ref {

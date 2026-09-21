@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"testing"
 )
@@ -17,14 +18,14 @@ func TestApprovedTechnicalSolutionDesignBundleLoads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Ref.ID != "technical-solution-design" || loaded.Ref.Digest == "" {
+	if loaded.Ref.ID != "technical-solution-design" {
 		t.Fatalf("loaded workflow = %#v", loaded.Ref)
 	}
 	production, err := LoadRef(loaded.Ref)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if production.Ref.Digest != loaded.Ref.Digest {
-		t.Fatalf("production digest %s differs from approved review %s", production.Ref.Digest, loaded.Ref.Digest)
+	if !reflect.DeepEqual(production.Workflow, loaded.Workflow) {
+		t.Fatal("production Workflow differs from approved review")
 	}
 }

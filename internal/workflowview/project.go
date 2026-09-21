@@ -7,7 +7,6 @@ import (
 
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
-	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
@@ -29,6 +28,18 @@ func FormatPanoramaStage(stage workflow.Stage, stepLabel func(workflow.Step) str
 }
 
 func Project(definition workflow.Workflow, current state.State) *flowidl.FlowState {
+	loaded, err := workflow.Load(definition.ID)
+	if err != nil {
+		return project(definition, current, map[string]string{})
+	}
+	return project(definition, current, loaded.SkillPaths)
+}
+
+func ProjectLoaded(loaded workflow.Loaded, current state.State) *flowidl.FlowState {
+	return project(loaded.Workflow, current, loaded.SkillPaths)
+}
+
+func project(definition workflow.Workflow, current state.State, paths map[string]string) *flowidl.FlowState {
 	result := &flowidl.FlowState{
 		Status: flowidl.WorkflowStatus_completed, Outputs: registeredOutputs(current.Outputs),
 		SkippedStepIds: append([]string{}, current.SkippedStepIDs...),
@@ -48,7 +59,6 @@ func Project(definition workflow.Workflow, current state.State) *flowidl.FlowSta
 	if !ok {
 		return result
 	}
-	paths := skillPaths(definition.ID)
 	conditions := conditionViews(definition, context.Step.ID, paths)
 	routes := availableRouteViews(definition, flowRoutes, definition.Loops[context.Step.ID], paths)
 	if definition.Jump != nil {
@@ -112,7 +122,7 @@ func commonJumpRouteViews(definition workflow.Workflow, paths map[string]string)
 }
 
 func WorkflowRef(value workflow.Ref) *commonidl.WorkflowRef {
-	return &commonidl.WorkflowRef{Id: value.ID, Digest: value.Digest}
+	return &commonidl.WorkflowRef{Id: value.ID}
 }
 
 func Requirement(value state.Requirement) *flowidl.Requirement {
@@ -226,18 +236,6 @@ func skills(values []workflow.SkillBinding, paths map[string]string) []*flowidl.
 		result = append(result, &flowidl.Skill{Id: value.ID, Prompt: value.Prompt, Optional: value.Optional != nil && *value.Optional, Path: paths[value.ID]})
 	}
 	return result
-}
-
-func skillPaths(workflowID string) map[string]string {
-	root, err := skillconfig.DefaultRoot()
-	if err != nil {
-		return map[string]string{}
-	}
-	paths, err := skillconfig.Paths(root, workflowID)
-	if err != nil {
-		return map[string]string{}
-	}
-	return paths
 }
 
 func executor(value workflow.StepExecutor) flowidl.Executor {

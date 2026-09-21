@@ -55,8 +55,8 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	committedWorkflow(t, root)
 
 	for relative, wantVersion := range map[string]float64{
-		".fanloop/flow/state.json":   13,
-		".fanloop/output/state.json": 3,
+		".fanloop/flow/state.json":   14,
+		".fanloop/output/state.json": 4,
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
 		if err != nil {
@@ -80,7 +80,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(line), &event); err != nil {
 		t.Fatal(err)
 	}
-	if event["schema_version"] != float64(13) || event["kind"] != "flow_initialized" {
+	if event["schema_version"] != float64(14) || event["kind"] != "flow_initialized" {
 		t.Fatalf("Event header = %#v", event)
 	}
 	payload, ok := event["payload"].(map[string]any)
@@ -267,7 +267,7 @@ func TestCommitRejectsProgressWithAnOutputPayload(t *testing.T) {
 	}
 }
 
-func TestCommitValidatesNewResultAgainstCurrentRoutesAcrossDigests(t *testing.T) {
+func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 	root := t.TempDir()
 	local, failure := New(root)
 	if failure != nil {
@@ -277,11 +277,11 @@ func TestCommitValidatesNewResultAgainstCurrentRoutesAcrossDigests(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	oldRef := state.WorkflowRef{ID: loaded.Ref.ID, Digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+	oldRef := state.WorkflowRef{ID: loaded.Ref.ID}
 	now := time.Date(2026, 9, 17, 0, 0, 0, 0, time.UTC)
 	step, _ := loaded.Workflow.FirstStepID()
 	current := state.State{
-		SchemaVersion: state.CurrentStateSchemaVersion, Requirement: state.Requirement{Title: "Cross digest Store"},
+		SchemaVersion: state.CurrentStateSchemaVersion, Requirement: state.Requirement{Title: "Current Workflow Store"},
 		Release: state.Release{Version: "old", Workflow: oldRef}, CurrentStepID: &step, CurrentStepStatus: state.StepReady,
 		CurrentStepSummary: "workflow initialized", Outputs: map[string]state.RegisteredOutput{}, Integrations: state.Integrations{},
 		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,

@@ -367,75 +367,11 @@ var fieldIDToName_SkillRelease = map[int16]string{
 	2: "version",
 }
 
-type WorkflowRelease struct {
-	Id string `thrift:"id,1,required" json:"id"`
-	// fields 2 and 3 retired: Workflow has no business version or default.
-	Digest string `thrift:"digest,4,required" json:"digest"`
-}
-
-func NewWorkflowRelease() *WorkflowRelease {
-	return &WorkflowRelease{}
-}
-
-func (p *WorkflowRelease) InitDefault() {
-}
-
-func (p *WorkflowRelease) GetId() (v string) {
-	return p.Id
-}
-
-func (p *WorkflowRelease) GetDigest() (v string) {
-	return p.Digest
-}
-
-func (p *WorkflowRelease) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("WorkflowRelease(%+v)", *p)
-}
-
-func (p *WorkflowRelease) DeepEqual(ano *WorkflowRelease) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.Id) {
-		return false
-	}
-	if !p.Field4DeepEqual(ano.Digest) {
-		return false
-	}
-	return true
-}
-
-func (p *WorkflowRelease) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.Id, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *WorkflowRelease) Field4DeepEqual(src string) bool {
-
-	if strings.Compare(p.Digest, src) != 0 {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_WorkflowRelease = map[int16]string{
-	1: "id",
-	4: "digest",
-}
-
 type VersionResponse struct {
 	ReleaseVersion string              `thrift:"release_version,1,required" json:"release_version"`
 	CommitSha      string              `thrift:"commit_sha,2,required" json:"commit_sha"`
 	StateSchema    *StateSchemaSupport `thrift:"state_schema,3,required" json:"state_schema"`
 	Skills         []*SkillRelease     `thrift:"skills,4,required,list<SkillRelease>" json:"skills"`
-	Workflows      []*WorkflowRelease  `thrift:"workflows,5,required,list<WorkflowRelease>" json:"workflows"`
 }
 
 func NewVersionResponse() *VersionResponse {
@@ -466,10 +402,6 @@ func (p *VersionResponse) GetSkills() (v []*SkillRelease) {
 	return p.Skills
 }
 
-func (p *VersionResponse) GetWorkflows() (v []*WorkflowRelease) {
-	return p.Workflows
-}
-
 func (p *VersionResponse) IsSetStateSchema() bool {
 	return p.StateSchema != nil
 }
@@ -497,9 +429,6 @@ func (p *VersionResponse) DeepEqual(ano *VersionResponse) bool {
 		return false
 	}
 	if !p.Field4DeepEqual(ano.Skills) {
-		return false
-	}
-	if !p.Field5DeepEqual(ano.Workflows) {
 		return false
 	}
 	return true
@@ -539,26 +468,12 @@ func (p *VersionResponse) Field4DeepEqual(src []*SkillRelease) bool {
 	}
 	return true
 }
-func (p *VersionResponse) Field5DeepEqual(src []*WorkflowRelease) bool {
-
-	if len(p.Workflows) != len(src) {
-		return false
-	}
-	for i, v := range p.Workflows {
-		_src := src[i]
-		if !v.DeepEqual(_src) {
-			return false
-		}
-	}
-	return true
-}
 
 var fieldIDToName_VersionResponse = map[int16]string{
 	1: "release_version",
 	2: "commit_sha",
 	3: "state_schema",
 	4: "skills",
-	5: "workflows",
 }
 
 type DoctorRequest struct {

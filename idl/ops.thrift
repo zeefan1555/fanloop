@@ -14,18 +14,12 @@ struct SkillRelease {
   2: required string version,
 }
 
-struct WorkflowRelease {
-  1: required string id,
-  // fields 2 and 3 retired: Workflow has no business version or default.
-  4: required string digest (vt.pattern = "^sha256:[0-9a-f]{64}$"),
-}
-
 struct VersionResponse {
   1: required string                release_version,
   2: required string                commit_sha,
   3: required StateSchemaSupport    state_schema    (vt.not_nil = "true"),
   4: required list<SkillRelease>    skills,
-  5: required list<WorkflowRelease> workflows,
+  // field 5 retired: Workflows are live configuration, not Release artifacts.
 }
 
 struct DoctorRequest {}

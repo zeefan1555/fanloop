@@ -30,13 +30,6 @@ func (p *StateSchemaSupport) IsValid() error {
 func (p *SkillRelease) IsValid() error {
 	return nil
 }
-func (p *WorkflowRelease) IsValid() error {
-	_src := "^sha256:[0-9a-f]{64}$"
-	if ok, _ := regexp.MatchString(_src, p.Digest); !ok {
-		return fmt.Errorf("field Digest pattern rule failed, current value: %v", p.Digest)
-	}
-	return nil
-}
 func (p *VersionResponse) IsValid() error {
 	if p.StateSchema == nil {
 		return fmt.Errorf("field StateSchema not_nil rule failed")

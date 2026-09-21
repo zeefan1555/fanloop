@@ -30,7 +30,38 @@ func buildCLI(t *testing.T) string {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build fanloop: %v\n%s", err, output)
 	}
+	seedLiveWorkflows(t, filepath.Join(filepath.Dir(binary), ".fanloop-user"))
 	return binary
+}
+
+func seedLiveWorkflows(t *testing.T, dataRoot string) {
+	t.Helper()
+	source := filepath.Join(repositoryRoot(t), "workflows")
+	target := filepath.Join(dataRoot, "current", "workflows")
+	if err := filepath.WalkDir(source, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
+		destination := filepath.Join(target, relative)
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return os.MkdirAll(destination, info.Mode().Perm())
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(destination, content, info.Mode().Perm())
+	}); err != nil {
+		t.Fatalf("seed live Workflows: %v", err)
+	}
 }
 
 func run(binary string, args ...string) result {

@@ -148,8 +148,6 @@ func (p *RequirementScope) Value() (driver.Value, error) {
 
 type WorkflowRef struct {
 	Id string `thrift:"id,1,required" json:"id"`
-	// field 2 retired: Workflow has no business version.
-	Digest string `thrift:"digest,3,required" json:"digest"`
 }
 
 func NewWorkflowRef() *WorkflowRef {
@@ -161,10 +159,6 @@ func (p *WorkflowRef) InitDefault() {
 
 func (p *WorkflowRef) GetId() (v string) {
 	return p.Id
-}
-
-func (p *WorkflowRef) GetDigest() (v string) {
-	return p.Digest
 }
 
 func (p *WorkflowRef) String() string {
@@ -183,9 +177,6 @@ func (p *WorkflowRef) DeepEqual(ano *WorkflowRef) bool {
 	if !p.Field1DeepEqual(ano.Id) {
 		return false
 	}
-	if !p.Field3DeepEqual(ano.Digest) {
-		return false
-	}
 	return true
 }
 
@@ -196,17 +187,9 @@ func (p *WorkflowRef) Field1DeepEqual(src string) bool {
 	}
 	return true
 }
-func (p *WorkflowRef) Field3DeepEqual(src string) bool {
-
-	if strings.Compare(p.Digest, src) != 0 {
-		return false
-	}
-	return true
-}
 
 var fieldIDToName_WorkflowRef = map[int16]string{
 	1: "id",
-	3: "digest",
 }
 
 type DriftNotice struct {

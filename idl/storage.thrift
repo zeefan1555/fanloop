@@ -7,10 +7,10 @@ namespace go storageidl
 // This file owns every Fanloop-defined structured JSON/JSONL document under
 // .fanloop. It defines file schemas only: no public CLI methods or RPC service.
 
-const i32 FLOW_STATE_SCHEMA_VERSION      = 13
-const i32 EVENT_SCHEMA_VERSION           = 13
-const i32 OUTPUT_REGISTRY_SCHEMA_VERSION = 3
-const i32 CARD_PROJECTION_SCHEMA_VERSION = 6
+const i32 FLOW_STATE_SCHEMA_VERSION      = 14
+const i32 EVENT_SCHEMA_VERSION           = 14
+const i32 OUTPUT_REGISTRY_SCHEMA_VERSION = 4
+const i32 CARD_PROJECTION_SCHEMA_VERSION = 7
 const i32 CARD_BINDING_SCHEMA_VERSION      = 2
 const i32 TRACE_CONFIG_SCHEMA_VERSION      = 2
 const i32 CLI_EXECUTION_LOG_SCHEMA_VERSION = 2

@@ -171,6 +171,7 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		newVerifyCommand(ioStreams, &requirementRoot),
 		newVersionCommand(ioStreams),
 		newDoctorCommand(ioStreams, &requirementRoot),
+		newDashboardCommand(ioStreams),
 		newInstallCommand(stdout, stderr),
 	)
 	return root

@@ -7,7 +7,7 @@ import (
 )
 
 // TestTechnicalSolutionPanoramaStagesAreFixed locks the reviewed technical solution topology.
-// The panorama is a pure projection of the embedded workflow definition, so this
+// The panorama is a pure projection of the loaded live Workflow definition, so this
 // is a tripwire: any accidental Step added to or removed from the TechDesign
 // Stage (the "状态全景" the boss sees in Feishu) turns this test red.
 func TestTechnicalSolutionPanoramaStagesAreFixed(t *testing.T) {

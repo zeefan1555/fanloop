@@ -50,7 +50,7 @@ func TestLocalBuildGuardAllowsRepositoryOutputWithLiteralPath(t *testing.T) {
 func TestLocalBuildGuardDoesNotVersionLiveSkillChanges(t *testing.T) {
 	repository, environment := localBuildGuardRepository(t)
 	commit := strings.TrimSpace(localBuildGuardGit(t, repository, "rev-parse", "HEAD"))
-	skill := filepath.Join(repository, "skills", "example", "SKILL.md")
+	skill := filepath.Join(repository, "workflows", "example", "skills", "example", "SKILL.md")
 	if err := os.WriteFile(skill, []byte("changed live configuration\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -87,11 +87,11 @@ func TestLocalBuildGuardUsesDistinctStableVersionsForCleanCommits(t *testing.T) 
 }
 
 func TestLocalBuildGuardRejectsOutputInsideCopiedOrGitTrees(t *testing.T) {
-	for _, parent := range []string{"skills", "entrypoints", "workflows", ".git", "skills-link"} {
+	for _, parent := range []string{"entrypoints", "workflows", ".git", "workflows-link"} {
 		t.Run(parent, func(t *testing.T) {
 			repository, environment := localBuildGuardRepository(t)
-			if parent == "skills-link" {
-				if err := os.Symlink(filepath.Join(repository, "skills"), filepath.Join(repository, parent)); err != nil {
+			if parent == "workflows-link" {
+				if err := os.Symlink(filepath.Join(repository, "workflows"), filepath.Join(repository, parent)); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -137,9 +137,9 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 		"scripts/build-local.sh": script,
 		"VERSION":                []byte("1.2.3\n"),
 		".gitignore":             []byte("/dist/\n"), "tracked.go": []byte("initial\n"),
-		"skills/example/SKILL.md":         []byte("example\n"),
-		"entrypoints/example/SKILL.md":    []byte("entry\n"),
-		"workflows/example/workflow.yaml": []byte("example\n"),
+		"entrypoints/example/SKILL.md":              []byte("entry\n"),
+		"workflows/example/workflow.yaml":           []byte("example\n"),
+		"workflows/example/skills/example/SKILL.md": []byte("example\n"),
 	} {
 		path := filepath.Join(repository, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

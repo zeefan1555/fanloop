@@ -16,7 +16,6 @@ import (
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
-	"github.com/zeefan1555/fanloop/internal/skillconfig"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/workflow"
@@ -30,10 +29,10 @@ const (
 )
 
 type Runtime struct {
-	ReleaseRoot string
-	BinaryPath  string
-	ConfigRoot  string
-	SkillRoots  []string
+	ReleaseRoot  string
+	BinaryPath   string
+	WorkflowRoot string
+	SkillRoots   []string
 }
 
 func DefaultRuntime() Runtime {
@@ -52,8 +51,8 @@ func DefaultRuntime() Runtime {
 	if roots, err := release.DefaultSkillRoots(); err == nil {
 		skillRoots = roots.Values()
 	}
-	configRoot, _ := skillconfig.DefaultRoot()
-	return Runtime{ReleaseRoot: releaseRoot, BinaryPath: executable, ConfigRoot: configRoot, SkillRoots: skillRoots}
+	workflowRoot, _ := workflow.DefaultRoot()
+	return Runtime{ReleaseRoot: releaseRoot, BinaryPath: executable, WorkflowRoot: workflowRoot, SkillRoots: skillRoots}
 }
 
 func (runtime Runtime) Run(requirementRoot string) *idl.DoctorResponse {
@@ -61,7 +60,7 @@ func (runtime Runtime) Run(requirementRoot string) *idl.DoctorResponse {
 	scope := idl.DoctorScope_installation
 	if requirementRoot != "" {
 		scope = idl.DoctorScope_requirement
-		checks = append(checks, requirementChecks(requirementRoot)...)
+		checks = append(checks, runtime.requirementChecks(requirementRoot)...)
 	}
 	status := idl.DoctorStatus_healthy
 	for _, check := range checks {
@@ -83,8 +82,7 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 			check("release_manifest", statusWarn, "No installed release manifest; this appears to be a source build.", "Install a matched Fanloop release for production use."),
 			skipped("binary_checksum", "Release manifest is unavailable."),
 			skipped("skills", "Release manifest is unavailable."),
-			skipped("skill_config", "Release manifest is unavailable."),
-			skipped("workflows", "Release manifest is unavailable."),
+			workflowCheck(runtime.WorkflowRoot),
 			skipped("version_drift", "Release manifest is unavailable."),
 		}
 	}
@@ -93,17 +91,16 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 			check("release_manifest", statusFail, "Release manifest is invalid: "+err.Error(), "Reinstall this Fanloop release."),
 			skipped("binary_checksum", "Release manifest is invalid."),
 			skipped("skills", "Release manifest is invalid."),
-			skipped("skill_config", "Release manifest is invalid."),
-			skipped("workflows", "Release manifest is invalid."),
+			workflowCheck(runtime.WorkflowRoot),
 			skipped("version_drift", "Release manifest is invalid."),
 		}
 	}
 	checks := []*idl.DoctorCheck{check("release_manifest", statusPass, "Release manifest is valid.", "")}
-	checks = append(checks, runtime.binaryCheck(manifest), skillCheck(runtime.ReleaseRoot, manifest), skillConfigCheck(runtime.ConfigRoot))
+	checks = append(checks, runtime.binaryCheck(manifest), skillCheck(runtime.ReleaseRoot, manifest), workflowCheck(runtime.WorkflowRoot))
 	if len(runtime.SkillRoots) > 0 {
 		checks = append(checks, skillLinkCheck(runtime.ReleaseRoot, runtime.SkillRoots, manifest))
 	}
-	checks = append(checks, workflowCheck(runtime.ReleaseRoot, manifest), versionCheck(manifest))
+	checks = append(checks, versionCheck(manifest))
 	return checks
 }
 
@@ -129,18 +126,18 @@ func skillCheck(root string, manifest release.Manifest) *idl.DoctorCheck {
 	return check("skills", statusPass, "The packaged Workflow entrypoint matches the release manifest.", "")
 }
 
-func skillConfigCheck(root string) *idl.DoctorCheck {
+func workflowCheck(root string) *idl.DoctorCheck {
 	if root == "" {
-		return skipped("skill_config", "Live Skill configuration root is unavailable.")
+		return skipped("workflows", "Live Workflow configuration root is unavailable.")
 	}
-	definitions, err := workflow.List()
+	definitions, err := workflow.ListFrom(root)
 	if err != nil {
-		return check("skill_config", statusFail, "Embedded Workflows cannot be read.", "Reinstall Fanloop.")
+		return check("workflows", statusFail, "Live Workflow configuration is invalid: "+err.Error(), "Restore current/workflows.")
 	}
-	if _, err := skillconfig.Validate(root, definitions); err != nil {
-		return check("skill_config", statusFail, "Live Skill configuration is invalid: "+err.Error(), "Restore the configured repository checkout.")
+	if len(definitions) == 0 {
+		return check("workflows", statusFail, "Live Workflow configuration is empty.", "Restore current/workflows.")
 	}
-	return check("skill_config", statusPass, "Live Skills match the embedded Workflow bindings.", "")
+	return check("workflows", statusPass, "Live Workflows and bound Skills are valid.", "")
 }
 
 func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifest) *idl.DoctorCheck {
@@ -163,23 +160,6 @@ func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifes
 	return check("skill_links", statusPass, "Codex, Agent, Trae, and Claude Workflow Skill links point to the current release.", "")
 }
 
-func workflowCheck(root string, manifest release.Manifest) *idl.DoctorCheck {
-	for _, item := range manifest.Workflows {
-		path, err := release.Resolve(root, item.Path)
-		if err != nil {
-			return check("workflows", statusFail, err.Error(), "Reinstall this Fanloop release.")
-		}
-		loaded, err := workflow.LoadDirectory(path)
-		if err != nil || loaded.Ref.Digest != item.Sha256 {
-			return check("workflows", statusFail, fmt.Sprintf("Workflow %q checksum does not match.", item.Id), "Reinstall this Fanloop release.")
-		}
-		if loaded.Ref.ID != item.Id {
-			return check("workflows", statusFail, fmt.Sprintf("Workflow %q is invalid.", item.Id), "Reinstall this Fanloop release.")
-		}
-	}
-	return check("workflows", statusPass, "All packaged Workflows match the release manifest.", "")
-}
-
 func versionCheck(manifest release.Manifest) *idl.DoctorCheck {
 	if manifest.ReleaseVersion != buildinfo.ReleaseVersion || manifest.Cli.Version != buildinfo.CLIVersion {
 		return check("version_drift", statusFail, "Release manifest and running CLI versions differ.", "Switch to one complete Fanloop release.")
@@ -188,26 +168,10 @@ func versionCheck(manifest release.Manifest) *idl.DoctorCheck {
 	if err != nil || current.StateSchema.WriteVersion != manifest.StateSchema.WriteVersion || !equalInts(current.StateSchema.ReadVersions, manifest.StateSchema.ReadVersions) {
 		return check("version_drift", statusFail, "State Schema support differs from the release manifest.", "Switch to one complete Fanloop release.")
 	}
-	actual := map[string]string{}
-	embedded, listErr := workflow.List()
-	if listErr != nil {
-		return check("version_drift", statusFail, "Embedded Workflows cannot be read.", "Switch to one complete Fanloop release.")
-	}
-	for _, item := range embedded {
-		actual[item.Ref.ID] = item.Ref.Digest
-	}
-	if len(actual) != len(manifest.Workflows) {
-		return check("version_drift", statusFail, "Embedded Workflows differ from the release manifest.", "Switch to one complete Fanloop release.")
-	}
-	for _, item := range manifest.Workflows {
-		if actual[item.Id] != item.Sha256 {
-			return check("version_drift", statusFail, "Embedded Workflows differ from the release manifest.", "Switch to one complete Fanloop release.")
-		}
-	}
 	return check("version_drift", statusPass, "CLI and packaged component versions are aligned.", "")
 }
 
-func requirementChecks(root string) []*idl.DoctorCheck {
+func (runtime Runtime) requirementChecks(root string) []*idl.DoctorCheck {
 	if !filepath.IsAbs(root) {
 		return rootFailure("Requirement root must be absolute.", "Pass an absolute requirement directory.")
 	}
@@ -231,7 +195,7 @@ func requirementChecks(root string) []*idl.DoctorCheck {
 	var loaded workflow.Loaded
 	bindingOK := jsonErr == nil && loose.Release.Workflow.ID != ""
 	if bindingOK {
-		loaded, err = workflow.Load(loose.Release.Workflow.ID)
+		loaded, err = workflow.LoadFrom(runtime.WorkflowRoot, loose.Release.Workflow.ID)
 		bindingOK = err == nil
 	}
 	if jsonErr != nil {

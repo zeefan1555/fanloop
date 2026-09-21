@@ -14,8 +14,7 @@ func TestReleaseManifestGeneratedContract(t *testing.T) {
 		ReleaseVersion: "1.2.3",
 		Cli:            &CLIRelease{Version: "1.2.3", BinarySha256: digest},
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
-		Skills:         []*SkillArtifact{{Name: "ai-test", Version: "1.2.3", Path: "skills/technical-solution-design/ai-test", Sha256: digest}},
-		Workflows:      []*WorkflowArtifact{{Id: "technical-solution-design", Path: "workflows/technical-solution-design", Sha256: digest}},
+		Skills:         []*SkillArtifact{{Name: "fanloop-workflow", Version: "1.2.3", Path: "entrypoints/fanloop-workflow", Sha256: digest}},
 	}
 	if err := manifest.IsValid(); err != nil {
 		t.Fatalf("valid generated manifest rejected: %v", err)
@@ -28,7 +27,7 @@ func TestReleaseManifestGeneratedContract(t *testing.T) {
 	if err := json.Unmarshal(encoded, &document); err != nil {
 		t.Fatal(err)
 	}
-	for _, field := range []string{"schema_version", "release_version", "cli", "state_schema", "skills", "workflows"} {
+	for _, field := range []string{"schema_version", "release_version", "cli", "state_schema", "skills"} {
 		if _, ok := document[field]; !ok {
 			t.Fatalf("generated JSON is missing %q: %s", field, encoded)
 		}
@@ -37,12 +36,15 @@ func TestReleaseManifestGeneratedContract(t *testing.T) {
 	if _, ok := document["assets"]; ok {
 		t.Fatal("retired assets field remains in generated JSON")
 	}
+	if _, ok := document["workflows"]; ok {
+		t.Fatal("retired workflows field remains in generated JSON")
+	}
 	if document["cli"].(map[string]any)["binary_sha256"] != digest {
 		t.Fatal("generated CLI JSON is missing its binary checksum")
 	}
 
 	manifest.SchemaVersion = 2
 	if err := manifest.IsValid(); err == nil {
-		t.Fatal("expected schema_version other than 3 to fail")
+		t.Fatal("expected schema_version other than 4 to fail")
 	}
 }

@@ -47,16 +47,15 @@ type Requirement struct {
 }
 
 type WorkflowRef struct {
-	ID     string
-	Digest string
+	ID string
 }
 
 func WorkflowRefFrom(value workflow.Ref) WorkflowRef {
-	return WorkflowRef{ID: value.ID, Digest: value.Digest}
+	return WorkflowRef{ID: value.ID}
 }
 
 func (value WorkflowRef) Ref() workflow.Ref {
-	return workflow.Ref{ID: value.ID, Digest: value.Digest}
+	return workflow.Ref{ID: value.ID}
 }
 
 type Release struct {
@@ -244,7 +243,7 @@ func (value State) Validate() error {
 		return fmt.Errorf("invalid state header")
 	}
 	if strings.TrimSpace(value.Requirement.Title) == "" || value.Release.Version == "" ||
-		value.Release.Workflow.ID == "" || value.Release.Workflow.Digest == "" ||
+		value.Release.Workflow.ID == "" ||
 		value.Outputs == nil || value.LastEventID == "" || value.CreatedAt.IsZero() || value.UpdatedAt.IsZero() {
 		return fmt.Errorf("invalid state header")
 	}
@@ -446,7 +445,7 @@ func (value Event) validateAgainst(definition workflow.Workflow, validateResultR
 	case EventFlowInitialized:
 		payload, _ := EventPayloadAs[FlowInitializedPayload](value)
 		first, ok := definition.FirstStepID()
-		if !ok || payload.StepID != first || payload.StepStatus != entryStepStatus(definition) {
+		if !ok || payload.StepID != first || validateResultRoute && payload.StepStatus != entryStepStatus(definition) {
 			return fmt.Errorf("initialization does not enter the first Step")
 		}
 	case EventFlowProgressed:
@@ -474,8 +473,6 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 		return fmt.Errorf("event history is empty")
 	}
 	definition := loaded.Workflow
-	// Cross-digest Results were admitted by their original Bundle; current Routes govern only new writes.
-	validateResultRoutes := current.Release.Workflow.Digest == loaded.Ref.Digest
 	outputs := map[string]RegisteredOutput{}
 	var cursor *StepState
 	summary := ""
@@ -496,7 +493,7 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 		if index == 0 && event.CausedByEventID != "" || index > 0 && event.CausedByEventID != events[index-1].ID {
 			return fmt.Errorf("event history cause does not match the previous event")
 		}
-		if err := event.validateAgainst(definition, validateResultRoutes); err != nil {
+		if err := event.validateAgainst(definition, false); err != nil {
 			return fmt.Errorf("event %q: %w", event.ID, err)
 		}
 		switch event.Kind {
@@ -509,7 +506,7 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 			summary, evidence = "workflow initialized", nil
 		case EventFlowProgressed:
 			payload, _ := EventPayloadAs[FlowProgressPayload](event)
-			if !sameCursor(cursor, payload.FromStepID, payload.FromStepStatus) || cursor.Status == StepAwaitingConfirmation {
+			if !sameHistoricalCursor(cursor, payload.FromStepID, payload.FromStepStatus) || cursor.Status == StepAwaitingConfirmation {
 				return fmt.Errorf("event %q does not continue from current Step", event.ID)
 			}
 			cursor = &StepState{StepID: payload.FromStepID, Status: payload.ToStepStatus}
@@ -519,13 +516,13 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 			if cursor == nil || cursor.StepID != payload.Transition.FromStepID {
 				return fmt.Errorf("event %q does not continue from current Step", event.ID)
 			}
-			if payload.Effect == ResultStarted && cursor.Status != StepAwaitingConfirmation || payload.Effect != ResultStarted && payload.Effect != ResultJumped && cursor.Status == StepAwaitingConfirmation {
+			if cursor.Status != "" && (payload.Effect == ResultStarted && cursor.Status != StepAwaitingConfirmation || payload.Effect != ResultStarted && payload.Effect != ResultJumped && cursor.Status == StepAwaitingConfirmation) {
 				return fmt.Errorf("event %q is not allowed for the current Step status", event.ID)
 			}
 			accepted := map[string]RegisteredOutput{}
 			var err error
 			if payload.Effect != ResultStarted && payload.Effect != ResultJumped {
-				accepted, err = registeredOutputs(definition, payload.Transition.FromStepID, payload.ConditionResults)
+				accepted, err = registeredHistoricalOutputs(definition, payload.Transition.FromStepID, payload.ConditionResults)
 			}
 			if err != nil || !slices.Equal(sortedKeys(accepted), sortedCopy(payload.OutputChanges.Accepted)) {
 				return fmt.Errorf("event %q has invalid accepted Output changes", event.ID)
@@ -551,11 +548,11 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 				cursor = &StepState{StepID: payload.Transition.ToStepID, Status: StepInProgress}
 				summary, evidence = payload.Summary, cloneEvidence(payload.Evidence)
 			case ResultAdvanced, ResultLooped:
-				cursor = &StepState{StepID: payload.Transition.ToStepID, Status: entryStepStatus(definition)}
+				cursor = &StepState{StepID: payload.Transition.ToStepID}
 				summary, evidence = payload.Summary, cloneEvidence(payload.Evidence)
 			case ResultJumped:
 				skipped = jumpedSkippedSteps(definition, skipped, payload.Transition.FromStepID, payload.Transition.ToStepID)
-				cursor = &StepState{StepID: payload.Transition.ToStepID, Status: entryStepStatus(definition)}
+				cursor = &StepState{StepID: payload.Transition.ToStepID}
 				summary, evidence = payload.Summary, cloneEvidence(payload.Evidence)
 			}
 		case EventTraceDocumentBound:
@@ -567,6 +564,9 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 			traceDocumentURL, traceRegistry, cliLogDocumentURL = payload.DocumentURL, payload.Registry, payload.CLILogDocumentURL
 		}
 		seen[event.ID] = true
+	}
+	if cursor != nil && cursor.Status == "" && current.CurrentStepID != nil && cursor.StepID == *current.CurrentStepID {
+		cursor.Status = current.CurrentStepStatus
 	}
 	if !equalOptionalStepState(cursor, stepStatePointer(StateRef(current))) ||
 		summary != current.CurrentStepSummary || !slices.Equal(evidence, current.CurrentEvidence) ||
@@ -680,18 +680,48 @@ func validateResultAgainst(definition workflow.Workflow, payload FlowResultPaylo
 }
 
 func validateHistoricalResultAgainst(definition workflow.Workflow, payload FlowResultPayload) error {
-	if payload.Effect == ResultStarted || payload.Effect == ResultJumped {
-		return validateResultAgainst(definition, payload)
-	}
-	if _, err := validateResultConditionsAgainst(definition, payload); err != nil {
-		return err
+	if _, _, ok := definition.FindStep(payload.Transition.FromStepID); !ok {
+		return fmt.Errorf("Result references an unknown Step")
 	}
 	if payload.Effect != ResultCompleted {
 		if _, _, ok := definition.FindStep(payload.Transition.ToStepID); !ok {
 			return fmt.Errorf("Result transition references an unknown Step")
 		}
 	}
+	if payload.Effect == ResultStarted || payload.Effect == ResultJumped {
+		return nil
+	}
+	accepted, err := registeredHistoricalOutputs(definition, payload.Transition.FromStepID, payload.ConditionResults)
+	if err != nil {
+		return err
+	}
+	if !slices.Equal(sortedKeys(accepted), sortedCopy(payload.OutputChanges.Accepted)) {
+		return fmt.Errorf("accepted Output changes do not match ConditionResults")
+	}
 	return nil
+}
+
+func registeredHistoricalOutputs(definition workflow.Workflow, stepID string, results []ConditionResult) (map[string]RegisteredOutput, error) {
+	if _, _, ok := definition.FindStep(stepID); !ok {
+		return nil, fmt.Errorf("Result references an unknown Step")
+	}
+	accepted := make(map[string]RegisteredOutput, len(results))
+	for _, result := range results {
+		condition, ok := definition.Condition(result.ConditionID)
+		if !ok {
+			return nil, fmt.Errorf("Condition %q is unknown", result.ConditionID)
+		}
+		if result.Output.Type != condition.Output.Type || workflow.ValidateOutput(condition.Output, result.Output.Value) != nil {
+			return nil, fmt.Errorf("Condition %q has invalid Output", result.ConditionID)
+		}
+		if _, exists := accepted[condition.Output.Key]; exists {
+			return nil, fmt.Errorf("multiple Conditions produce Output %q", condition.Output.Key)
+		}
+		accepted[condition.Output.Key] = RegisteredOutput{
+			Type: result.Output.Type, Value: result.Output.Value, ProducerStepID: stepID,
+		}
+	}
+	return accepted, nil
 }
 
 func validateResultConditionsAgainst(definition workflow.Workflow, payload FlowResultPayload) (map[string]bool, error) {
@@ -937,6 +967,10 @@ func sortedKeys[V any](values map[string]V) []string {
 
 func sameCursor(cursor *StepState, stepID string, status StepStatus) bool {
 	return cursor != nil && cursor.StepID == stepID && cursor.Status == status
+}
+
+func sameHistoricalCursor(cursor *StepState, stepID string, status StepStatus) bool {
+	return cursor != nil && cursor.StepID == stepID && (cursor.Status == "" || cursor.Status == status)
 }
 
 func stepStatePointer(value StepState) *StepState {

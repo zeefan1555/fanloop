@@ -14,14 +14,15 @@ Fanloop 用户可见行为的验证索引。契约真值仍是叶子 `--help`、
 
 - [Installation and health](installation-health.md)
 - [Workflow selection](workflow-selection.md)
-- [Cross-release continuation](cross-release-continuation.md)
+- [Live Workflow continuation](live-workflow-continuation.md)
 - [Requirement lifecycle](requirement-lifecycle.md)
 - [Progress and result](progress-and-result.md)
 - [Routing and recovery](routing-and-recovery.md)
 - [Output and state](output-and-state.md)
 - [Trace](trace.md)
 - [Card and panorama](card-and-panorama.md)
-- [Live Skill configuration](live-skill-config.md)
+- [Live Workflow configuration](live-skill-config.md)
+- [Local dashboard](local-dashboard.md)
 - [Workflow products](workflow-products.md)
 - [Multi-surface journeys](multi-surface-journeys.md)
 

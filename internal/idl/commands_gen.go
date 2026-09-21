@@ -4,6 +4,7 @@ package idl
 import (
 	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/dashboardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
@@ -28,4 +29,5 @@ var commandSpecs = []CommandSpec{
 	{ID: "verify.smoke", Summary: "Run the public CLI verification smoke journey", RequestType: reflect.TypeFor[verifyidl.VerifySmokeRequest](), ResponseType: reflect.TypeFor[verifyidl.VerifySmokeResponse](), Risk: commonidl.CommandRisk_local_write, RequirementScope: commonidl.RequirementScope_none, SupportsDryRun: false, Errors: errorSpecs(erroridl.ErrorCode_INVALID_ARGUMENT, erroridl.ErrorCode_INVALID_INPUT_JSON, erroridl.ErrorCode_LOCAL_COMMIT_FAILED, erroridl.ErrorCode_INTERNAL)},
 	{ID: "verify.snapshot", Summary: "Capture requirement verification evidence", RequestType: reflect.TypeFor[verifyidl.VerifySnapshotRequest](), ResponseType: reflect.TypeFor[verifyidl.VerifySnapshotResponse](), Risk: commonidl.CommandRisk_local_write, RequirementScope: commonidl.RequirementScope_existing, SupportsDryRun: false, Errors: errorSpecs(erroridl.ErrorCode_INVALID_ARGUMENT, erroridl.ErrorCode_INVALID_INPUT_JSON, erroridl.ErrorCode_ROOT_REQUIRED, erroridl.ErrorCode_NOT_INITIALIZED, erroridl.ErrorCode_STATE_CORRUPT, erroridl.ErrorCode_STATE_SCHEMA_UNSUPPORTED, erroridl.ErrorCode_WORKFLOW_MISMATCH, erroridl.ErrorCode_LOCAL_COMMIT_FAILED, erroridl.ErrorCode_INTERNAL)},
 	{ID: "verify.cleanup", Summary: "Clean resources owned by one verification run", RequestType: reflect.TypeFor[verifyidl.VerifyCleanupRequest](), ResponseType: reflect.TypeFor[verifyidl.VerifyCleanupResponse](), Risk: commonidl.CommandRisk_local_write, RequirementScope: commonidl.RequirementScope_none, SupportsDryRun: true, Errors: errorSpecs(erroridl.ErrorCode_INVALID_ARGUMENT, erroridl.ErrorCode_INVALID_INPUT_JSON, erroridl.ErrorCode_LOCAL_COMMIT_FAILED, erroridl.ErrorCode_INTERNAL)},
+	{ID: "dashboard", Summary: "Start the local Workflow configuration dashboard", RequestType: reflect.TypeFor[dashboardidl.DashboardStartRequest](), ResponseType: reflect.TypeFor[dashboardidl.DashboardStartResponse](), Risk: commonidl.CommandRisk_local_write, RequirementScope: commonidl.RequirementScope_none, SupportsDryRun: false, Errors: errorSpecs(erroridl.ErrorCode_INVALID_ARGUMENT, erroridl.ErrorCode_INVALID_INPUT_JSON, erroridl.ErrorCode_INTERNAL)},
 }

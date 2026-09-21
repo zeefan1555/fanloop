@@ -73,7 +73,7 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 	}
 	version := installed.Data.ReleaseVersion
 	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, releaseFixture{ConfigSource: repository, Version: version}, traeRoot, claudeRoot)
-	assertLocalBuildContents(t, repository, filepath.Join(dataRoot, "current"))
+	assertLocalBuildContents(t, repository, filepath.Join(dataRoot, "releases", version))
 	if fixtureDirectoryDigest(t, installBuild) != fixtureDirectoryDigest(t, filepath.Join(dataRoot, "releases", version)) {
 		t.Fatal("installation changed the built local directory")
 	}
@@ -113,7 +113,7 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	for index, entry := range entries {
 		names[index] = entry.Name()
 	}
-	if want := []string{"bin", "entrypoints", "release.json", "workflows"}; !reflect.DeepEqual(names, want) {
+	if want := []string{"bin", "entrypoints", "release.json"}; !reflect.DeepEqual(names, want) {
 		t.Fatalf("local build entries = %v, want one copy of each component: %v", names, want)
 	}
 	for _, component := range []string{"entrypoints"} {
@@ -121,19 +121,8 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 			t.Fatalf("local build changed or omitted %s files", component)
 		}
 	}
-	workflows, err := filepath.Glob(filepath.Join(repository, "workflows", "*", "workflow.yaml"))
-	if err != nil || len(workflows) == 0 {
-		t.Fatalf("source workflows: %v", err)
-	}
-	installedWorkflows, err := os.ReadDir(filepath.Join(root, "workflows"))
-	if err != nil || len(installedWorkflows) != len(workflows) {
-		t.Fatalf("local workflow count = %d, want %d: %v", len(installedWorkflows), len(workflows), err)
-	}
-	for _, workflow := range workflows {
-		name := filepath.Base(filepath.Dir(workflow))
-		if fixtureDirectoryDigest(t, filepath.Dir(workflow)) != fixtureDirectoryDigest(t, filepath.Join(root, "workflows", name)) {
-			t.Fatalf("local build changed or omitted workflow %s", name)
-		}
+	if _, err := os.Stat(filepath.Join(root, "workflows")); !os.IsNotExist(err) {
+		t.Fatalf("local build contains live Workflow configuration: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "skills")); !os.IsNotExist(err) {
 		t.Fatalf("local build contains live Skill configuration: %v", err)
@@ -152,7 +141,7 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := json.Unmarshal(content, &manifest); err != nil || manifest.Schema != 3 || manifest.CLI.BinarySHA256 != fixtureFileDigest(t, filepath.Join(root, "bin", "fanloop")) {
+	if err := json.Unmarshal(content, &manifest); err != nil || manifest.Schema != 4 || manifest.CLI.BinarySHA256 != fixtureFileDigest(t, filepath.Join(root, "bin", "fanloop")) {
 		t.Fatalf("local manifest does not bind the native binary: %v\n%s", err, content)
 	}
 }

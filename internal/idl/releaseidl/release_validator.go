@@ -50,22 +50,8 @@ func (p *SkillArtifact) IsValid() error {
 	}
 	return nil
 }
-func (p *WorkflowArtifact) IsValid() error {
-	_src := "^[a-z][a-z0-9-]*$"
-	if ok, _ := regexp.MatchString(_src, p.Id); !ok {
-		return fmt.Errorf("field Id pattern rule failed, current value: %v", p.Id)
-	}
-	if len(p.Path) < int(1) {
-		return fmt.Errorf("field Path min_len rule failed, current value: %d", len(p.Path))
-	}
-	_src1 := "^sha256:[0-9a-f]{64}$"
-	if ok, _ := regexp.MatchString(_src1, p.Sha256); !ok {
-		return fmt.Errorf("field Sha256 pattern rule failed, current value: %v", p.Sha256)
-	}
-	return nil
-}
 func (p *ReleaseManifest) IsValid() error {
-	if p.SchemaVersion != int32(3) {
+	if p.SchemaVersion != int32(4) {
 		return fmt.Errorf("field SchemaVersion not match const value, current value: %v", p.SchemaVersion)
 	}
 	_src := "^[0-9A-Za-z][0-9A-Za-z._+-]*$"
@@ -86,9 +72,6 @@ func (p *ReleaseManifest) IsValid() error {
 	}
 	if len(p.Skills) < int(1) {
 		return fmt.Errorf("field Skills MinLen rule failed, current value: %v", p.Skills)
-	}
-	if len(p.Workflows) < int(1) {
-		return fmt.Errorf("field Workflows MinLen rule failed, current value: %v", p.Workflows)
 	}
 	return nil
 }
