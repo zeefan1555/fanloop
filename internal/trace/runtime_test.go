@@ -96,7 +96,7 @@ func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
 	}
 }
 
-func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T) {
+func TestRegistryFieldsProjectsMaintainerPRWithoutReusingPRD(t *testing.T) {
 	current := state.State{
 		Requirement: state.Requirement{Title: "Self iteration"},
 		Release:     state.Release{Workflow: state.WorkflowRef{ID: "fanloop-maintainer"}},
@@ -106,9 +106,7 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 			CLILogDocumentURL: "https://example.invalid/redacted",
 		}},
 		Outputs: map[string]state.RegisteredOutput{
-			"requirement_document_url":      {Value: json.RawMessage(`"https://example.invalid/redacted"`)},
-			"technical_design_document_url": {Value: json.RawMessage(`"https://example.invalid/redacted"`)},
-			"merge_request_urls":            {Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`)},
+			"merge_request_urls": {Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`)},
 		},
 	}
 	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
@@ -118,8 +116,6 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 	fields := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")
 	want := map[string]any{
 		"PRD":    nil,
-		"需求澄清":   "https://example.invalid/redacted",
-		"技术方案":   "https://example.invalid/redacted",
 		"MR":     "https://github.com/zeefan1555/fanloop/merge_requests/123",
 		"CLI 日志": "https://example.invalid/redacted",
 	}
@@ -141,7 +137,7 @@ func TestRegistryFieldsProjectsMaintainerArtifactsWithoutReusingPRD(t *testing.T
 		t.Fatal("production default Registry is missing")
 	}
 	ordinaryFields := registryFields(ordinaryRegistry, ordinary, workflow.Workflow{}, nil, ordinary.Integrations.Trace.DocumentURL, "trace-key", "owner")
-	for _, key := range []string{"需求澄清", "技术方案", "MR", "CLI 日志"} {
+	for _, key := range []string{"MR", "CLI 日志"} {
 		if _, exists := ordinaryFields[key]; exists {
 			t.Fatalf("ordinary Registry unexpectedly contains %q: %#v", key, ordinaryFields)
 		}

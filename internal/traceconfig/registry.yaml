@@ -41,8 +41,6 @@ profiles:
           origin: 来源
           cli_log_url: CLI 日志
           outputs:
-            requirement_document_url: 需求澄清
-            technical_design_document_url: 技术方案
             merge_request_urls: MR
   test:
     default:

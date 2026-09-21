@@ -15,7 +15,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 源码提供三套首次安装配置：
 
 - `technical-solution-design`：十六步技术文档流程，第 0 至第 10 章各有独立 Step 和产物，按业务问题、技术判断和结果与规划三阶段推进。
-- `fanloop-maintainer`：Fanloop 的 3 Stage / 3 Job / 9 Step 维护闭环；TechDesign、Implement 与 Test 依次完成方案自主评审、两级验收和 PR/CI 交接。
+- `fanloop-maintainer`：Fanloop 的 4 Stage / 4 Job / 4 Step 维护闭环；Define、Build、Certify 与 Deliver 依次完成验收契约、自主验证、独立认证和 PR/本地交付。
 - `material-flashcards`：九步材料理解、知识选择、卡片审核与持久化闭环。
 
 生产目录固定为 `workflows/<workflow-id>/{五份 YAML,skills/<skill-id>/SKILL.md}`。统一入口位于
@@ -44,7 +44,8 @@ fanloop flow report result
 ```
 
 `when.any_of` 外层为 OR、内层为 AND。Flow 前进到 `next_step_id` 或 terminal；Loop 回到
-`back_step_id`，并失效目标 Step 及其下游产生的 Outputs。写命令在同一 Requirement lock 下提交
+`back_step_id`。Loop 只失效本次 Result 提交前已经存在、且由目标 Step 或其下游产生的 Outputs；本次
+Result 新接受的反馈或交接 Outputs 在失效完成后写入并保留。写命令在同一 Requirement lock 下提交
 State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 
 声明 `step_start` 与 `jump` 的 Workflow 在每次进入 Step 时先进入 `awaiting_confirmation`。此时只展示
@@ -54,8 +55,8 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
 Human Step 的审核与 Panorama 同样由五份 YAML 驱动。`technical-solution-design` 的三个 Human Step
-必须同时具备已回读飞书文档 URL、`panorama_card_published` 与人的明确结论。`fanloop-maintainer` 不再包含
-Human Step：需求批准和 `confirm_main_agent_acceptance` 最终验收均由执行子 Agent整理真实产物并向主 Agent申请决定。审批 Skill 组织审核材料并按最早受影响层分类，
+必须同时具备已回读飞书文档 URL、`panorama_card_published` 与人的明确结论。`fanloop-maintainer` 不包含
+Human Step：Define 的需求批准和 Certify 的最终候选验收均由执行子 Agent整理真实产物并向主 Agent申请决定。审批 Skill 组织审核材料并按最早受影响层分类，
 Panorama Skill 只按宿主原样展示 renderer 的紧凑投影并返回本次
 `panorama_snapshot_path:path`；CLI 只校验 Output 与 Route。Runtime 不调用发送工具，但继续维护本地
 Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策见
@@ -64,7 +65,8 @@ Card Projection、显式 Card 渲染以及 Trace provision/sync。完整决策�
 [ADR-0089](./adr/0089-split-technical-solution-into-reviewed-sections.md)、
 [ADR-0098](./adr/0098-use-eleven-section-technical-document-workflow.md)、
 [ADR-0100](./adr/0100-align-maintainer-with-treeloop-handoff.md) 与
-[ADR-0106](./adr/0106-drive-maintainer-with-main-agent-and-subagents.md)。
+[ADR-0106](./adr/0106-drive-maintainer-with-main-agent-and-subagents.md) 与
+[ADR-0109](./adr/0109-collapse-maintainer-into-four-step-verification-loop.md)。
 
 ## 当前配置实例
 
@@ -80,17 +82,18 @@ optional `human-step-jump` 允许人在确认影响后跳到任意 Step。Step �
 最终呈现中最早受影响的一层回流，目标 Step 及其下游
 Output 全部失效；不存在技术方案 Agent 代批路径。
 
-`fanloop-maintainer` 使用 3 Stage / 3 Job / 9 Step：TechDesign 包含仓库范围确定、需求澄清、方案设计和方案自主评审；
-Implement 包含代码实现与过程 CR、整体 Code Review；Test 包含 Agent 端到端测试、主 Agent 验收决策和 PR 合码与本地更新。
-Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
+`fanloop-maintainer` 使用 4 Stage / 4 Job / 4 Step：Define 冻结目标与验收契约，Build 持续实现和自主验证，
+Certify 先执行独立 Review，确认身份未变后再执行黑盒验收，并记录主 Agent决定及回执；Deliver 合并唯一 PR、校验 tree 并更新本地
+CLI。Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
 用户先与主 Agent 对齐目录和目标；主 Agent派生并持续监督只向其回报的执行子 Agent，执行子 Agent创建、
-持有并驱动 Requirement，且直接修改受管代码。实现阶段运行聚焦测试、`./tests/run-unit` 和独立整体 CR；Review 阶段核验证据并冻结
-`review_base` / `reviewed_head`。Agent 验收在一次性数据目录安装候选，由恰好一个无实现上下文的全新
+持有并驱动 Requirement，且直接修改受管代码。Build 运行聚焦测试、`./tests/run-unit` 和真实公开 CLI
+自验证；Certify 冻结 `certification_base` / `certification_head`，先完成独立整体 Review，再在身份未变时
+由恰好一个无实现上下文的全新
 Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。执行子 Agent向主 Agent申请候选
-验收决定，并在 main 前进时再次申请集成确认；`merge_and_update_local` 由执行子 Agent发布唯一 PR、校验精确 final head 的
-Ruleset/required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。合码后的本地失败保留 merge commit 并在原 Step 重试。
-黑盒公开 CLI 证据只承担可直接观测的 candidate/Doctor、九步 Panorama、Step ID/名称和旧 Step 缺失；
+验收决定；main 前进时 Deliver 记录 `delivery_main_head` 回 Build，由 Build 集成该提交并产生新候选。`merge_and_update_local` 由执行子 Agent发布唯一 PR、从 active main Ruleset 动态读取并校验精确 final head 的
+required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。已合并重入先固定原 merge commit，合码后的本地失败只恢复该提交。
+黑盒公开 CLI 证据只承担可直接观测的 candidate/Doctor、四步 Panorama、Step ID/名称和旧 Step 缺失；
 非当前 Step 的 executor 与 Route/Condition 语义由五份生产 YAML 和聚焦 contract test 证明，验收不伪造批准跨过治理边界。
 
 ## 当前持久化版本

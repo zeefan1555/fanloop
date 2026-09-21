@@ -138,15 +138,8 @@ func evaluateResult(definition workflow.Workflow, current state.State, request *
 	if len(loopMatches) > 1 {
 		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_ROUTE_AMBIGUOUS, "Condition results match more than one selected Loop Route", nil)
 	}
-	merged := make(map[string]state.RegisteredOutput, len(current.Outputs)+len(accepted))
-	for key, output := range current.Outputs {
-		merged[key] = output
-	}
-	for key, output := range accepted {
-		merged[key] = output
-	}
 	backStepID := request.Route.GetBackStepId()
-	invalidated, err := outputsFromStep(definition, backStepID, merged)
+	invalidated, err := outputsFromStep(definition, backStepID, current.Outputs)
 	if err != nil {
 		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 	}

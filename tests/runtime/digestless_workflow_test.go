@@ -16,7 +16,7 @@ func TestCurrentSchemaRequirementReloadsLiveWorkflowAndSkill(t *testing.T) {
 	promptPath := filepath.Join(liveWorkflow, "prompt.yaml")
 	prompt := readFile(t, promptPath)
 	marker := "live prompt reload marker"
-	updated := bytes.Replace(prompt, []byte("准备并回读独立 Issue Workspace"), []byte(marker), 1)
+	updated := bytes.Replace(prompt, []byte("准备独立 Issue Workspace"), []byte(marker), 1)
 	if bytes.Equal(updated, prompt) {
 		t.Fatal("prompt fixture replacement did not match")
 	}
@@ -31,7 +31,7 @@ func TestCurrentSchemaRequirementReloadsLiveWorkflowAndSkill(t *testing.T) {
 
 	status := run(binary, "flow", "status", "--root", root)
 	assertSuccess(t, status, "flow.status")
-	for _, want := range []string{`"step_id": "bootstrap_techdesign"`, `"id": "fanloop-dev-bootstrap"`, marker, skillPath} {
+	for _, want := range []string{`"step_id": "define_verification_contract"`, `"id": "fanloop-dev-bootstrap"`, marker, skillPath} {
 		if !strings.Contains(status.stdout, want) {
 			t.Fatalf("live Workflow projection is missing %s:\n%s", want, status.stdout)
 		}
@@ -40,7 +40,7 @@ func TestCurrentSchemaRequirementReloadsLiveWorkflowAndSkill(t *testing.T) {
 		t.Fatal("live Skill edit was not preserved")
 	}
 
-	progress := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "bootstrap_techdesign", "--status", "in_progress", "--summary", "continue with live bundle")
+	progress := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "define_verification_contract", "--status", "in_progress", "--summary", "continue with current bundle")
 	assertSuccess(t, progress, "flow.report.progress")
 	assertSuccess(t, run(binary, "card", "render", "--root", root, "--view", "current", "--format", "markdown"), "card.render")
 	assertSuccess(t, run(binary, "trace", "status", "--root", root), "trace.status")
@@ -70,46 +70,46 @@ func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *te
 			},
 			exitCode: 1,
 			code:     "WORKFLOW_MISMATCH",
-			messages: []string{"removed_step", "bootstrap_techdesign", "clarify_requirements"},
+			messages: []string{"removed_step", "define_verification_contract", "build_until_verified"},
 		},
 		{
 			name: "invalid Output type",
 			breakState: func(t *testing.T, root string) {
 				mutateJSONObject(t, filepath.Join(root, ".fanloop", "output", "state.json"), func(value map[string]any) {
-					value["outputs"].(map[string]any)["issue_workspace_path"] = map[string]any{
-						"type": "string", "value": "issue-workspace", "producer_step_id": "bootstrap_techdesign",
+					value["outputs"].(map[string]any)["verification_contract_path"] = map[string]any{
+						"type": "string", "value": "requirements.md", "producer_step_id": "define_verification_contract",
 					}
 				})
 			},
 			exitCode: 5,
 			code:     "STATE_CORRUPT",
-			messages: []string{`Output \"issue_workspace_path\" type does not match its definition`},
+			messages: []string{`Output \"verification_contract_path\" type does not match its definition`},
 		},
 		{
 			name: "invalid Output producer",
 			breakState: func(t *testing.T, root string) {
 				mutateJSONObject(t, filepath.Join(root, ".fanloop", "output", "state.json"), func(value map[string]any) {
-					value["outputs"].(map[string]any)["issue_workspace_path"] = map[string]any{
-						"type": "path", "value": "issue-workspace", "producer_step_id": "removed_step",
+					value["outputs"].(map[string]any)["verification_contract_path"] = map[string]any{
+						"type": "path", "value": "requirements.md", "producer_step_id": "removed_step",
 					}
 				})
 			},
 			exitCode: 5,
 			code:     "STATE_CORRUPT",
-			messages: []string{`Output \"issue_workspace_path\" has an unknown producer Step`},
+			messages: []string{`Output \"verification_contract_path\" has an unknown producer Step`},
 		},
 		{
 			name: "invalid Output position",
 			breakState: func(t *testing.T, root string) {
 				mutateJSONObject(t, filepath.Join(root, ".fanloop", "output", "state.json"), func(value map[string]any) {
-					value["outputs"].(map[string]any)["issue_workspace_path"] = map[string]any{
-						"type": "path", "value": "issue-workspace", "producer_step_id": "bootstrap_techdesign",
+					value["outputs"].(map[string]any)["verification_contract_path"] = map[string]any{
+						"type": "path", "value": "requirements.md", "producer_step_id": "define_verification_contract",
 					}
 				})
 			},
 			exitCode: 5,
 			code:     "STATE_CORRUPT",
-			messages: []string{`Output \"issue_workspace_path\" is not valid at the current Step`},
+			messages: []string{"event history tail does not match current State"},
 		},
 		{
 			name:    "invalid historical Condition Output",
@@ -117,19 +117,19 @@ func TestCurrentSchemaRequirementRejectsUnsafeWorkflowChangeWithoutWriting(t *te
 			breakState: func(t *testing.T, root string) {
 				mutateFlowResult(t, root, func(result map[string]any) {
 					conditions := result["condition_results"].([]any)
-					conditions[0].(map[string]any)["condition_id"] = "implementation_completed"
+					conditions[0].(map[string]any)["condition_id"] = "self_validation_passed"
 				})
 			},
 			exitCode: 5,
 			code:     "STATE_CORRUPT",
-			messages: []string{`Condition \"implementation_completed\" has invalid Output`},
+			messages: []string{`Condition \"self_validation_passed\" has invalid Output`},
 		},
 		{
 			name:    "historical transition tail mismatch",
 			prepare: prepareRequirementAfterBootstrap,
 			breakState: func(t *testing.T, root string) {
 				mutateFlowResult(t, root, func(result map[string]any) {
-					result["transition"].(map[string]any)["to_step_id"] = "design_technical_solution"
+					result["transition"].(map[string]any)["to_step_id"] = "certify_candidate"
 				})
 			},
 			exitCode: 5,
@@ -219,12 +219,48 @@ func TestLiveWorkflowRequirementPreservesCorruptionInvariants(t *testing.T) {
 	}
 }
 
+func TestCurrentSchemaRequirementDoesNotRevalidateHistoricalRoutes(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Historical route drift"), "flow.init")
+	prepareRequirementAfterBootstrap(t, binary, root)
+
+	mutateFlowResult(t, root, func(result map[string]any) {
+		conditions := result["condition_results"].([]any)
+		result["condition_results"] = conditions[:1]
+		result["output_changes"].(map[string]any)["accepted"] = []any{"verification_contract_path"}
+	})
+	for _, path := range []string{
+		filepath.Join(root, ".fanloop", "output", "state.json"),
+		filepath.Join(root, ".fanloop", "card", "projection.json"),
+	} {
+		mutateJSONObject(t, path, func(value map[string]any) {
+			for _, key := range []string{"requirements_decision", "requirements_decision_receipt_id", "panorama_snapshot_path"} {
+				delete(value["outputs"].(map[string]any), key)
+			}
+		})
+	}
+
+	assertSuccess(t, run(binary, "flow", "status", "--root", root), "flow.status")
+	assertSuccess(t, run(binary, "card", "render", "--root", root, "--view", "current", "--format", "markdown", "--dry-run"), "card.render")
+
+	paths, before := requirementFacts(t, root)
+	currentResult := run(binary, "flow", "report", "result", "--root", root, "--step-id", "build_until_verified",
+		"--condition-result", conditionResult("self_validation_passed", "enum_value", `"passed"`),
+		"--next-step-id", "certify_candidate", "--summary", "missing current route gates")
+	if currentResult.exitCode == 0 || !strings.Contains(currentResult.stderr, "ROUTE_NOT_MATCHED") {
+		t.Fatalf("new Result bypassed current Route validation: exit=%d\nstdout=%s\nstderr=%s", currentResult.exitCode, currentResult.stdout, currentResult.stderr)
+	}
+	assertFactsUnchanged(t, paths, before)
+}
+
 func prepareRequirementAfterBootstrap(t *testing.T, binary, root string) {
 	t.Helper()
-	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root, "--step-id", "bootstrap_techdesign",
-		"--condition-result", conditionResult("repository_workspace_prepared", "path", `"issue-workspace"`),
-		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/bootstrap.json"`),
-		"--next-step-id", "clarify_requirements", "--summary", "bootstrap complete"), "flow.report.result")
+	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root, "--step-id", "define_verification_contract",
+		"--condition-result", conditionResult("verification_contract_written", "path", `"requirements.md"`),
+		"--condition-result", conditionResult("requirements_approved", "enum_value", `"approved"`),
+		"--condition-result", conditionResult("requirements_decision_recorded", "string", `"decision-requirements"`),
+		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/define.json"`),
+		"--next-step-id", "build_until_verified", "--summary", "verification contract complete"), "flow.report.result")
 }
 
 func mutateFlowResult(t *testing.T, root string, mutate func(map[string]any)) {

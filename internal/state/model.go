@@ -278,13 +278,11 @@ func (value State) Validate() error {
 }
 
 func (value State) ValidateAgainst(definition workflow.Workflow) error {
-	currentPosition := len(definition.OrderedStepIDs())
 	if value.CurrentStepID != nil {
-		_, position, ok := definition.FindStep(*value.CurrentStepID)
+		_, _, ok := definition.FindStep(*value.CurrentStepID)
 		if !ok {
 			return fmt.Errorf("current_step_id references an unknown Step")
 		}
-		currentPosition = position
 		if value.CurrentStepStatus == StepAwaitingConfirmation && definition.StepStart == nil || value.CurrentStepStatus == StepReady && definition.StepStart != nil {
 			return fmt.Errorf("current Step status does not match Workflow controls")
 		}
@@ -293,12 +291,9 @@ func (value State) ValidateAgainst(definition workflow.Workflow) error {
 		if err := definition.ValidateRegisteredOutput(key, output.Type, output.Value); err != nil {
 			return err
 		}
-		_, producerPosition, ok := definition.FindStep(output.ProducerStepID)
+		_, _, ok := definition.FindStep(output.ProducerStepID)
 		if !ok {
 			return fmt.Errorf("Output %q has an unknown producer Step", key)
-		}
-		if producerPosition >= currentPosition {
-			return fmt.Errorf("Output %q is not valid at the current Step", key)
 		}
 		if slices.Contains(value.SkippedStepIDs, output.ProducerStepID) {
 			return fmt.Errorf("Output %q was produced by a skipped Step", key)
@@ -527,9 +522,6 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 			if err != nil || !slices.Equal(sortedKeys(accepted), sortedCopy(payload.OutputChanges.Accepted)) {
 				return fmt.Errorf("event %q has invalid accepted Output changes", event.ID)
 			}
-			for key, output := range accepted {
-				outputs[key] = output
-			}
 			if payload.Effect == ResultLooped || payload.Effect == ResultJumped {
 				want, err := invalidatedOutputs(definition, payload.Transition.ToStepID, outputs)
 				if err != nil || !slices.Equal(want, sortedCopy(payload.OutputChanges.Invalidated)) {
@@ -540,6 +532,9 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 				}
 			} else if len(payload.OutputChanges.Invalidated) > 0 {
 				return fmt.Errorf("event %q invalidates Outputs on a Flow transition", event.ID)
+			}
+			for key, output := range accepted {
+				outputs[key] = output
 			}
 			switch payload.Effect {
 			case ResultCompleted:

@@ -1,16 +1,13 @@
 ---
 name: fanloop-dev-code-review
-description: 核验实现阶段的完整测试与独立审查证据，发布 Code Review 报告并冻结 review_base/reviewed_head。
+description: 对冻结 certification_head 执行不继承实现上下文的独立整体 Review，并返回原始结论。
 ---
 
-# Code Review
+# Independent Code Review
 
-读取 requirements.md、Spec/Tickets、相关 ADR、完整 diff 和 `implementation-report.md`，核验实现阶段记录的 review_base、implementation_head、完整验证和独立 Reviewer 结论。
+只读 requirements.md、相关 ADR、verification-report.md 和完整 diff。核验 Acceptance Set、Feature Impact
+Set、聚焦测试、`./tests/run-unit`、验证资产维护、候选身份与 clean 状态全部覆盖同一候选。
 
-1. 只接受 Approve 或 Recommend，且聚焦测试与 `./tests/run-unit` 全部通过并覆盖最终 HEAD。本 Step 不重复运行测试或重做整体 CR。
-2. 用户表面发生变化时，核验 `fanloop-dev-verify/references/features/` 已覆盖对应入口、变体、可观察结果与 Gotchas，并核验 implementation-report.md 中的维护结论和 live evidence；缺失即回实现。
-3. fetch origin，要求 `origin/main == review_base`、`HEAD == implementation_head`、工作树 clean，且 `git merge-base review_base HEAD == review_base`。
-4. 把 Verdict、本地验证和候选身份定稿到 `review-report.md`，按稳定标题发布并语义回读唯一飞书 Code Review 报告。
-5. Result 前再次核验候选身份。通过时上报 `code_review_approved` 或 `code_review_recommended`、`local_validation_passed`、`review_report_written`、`review_base_frozen`、`reviewed_head_frozen` 与 `code_review_document_published`。
-
-证据缺失或审查 Block 上报 `code_review_blocked`；验证失败上报 `local_validation_failed`；身份漂移上报 `candidate_changed`。三者都回实现。
+Review 结果只能是 passed 或 failed。任何 P0/P1、未关闭 finding、验证缺口、契约不一致或身份漂移都返回
+failed，并附文件与行号；不得在本任务中修改代码、测试、报告或验证资产。通过时返回原始 Review receipt，
+供执行子 Agent写入 certification-report.md。

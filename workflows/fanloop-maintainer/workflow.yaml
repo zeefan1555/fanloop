@@ -2,32 +2,34 @@ schema_version: 7
 id: fanloop-maintainer
 
 stages:
-  - id: techdesign
-    name: TechDesign
+  - id: define
+    name: Define
     jobs:
-      - id: techdesign
-        name: TechDesign
+      - id: define
+        name: Define
         steps:
-          - {id: bootstrap_techdesign, name: 仓库范围确定, executor: agent}
-          - {id: clarify_requirements, name: 需求澄清, executor: agent}
-          - {id: design_technical_solution, name: 方案设计, executor: agent}
-          - {id: confirm_technical_solution, name: 方案自主评审, executor: agent}
+          - {id: define_verification_contract, name: 目标与验收契约, executor: agent}
 
-  - id: implement
-    name: Implement
+  - id: build
+    name: Build
     jobs:
-      - id: implement
-        name: Implement
+      - id: build
+        name: Build
         steps:
-          - {id: implement_code, name: 代码实现与过程 CR, executor: agent}
-          - {id: review_code, name: 整体 Code Review, executor: agent}
+          - {id: build_until_verified, name: 实现与自主验证, executor: agent}
 
-  - id: test
-    name: Test
+  - id: certify
+    name: Certify
     jobs:
-      - id: test
-        name: Test
+      - id: certify
+        name: Certify
         steps:
-          - {id: execute_agent_acceptance, name: Agent 端到端测试, executor: agent}
-          - {id: confirm_main_agent_acceptance, name: 主 Agent 验收决策, executor: agent}
+          - {id: certify_candidate, name: 独立候选认证, executor: agent}
+
+  - id: deliver
+    name: Deliver
+    jobs:
+      - id: deliver
+        name: Deliver
+        steps:
           - {id: merge_and_update_local, name: PR 合码与本地更新, executor: agent}

@@ -841,7 +841,7 @@ func verifyRouteCase(t *testing.T, root string, item routeCase, result routeResu
 	if !ok {
 		t.Fatalf("%s Loop target %s has no Step order", item.ID, item.TargetStepID)
 	}
-	expected := append([]string(nil), outputKeys...)
+	expected := []string{}
 	for key, output := range pre.Outputs {
 		producerIndex, exists := stepOrder[output.ProducerStepID]
 		if !exists {
@@ -855,13 +855,22 @@ func verifyRouteCase(t *testing.T, root string, item routeCase, result routeResu
 	if !reflect.DeepEqual(invalidated, expected) {
 		t.Fatalf("%s invalidated = %v, want %v", item.ID, invalidated, expected)
 	}
+	for _, key := range outputKeys {
+		output, ok := durable.Outputs[key]
+		if !ok || output.ProducerStepID != item.SourceStepID {
+			t.Fatalf("%s Loop Output %s missing or wrong producer", item.ID, key)
+		}
+	}
 	for _, key := range expected {
+		if contains(outputKeys, key) {
+			continue
+		}
 		if _, exists := durable.Outputs[key]; exists {
 			t.Fatalf("%s invalidated Output %s remains", item.ID, key)
 		}
 	}
 	for key, output := range pre.Outputs {
-		if contains(expected, key) {
+		if contains(expected, key) || contains(outputKeys, key) {
 			continue
 		}
 		if current, exists := durable.Outputs[key]; !exists || !reflect.DeepEqual(current, output) {

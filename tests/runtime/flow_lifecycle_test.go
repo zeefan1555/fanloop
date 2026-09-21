@@ -59,8 +59,9 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertFlowEffect(t, rejected.stdout, "looped", "define_goals_and_problems")
 	assertOutputAbsent(t, rejected.stdout, "goals_and_problems_section_path")
 	assertOutputAbsent(t, rejected.stdout, "business_constraints_section_path")
-	assertOutputAbsent(t, rejected.stdout, "problem_document_url")
-	assertOutputAbsent(t, rejected.stdout, "panorama_snapshot_path")
+	assertOutputPresent(t, rejected.stdout, "problem_document_url")
+	assertOutputPresent(t, rejected.stdout, "panorama_snapshot_path")
+	assertOutputPresent(t, rejected.stdout, "technical_feedback_scope")
 	if !strings.Contains(rejected.stdout, `"background_section_path"`) {
 		t.Fatalf("problem loop removed approved background Output: %s", rejected.stdout)
 	}
@@ -105,7 +106,8 @@ func TestTechnicalSolutionProgressAndLoopsInvalidateOutputs(t *testing.T) {
 	assertSuccess(t, reviewed, "flow.report.result")
 	assertFlowEffect(t, reviewed.stdout, "looped", "write_technical_solution")
 	assertOutputAbsent(t, reviewed.stdout, "technical_solution_path")
-	assertOutputAbsent(t, reviewed.stdout, "technical_solution_review_path")
+	assertOutputPresent(t, reviewed.stdout, "technical_solution_review_path")
+	assertOutputPresent(t, reviewed.stdout, "technical_feedback_scope")
 	if !strings.Contains(reviewed.stdout, `"architecture_diagram_path"`) || !strings.Contains(reviewed.stdout, `"delivery_section_path"`) {
 		t.Fatalf("presentation loop removed approved design Outputs: %s", reviewed.stdout)
 	}
@@ -185,10 +187,11 @@ func TestMaterialFlashcardsHumanGateAndRecoveryRoutes(t *testing.T) {
 	assertFlowEffect(t, changed.stdout, "looped", "draft_cards")
 	for _, key := range []string{
 		"card_draft_path", "quality_review_path", "card_quality_result", "card_preview_publication",
-		"panorama_snapshot_path", "card_preview_decision", "persistence_result",
+		"panorama_snapshot_path", "card_preview_decision",
 	} {
 		assertOutputAbsent(t, changed.stdout, key)
 	}
+	assertOutputPresent(t, changed.stdout, "persistence_result")
 	for _, key := range []string{"review_goal_path", "source_understanding_path", "knowledge_selection_path", "card_plan_path"} {
 		if !strings.Contains(changed.stdout, `"`+key+`"`) {
 			t.Fatalf("draft loop removed approved Output %s: %s", key, changed.stdout)
@@ -210,7 +213,7 @@ func TestMaterialFlashcardsHumanGateAndRecoveryRoutes(t *testing.T) {
 		"--back-step-id", "validate_persisted_cards", "--summary", "read lock unavailable")
 	assertSuccess(t, retry, "flow.report.result")
 	assertFlowEffect(t, retry.stdout, "looped", "validate_persisted_cards")
-	assertOutputAbsent(t, retry.stdout, "post_write_validation_retry")
+	assertOutputPresent(t, retry.stdout, "post_write_validation_retry")
 	if !strings.Contains(retry.stdout, `"persisted_cards"`) {
 		t.Fatalf("Step 9 retry removed persistence Output: %s", retry.stdout)
 	}
@@ -289,5 +292,22 @@ func assertOutputAbsent(t *testing.T, content, key string) {
 	}
 	if _, exists := envelope.Data.State.Outputs[key]; exists {
 		t.Fatalf("Loop response retained invalidated Output %q:\n%s", key, content)
+	}
+}
+
+func assertOutputPresent(t *testing.T, content, key string) {
+	t.Helper()
+	var envelope struct {
+		Data struct {
+			State struct {
+				Outputs map[string]json.RawMessage `json:"outputs"`
+			} `json:"state"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(content), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := envelope.Data.State.Outputs[key]; !exists {
+		t.Fatalf("Loop response dropped newly accepted Output %q:\n%s", key, content)
 	}
 }

@@ -555,7 +555,7 @@ def verify_result(
                 raise AssertionError(f"Flow Output {key} is missing or has the wrong producer")
     else:
         back_index = step_order[case["target_step_id"]]
-        expected_invalidated = set(output_keys)
+        expected_invalidated = set()
         for key, output in pre_state.get("outputs", {}).items():
             if step_order[output["producer_step_id"]] >= back_index:
                 expected_invalidated.add(key)
@@ -563,11 +563,17 @@ def verify_result(
             raise AssertionError(
                 f"Loop invalidated {invalidated}, expected {sorted(expected_invalidated)}"
             )
+        for key in output_keys:
+            output = post_outputs.get(key)
+            if output is None or output["producer_step_id"] != case["source_step_id"]:
+                raise AssertionError(f"Loop Output {key} is missing or has the wrong producer")
         for key in expected_invalidated:
+            if key in output_keys:
+                continue
             if key in post_outputs:
                 raise AssertionError(f"invalidated Output {key} remains in Output Registry")
         for key, output in pre_state.get("outputs", {}).items():
-            if key not in expected_invalidated and post_outputs.get(key) != output:
+            if key not in expected_invalidated and key not in output_keys and post_outputs.get(key) != output:
                 raise AssertionError(f"Loop changed preserved Output {key}")
     return {
         "observed_effect": data["effect"],

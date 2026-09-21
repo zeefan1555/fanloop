@@ -17,6 +17,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
 	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
+	second := "define_goals_and_problems"
 	now := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
 	current := State{
 		SchemaVersion: CurrentStateSchemaVersion,
@@ -51,7 +52,6 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 		CausedByEventID: "e1", Payload: Payload(progress),
 	})
 
-	second := "define_goals_and_problems"
 	flowResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
 			ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`)},
@@ -83,12 +83,14 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 		Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first},
 		OutputChanges: OutputChanges{
 			Accepted:    []string{"technical_feedback_scope"},
-			Invalidated: []string{"background_section_path", "technical_feedback_scope"},
+			Invalidated: []string{"background_section_path"},
 		},
 	}
 	current.CurrentStepID = &first
 	current.CurrentStepSummary = loopResult.Summary
-	current.Outputs = map[string]RegisteredOutput{}
+	current.Outputs = map[string]RegisteredOutput{
+		"technical_feedback_scope": {Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`), ProducerStepID: second},
+	}
 	current.LastEventID = "e4"
 	current.UpdatedAt = now.Add(3 * time.Minute)
 	events = append(events, Event{
@@ -114,7 +116,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	}
 }
 
-func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
+func TestHistoryPreservesOutputsAcceptedByLoopResult(t *testing.T) {
 	loaded, err := workflow.Load("technical-solution-design")
 	if err != nil {
 		t.Fatal(err)
@@ -122,14 +124,16 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
 	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
+	second := "define_goals_and_problems"
 	now := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
 	current := State{
 		SchemaVersion: CurrentStateSchemaVersion,
 		Requirement:   Requirement{Title: "State v8"}, Release: Release{Version: "dev", Workflow: WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "background changed",
-		Outputs: map[string]RegisteredOutput{}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
+		Outputs: map[string]RegisteredOutput{
+			"technical_feedback_scope": {Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`), ProducerStepID: second},
+		}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
 	}
-	second := "define_goals_and_problems"
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: current.Release.Workflow, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
@@ -141,12 +145,12 @@ func TestHistoryRejectsIncompleteLoopInvalidation(t *testing.T) {
 				ConditionID: "background_changed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`)},
 			}},
 			Summary: "background changed", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
-				Accepted: []string{"technical_feedback_scope"}, Invalidated: []string{"technical_feedback_scope"},
+				Accepted: []string{"technical_feedback_scope"}, Invalidated: []string{"background_section_path"},
 			},
 		})},
 	}
-	if err := ValidateHistory(events, current, loaded); err == nil {
-		t.Fatal("expected incomplete invalidation to be rejected")
+	if err := ValidateHistory(events, current, loaded); err != nil {
+		t.Fatalf("loop result lost its newly accepted Output: %v", err)
 	}
 }
 
@@ -200,18 +204,18 @@ func TestResultSelectsSharedConditionsByExplicitFlowTarget(t *testing.T) {
 	}
 	payload := FlowResultPayload{
 		ConditionResults: []ConditionResult{
-			{ConditionID: "human_step_jump_requested", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"jump_requested"`)}},
-			{ConditionID: "human_step_jump_context_written", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".scratch/human-step-jump-context.md"`)}},
-			{ConditionID: "human_step_jump_recorded", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"jump-receipt"`)}},
-			{ConditionID: "panorama_presented", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".scratch/panorama.json"`)}},
+			{ConditionID: "verification_contract_written", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`)}},
+			{ConditionID: "requirements_approved", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`)}},
+			{ConditionID: "requirements_decision_recorded", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`)}},
+			{ConditionID: "panorama_presented", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`)}},
 		},
-		Summary: "human selected review",
+		Summary: "verification contract approved",
 		Effect:  ResultAdvanced,
 		Transition: Transition{
-			Direction: TransitionFlow, FromStepID: "bootstrap_techdesign", ToStepID: "review_code",
+			Direction: TransitionFlow, FromStepID: "define_verification_contract", ToStepID: "build_until_verified",
 		},
 		OutputChanges: OutputChanges{Accepted: []string{
-			"human_step_jump_context_path", "human_step_jump_receipt_id", "human_step_jump_result", "panorama_snapshot_path",
+			"verification_contract_path", "requirements_decision", "requirements_decision_receipt_id", "panorama_snapshot_path",
 		}},
 	}
 	if err := validateResultAgainst(loaded.Workflow, payload); err != nil {

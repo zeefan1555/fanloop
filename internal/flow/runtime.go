@@ -197,11 +197,11 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 		return nil, resultFailure
 	}
 	previousEventID := current.LastEventID
-	for key, output := range evaluation.accepted {
-		current.Outputs[key] = output
-	}
 	for _, key := range evaluation.invalidated {
 		delete(current.Outputs, key)
+	}
+	for key, output := range evaluation.accepted {
+		current.Outputs[key] = output
 	}
 	if evaluation.updateSkipped {
 		current.SkippedStepIDs = append([]string(nil), evaluation.skippedStepIDs...)

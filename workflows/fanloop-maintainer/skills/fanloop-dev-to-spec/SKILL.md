@@ -1,6 +1,6 @@
 ---
 name: fanloop-dev-to-spec
-description: 把已确认的 Fanloop CLI requirements.md 生成为 Issue Workspace 本地实施 Spec。用于方案设计 Step；不重新访谈或修改仓库。
+description: 把已确认的 Fanloop CLI requirements.md 生成为 Issue Workspace 本地实施 Spec。用于复杂 Build；不重新访谈或修改仓库。
 ---
 
 # To Spec
@@ -29,21 +29,5 @@ description: 把已确认的 Fanloop CLI requirements.md 生成为 Issue Workspa
 Issue，不修改仓库，
 不把本地 Spec 放进 `.scratch/`、`docs/research/` 或 `docs/specs/`。
 
-## 飞书技术方案产物
-
-`spec.md` 完成后，使用当前宿主的 `lark-doc` 能力以 Markdown 发布技术方案：
-
-1. 使用包含 Requirement 标题的稳定文档标题。同一 Requirement 始终更新同一份飞书文档。
-2. 首次发布前按稳定标题查找：唯一命中则更新，零命中才创建，多命中则停止。创建结果不确定时先查找，禁止直接重复创建。
-3. 创建或更新后使用返回 URL 回读文档，确认回读正文非空且五个顶层章节完整。
-4. 成功时向当前 Step 返回：
-
-```text
-condition_id=spec_written
-spec_path=spec.md
-condition_id=technical_solution_document_published
-technical_design_document_url=<已回读验证的飞书文档 URL>
-```
-
-飞书能力不可用、标题多命中、创建/更新失败或回读正文为空时返回
-`progress_status=blocked` 和真实原因；不返回任何成功 Condition。
+完成后回读 `spec.md`，向 `build_until_verified` 返回本地路径和摘要；它只是辅助工件，不单独提交
+Condition，也不要求发布飞书文档。

@@ -34,7 +34,7 @@ func TestEvaluateResultRoutesTechnicalReviewAndInvalidatesByProducer(t *testing.
 		if failure != nil {
 			t.Fatal(failure)
 		}
-		want := []string{"technical_feedback_scope", "technical_solution_path", "technical_solution_review_path"}
+		want := []string{"technical_solution_path"}
 		if evaluation.effect != flowidl.ResultEffect_looped || evaluation.transition.GetToStepId() != "write_technical_solution" || !sameStrings(evaluation.invalidated, want) {
 			t.Fatalf("evaluation = %#v", evaluation)
 		}
