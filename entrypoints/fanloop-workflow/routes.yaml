@@ -9,3 +9,6 @@ scenarios:
   material-flashcards:
     workflow: material-flashcards
     description: 从材料生成经人工确认的长期复习闪卡组
+  pstack-delivery:
+    workflow: pstack-delivery
+    description: 原样绑定并编排原生 pstack skills 的交付流程

@@ -1,0 +1,15 @@
+schema_version: 7
+id: pstack-delivery
+
+stages:
+  - id: delivery
+    name: pstack 交付编排
+    jobs:
+      - id: delivery
+        name: pstack 交付编排
+        steps:
+          - {id: intake, name: 交付意图与约束, executor: agent}
+          - {id: select_bind_skills, name: 选择并绑定原生 pstack skills, executor: agent}
+          - {id: confirm_skill_plan, name: 确认技能绑定计划, executor: human}
+          - {id: execute, name: 按绑定执行原生 skills, executor: agent}
+          - {id: verify_report, name: 验证与交付报告, executor: agent}

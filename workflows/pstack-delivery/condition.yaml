@@ -1,0 +1,42 @@
+schema_version: 3
+
+conditions:
+  delivery_goal_framed:
+    prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
+    output: {key: delivery_goal_path, type: path}
+    exclusive_group: delivery_outcome
+  delivery_goal_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: delivery_revision_scope, type: enum_value, values: [goal]}
+    exclusive_group: delivery_outcome
+
+  skill_plan_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
+    output: {key: skill_plan_path, type: path}
+    exclusive_group: delivery_outcome
+  skill_plan_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: delivery_revision_scope, type: enum_value, values: [skill_plan]}
+    exclusive_group: delivery_outcome
+
+  skill_plan_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: human_decision_condition}
+    output: {key: skill_plan_decision, type: object}
+    exclusive_group: delivery_outcome
+
+  skills_executed:
+    prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
+    output: {key: execution_report_path, type: path}
+    exclusive_group: delivery_outcome
+  execution_gap:
+    prompt_ref: {file: prompt.yaml, prompt_id: revision_scope_condition}
+    output: {key: delivery_revision_scope, type: enum_value, values: [execution]}
+    exclusive_group: delivery_outcome
+
+  delivery_verified:
+    prompt_ref: {file: prompt.yaml, prompt_id: verification_outcome_condition}
+    output: {key: delivery_verification_result, type: enum_value, values: [passed]}
+    exclusive_group: delivery_outcome
+  verification_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: verification_written_condition}
+    output: {key: verification_report_path, type: path}

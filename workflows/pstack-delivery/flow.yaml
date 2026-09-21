@@ -1,0 +1,27 @@
+schema_version: 5
+
+flow:
+  intake:
+    - prompt_ref: {file: prompt.yaml, prompt_id: intake_flow}
+      when: {any_of: [[delivery_goal_framed]]}
+      next_step_id: select_bind_skills
+
+  select_bind_skills:
+    - prompt_ref: {file: prompt.yaml, prompt_id: select_bind_skills_flow}
+      when: {any_of: [[skill_plan_ready]]}
+      next_step_id: confirm_skill_plan
+
+  confirm_skill_plan:
+    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_skill_plan_flow}
+      when: {any_of: [[skill_plan_approved]]}
+      next_step_id: execute
+
+  execute:
+    - prompt_ref: {file: prompt.yaml, prompt_id: execute_flow}
+      when: {any_of: [[skills_executed]]}
+      next_step_id: verify_report
+
+  verify_report:
+    - prompt_ref: {file: prompt.yaml, prompt_id: verify_report_flow}
+      when: {any_of: [[delivery_verified]]}
+      terminal: true
