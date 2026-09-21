@@ -9,32 +9,18 @@ prompts:
   select_bind_skills_flow:
     prompt: |
       仅基于已接受的交付目标，从 workflows/pstack-delivery/skills/ 下 47 个原生 skill 的 frontmatter name: 中选择本轮需要绑定的子集，写入并回读 skill-plan.md（或等价路径）。计划须列出：skill id（= frontmatter name）、选用理由、预期产物、与目标验收口径的对应关系、可选/必选标记。SkillBinding id 必须等于 skills/ 下文件夹名（如 poteto-mode、make-bot-ui）；frontmatter name: 仅作展示，不写进 Binding id。不要在每一步绑定全部 47 个；只选本轮必要技能。不得改写 SKILL.md 正文或相对链接。目标变化上报 delivery_goal_changed；完成时上报 skill_plan_ready。
-      可选绑定仅为运行时可调用的目录提示，不代表本轮全部必选；计划文件才是权威绑定清单。
+      已批准的 skill-plan.md 是权威绑定清单；磁盘 catalog 仍为 workflows/pstack-delivery/skills/ 下 47 个文件夹。下方 skills: 仅为运行时可调用的紧凑提示子集，不代表本轮全部必选，也不禁止未来计划绑定 YAML 未列出的其他 folder id。
     skills:
       - {id: figure-it-out, prompt: 可选：厘清问题空间与未知后再定绑定。, optional: true}
-      - {id: architect, prompt: 可选：需要架构边界与模块划分时参考。, optional: true}
       - {id: how, prompt: 可选：需要可执行实施路径时参考。, optional: true}
-      - {id: why, prompt: 可选：需要论证取舍与动机时参考。, optional: true}
-      - {id: tdd, prompt: 可选：交付含测试驱动实现时参考。, optional: true}
-      - {id: create-verification-skill, prompt: 可选：需要新建验证 skill 时纳入计划。, optional: true}
-      - {id: maintain-verification-skill, prompt: 可选：需要维护既有验证 skill 时纳入计划。, optional: true}
+      - {id: blast-radius, prompt: 可选：评估变更影响面时纳入。, optional: true}
+      - {id: principle-subtract-before-you-add, prompt: 可选：优先做减法再扩展。, optional: true}
+      - {id: principle-minimize-reader-load, prompt: 可选：降低读者/上下文负载。, optional: true}
+      - {id: principle-boundary-discipline, prompt: 可选：强调边界与接口纪律。, optional: true}
       - {id: principle-prove-it-works, prompt: 可选：强调可证明工作证据时纳入。, optional: true}
-      - {id: poteto-mode, prompt: 可选：需要 Poteto Mode 编排/playbook 时纳入（磁盘路径 poteto-mode/）。, optional: true}
-      - {id: make-bot-ui, prompt: 可选：需要 Bot UI 制作时纳入（磁盘路径 make-bot-ui/）。, optional: true}
       - {id: unslop, prompt: 可选：需要去空话与噪音时纳入。, optional: true}
       - {id: show-me-your-work, prompt: 可选：需要显式工作痕迹与证据链时纳入。, optional: true}
-      - {id: blast-radius, prompt: 可选：评估变更影响面时纳入。, optional: true}
-      - {id: interrogate, prompt: 可选：深挖需求与假设时纳入。, optional: true}
-      - {id: principle-outcome-oriented-execution, prompt: 可选：约束执行以结果为导向。, optional: true}
-      - {id: principle-sequence-verifiable-units, prompt: 可选：把工作切成可验证单元。, optional: true}
-      - {id: principle-subtract-before-you-add, prompt: 可选：优先做减法再扩展。, optional: true}
-      - {id: principle-test-behavior-not-implementation, prompt: 可选：测试行为而非实现细节。, optional: true}
-      - {id: principle-fix-root-causes, prompt: 可选：锚定根因而非表象。, optional: true}
-      - {id: principle-boundary-discipline, prompt: 可选：强调边界与接口纪律。, optional: true}
-      - {id: principle-guard-the-context-window, prompt: 可选：控制上下文负载。, optional: true}
-      - {id: reflect, prompt: 可选：需要阶段性复盘时纳入。, optional: true}
       - {id: technical-writing, prompt: 可选：交付含文档撰写时纳入。, optional: true}
-      - {id: setup-pstack, prompt: 可选：需要初始化 pstack 宿主环境时纳入。, optional: true}
 
   confirm_skill_plan_flow:
     prompt: |
@@ -44,25 +30,19 @@ prompts:
   execute_flow:
     prompt: |
       严格按已批准的 skill-plan 执行原生 pstack skills：按计划顺序/依赖调用，宿主须原样尊重 skill 内 Cursor Task/subagent 文本；不得把 skill 正文粘贴或改写入本 Prompt。把执行过程与产物索引写入并回读 execution-report.md（相对路径）。计划错误上报 skill_plan_changed；目标变化上报 delivery_goal_changed；执行缺口可在本层重试时上报 execution_gap；完成时上报 skills_executed。
+      已批准的 skill-plan.md 是权威绑定清单；磁盘 catalog 仍为 47 个 skill 文件夹。下方 skills: 仅为紧凑可调用提示；计划可绑定未列入本 YAML 的其他 folder id，无需事先把全部 47 个写进 Binding 列表。
     skills:
       - {id: figure-it-out, prompt: 按计划调用：问题澄清与探索。, optional: true}
-      - {id: architect, prompt: 按计划调用：架构设计。, optional: true}
       - {id: how, prompt: 按计划调用：实施方法。, optional: true}
-      - {id: why, prompt: 按计划调用：论证与取舍。, optional: true}
-      - {id: tdd, prompt: 按计划调用：测试驱动实现。, optional: true}
-      - {id: poteto-mode, prompt: 按计划调用：Poteto Mode（路径 poteto-mode/）。, optional: true}
-      - {id: make-bot-ui, prompt: 按计划调用：Make Bot UI（路径 make-bot-ui/）。, optional: true}
+      - {id: blast-radius, prompt: 按计划调用：影响面分析。, optional: true}
+      - {id: principle-subtract-before-you-add, prompt: 按计划调用：先做减法。, optional: true}
+      - {id: principle-minimize-reader-load, prompt: 按计划调用：降低读者负载。, optional: true}
+      - {id: principle-boundary-discipline, prompt: 按计划调用：边界纪律。, optional: true}
+      - {id: principle-prove-it-works, prompt: 按计划调用：可证明证据。, optional: true}
       - {id: unslop, prompt: 按计划调用：清理空话与冗余。, optional: true}
       - {id: show-me-your-work, prompt: 按计划调用：展示工作证据。, optional: true}
-      - {id: blast-radius, prompt: 按计划调用：影响面分析。, optional: true}
-      - {id: principle-outcome-oriented-execution, prompt: 按计划调用：结果导向执行原则。, optional: true}
-      - {id: principle-sequence-verifiable-units, prompt: 按计划调用：可验证单元排序。, optional: true}
-      - {id: principle-make-operations-idempotent, prompt: 按计划调用：幂等操作。, optional: true}
-      - {id: principle-never-block-on-the-human, prompt: 按计划调用：避免不必要的人工阻塞。, optional: true}
-      - {id: swarm, prompt: 按计划调用：并行/群体执行模式。, optional: true}
-      - {id: no-comments, prompt: 按计划调用：避免无意义注释。, optional: true}
-      - {id: typescript-best-practices, prompt: 按计划调用：TypeScript 实践。, optional: true}
       - {id: technical-writing, prompt: 按计划调用：技术写作。, optional: true}
+      - {id: reflect, prompt: 按计划调用：阶段性复盘（可选）。, optional: true}
 
   verify_report_flow:
     prompt: |

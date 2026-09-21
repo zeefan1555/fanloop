@@ -22,3 +22,10 @@ Contract Goldens change only after explicit review with:
 ```bash
 go test ./tests/contracts -update-contracts
 ```
+
+## Live product inventory
+
+Four production Workflow IDs currently ship under `workflows/<id>/`:
+`technical-solution-design`, `fanloop-maintainer`, `material-flashcards`, and
+`pstack-delivery`. Ownership of those directories remains the Live Workflow
+configuration boundary above; this note only records the live suite list.

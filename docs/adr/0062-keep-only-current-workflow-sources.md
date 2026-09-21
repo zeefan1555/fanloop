@@ -3,6 +3,8 @@ status: accepted
 date: 2026-08-19
 supersedes_in_part: ADR-0009, ADR-0037, ADR-0038, ADR-0051, ADR-0052, ADR-0054, ADR-0055, ADR-0060
 ---
+**Status / Supersession:** suite-count /「三套」/「十五份 YAML」inventory claims are superseded by [ADR-0110](./0110-record-four-production-workflow-suites.md) for inventory only; Step topology of pre-existing workflows is unchanged by that ADR.
+
 
 # Workflow 源码使用扁平、无业务版本的当前 Bundle
 

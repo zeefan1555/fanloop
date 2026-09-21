@@ -3,6 +3,8 @@ status: accepted
 date: 2026-09-21
 amends: ADR-0019, ADR-0024, ADR-0026, ADR-0032, ADR-0041, ADR-0054, ADR-0058, ADR-0062, ADR-0079, ADR-0092, ADR-0095, ADR-0099, ADR-0105, ADR-0107
 ---
+**Status / Supersession:** suite-count /「三套」/「十五份 YAML」inventory claims are superseded by [ADR-0110](./0110-record-four-production-workflow-suites.md) for inventory only; Step topology of pre-existing workflows is unchanged by that ADR.
+
 
 # 使用 Live Workflow 与本地 Dashboard
 

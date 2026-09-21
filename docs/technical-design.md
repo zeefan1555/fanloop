@@ -131,7 +131,7 @@ GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发�
 或 tar/xz。完整决定见 [ADR-0095](./adr/0095-local-source-builds.md)。
 
 新增 Workflow 的默认配置改动只包含一个完整 Workflow 目录和场景路由。配置-only 契约测试会临时
-构造第三套 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。
+临时构造一套额外 Workflow，并经 Bundle loader、Skill discovery、目录/绑定校验和场景校验完整通过。
 
 仓库级本地门禁只有一个：
 
