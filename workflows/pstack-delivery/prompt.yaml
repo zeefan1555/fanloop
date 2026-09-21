@@ -8,7 +8,7 @@ prompts:
 
   select_bind_skills_flow:
     prompt: |
-      仅基于已接受的交付目标，从 skills/pstack-delivery/ 下 47 个原生 skill 的 frontmatter name: 中选择本轮需要绑定的子集，写入并回读 skill-plan.md（或等价路径）。计划须列出：skill id（= frontmatter name）、选用理由、预期产物、与目标验收口径的对应关系、可选/必选标记。例外：文件夹 make-bot-ui → id「Make Bot UI」；poteto-mode → id「Poteto Mode」；其余 id 等于文件夹名。不要在每一步绑定全部 47 个；只选本轮必要技能。不得改写 SKILL.md 正文或相对链接。目标变化上报 delivery_goal_changed；完成时上报 skill_plan_ready。
+      仅基于已接受的交付目标，从 workflows/pstack-delivery/skills/ 下 47 个原生 skill 的 frontmatter name: 中选择本轮需要绑定的子集，写入并回读 skill-plan.md（或等价路径）。计划须列出：skill id（= frontmatter name）、选用理由、预期产物、与目标验收口径的对应关系、可选/必选标记。SkillBinding id 必须等于 skills/ 下文件夹名（如 poteto-mode、make-bot-ui）；frontmatter name: 仅作展示，不写进 Binding id。不要在每一步绑定全部 47 个；只选本轮必要技能。不得改写 SKILL.md 正文或相对链接。目标变化上报 delivery_goal_changed；完成时上报 skill_plan_ready。
       可选绑定仅为运行时可调用的目录提示，不代表本轮全部必选；计划文件才是权威绑定清单。
     skills:
       - {id: figure-it-out, prompt: 可选：厘清问题空间与未知后再定绑定。, optional: true}
@@ -19,8 +19,8 @@ prompts:
       - {id: create-verification-skill, prompt: 可选：需要新建验证 skill 时纳入计划。, optional: true}
       - {id: maintain-verification-skill, prompt: 可选：需要维护既有验证 skill 时纳入计划。, optional: true}
       - {id: principle-prove-it-works, prompt: 可选：强调可证明工作证据时纳入。, optional: true}
-      - {id: Poteto Mode, prompt: 可选：需要 Poteto Mode 编排/playbook 时纳入（磁盘路径 poteto-mode/）。, optional: true}
-      - {id: Make Bot UI, prompt: 可选：需要 Bot UI 制作时纳入（磁盘路径 make-bot-ui/）。, optional: true}
+      - {id: poteto-mode, prompt: 可选：需要 Poteto Mode 编排/playbook 时纳入（磁盘路径 poteto-mode/）。, optional: true}
+      - {id: make-bot-ui, prompt: 可选：需要 Bot UI 制作时纳入（磁盘路径 make-bot-ui/）。, optional: true}
       - {id: unslop, prompt: 可选：需要去空话与噪音时纳入。, optional: true}
       - {id: show-me-your-work, prompt: 可选：需要显式工作痕迹与证据链时纳入。, optional: true}
       - {id: blast-radius, prompt: 可选：评估变更影响面时纳入。, optional: true}
@@ -50,8 +50,8 @@ prompts:
       - {id: how, prompt: 按计划调用：实施方法。, optional: true}
       - {id: why, prompt: 按计划调用：论证与取舍。, optional: true}
       - {id: tdd, prompt: 按计划调用：测试驱动实现。, optional: true}
-      - {id: Poteto Mode, prompt: 按计划调用：Poteto Mode（路径 poteto-mode/）。, optional: true}
-      - {id: Make Bot UI, prompt: 按计划调用：Make Bot UI（路径 make-bot-ui/）。, optional: true}
+      - {id: poteto-mode, prompt: 按计划调用：Poteto Mode（路径 poteto-mode/）。, optional: true}
+      - {id: make-bot-ui, prompt: 按计划调用：Make Bot UI（路径 make-bot-ui/）。, optional: true}
       - {id: unslop, prompt: 按计划调用：清理空话与冗余。, optional: true}
       - {id: show-me-your-work, prompt: 按计划调用：展示工作证据。, optional: true}
       - {id: blast-radius, prompt: 按计划调用：影响面分析。, optional: true}
