@@ -12,11 +12,12 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-源码提供三套首次安装配置：
+源码提供四套首次安装配置：
 
 - `technical-solution-design`：十六步技术文档流程，第 0 至第 10 章各有独立 Step 和产物，按业务问题、技术判断和结果与规划三阶段推进。
 - `fanloop-maintainer`：Fanloop 的 4 Stage / 4 Job / 4 Step 维护闭环；Define、Build、Certify 与 Deliver 依次完成验收契约、自主验证、独立认证和 PR/本地交付。
 - `material-flashcards`：九步材料理解、知识选择、卡片审核与持久化闭环。
+- `pstack-delivery`：五步交付编排，原样绑定 `workflows/pstack-delivery/skills/` 下原生 pstack skills，经人类确认后执行并验证。
 
 生产目录固定为 `workflows/<workflow-id>/{五份 YAML,skills/<skill-id>/SKILL.md}`。统一入口位于
 `entrypoints/fanloop-workflow/`；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
@@ -24,7 +25,8 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `technical-solution` 对应 `technical-solution-design`，`fanloop-maintenance` 对应
-`fanloop-maintainer`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
+`fanloop-maintainer`，`material-flashcards` 对应 `material-flashcards`，`pstack-delivery`
+对应 `pstack-delivery`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
 [ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和

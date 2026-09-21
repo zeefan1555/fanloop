@@ -5,6 +5,7 @@
 - `technical-solution-design` document production and human gates.
 - `material-flashcards` recall-goal planning, preview approval and Decks persistence.
 - `fanloop-maintainer` four-step Define, Build, Certify and Deliver loop.
+- `pstack-delivery` thin orchestration over native pstack skills under the workflow bundle.
 
 ## How to get to it (user POV)
 

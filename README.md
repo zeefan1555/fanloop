@@ -10,11 +10,12 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-源码提供三套可用于首次安装的 Workflow，不设置默认 Workflow：
+源码提供四套可用于首次安装的 Workflow，不设置默认 Workflow：
 
 - `technical-solution-design`：完成问题定义、方向推导、正式方案写作、独立审校和三级人工确认。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
 - `material-flashcards`：从材料中选择知识并生成、审核和持久化闪卡。
+- `pstack-delivery`：原样绑定并编排原生 pstack skills 的交付流程。
 
 每套业务配置都位于 `workflows/<workflow-id>/`，五份 YAML 与 `skills/<skill-id>/` 共享同一个
 live 根目录。统一入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置。
@@ -60,6 +61,8 @@ live 配置。首次安装从 `FANLOOP_CONFIG_SOURCE`（默认当前源码仓库
 
 - `technical-solution` → `technical-solution-design`
 - `fanloop-maintenance` → `fanloop-maintainer`
+- `material-flashcards` → `material-flashcards`
+- `pstack-delivery` → `pstack-delivery`
 
 `entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
 选择技术方案场景后执行：

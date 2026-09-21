@@ -59,8 +59,9 @@ func TestProductionRuntimeDoesNotHardcodeWorkflowFacts(t *testing.T) {
 			if err != nil {
 				return err
 			}
+			ext := filepath.Ext(name)
 			for _, fact := range literals {
-				if strings.Contains(string(content), fact) {
+				if sourceHardcodesWorkflowFact(string(content), fact, ext) {
 					relative, _ := filepath.Rel(root, path)
 					t.Errorf("production source %s hardcodes Workflow fact %q", relative, fact)
 				}
@@ -71,4 +72,47 @@ func TestProductionRuntimeDoesNotHardcodeWorkflowFacts(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// sourceHardcodesWorkflowFact reports whether production source embeds a Workflow
+// fact as a quoted string literal. Bare identifiers (e.g. reflect.Type) and Go
+// import paths (import "reflect") are ignored so short Skill IDs such as
+// "reflect" do not false-positive against the Go standard library.
+func sourceHardcodesWorkflowFact(content, fact, ext string) bool {
+	switch ext {
+	case ".go":
+		return goSourceHardcodesWorkflowFact(content, fact)
+	default:
+		return strings.Contains(content, `"`+fact+`"`) || strings.Contains(content, `'`+fact+`'`)
+	}
+}
+
+func goSourceHardcodesWorkflowFact(content, fact string) bool {
+	stripped := stripGoImportDeclarations(content)
+	quoted := `"` + fact + `"`
+	return strings.Contains(stripped, quoted)
+}
+
+func stripGoImportDeclarations(src string) string {
+	lines := strings.Split(src, "\n")
+	out := make([]string, 0, len(lines))
+	inBlock := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if inBlock {
+			if trimmed == ")" {
+				inBlock = false
+			}
+			continue
+		}
+		if trimmed == "import (" {
+			inBlock = true
+			continue
+		}
+		if strings.HasPrefix(trimmed, "import ") {
+			continue
+		}
+		out = append(out, line)
+	}
+	return strings.Join(out, "\n")
 }

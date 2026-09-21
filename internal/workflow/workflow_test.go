@@ -21,7 +21,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	for index, item := range items {
 		refs[index] = item.Ref.ID
 	}
-	wantRefs := []string{"fanloop-maintainer", "material-flashcards", "technical-solution-design"}
+	wantRefs := []string{"fanloop-maintainer", "material-flashcards", "pstack-delivery", "technical-solution-design"}
 	if !reflect.DeepEqual(refs, wantRefs) {
 		t.Fatalf("Workflow IDs = %v", refs)
 	}
@@ -65,8 +65,8 @@ func TestProductionWorkflowSourcesAreFlatAndVersionless(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(paths) != 3 {
-		t.Fatalf("flat production Workflow sources = %v, want three", paths)
+	if len(paths) != 4 {
+		t.Fatalf("flat production Workflow sources = %v, want four", paths)
 	}
 	versioned, err := filepath.Glob(filepath.Join(root, "*", "*", "workflow.yaml"))
 	if err != nil {

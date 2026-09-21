@@ -794,6 +794,7 @@ def main() -> int:
     global_failures: list[str] = []
     negative_basics_done = False
     partial_match_done = False
+    partial_match_applicable = False
     dry_run_done = False
 
     try:
@@ -890,6 +891,11 @@ def main() -> int:
                     None,
                 )
                 if complex_case:
+                    # Only workflows that expose multi-condition Flow AND groups
+                    # can exercise reject-partial-condition-group; single-condition
+                    # workflows (e.g. pstack-delivery) must not fail the shard for
+                    # lacking an inapplicable negative check.
+                    partial_match_applicable = True
                     partial_case = {
                         **complex_case,
                         "scenario_id": "reject-partial-condition-group",
@@ -963,7 +969,7 @@ def main() -> int:
     complete = (
         len(results) == discovered
         and negative_basics_done
-        and partial_match_done
+        and (partial_match_done or not partial_match_applicable)
         and dry_run_done
         and failed == 0
         and final_status == initial_status
