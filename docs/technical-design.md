@@ -124,8 +124,15 @@ Skill，不持久化或比较 Workflow digest。完整决策见
 
 `fanloop dashboard` 复用同一个 live 根，以 Go 标准库提供 loopback-only 的嵌入式编辑器。API 只允许
 已有五份 YAML 与 `SKILL.md`，读取返回 SHA-256，保存执行乐观并发、候选 Bundle 校验和原子替换；页面每
-两秒轮询，干净编辑器自动刷新，脏编辑器遇到外部变化时标记 stale。它不包含账号、远程监听、Daemon、
-创建、删除、重命名或可视化拓扑编辑。
+两秒轮询，干净编辑器自动刷新，脏编辑器遇到外部变化时标记 stale。只读 `/api/topology` 使用现有
+Workflow loader 和 YAML AST 行号从同一批 live 字节投影 Stage / Job / Step、Flow / Loop Route，以及
+Step 关联的 Prompt、Condition 与 Skill source anchors；声明 common controls 时，每个 Step 同时展示
+`step_start`、`jump` 的 Prompt、Common Condition 与 Common Skill，但不伪造动态 jump 图边。前端据此提供确定性布局、方向筛选、聚焦、缩放和
+完整文件源码导航；桌面列宽和 Stage 几何优先保证画布，fit 设可读下限并允许继续平移。从直接文件视图点击
+当前 Step 会恢复 Step inspector 和默认 source。Topology API 不返回生成 YAML，保存仍只有 whole-file `POST /api/file`。它不包含账号、
+远程监听、Daemon、创建、删除、重命名、拖拽改图或局部片段保存。完整决定见
+[ADR-0108](./adr/0108-use-live-workflows-and-local-dashboard.md) 与
+[ADR-0111](./adr/0111-visualize-live-workflow-topology.md)。
 
 GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发布；构建不依赖 Node.js、GoReleaser
 或 tar/xz。完整决定见 [ADR-0095](./adr/0095-local-source-builds.md)。

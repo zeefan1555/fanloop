@@ -78,7 +78,14 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 **Workflow Dashboard**
 `fanloop dashboard` 在随机 loopback 端口前台启动嵌入式页面，只读写 live Workflow 根中已有的五份 YAML
 和 `SKILL.md`。保存携带上次读取的 SHA-256；服务端拒绝 stale、越界、符号链接、无效 YAML 与空 Skill，
-并以原子替换提交。页面轮询外部变化，不覆盖已变脏的编辑器。
+并以原子替换提交。页面从当前 live 文件投影 Stage / Job / Step、Flow / Loop Route 及其关联的 Prompt、
+Condition 和 Skill；common controls 的 Prompt、Condition 和 Skill 会出现在每个受管 Step，动态 jump
+不会被画成虚假静态边。选择图中对象时仍打开完整真实文件，并定位对应源码范围。页面轮询外部变化，不覆盖
+已变脏的编辑器。
+
+**Source Anchor**
+Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based inclusive 行范围，只用于在完整文件中
+导航和选择真实源码。它不是 Workflow 契约、持久化事实或可独立保存的 YAML 片段。
 
 ## 维护者验收
 

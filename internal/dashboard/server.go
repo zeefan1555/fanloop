@@ -46,9 +46,11 @@ type apiError struct {
 }
 
 type handler struct {
-	root   string
-	ui     http.Handler
-	saveMu sync.Mutex
+	root      string
+	ui        http.Handler
+	saveMu    sync.Mutex
+	allowedMu sync.RWMutex
+	allowed   []string
 }
 
 func NewHandler(root string) (http.Handler, error) {
@@ -59,14 +61,15 @@ func NewHandler(root string) (http.Handler, error) {
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, fmt.Errorf("Workflow root must be a real directory")
 	}
-	if _, err := workflow.ListFrom(root); err != nil {
+	definitions, err := workflow.ListFrom(root)
+	if err != nil {
 		return nil, err
 	}
 	static, err := fs.Sub(assets, "static")
 	if err != nil {
 		return nil, err
 	}
-	return &handler{root: filepath.Clean(root), ui: http.FileServer(http.FS(static))}, nil
+	return &handler{root: filepath.Clean(root), ui: http.FileServer(http.FS(static)), allowed: allowedPathsFrom(definitions)}, nil
 }
 
 func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -86,9 +89,51 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		default:
 			h.writeError(writer, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed.", "")
 		}
+	case "/api/topology":
+		if request.Method != http.MethodGet {
+			h.writeError(writer, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed.", "")
+			return
+		}
+		h.topology(writer, request.URL.Query().Get("workflow"))
 	default:
 		h.ui.ServeHTTP(writer, request)
 	}
+}
+
+func (h *handler) topology(writer http.ResponseWriter, workflowID string) {
+	h.saveMu.Lock()
+	defer h.saveMu.Unlock()
+
+	definitions, err := workflow.ListFrom(h.root)
+	if err != nil {
+		h.writeError(writer, http.StatusUnprocessableEntity, "invalid_workflow", err.Error(), "")
+		return
+	}
+	found := false
+	for _, definition := range definitions {
+		if definition.Ref.ID == workflowID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		h.writeError(writer, http.StatusBadRequest, "invalid_workflow", errUnknownWorkflow.Error(), "")
+		return
+	}
+	allowed := allowedPathsFrom(definitions)
+	h.rememberAllowed(allowed)
+	value, err := buildTopology(workflowID, func(relative string) ([]byte, error) {
+		path, err := h.resolveAllowed(relative, allowed)
+		if err != nil {
+			return nil, err
+		}
+		return os.ReadFile(path)
+	})
+	if err != nil {
+		h.writeError(writer, http.StatusUnprocessableEntity, "invalid_workflow", err.Error(), "")
+		return
+	}
+	h.writeJSON(writer, http.StatusOK, value)
 }
 
 func (h *handler) list(writer http.ResponseWriter) {
@@ -178,8 +223,25 @@ func (h *handler) save(writer http.ResponseWriter, body io.Reader) {
 func (h *handler) allowedPaths() ([]string, error) {
 	definitions, err := workflow.ListFrom(h.root)
 	if err != nil {
-		return nil, err
+		h.allowedMu.RLock()
+		defer h.allowedMu.RUnlock()
+		if len(h.allowed) == 0 {
+			return nil, err
+		}
+		return append([]string(nil), h.allowed...), nil
 	}
+	allowed := allowedPathsFrom(definitions)
+	h.rememberAllowed(allowed)
+	return allowed, nil
+}
+
+func (h *handler) rememberAllowed(allowed []string) {
+	h.allowedMu.Lock()
+	defer h.allowedMu.Unlock()
+	h.allowed = append(h.allowed[:0], allowed...)
+}
+
+func allowedPathsFrom(definitions []workflow.Loaded) []string {
 	paths := make([]string, 0)
 	for _, definition := range definitions {
 		for _, name := range workflow.BundleFileNames() {
@@ -190,16 +252,20 @@ func (h *handler) allowedPaths() ([]string, error) {
 		}
 	}
 	sort.Strings(paths)
-	return paths, nil
+	return paths
 }
 
 func (h *handler) resolve(relative string) (string, error) {
-	if relative == "" || filepath.IsAbs(relative) || strings.Contains(relative, `\`) || filepath.ToSlash(filepath.Clean(relative)) != relative || strings.HasPrefix(relative, "../") {
-		return "", fmt.Errorf("path is not allowed")
-	}
 	allowed, err := h.allowedPaths()
 	if err != nil {
 		return "", err
+	}
+	return h.resolveAllowed(relative, allowed)
+}
+
+func (h *handler) resolveAllowed(relative string, allowed []string) (string, error) {
+	if relative == "" || filepath.IsAbs(relative) || strings.Contains(relative, `\`) || filepath.ToSlash(filepath.Clean(relative)) != relative || strings.HasPrefix(relative, "../") {
+		return "", fmt.Errorf("path is not allowed")
 	}
 	index := sort.SearchStrings(allowed, relative)
 	if index == len(allowed) || allowed[index] != relative {
@@ -226,9 +292,7 @@ func (h *handler) validateCandidate(relative string, content []byte) error {
 		if strings.TrimSpace(string(content)) == "" {
 			return fmt.Errorf("SKILL.md must not be empty")
 		}
-		return nil
-	}
-	if len(parts) != 2 {
+	} else if len(parts) != 2 {
 		return fmt.Errorf("path is not editable")
 	}
 	temporary, err := os.MkdirTemp("", "fanloop-dashboard-")
@@ -236,14 +300,13 @@ func (h *handler) validateCandidate(relative string, content []byte) error {
 		return err
 	}
 	defer os.RemoveAll(temporary)
-	bundle := filepath.Join(temporary, parts[0])
-	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(h.root, parts[0]))); err != nil {
+	if err := os.CopyFS(temporary, os.DirFS(h.root)); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(bundle, parts[1]), content, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(temporary, filepath.FromSlash(relative)), content, 0o600); err != nil {
 		return err
 	}
-	_, err = workflow.LoadFrom(temporary, parts[0])
+	_, err = workflow.ListFrom(temporary)
 	return err
 }
 

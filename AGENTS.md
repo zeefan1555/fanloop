@@ -29,6 +29,15 @@
 
 完成标准：主 Agent完成对齐、派发、监督和三类决定；执行子 Agent独立驱动 Workflow、完成受管实现、合并唯一 PR 并更新本地 Fanloop，所有决定都能回溯到主 Agent明确回复。
 
+## Live Workflow 与绑定 Skill 真值
+
+触发条件：读取、修改、安装或执行 Workflow 及其绑定 Skill，或通过 Dashboard 查看和编辑它们。
+
+1. `$FANLOOP_DATA_HOME/current/workflows/<workflow-id>/` 是五份 Workflow YAML 与 `skills/<skill-id>/SKILL.md` 的唯一 live 真值。
+2. Workflow 与绑定 Skill 没有内容版本、digest、Release 副本或 fallback；Fanloop 与 Agent 每次都从该 live 根重新读取当前内容，不缓存旧内容，也不从其他同名 Skill 猜测或回退。
+3. Dashboard 的 topology、source anchor 与 whole-file 保存必须读取和修改同一 live 真值，不得建立平行配置源或生成副本。
+4. Dashboard 和 live 读取语义不得绕过下方 Workflow YAML 与 Thrift IDL 的人工审核门禁。
+
 ## YAML 架构真值与人工审核
 
 触发条件：变更 Workflow YAML，或修改其模型、加载、校验、Schema 与执行语义。

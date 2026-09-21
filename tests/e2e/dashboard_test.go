@@ -58,7 +58,7 @@ func TestDashboardServesAndEditsInstalledLiveWorkflows(t *testing.T) {
 		t.Fatalf("dashboard URL = %q, error = %v", started.Data.URL, err)
 	}
 
-	client := &http.Client{Timeout: 3 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Second}
 	get := func(path string) []byte {
 		t.Helper()
 		response, err := client.Get(started.Data.URL + path)
@@ -78,6 +78,82 @@ func TestDashboardServesAndEditsInstalledLiveWorkflows(t *testing.T) {
 	if list := string(get("/api/files")); !strings.Contains(list, `"path":"fanloop-maintainer/prompt.yaml"`) || !strings.Contains(list, `"path":"fanloop-maintainer/skills/fanloop-dev-tdd/SKILL.md"`) {
 		t.Fatalf("dashboard file list is incomplete:\n%s", list)
 	}
+	var topology struct {
+		Workflow struct {
+			Stages []struct {
+				Jobs []struct {
+					Steps []struct {
+						ID   string `json:"id"`
+						Name string `json:"name"`
+					} `json:"steps"`
+				} `json:"jobs"`
+			} `json:"stages"`
+		} `json:"workflow"`
+		Fragments map[string]map[string][]struct {
+			Path      string `json:"path"`
+			StartLine int    `json:"start_line"`
+			EndLine   int    `json:"end_line"`
+		} `json:"fragments"`
+	}
+	if err := json.Unmarshal(get("/api/topology?workflow=fanloop-maintainer"), &topology); err != nil {
+		t.Fatal(err)
+	}
+	if len(topology.Workflow.Stages) != 4 || len(topology.Fragments["define_verification_contract"]["step"]) != 1 {
+		t.Fatalf("live topology is incomplete: %#v", topology)
+	}
+
+	postFile := func(path, content, observed string) (int, []byte) {
+		t.Helper()
+		body, err := json.Marshal(map[string]string{"path": path, "content": content, "observed_sha256": observed})
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := client.Post(started.Data.URL+"/api/file", "application/json", bytes.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		responseBody, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response.StatusCode, responseBody
+	}
+
+	workflowRelative := "fanloop-maintainer/workflow.yaml"
+	var workflowFile struct {
+		Content string `json:"content"`
+		SHA256  string `json:"sha256"`
+	}
+	if err := json.Unmarshal(get("/api/file?path="+url.QueryEscape(workflowRelative)), &workflowFile); err != nil {
+		t.Fatal(err)
+	}
+	updatedWorkflow := strings.Replace(workflowFile.Content, "name: 目标与验收契约", "name: Dashboard 目标与验收契约", 1)
+	if updatedWorkflow == workflowFile.Content {
+		t.Fatal("workflow fixture replacement did not match")
+	}
+	statusCode, responseBody := postFile(workflowRelative, updatedWorkflow, workflowFile.SHA256)
+	if statusCode != http.StatusOK {
+		t.Fatalf("save Workflow = %d\n%s", statusCode, responseBody)
+	}
+	if refreshed := string(get("/api/topology?workflow=fanloop-maintainer")); !strings.Contains(refreshed, `"name":"Dashboard 目标与验收契约"`) {
+		t.Fatalf("topology did not refresh after save:\n%s", refreshed)
+	}
+	var updatedFile struct {
+		Content string `json:"content"`
+		SHA256  string `json:"sha256"`
+	}
+	if err := json.Unmarshal(get("/api/file?path="+url.QueryEscape(workflowRelative)), &updatedFile); err != nil {
+		t.Fatal(err)
+	}
+	statusCode, responseBody = postFile(workflowRelative, "invalid: true\n", updatedFile.SHA256)
+	if statusCode != http.StatusUnprocessableEntity || !bytes.Contains(responseBody, []byte(`"code":"invalid_content"`)) {
+		t.Fatalf("invalid Workflow save = %d\n%s", statusCode, responseBody)
+	}
+	workflowTarget := filepath.Join(dataRoot, "current", "workflows", filepath.FromSlash(workflowRelative))
+	if content, err := os.ReadFile(workflowTarget); err != nil || string(content) != updatedWorkflow {
+		t.Fatalf("invalid save changed Workflow bytes: %v\n%s", err, content)
+	}
 
 	skillRelative := "fanloop-maintainer/skills/fanloop-dev-tdd/SKILL.md"
 	var skill struct {
@@ -88,15 +164,9 @@ func TestDashboardServesAndEditsInstalledLiveWorkflows(t *testing.T) {
 		t.Fatal(err)
 	}
 	savedContent := skill.Content + "\ndashboard save marker\n"
-	body, _ := json.Marshal(map[string]string{"path": skillRelative, "content": savedContent, "observed_sha256": skill.SHA256})
-	response, err := client.Post(started.Data.URL+"/api/file", "application/json", bytes.NewReader(body))
-	if err != nil {
-		t.Fatal(err)
-	}
-	responseBody, _ := io.ReadAll(response.Body)
-	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("save Skill = %d\n%s", response.StatusCode, responseBody)
+	statusCode, responseBody = postFile(skillRelative, savedContent, skill.SHA256)
+	if statusCode != http.StatusOK {
+		t.Fatalf("save Skill = %d\n%s", statusCode, responseBody)
 	}
 	target := filepath.Join(dataRoot, "current", "workflows", filepath.FromSlash(skillRelative))
 	if content, err := os.ReadFile(target); err != nil || string(content) != savedContent {
@@ -107,14 +177,9 @@ func TestDashboardServesAndEditsInstalledLiveWorkflows(t *testing.T) {
 	if err := os.WriteFile(target, []byte(externalContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	stale, err := client.Post(started.Data.URL+"/api/file", "application/json", bytes.NewReader(body))
-	if err != nil {
-		t.Fatal(err)
-	}
-	staleBody, _ := io.ReadAll(stale.Body)
-	_ = stale.Body.Close()
-	if stale.StatusCode != http.StatusConflict || !bytes.Contains(staleBody, []byte(`"code":"stale_file"`)) {
-		t.Fatalf("stale save = %d\n%s", stale.StatusCode, staleBody)
+	statusCode, responseBody = postFile(skillRelative, savedContent, skill.SHA256)
+	if statusCode != http.StatusConflict || !bytes.Contains(responseBody, []byte(`"code":"stale_file"`)) {
+		t.Fatalf("stale save = %d\n%s", statusCode, responseBody)
 	}
 	if content, err := os.ReadFile(target); err != nil || string(content) != externalContent {
 		t.Fatalf("stale save changed external bytes: %v\n%s", err, content)

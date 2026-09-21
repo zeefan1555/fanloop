@@ -7,21 +7,94 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <main class="shell">
-    <aside>
-      <header><strong>Fanloop</strong><span>Workflow editor</span></header>
-      <nav id="files" aria-label="Workflow files"></nav>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">F</span><div><strong>Fanloop</strong><span>Workflow Studio</span></div></div>
+    <div class="top-actions">
+      <span class="health"><i></i><span id="healthText">Live files ready</span></span>
+      <button class="icon-button" id="refresh" type="button" title="Refresh live files" aria-label="Refresh live files">↻</button>
+      <button class="primary-button" id="save" type="button" disabled>Save file</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="sidebar">
+      <section class="sidebar-section">
+        <label class="field-label" for="workflowSelect">Workflow</label>
+        <select id="workflowSelect" disabled></select>
+      </section>
+      <section class="sidebar-section summary" aria-label="Workflow summary">
+        <div><span>Stages</span><strong id="stageCount">0</strong></div>
+        <div><span>Steps</span><strong id="stepCount">0</strong></div>
+        <div><span>Forward</span><strong id="forwardTotal">0</strong></div>
+        <div><span>Return</span><strong id="returnTotal">0</strong></div>
+      </section>
+      <section class="sidebar-section">
+        <span class="field-label">Routes</span>
+        <label class="route-toggle"><input id="showForward" type="checkbox" checked><i class="forward-line"></i><span>Forward</span><b id="forwardLegend">0</b></label>
+        <label class="route-toggle"><input id="showReturn" type="checkbox" checked><i class="return-line"></i><span>Return</span><b id="returnLegend">0</b></label>
+      </section>
+      <section class="file-section">
+        <div class="file-heading"><span class="field-label">Files</span><span>Direct edit</span></div>
+        <nav id="files" aria-label="Workflow files"></nav>
+      </section>
+      <footer class="sidebar-footer"><span>Live root</span><code>~/.fanloop/current/workflows</code></footer>
     </aside>
-    <section class="workspace">
-      <div class="toolbar">
-        <div><strong id="title">Select a file</strong><span id="status">Ready</span></div>
-        <div class="actions">
-          <button id="refresh" type="button" title="Refresh file" aria-label="Refresh file">↻</button>
-          <button id="save" type="button" disabled>Save</button>
+
+    <section class="canvas-panel">
+      <div class="canvas-toolbar">
+        <div><strong>Workflow topology</strong><span id="canvasHint">Select a Step to focus its Routes</span></div>
+        <div class="zoom-controls" aria-label="Canvas zoom">
+          <button id="zoomOut" type="button" title="Zoom out" aria-label="Zoom out">−</button>
+          <span id="zoomValue">100%</span>
+          <button id="zoomIn" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+          <button id="fit" type="button">Fit</button>
         </div>
       </div>
-      <textarea id="editor" spellcheck="false" disabled></textarea>
+      <div class="graph-viewport" id="viewport">
+        <div class="empty-graph" id="graphMessage">Loading live topology...</div>
+        <div class="graph-world" id="world" hidden>
+          <svg id="edges" aria-label="Workflow routes"></svg>
+          <div id="stageBands"></div>
+          <div id="jobLabels"></div>
+          <div id="nodes"></div>
+          <button class="terminal-node" id="terminalNode" type="button" tabindex="-1">Done</button>
+        </div>
+      </div>
+      <div class="canvas-footer"><span>Drag to pan</span><span>Wheel to zoom</span><span id="routeReadout">0 routes</span></div>
     </section>
+
+    <aside class="inspector">
+      <div class="inspector-heading">
+        <div><span class="eyebrow" id="stageName">No Step selected</span><h1 id="stepName">Choose a Workflow</h1><code id="stepId">-</code></div>
+        <span class="executor-badge" id="executor">-</span>
+      </div>
+      <div class="node-stats">
+        <div><span>Forward</span><strong id="forwardCount">0</strong></div>
+        <div><span>Return</span><strong id="returnCount">0</strong></div>
+        <div><span>Skills</span><strong id="skillCount">0</strong></div>
+      </div>
+      <div class="tabs" id="tabs" role="tablist">
+        <button class="active" data-tab="step" type="button">Step</button>
+        <button data-tab="prompt" type="button">Prompt</button>
+        <button data-tab="forward" type="button">Forward</button>
+        <button data-tab="return" type="button">Return</button>
+        <button data-tab="conditions" type="button">Conditions</button>
+        <button data-tab="skills" type="button">Skills</button>
+      </div>
+      <div class="fragment-bar">
+        <label for="fragmentSelect">Source fragment</label>
+        <select id="fragmentSelect" disabled></select>
+      </div>
+      <div class="editor-meta">
+        <div><span class="file-dot"></span><code id="title">Select a source fragment</code></div>
+        <span id="status" role="status" aria-live="polite">Ready</span>
+      </div>
+      <div class="editor-shell">
+        <pre id="lineNumbers" aria-hidden="true"></pre>
+        <textarea id="editor" spellcheck="false" disabled aria-label="Workflow source editor"></textarea>
+      </div>
+      <div class="inspector-footer"><span id="selection">No source selected</span><button id="discard" type="button" disabled>Discard</button></div>
+    </aside>
   </main>
   <script src="/app.js"></script>
 </body>

@@ -126,6 +126,60 @@ func TestHandlerRejectsSymlinkedCurrentAncestor(t *testing.T) {
 	}
 }
 
+func TestHandlerCanReadAndRepairAFileAfterExternalBundleCorruption(t *testing.T) {
+	root := copyWorkflowTree(t)
+	handler, err := NewHandler(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := "fanloop-maintainer/workflow.yaml"
+	original := readFileResponse(t, handler, path)
+	target := filepath.Join(root, filepath.FromSlash(path))
+	invalid := "invalid: true\n"
+	if err := os.WriteFile(target, []byte(invalid), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	current := readFileResponse(t, handler, path)
+	if current.Content != invalid || current.SHA256 == original.SHA256 {
+		t.Fatalf("external invalid bytes were not readable: %#v", current)
+	}
+	stale := httptest.NewRecorder()
+	handler.ServeHTTP(stale, saveRequest(t, path, original.Content, original.SHA256))
+	if stale.Code != http.StatusConflict || !strings.Contains(stale.Body.String(), `"code":"stale_file"`) {
+		t.Fatalf("stale repair status=%d body=%s", stale.Code, stale.Body.String())
+	}
+	repair := httptest.NewRecorder()
+	handler.ServeHTTP(repair, saveRequest(t, path, original.Content, current.SHA256))
+	if repair.Code != http.StatusOK {
+		t.Fatalf("repair status=%d body=%s", repair.Code, repair.Body.String())
+	}
+}
+
+func TestHandlerRejectsSkillSaveWhenAnotherWorkflowIsInvalid(t *testing.T) {
+	root := copyWorkflowTree(t)
+	handler, err := NewHandler(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	skillPath := "fanloop-maintainer/skills/fanloop-dev-tdd/SKILL.md"
+	skill := readFileResponse(t, handler, skillPath)
+	brokenWorkflow := filepath.Join(root, "material-flashcards", "workflow.yaml")
+	if err := os.WriteFile(brokenWorkflow, []byte("invalid: true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, saveRequest(t, skillPath, skill.Content+"\nDashboard edit.\n", skill.SHA256))
+	if response.Code != http.StatusUnprocessableEntity || !strings.Contains(response.Body.String(), `"code":"invalid_content"`) {
+		t.Fatalf("skill save with invalid root status=%d body=%s", response.Code, response.Body.String())
+	}
+	content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(skillPath)))
+	if err != nil || string(content) != skill.Content {
+		t.Fatalf("rejected skill save changed file: %v %q", err, content)
+	}
+}
+
 func TestEmbeddedEditorNeverOverwritesDirtyTextDuringPolling(t *testing.T) {
 	content, err := assets.ReadFile("static/app.js")
 	if err != nil {
@@ -136,12 +190,13 @@ func TestEmbeddedEditorNeverOverwritesDirtyTextDuringPolling(t *testing.T) {
 		"const generation = ++loadGeneration",
 		"if (generation !== loadGeneration) return",
 		"if (!force && selected === path && dirty)",
-		"if (next.sha256 !== observed) stale = true",
+		"if (next.sha256 !== observed) {",
 		"const path = selected",
 		"if (selected === path)",
 		"if (!confirmDiscard()) return",
-		"editor.addEventListener('input', () => { ++loadGeneration; updateState(); })",
-		"updateState();\n    return;",
+		"stateMessage = message",
+		"updateState(error.message, true)",
+		"editor.addEventListener('input', () => { ++loadGeneration; updateState(''); })",
 	} {
 		if !strings.Contains(script, required) {
 			t.Fatalf("editor polling contract missing %q", required)
