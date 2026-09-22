@@ -48,8 +48,6 @@ prompts:
     prompt: |
       对照交付目标与已批准 skill-plan，核验执行产物与成功证据；写入并回读 verification-report.md 与交付报告。全部通过时上报 delivery_verified 并 terminal。失败时写入完整 findings 到 verification 报告并上报 verification_failed，同时只选择最早受影响层：绑定/计划问题配 skill_plan_changed 回 select_bind_skills；执行缺口配 execution_gap 回 execute；目标本身错误配 delivery_goal_changed 回 intake。不得改写 pstack skill 正文。
     skills:
-      - {id: create-verification-skill, prompt: 可选：需要沉淀新的验证 skill 时使用。, optional: true}
-      - {id: maintain-verification-skill, prompt: 可选：需要更新既有验证 skill 时使用。, optional: true}
       - {id: principle-prove-it-works, prompt: 必选。delivery_verified 只接受 fanloop verify smoke 或 snapshot 写出的 schema-1 manifest.json，且 outcome 为 passed。禁止手写 JSON，禁止没有这次 verify 运行就上报 passed。OUTPUT_INVALID 时重跑 verify，按文件里的 outcome 重报。步骤见 .cursor/skills/verify-fanloop/SKILL.md。, optional: false}
 
   artifact_condition:
@@ -66,7 +64,7 @@ prompts:
     skills: []
 
   verification_outcome_condition:
-    prompt: 仅在独立核验无阻塞项且交付报告已回读时上报 passed。
+    prompt: 仅当 Evidence 指向本次 fanloop verify smoke 或 snapshot 写出的绝对路径 schema-1 manifest.json，且文件中的 outcome 等于 passed 时，上报 passed。禁止手写该文件。步骤只使用 .cursor/skills/verify-fanloop/SKILL.md。
     skills: []
 
   verification_written_condition:

@@ -7,6 +7,8 @@ supersedes_in_part: ADR-0094
 
 # 建立项目级验证控制面、验证技能与功能地图
 
+**Status / Supersession:** the sentence that the verify entry lives at `skills/fanloop-maintainer/fanloop-dev-verify/` is superseded in part by [ADR-0114](./0114-keep-one-verify-path.md). The live entry is `workflows/fanloop-maintainer/skills/fanloop-dev-verify/`, and the Cursor entry is `.cursor/skills/verify-fanloop/`.
+
 Fanloop 采用项目级 Verification Skill、行为级 Feature Map 和维护 Skill，使 Agent 能从当前候选启动
 隔离环境、驱动真实公开 CLI、观察持久化副作用、保留证据并完成清理。验证能力是开发基础设施，不是
 `run-unit` 的别名，也不替代五份 Workflow YAML、Thrift、Contract 或现有测试入口。

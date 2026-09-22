@@ -31,8 +31,12 @@ func TestProductionPstackVerifyReportRequiresProveItWorks(t *testing.T) {
 			t.Fatalf("principle-prove-it-works = %#v, want required", skill)
 		}
 	}
-	if !found || len(prompt.Skills) != 3 {
+	if !found || len(prompt.Skills) != 1 {
 		t.Fatalf("verify_report skills = %#v", prompt.Skills)
+	}
+	outcome, ok := loaded.Workflow.Prompts["verification_outcome_condition"]
+	if !ok || strings.Contains(outcome.Prompt, "交付报告已回读") || !strings.Contains(outcome.Prompt, ".cursor/skills/verify-fanloop/SKILL.md") {
+		t.Fatalf("verification outcome prompt = %q", outcome.Prompt)
 	}
 }
 

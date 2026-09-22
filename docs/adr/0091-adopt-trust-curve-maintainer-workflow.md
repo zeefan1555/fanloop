@@ -7,6 +7,8 @@ supersedes: ADR-0090
 
 # 将维护流程改造成可验证、可评测、硬门禁和自动合码的信任曲线
 
+**Status / Supersession:** the sentence that project verification lives only in `.agents/skills/verify-fanloop/` is superseded in part by [ADR-0114](./0114-keep-one-verify-path.md). That path stays deleted.
+
 `fanloop-maintainer` 从 3 Stage / 9 Step 改为 5 Stage / 12 Job / 16 Step：
 
 ~~~text

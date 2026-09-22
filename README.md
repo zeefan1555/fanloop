@@ -154,9 +154,11 @@ fanloop flow init \
 完整 Requirement lifecycle 与全部生产 Workflow Route Matrix 由 CI 的 `requirement-e2e` check 运行；本地真实
 用户路径使用 `fanloop verify` 和 Verification Skill 验证。
 
-项目级闭环验证说明与行为地图位于
-[`workflows/fanloop-maintainer/skills/fanloop-dev-verify/`](./workflows/fanloop-maintainer/skills/fanloop-dev-verify/)。它从当前
-候选建立隔离安装，使用公开 CLI 驱动真实路径，并在清理临时环境后保留证据。验证地图由
+项目级闭环只有一条验证路径。Cursor 入口是
+[`.cursor/skills/verify-fanloop/SKILL.md`](./.cursor/skills/verify-fanloop/SKILL.md)。驱动步骤在
+[`workflows/fanloop-maintainer/skills/fanloop-dev-verify/`](./workflows/fanloop-maintainer/skills/fanloop-dev-verify/)。
+`.cursor/skills/verify-fanloop/features` 是该目录 `references/features/` 的符号链接，不另存一份地图。
+它从当前候选建立隔离安装，使用公开 CLI 驱动真实路径，并在清理临时环境后保留证据。验证地图由
 `fanloop-dev-maintain-verification` 按 source + live 方式维护；产品行为失败必须作为产品问题报告，不能
 通过改写地图掩盖。
 
