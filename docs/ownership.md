@@ -35,3 +35,7 @@ configuration boundary above; this note only records the live suite list.
 Install, `fanloop verify doctor`, the Feature Map, and `verify.evidence.outcome` start at `.cursor/skills/verify-fanloop/SKILL.md`. `features/` in that directory is a symlink to `workflows/fanloop-maintainer/skills/fanloop-dev-verify/references/features/`.
 
 `cmd/verify.go` and `internal/verify` implement that public CLI. The agent entry is `.cursor/skills/verify-fanloop/SKILL.md`. Go package layout stays in place.
+
+## Outer loop
+
+Cuts 1 through 5 are closed. A change needs a local schema-1 verify manifest with outcome `passed` before any cloud agent or parallel agent run for that change. The decision is [ADR-0116](adr/0116-require-local-verify-before-outer-loop.md). The steps are [outer-loop.md](outer-loop.md). Later work is product behavior on this path.

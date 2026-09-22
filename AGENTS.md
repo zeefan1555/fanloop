@@ -82,3 +82,7 @@
 4. 提交前，用目标分支的最新 merge base 复核完整 diff，并重新对照相关 ADR；测试通过不能替代这一步。
 
 完成标准：变更与所有相关有效 ADR 一致；有意改变的决策具备已提交的 ADR 记录、明确的取代关系和对应回归证据。
+
+## 外层循环
+
+同一变更在 `.cursor/skills/verify-fanloop/SKILL.md` 留下 `outcome` 为 `passed` 的 schema-1 manifest 之前，不要为该变更启动云端 Agent 或并行 Agent。步骤见 `docs/outer-loop.md`。
