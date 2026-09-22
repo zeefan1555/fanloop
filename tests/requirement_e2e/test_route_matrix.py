@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 import pathlib
 import tempfile
 import unittest
@@ -143,6 +144,69 @@ class RouteMatrixTest(unittest.TestCase):
         self.assertEqual(request["route"], {"back_step_id": "implement"})
         self.assertIn("--back-step-id", args)
         self.assertEqual(args[args.index("--back-step-id") + 1], "implement")
+
+    def test_verify_evidence_source_plants_matching_manifest(self):
+        current = {
+            "conditions": [
+                {
+                    "id": "independent_review_passed",
+                    "output": {"key": "review", "type": "enum_value", "values": ["passed"]},
+                },
+                {
+                    "id": "blackbox_verification_passed",
+                    "output": {
+                        "key": "blackbox_verification_result",
+                        "type": "enum_value",
+                        "values": ["passed"],
+                        "source": "verify.evidence.outcome",
+                    },
+                },
+                {
+                    "id": "blackbox_verification_failed",
+                    "output": {
+                        "key": "blackbox_verification_result",
+                        "type": "enum_value",
+                        "values": ["failed"],
+                        "source": "verify.evidence.outcome",
+                    },
+                },
+            ]
+        }
+        case = {
+            "scenario_id": "flow-certify_candidate-r01-a01",
+            "source_step_id": "certify_candidate",
+            "condition_ids": ["independent_review_passed", "blackbox_verification_passed"],
+            "route": {"terminal": True},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            results, keys, manifest_ref = route_matrix.condition_results(current, case, root)
+            document = json.loads(pathlib.Path(manifest_ref).read_text(encoding="utf-8"))
+
+            self.assertEqual(results[1]["output"]["value"], "passed")
+            self.assertEqual(keys[1], "blackbox_verification_result")
+            self.assertTrue(pathlib.Path(manifest_ref).is_absolute())
+            self.assertEqual(pathlib.Path(manifest_ref).name, "manifest.json")
+            self.assertEqual(document, {"schema_version": 1, "outcome": "passed"})
+
+            args, request = route_matrix.report_args(root, case, results, manifest_ref)
+            file_evidence = [item for item in request["evidence"] if item["source"] == "file"]
+            self.assertEqual(
+                file_evidence,
+                [{"source": "file", "content": "fanloop verify manifest", "ref": manifest_ref}],
+            )
+            encoded = [args[index + 1] for index, flag in enumerate(args) if flag == "--evidence"]
+            self.assertEqual(len(encoded), 2)
+            self.assertEqual(json.loads(encoded[1])["ref"], manifest_ref)
+
+            conflict = {
+                **case,
+                "scenario_id": "reject-exclusive-conflict",
+                "condition_ids": ["blackbox_verification_passed", "blackbox_verification_failed"],
+            }
+            _, _, conflict_ref = route_matrix.condition_results(current, conflict, root)
+            conflict_document = json.loads(pathlib.Path(conflict_ref).read_text(encoding="utf-8"))
+            self.assertEqual(conflict_document["outcome"], "passed")
 
 
 if __name__ == "__main__":

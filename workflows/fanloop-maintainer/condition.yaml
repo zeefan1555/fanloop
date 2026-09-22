@@ -49,11 +49,11 @@ conditions:
     exclusive_group: independent_review_outcome
   blackbox_verification_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: blackbox_verification_condition}
-    output: {key: blackbox_verification_result, type: enum_value, values: [passed]}
+    output: {key: blackbox_verification_result, type: enum_value, values: [passed], source: verify.evidence.outcome}
     exclusive_group: blackbox_verification_outcome
   blackbox_verification_failed:
     prompt_ref: {file: prompt.yaml, prompt_id: blackbox_verification_condition}
-    output: {key: blackbox_verification_result, type: enum_value, values: [failed]}
+    output: {key: blackbox_verification_result, type: enum_value, values: [failed], source: verify.evidence.outcome}
     exclusive_group: blackbox_verification_outcome
   main_agent_acceptance_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_condition}

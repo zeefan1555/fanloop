@@ -13,6 +13,7 @@ const i32 PROMPT_SCHEMA_VERSION    = 2
 
 const string PROMPT_FILE                      = "prompt.yaml"
 const string OUTPUT_SOURCE_TRACE_DOCUMENT_URL = "integration.trace.document_url"
+const string OUTPUT_SOURCE_VERIFY_EVIDENCE_OUTCOME = "verify.evidence.outcome"
 
 enum Executor {
   unspecified = 0,

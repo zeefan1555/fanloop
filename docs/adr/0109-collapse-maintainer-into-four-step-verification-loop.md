@@ -5,6 +5,7 @@ supersedes: ADR-0106, ADR-0107
 supersedes_in_part: ADR-0100, ADR-0101
 amends: ADR-0103, ADR-0104, ADR-0105
 ---
+**Status / Supersession:** the sentence that this decision adds no IDL is superseded in part by [ADR-0112](./0112-require-verify-evidence-for-agent-acceptance.md) for the single authoring constant OUTPUT_SOURCE_VERIFY_EVIDENCE_OUTCOME. Step id, name, order, and executor are unchanged.
 
 # 将 Maintainer 收敛为四步自主验证闭环
 

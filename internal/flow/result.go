@@ -2,11 +2,13 @@ package flow
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"sort"
 
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/verify"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -89,6 +91,12 @@ func evaluateResult(definition workflow.Workflow, current state.State, request *
 		if condition.Output.Source == workflow.OutputSourceTraceDocumentURL {
 			var documentURL string
 			if current.Integrations.Trace == nil || json.Unmarshal(raw, &documentURL) != nil || documentURL != current.Integrations.Trace.DocumentURL {
+				return resultEvaluation{}, newFlowError(erroridl.ErrorCode_OUTPUT_INVALID, "Condition Output value does not match its authoritative source", map[string]string{"condition_id": result.ConditionId, "source": condition.Output.Source})
+			}
+		}
+		if condition.Output.Source == workflow.OutputSourceVerifyEvidenceOutcome {
+			var claimed string
+			if json.Unmarshal(raw, &claimed) != nil || !verifyEvidenceOutcomeMatches(request.Evidence, claimed) {
 				return resultEvaluation{}, newFlowError(erroridl.ErrorCode_OUTPUT_INVALID, "Condition Output value does not match its authoritative source", map[string]string{"condition_id": result.ConditionId, "source": condition.Output.Source})
 			}
 		}
@@ -234,6 +242,23 @@ func jumpedSkippedSteps(definition workflow.Workflow, current state.State, sourc
 		}
 	}
 	return result
+}
+
+func verifyEvidenceOutcomeMatches(evidence []*flowidl.Evidence, claimed string) bool {
+	var manifestPath string
+	matches := 0
+	for _, item := range evidence {
+		if item == nil || item.Source != flowidl.EvidenceSource_file || filepath.Base(item.GetRef()) != "manifest.json" {
+			continue
+		}
+		matches++
+		manifestPath = item.GetRef()
+	}
+	if matches != 1 {
+		return false
+	}
+	outcome, err := verify.ManifestOutcome(manifestPath)
+	return err == nil && outcome == claimed
 }
 
 func hasHumanEvidence(values []*flowidl.Evidence) bool {

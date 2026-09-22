@@ -3,6 +3,7 @@ status: accepted
 date: 2026-08-15
 amended_by: ADR-0043
 ---
+**Status / Supersession:** the sentence that the CLI does not prove Evidence content quality is superseded in part by [ADR-0112](./0112-require-verify-evidence-for-agent-acceptance.md) only for output source verify.evidence.outcome. Route matching stays condition-id based.
 
 # 使用原子 Condition 驱动 Flow 与 Loop 路由
 

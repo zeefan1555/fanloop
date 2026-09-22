@@ -35,7 +35,7 @@ conditions:
 
   delivery_verified:
     prompt_ref: {file: prompt.yaml, prompt_id: verification_outcome_condition}
-    output: {key: delivery_verification_result, type: enum_value, values: [passed]}
+    output: {key: delivery_verification_result, type: enum_value, values: [passed], source: verify.evidence.outcome}
     exclusive_group: delivery_outcome
   verification_failed:
     prompt_ref: {file: prompt.yaml, prompt_id: verification_written_condition}

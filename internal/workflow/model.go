@@ -110,6 +110,7 @@ type OutputDefinition struct {
 }
 
 const OutputSourceTraceDocumentURL = yamlidl.OUTPUT_SOURCE_TRACE_DOCUMENT_URL
+const OutputSourceVerifyEvidenceOutcome = yamlidl.OUTPUT_SOURCE_VERIFY_EVIDENCE_OUTCOME
 
 type OutputType = yamlidl.OutputType
 

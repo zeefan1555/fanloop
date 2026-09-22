@@ -199,6 +199,12 @@ func TestBundleRejectsInvalidFiveFileRelationships(t *testing.T) {
 		"unknown Output source": func() ([]byte, []byte, []byte, []byte, []byte) {
 			return workflowYAML, flowYAML, []byte(strings.Replace(string(conditionYAML), "type: path", "type: path, source: unknown", 1)), loopYAML, promptYAML
 		},
+		"verify evidence source on path": func() ([]byte, []byte, []byte, []byte, []byte) {
+			return workflowYAML, flowYAML, []byte(strings.Replace(string(conditionYAML), "type: path", "type: path, source: verify.evidence.outcome", 1)), loopYAML, promptYAML
+		},
+		"verify evidence source on disallowed enum": func() ([]byte, []byte, []byte, []byte, []byte) {
+			return workflowYAML, flowYAML, []byte(strings.Replace(string(conditionYAML), "values: [approved]", "values: [approved], source: verify.evidence.outcome", 1)), loopYAML, promptYAML
+		},
 		"forward back": func() ([]byte, []byte, []byte, []byte, []byte) {
 			return workflowYAML, flowYAML, conditionYAML, []byte(strings.Replace(string(loopYAML), "back_step_id: write_note", "back_step_id: confirm_note", 1)), promptYAML
 		},
@@ -310,6 +316,7 @@ func TestOutputTypesAndBounds(t *testing.T) {
 		{OutputDefinition{Type: OutputBoolean}, `true`, true},
 		{OutputDefinition{Type: OutputURLList}, `["https://example.com/a"]`, true},
 		{OutputDefinition{Type: OutputEnum, Values: []string{"ready"}}, `"ready"`, true},
+		{OutputDefinition{Type: OutputEnum, Values: []string{"passed"}, Source: OutputSourceVerifyEvidenceOutcome}, `"passed"`, true},
 		{OutputDefinition{Type: OutputInteger, Minimum: &minimum, Maximum: &maximum}, `2`, true},
 		{OutputDefinition{Type: OutputObject}, `{"ok":true}`, true},
 		{OutputDefinition{Type: OutputPath}, `"/tmp/outside.md"`, false},
@@ -323,6 +330,22 @@ func TestOutputTypesAndBounds(t *testing.T) {
 		if (err == nil) != test.valid {
 			t.Fatalf("case %d: error = %v, valid = %t", index, err, test.valid)
 		}
+	}
+}
+
+func TestVerifyEvidenceOutcomeSourceLoadsOnPassedEnum(t *testing.T) {
+	workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML := validBundle()
+	conditionYAML = []byte(strings.Replace(string(conditionYAML),
+		"output: {key: note_status, type: enum_value, values: [rework]}",
+		"output: {key: note_status, type: enum_value, values: [passed], source: verify.evidence.outcome}",
+		1))
+	loaded, err := DecodeBundle(workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	condition, ok := loaded.Workflow.Condition("note_rework")
+	if !ok || condition.Output.Source != OutputSourceVerifyEvidenceOutcome || !reflect.DeepEqual(condition.Output.Values, []string{"passed"}) {
+		t.Fatalf("loaded output = %#v, ok = %t", condition.Output, ok)
 	}
 }
 

@@ -830,11 +830,24 @@ func replaceBinaryDigest(t *testing.T, source, digest string) {
 
 func copyTreeFile(t *testing.T, source, target string) {
 	t.Helper()
-	content, err := os.ReadFile(source)
+	info, err := os.Lstat(source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	info, err := os.Stat(source)
+	if info.Mode()&os.ModeSymlink != 0 {
+		link, err := os.Readlink(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(link, target); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	content, err := os.ReadFile(source)
 	if err != nil {
 		t.Fatal(err)
 	}

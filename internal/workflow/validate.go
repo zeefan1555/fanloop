@@ -395,7 +395,7 @@ func validateOutputDefinition(id string, definition OutputDefinition) error {
 	if !validTypes[definition.Type] {
 		return fmt.Errorf("output %q has invalid type %q", id, definition.Type)
 	}
-	if definition.Source != "" && (definition.Source != OutputSourceTraceDocumentURL || definition.Type != OutputURL) {
+	if definition.Source != "" && !allowedOutputSource(definition) {
 		return fmt.Errorf("output %q has invalid source %q for type %q", id, definition.Source, definition.Type)
 	}
 	if definition.Type != OutputEnum && len(definition.Values) > 0 {
@@ -429,6 +429,30 @@ func validateOutputDefinition(id string, definition OutputDefinition) error {
 		return fmt.Errorf("output %q has min_items above max_items", id)
 	}
 	return nil
+}
+
+func allowedOutputSource(definition OutputDefinition) bool {
+	switch definition.Source {
+	case OutputSourceTraceDocumentURL:
+		return definition.Type == OutputURL
+	case OutputSourceVerifyEvidenceOutcome:
+		return definition.Type == OutputEnum && verifyEvidenceEnum(definition.Values)
+	default:
+		return false
+	}
+}
+
+func verifyEvidenceEnum(values []string) bool {
+	if len(values) == 0 {
+		return false
+	}
+	allowed := map[string]bool{"passed": true, "failed": true, "blocked": true}
+	for _, value := range values {
+		if !allowed[value] {
+			return false
+		}
+	}
+	return true
 }
 
 func ValidateOutput(definition OutputDefinition, raw json.RawMessage) error {

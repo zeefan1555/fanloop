@@ -1,6 +1,9 @@
 package runtime_test
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -106,6 +109,9 @@ func advanceMaintainerToDelivery(t *testing.T, binary, root string) {
 		for _, condition := range conditions {
 			args = append(args, "--condition-result", condition)
 		}
+		if step == "certify_candidate" {
+			args = append(args, "--evidence", verifyManifestEvidence(t, "passed"))
+		}
 		assertSuccess(t, run(binary, args...), "flow.report.result")
 	}
 	advance("define_verification_contract", "build_until_verified",
@@ -130,4 +136,61 @@ func advanceMaintainerToDelivery(t *testing.T, binary, root string) {
 		conditionResult("certification_report_written", "path", "\"certification-report.md\""),
 		conditionResult("certification_identity_frozen", "object", certification),
 		conditionResult("panorama_presented", "path", "\".fanloop/card/certify.md\""))
+}
+
+func TestPstackVerifyReportRequiresPassedManifest(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "pstack-delivery", "--title", "Verify manifest"), "flow.init")
+
+	advance := func(step, next string, conditions ...string) {
+		t.Helper()
+		args := []string{"flow", "report", "result", "--root", root, "--step-id", step, "--next-step-id", next, "--summary", step + " complete"}
+		for _, condition := range conditions {
+			args = append(args, "--condition-result", condition)
+		}
+		result := run(binary, args...)
+		assertSuccess(t, result, "flow.report.result")
+		assertFlowEffect(t, result.stdout, "advanced", next)
+	}
+	advance("intake", "select_bind_skills", conditionResult("delivery_goal_framed", "path", `"delivery-goal.md"`))
+	advance("select_bind_skills", "confirm_skill_plan", conditionResult("skill_plan_ready", "path", `"skill-plan.md"`))
+	advance("confirm_skill_plan", "execute", conditionResult("skill_plan_approved", "object", `{}`))
+	advance("execute", "verify_report", conditionResult("skills_executed", "path", `"execution-report.md"`))
+
+	report := func(evidence ...string) result {
+		t.Helper()
+		args := []string{"flow", "report", "result", "--root", root, "--step-id", "verify_report",
+			"--condition-result", conditionResult("delivery_verified", "enum_value", `"passed"`),
+			"--terminal", "--summary", "verification manifest"}
+		for _, item := range evidence {
+			args = append(args, "--evidence", item)
+		}
+		return run(binary, args...)
+	}
+	assertError(t, report(), 2, "OUTPUT_INVALID")
+	assertError(t, report(verifyManifestEvidence(t, "failed")), 2, "OUTPUT_INVALID")
+	completed := report(verifyManifestEvidence(t, "passed"))
+	assertSuccess(t, completed, "flow.report.result")
+	assertFlowEffect(t, completed.stdout, "completed", "")
+}
+
+func verifyManifestEvidence(t *testing.T, outcome string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "manifest.json")
+	body, err := json.Marshal(map[string]any{"schema_version": 1, "outcome": outcome})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(body, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	evidence, err := json.Marshal(map[string]string{
+		"source":  "file",
+		"content": "fanloop verify manifest",
+		"ref":     path,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(evidence)
 }

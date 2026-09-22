@@ -2,6 +2,8 @@ package flow
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
@@ -195,6 +197,52 @@ func TestEvaluateCommonStepControls(t *testing.T) {
 	}
 }
 
+func TestEvaluateResultRequiresPassedVerifyManifest(t *testing.T) {
+	loaded, err := workflow.Load("pstack-delivery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	current := state.State{Outputs: map[string]state.RegisteredOutput{}}
+	request := resultRequest("verify_report", terminalRoute(), condition("delivery_verified", flowidl.OutputType_enum_value, "passed"))
+	assertVerifySourceMismatch(t, loaded.Workflow, current, request)
+
+	failedPath := writeVerifyManifest(t, "failed")
+	request.Evidence = fileEvidence(failedPath)
+	assertVerifySourceMismatch(t, loaded.Workflow, current, request)
+
+	passedPath := writeVerifyManifest(t, "passed")
+	request.Evidence = fileEvidence(passedPath)
+	evaluation, failure := evaluateResult(loaded.Workflow, current, request)
+	if failure != nil || evaluation.effect != flowidl.ResultEffect_completed {
+		t.Fatalf("evaluation = %#v, failure = %#v", evaluation, failure)
+	}
+}
+
+func assertVerifySourceMismatch(t *testing.T, definition workflow.Workflow, current state.State, request *flowidl.FlowResultRequest) {
+	t.Helper()
+	_, failure := evaluateResult(definition, current, request)
+	if failure == nil || failure.Code != erroridl.ErrorCode_OUTPUT_INVALID || failure.Message != "Condition Output value does not match its authoritative source" || failure.Details["condition_id"] != "delivery_verified" || failure.Details["source"] != workflow.OutputSourceVerifyEvidenceOutcome {
+		t.Fatalf("failure = %#v", failure)
+	}
+}
+
+func writeVerifyManifest(t *testing.T, outcome string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "manifest.json")
+	content, err := json.Marshal(map[string]any{"schema_version": 1, "outcome": outcome, "run_id": "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(content, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func fileEvidence(path string) []*flowidl.Evidence {
+	return []*flowidl.Evidence{{Source: flowidl.EvidenceSource_file, Content: "fanloop verify manifest", Ref: &path}}
+}
+
 func cloneFlowRoutes(source map[string][]workflow.FlowRoute) map[string][]workflow.FlowRoute {
 	result := make(map[string][]workflow.FlowRoute, len(source))
 	for key, routes := range source {
@@ -217,6 +265,10 @@ func resultRequest(stepID string, route *flowidl.RouteSelection, results ...*flo
 
 func nextRoute(stepID string) *flowidl.RouteSelection {
 	return &flowidl.RouteSelection{NextStepId: &stepID}
+}
+
+func terminalRoute() *flowidl.RouteSelection {
+	return &flowidl.RouteSelection{Terminal: boolPointer(true)}
 }
 
 func backRoute(stepID string) *flowidl.RouteSelection {

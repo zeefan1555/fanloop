@@ -169,6 +169,54 @@ func TestSyntheticOutputHonorsURLListMaximum(t *testing.T) {
 	}
 }
 
+func TestManifestOutcomeReadsSchemaOneRegularFile(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "manifest.json")
+	writeTestFile(t, path, "{\"schema_version\":1,\"outcome\":\"passed\",\"run_id\":\"extra\"}\n")
+	outcome, err := ManifestOutcome(path)
+	if err != nil || outcome != "passed" {
+		t.Fatalf("outcome = %q, err = %v", outcome, err)
+	}
+
+	relative, err := filepath.Rel(mustGetwd(t), path)
+	if err != nil || filepath.IsAbs(relative) {
+		t.Fatalf("relative path = %q, err = %v", relative, err)
+	}
+	if _, err := ManifestOutcome(relative); err == nil {
+		t.Fatal("relative path accepted")
+	}
+
+	link := filepath.Join(directory, "manifest-link.json")
+	if err := os.Symlink(path, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ManifestOutcome(link); err == nil {
+		t.Fatal("symlink accepted")
+	}
+
+	writeTestFile(t, filepath.Join(directory, "schema-zero.json"), "{\"schema_version\":0,\"outcome\":\"passed\"}\n")
+	if _, err := ManifestOutcome(filepath.Join(directory, "schema-zero.json")); err == nil {
+		t.Fatal("schema_version 0 accepted")
+	}
+	writeTestFile(t, filepath.Join(directory, "approved.json"), "{\"schema_version\":1,\"outcome\":\"approved\"}\n")
+	if _, err := ManifestOutcome(filepath.Join(directory, "approved.json")); err == nil {
+		t.Fatal("outcome approved accepted")
+	}
+	writeTestFile(t, filepath.Join(directory, "not-manifest.json"), "{\"schema_version\":1,\"outcome\":\"passed\"}\n")
+	if _, err := ManifestOutcome(filepath.Join(directory, "not-manifest.json")); err == nil {
+		t.Fatal("non-manifest file name accepted")
+	}
+}
+
+func mustGetwd(t *testing.T) string {
+	t.Helper()
+	directory, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return directory
+}
+
 func writeTestFile(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {

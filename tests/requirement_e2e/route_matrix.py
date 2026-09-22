@@ -20,6 +20,8 @@ from typing import Any
 
 TRACE_DOCUMENT_URL = "https://example.invalid/redacted"
 CLI_LOG_DOCUMENT_URL = "https://example.invalid/redacted"
+VERIFY_EVIDENCE_SOURCE = "verify.evidence.outcome"
+VERIFY_EVIDENCE_OUTCOMES = {"passed", "failed", "blocked"}
 
 
 def now() -> str:
@@ -90,10 +92,14 @@ def mock_value(
 ) -> Any:
     output_type = spec["type"]
     source = spec.get("source")
-    if source:
-        if source != "integration.trace.document_url" or output_type != "url":
+    if source == "integration.trace.document_url":
+        if output_type != "url":
             raise AssertionError(f"unsupported authoritative Output source {source!r}")
         return TRACE_DOCUMENT_URL
+    if source == VERIFY_EVIDENCE_SOURCE and output_type != "enum_value":
+        raise AssertionError(f"unsupported authoritative Output source {source!r}")
+    if source and source != VERIFY_EVIDENCE_SOURCE:
+        raise AssertionError(f"unsupported authoritative Output source {source!r}")
     if output_type == "enum_value":
         values = spec.get("values") or []
         if not values:
@@ -129,6 +135,25 @@ def mock_value(
     if output_type == "object":
         return {"e2e_mock": True}
     raise AssertionError(f"unsupported Output type {output_type!r} for {condition_id}")
+
+
+def plant_verify_manifest(
+    requirement_root: pathlib.Path,
+    scenario_id: str,
+    condition_id: str,
+    outcome: str,
+) -> str:
+    if outcome not in VERIFY_EVIDENCE_OUTCOMES:
+        raise AssertionError(f"verify manifest outcome {outcome!r} is not schema-1")
+    path = (
+        requirement_root / "mock" / "verify" / scenario_id / condition_id / "manifest.json"
+    ).resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"schema_version": 1, "outcome": outcome}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return str(path)
 
 
 class Recorder:
@@ -292,40 +317,53 @@ def condition_results(
     current_state: dict[str, Any],
     case: dict[str, Any],
     root: pathlib.Path,
-) -> tuple[list[dict[str, Any]], list[str]]:
+) -> tuple[list[dict[str, Any]], list[str], str | None]:
     available = {item["id"]: item for item in current_state["conditions"]}
     results, keys = [], []
+    manifest_ref = None
     for condition_id in case["condition_ids"]:
         if condition_id not in available:
             raise AssertionError(f"Status omitted Condition {condition_id}")
         output = available[condition_id]["output"]
         keys.append(output["key"])
+        value = mock_value(
+            condition_id,
+            output,
+            case["source_step_id"],
+            case["scenario_id"],
+            root,
+        )
         results.append(
             {
                 "condition_id": condition_id,
                 "output": {
                     "type": output["type"],
-                    "value": mock_value(
-                        condition_id,
-                        output,
-                        case["source_step_id"],
-                        case["scenario_id"],
-                        root,
-                    ),
+                    "value": value,
                 },
             }
         )
-    return results, keys
+        if manifest_ref is None and output.get("source") == VERIFY_EVIDENCE_SOURCE:
+            manifest_ref = plant_verify_manifest(root, case["scenario_id"], condition_id, value)
+    return results, keys, manifest_ref
 
 
-def request_for_case(case: dict[str, Any], results: list[dict[str, Any]]) -> dict[str, Any]:
+def request_for_case(
+    case: dict[str, Any],
+    results: list[dict[str, Any]],
+    manifest_ref: str | None = None,
+) -> dict[str, Any]:
     summary = f"e2e-mock {case['scenario_id']}: {','.join(case['condition_ids'])}"
+    evidence = [{"source": "ai", "content": summary, "ref": case["scenario_id"]}]
+    if manifest_ref:
+        evidence.append(
+            {"source": "file", "content": "fanloop verify manifest", "ref": manifest_ref}
+        )
     return {
         "step_id": case["source_step_id"],
         "condition_results": results,
         "route": case["route"],
         "summary": summary,
-        "evidence": [{"source": "ai", "content": summary, "ref": case["scenario_id"]}],
+        "evidence": evidence,
     }
 
 
@@ -333,9 +371,9 @@ def report_args(
     root: pathlib.Path,
     case: dict[str, Any],
     results: list[dict[str, Any]],
+    manifest_ref: str | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
-    request = request_for_case(case, results)
-    evidence = request["evidence"][0]
+    request = request_for_case(case, results, manifest_ref)
     args = [
         "flow", "report", "result", "--root", str(root),
         "--step-id", request["step_id"],
@@ -347,12 +385,11 @@ def report_args(
                 json.dumps(result, ensure_ascii=False, separators=(",", ":")),
             ]
         )
-    args.extend(
-        [
-            "--summary", request["summary"],
-            "--evidence", json.dumps(evidence, ensure_ascii=False, separators=(",", ":")),
-        ]
-    )
+    args.extend(["--summary", request["summary"]])
+    for evidence in request["evidence"]:
+        args.extend(
+            ["--evidence", json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))]
+        )
     if "next_step_id" in request["route"]:
         args.extend(["--next-step-id", request["route"]["next_step_id"]])
     elif "back_step_id" in request["route"]:
@@ -443,8 +480,8 @@ def execute_dry_run(
         current_state = current(status(recorder, scenario_id, dry_root, "status-before"))
         if current_state is None:
             raise AssertionError("dry-run source has no current Step")
-        results, _ = condition_results(current_state, case, dry_root)
-        args, request = report_args(dry_root, case, results)
+        results, _, manifest_ref = condition_results(current_state, case, dry_root)
+        args, request = report_args(dry_root, case, results, manifest_ref)
         before_files = durable_bytes(dry_root)
         dry = success(
             recorder.run(
@@ -460,7 +497,7 @@ def execute_dry_run(
             raise AssertionError("dry-run returned event_id")
         if before_files != durable_bytes(dry_root):
             raise AssertionError("dry-run changed State/Event files")
-        real_args, _ = report_args(real_root, case, results)
+        real_args, _ = report_args(real_root, case, results, manifest_ref)
         real = success(
             recorder.run(scenario_id, "real-result", real_root, real_args),
             "real Result",
@@ -625,8 +662,8 @@ def execute_case(
         if matches != [case]:
             raise AssertionError("Status does not expose the exact Route alternative")
         pre_state = state(root)
-        results, output_keys = condition_results(current_state, case, root)
-        args, request = report_args(root, case, results)
+        results, output_keys, manifest_ref = condition_results(current_state, case, root)
+        args, request = report_args(root, case, results, manifest_ref)
         recorder.show(
             f"=== {case['scenario_id']} ===",
             "[当前状态与目标]",
@@ -833,10 +870,10 @@ def main() -> int:
                 if not loop_cases:
                     raise AssertionError(f"{step_id} has no Loop Route for negative checks")
                 loop_case = loop_cases[0]
-                flow_results, _ = condition_results(current_state, primary, baseline)
-                loop_results, _ = condition_results(current_state, loop_case, baseline)
-                flow_request = request_for_case(primary, flow_results)
-                loop_request = request_for_case(loop_case, loop_results)
+                flow_results, _, flow_manifest = condition_results(current_state, primary, baseline)
+                loop_results, _, loop_manifest = condition_results(current_state, loop_case, baseline)
+                flow_request = request_for_case(primary, flow_results, flow_manifest)
+                loop_request = request_for_case(loop_case, loop_results, loop_manifest)
                 unknown = dict(flow_request)
                 unknown["route"] = {"next_step_id": "__missing_step__"}
                 stale = dict(flow_request)
@@ -871,8 +908,8 @@ def main() -> int:
                 pair = next((ids[:2] for ids in groups.values() if len(ids) >= 2), None)
                 if pair:
                     conflict_case = {**primary, "scenario_id": "reject-exclusive-conflict", "condition_ids": pair}
-                    conflict_results, _ = condition_results(current_state, conflict_case, baseline)
-                    conflict = request_for_case(conflict_case, conflict_results)
+                    conflict_results, _, conflict_manifest = condition_results(current_state, conflict_case, baseline)
+                    conflict = request_for_case(conflict_case, conflict_results, conflict_manifest)
                     conflict["route"] = primary["route"]
                     negative_requests.append(
                         ("reject-exclusive-conflict", conflict, "CONDITION_CONFLICT")
@@ -901,13 +938,13 @@ def main() -> int:
                         "scenario_id": "reject-partial-condition-group",
                         "condition_ids": complex_case["condition_ids"][:1],
                     }
-                    partial_results, _ = condition_results(current_state, partial_case, baseline)
+                    partial_results, _, partial_manifest = condition_results(current_state, partial_case, baseline)
                     checks.append(
                         execute_rejected_case(
                             recorder,
                             baseline,
                             partial_case["scenario_id"],
-                            request_for_case(partial_case, partial_results),
+                            request_for_case(partial_case, partial_results, partial_manifest),
                             "ROUTE_NOT_MATCHED",
                         )
                     )

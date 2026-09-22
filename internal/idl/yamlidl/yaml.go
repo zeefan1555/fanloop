@@ -27,6 +27,8 @@ const (
 	PROMPT_FILE = "prompt.yaml"
 
 	OUTPUT_SOURCE_TRACE_DOCUMENT_URL = "integration.trace.document_url"
+
+	OUTPUT_SOURCE_VERIFY_EVIDENCE_OUTCOME = "verify.evidence.outcome"
 )
 
 type Executor int64

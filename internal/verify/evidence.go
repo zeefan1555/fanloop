@@ -33,6 +33,41 @@ type manifest struct {
 	Outcome         string                         `json:"outcome"`
 }
 
+type manifestOutcomeDocument struct {
+	SchemaVersion int    `json:"schema_version"`
+	Outcome       string `json:"outcome"`
+}
+
+func ManifestOutcome(path string) (string, error) {
+	if !filepath.IsAbs(path) || filepath.Base(path) != "manifest.json" {
+		return "", fmt.Errorf("manifest path must be an absolute manifest.json")
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return "", fmt.Errorf("manifest path must be a regular file")
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	var document manifestOutcomeDocument
+	if err := json.Unmarshal(content, &document); err != nil {
+		return "", err
+	}
+	if document.SchemaVersion != manifestSchemaVersion {
+		return "", fmt.Errorf("manifest schema_version must be %d", manifestSchemaVersion)
+	}
+	switch document.Outcome {
+	case "passed", "failed", "blocked":
+		return document.Outcome, nil
+	default:
+		return "", fmt.Errorf("manifest outcome is invalid")
+	}
+}
+
 type candidateIdentity struct {
 	ReleaseVersion string `json:"release_version"`
 	CommitSHA      string `json:"commit_sha"`
