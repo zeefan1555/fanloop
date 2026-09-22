@@ -533,3 +533,65 @@ func TestTechnicalSolutionStepArtifactLists(t *testing.T) {
 		})
 	}
 }
+
+func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
+	repo := repositoryRoot(t)
+	read := func(relative string) string {
+		t.Helper()
+		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(content)
+	}
+
+	const skill = ".cursor/skills/verify-fanloop/SKILL.md"
+	agents := read("AGENTS.md")
+	ownership := read("docs/ownership.md")
+	readme := read("README.md")
+	design := read("docs/technical-design.md")
+	glossary := read("CONTEXT.md")
+	entry := read(skill)
+
+	for _, file := range []struct{ name, text string }{
+		{"AGENTS.md", agents},
+		{"docs/ownership.md", ownership},
+		{"README.md", readme},
+		{"docs/technical-design.md", design},
+	} {
+		if !strings.Contains(file.text, skill) {
+			t.Errorf("%s missing %s", file.name, skill)
+		}
+	}
+	if !strings.Contains(agents, "docs/ownership.md") {
+		t.Error("AGENTS.md does not point at docs/ownership.md")
+	}
+	if !strings.Contains(glossary, ".cursor/skills/verify-fanloop/features/") {
+		t.Error("CONTEXT.md does not point at the Feature Map")
+	}
+	for _, suite := range []string{
+		"technical-solution-design",
+		"fanloop-maintainer",
+		"material-flashcards",
+		"pstack-delivery",
+	} {
+		if !strings.Contains(ownership, suite) {
+			t.Errorf("docs/ownership.md missing production suite %s", suite)
+		}
+	}
+	for _, anchor := range []string{
+		"./scripts/install-local.sh",
+		"features/README.md",
+		"post_merge_smoke_passed",
+		"verify.evidence.outcome",
+		"cmd/verify.go",
+		"internal/verify",
+	} {
+		if !strings.Contains(entry, anchor) && !strings.Contains(ownership, anchor) {
+			t.Errorf("paved path missing %s", anchor)
+		}
+	}
+	if strings.Contains(readme, "fanloop verify snapshot --root") {
+		t.Error("README.md still lists a second verify command recipe")
+	}
+}

@@ -147,4 +147,4 @@ GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发�
 ```
 
 它覆盖格式、IDL 新鲜度、静态检查、Go 测试与 Contract。完整 Requirement lifecycle 与生产 Workflow
-Route Matrix 由 CI 的 `requirement-e2e` 执行；本地用户表面由隔离候选的 Verification Skill 验证。
+Route Matrix 由 CI 的 `requirement-e2e` 执行。本地用户表面按 `.cursor/skills/verify-fanloop/SKILL.md` 用隔离候选验证。

@@ -96,8 +96,8 @@ Set 与 Feature Impact Set；Build 持续实现、运行、诊断和修复；Cer
 Review、黑盒验证和主 Agent最终决定。
 
 **Agent Acceptance / Delivery**
-冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current；全新 Sub-agent 只使用隔离 CLI、叶子 Help、
-Feature Map 和 Acceptance Set 做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户凭据。Deliver 发现
+冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current。全新 Sub-agent 只使用隔离 CLI、叶子 Help、
+Feature Map 和 Acceptance Set 做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户凭据。Feature Map 位于 `.cursor/skills/verify-fanloop/features/`。Deliver 发现
 main 前进时只记录新 base 并回 Build，不能修改候选；重新认证后发布唯一 PR、等待 required checks、自动
 squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 与全局 CLI 更新到
 merge commit，运行 Doctor 与 smoke。该流程不发布远端制品，也不触碰其他 checkout。

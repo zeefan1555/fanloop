@@ -82,18 +82,7 @@ Agent 的统一入口是 `fanloop-workflow` Skill。它按以下闭环推进：
 flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow status
 ```
 
-项目级验证使用公开 CLI，而不是把单元测试当作用户路径：
-
-```bash
-fanloop verify doctor
-fanloop verify smoke
-fanloop verify snapshot --root /absolute/path/to/requirement
-fanloop verify cleanup --run-id <RUN_ID> --dry-run
-```
-
-`verify smoke` 使用隔离数据目录、Requirement 和 Skill Root，清除 Botmux 绑定，并通过当前可执行文件重新
-驱动真实 CLI。默认证据保存在 `$FANLOOP_DATA_HOME/verification/runs/<RUN_ID>/`，包含 Manifest、报告、
-逐命令 stdout/stderr、前后快照和 Requirement CLI 日志；Cleanup 删除运行拥有的临时资源但保留证据。
+项目级验证只走 [`.cursor/skills/verify-fanloop/SKILL.md`](./.cursor/skills/verify-fanloop/SKILL.md)。
 
 `technical-solution-design` 的十六个 Step 按业务问题、技术判断和结果与规划三阶段推进。文章第 0 至
 第 10 章各有一个独立 Agent Step 和 Markdown 产物，另保留三个 Human Gate、文档组装与独立审校。
@@ -151,16 +140,11 @@ fanloop flow init \
 ./tests/run-unit
 ```
 
-完整 Requirement lifecycle 与全部生产 Workflow Route Matrix 由 CI 的 `requirement-e2e` check 运行；本地真实
-用户路径使用 `fanloop verify` 和 Verification Skill 验证。
-
-项目级闭环只有一条验证路径。Cursor 入口是
-[`.cursor/skills/verify-fanloop/SKILL.md`](./.cursor/skills/verify-fanloop/SKILL.md)。驱动步骤在
-[`workflows/fanloop-maintainer/skills/fanloop-dev-verify/`](./workflows/fanloop-maintainer/skills/fanloop-dev-verify/)。
-`.cursor/skills/verify-fanloop/features` 是该目录 `references/features/` 的符号链接，不另存一份地图。
-它从当前候选建立隔离安装，使用公开 CLI 驱动真实路径，并在清理临时环境后保留证据。验证地图由
-`fanloop-dev-maintain-verification` 按 source + live 方式维护；产品行为失败必须作为产品问题报告，不能
-通过改写地图掩盖。
+完整 Requirement lifecycle 与全部生产 Workflow Route Matrix 由 CI 的 `requirement-e2e` check 运行。
+本地用户路径只走 [`.cursor/skills/verify-fanloop/SKILL.md`](./.cursor/skills/verify-fanloop/SKILL.md)。
+驱动步骤在 [`workflows/fanloop-maintainer/skills/fanloop-dev-verify/`](./workflows/fanloop-maintainer/skills/fanloop-dev-verify/)。
+`.cursor/skills/verify-fanloop/features` 是该目录 `references/features/` 的符号链接。
+`fanloop-dev-maintain-verification` 按 source 与 live 维护这张地图。产品行为失败作为产品问题报告。
 
 Contract Golden 只在人工确认契约变化后更新：
 

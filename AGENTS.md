@@ -65,7 +65,7 @@
 触发条件：修改 Go、Node、Python、Workflow、IDL、生成链、构建或发布脚本等会改变产品或测试行为的代码。
 
 1. 实现期间必须运行受影响的聚焦测试、必要格式检查和一次 `./tests/run-unit`；命令、结果和当前 HEAD 写入验证记录。
-2. 用户可见 CLI、Workflow、安装、状态、投影或 Skill 行为变化时，从同一候选安装隔离 Release，运行 `fanloop verify doctor` 与相关 Feature 场景；审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent 只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
+2. 用户可见 CLI、Workflow、安装、状态、投影或 Skill 行为变化时，从同一候选安装隔离 Release。安装、`fanloop verify doctor`、Feature Map 和 `verify.evidence.outcome` 只按 `.cursor/skills/verify-fanloop/SKILL.md` 执行。四套生产 Workflow 目录写在 `docs/ownership.md`。审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent 只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
 3. `.github/scripts/run-requirement-validation` 只属于 CI，实现完整 Requirement lifecycle 与全部生产 Workflow Route Matrix；它不是本地开发入口，也不得被 Maintainer Skill 要求手工执行。
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。

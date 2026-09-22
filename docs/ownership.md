@@ -8,7 +8,7 @@ orchestration directory.
 | Live Workflow configuration | `workflows/`, `exemplars/`, installed `current/workflows/` | Five-file Workflow definitions, bound Agent instructions, seed content and live edits |
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback editor |
-| Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts and E2E gates |
+| Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
 | Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh` | Immutable CLI builds, first-seed live configuration, diagnosis and nested Release switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
@@ -29,3 +29,9 @@ Four production Workflow IDs currently ship under `workflows/<id>/`:
 `technical-solution-design`, `fanloop-maintainer`, `material-flashcards`, and
 `pstack-delivery`. Ownership of those directories remains the Live Workflow
 configuration boundary above; this note only records the live suite list.
+
+## Verify entry
+
+Install, `fanloop verify doctor`, the Feature Map, and `verify.evidence.outcome` start at `.cursor/skills/verify-fanloop/SKILL.md`. `features/` in that directory is a symlink to `workflows/fanloop-maintainer/skills/fanloop-dev-verify/references/features/`.
+
+`cmd/verify.go` and `internal/verify` implement that public CLI. The agent entry is `.cursor/skills/verify-fanloop/SKILL.md`. Go package layout stays in place.

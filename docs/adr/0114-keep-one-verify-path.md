@@ -3,6 +3,7 @@ status: accepted
 date: 2026-09-22
 amends: ADR-0112, ADR-0113
 supersedes_in_part: ADR-0091, ADR-0101
+amended_by: ADR-0115
 ---
 
 # 园丁循环只留一条验证路径
