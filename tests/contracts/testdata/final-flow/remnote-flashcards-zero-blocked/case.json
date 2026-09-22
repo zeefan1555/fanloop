@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "id": "remnote-flashcards-zero-blocked",
+  "commands": [
+    {
+      "args": [
+        "flow",
+        "init",
+        "--root",
+        "{{ROOT}}",
+        "--workflow",
+        "remnote-flashcards",
+        "--title",
+        "Synthetic RemNote Contract"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "report",
+        "result",
+        "--root",
+        "{{ROOT}}",
+        "--step-id",
+        "resolve_home_tag",
+        "--condition-result",
+        "{\"condition_id\":\"home_tag_ready\",\"output\":{\"type\":\"object\",\"value\":{\"home_id\":\"synthetic-home\",\"tag_id\":\"synthetic-tag\",\"ancestor_ids\":[\"synthetic-home\"],\"created_tag_ids\":[],\"source_refs\":[\"synthetic:conversation\"]}}}",
+        "--summary",
+        "synthetic receipt; no RemNote operations",
+        "--next-step-id",
+        "write_flashcards"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "report",
+        "progress",
+        "--root",
+        "{{ROOT}}",
+        "--step-id",
+        "write_flashcards",
+        "--status",
+        "blocked",
+        "--summary",
+        "synthetic unavailable bridge"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "status",
+        "--root",
+        "{{ROOT}}"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "report",
+        "result",
+        "--root",
+        "{{ROOT}}",
+        "--step-id",
+        "write_flashcards",
+        "--condition-result",
+        "{\"condition_id\":\"flashcards_written\",\"output\":{\"type\":\"object\",\"value\":{\"created_rem_ids\":[],\"updated_rem_ids\":[],\"reused_rem_ids\":[\"synthetic-card\"],\"card_ids\":[\"synthetic-card-id\"],\"topic_ids\":[],\"daily_rem_ids\":[\"synthetic-today\"],\"tag_id\":\"synthetic-tag\",\"source_refs\":[\"synthetic:conversation\"],\"skipped_count\":1,\"pending_link_card_ids\":[\"synthetic-card\"]}}}",
+        "--summary",
+        "synthetic receipt; no RemNote operations",
+        "--next-step-id",
+        "update_wiki_links"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "report",
+        "result",
+        "--root",
+        "{{ROOT}}",
+        "--step-id",
+        "update_wiki_links",
+        "--condition-result",
+        "{\"condition_id\":\"wiki_links_updated\",\"output\":{\"type\":\"object\",\"value\":{\"wiki_root_id\":\"synthetic-wiki\",\"created_page_ids\":[],\"updated_page_ids\":[],\"reused_page_ids\":[\"synthetic-page\"],\"linked_card_ids\":[\"synthetic-card\"],\"reference_pairs\":[{\"from_id\":\"synthetic-card\",\"to_id\":\"synthetic-page\"}]}}}",
+        "--summary",
+        "synthetic receipt; no RemNote operations",
+        "--next-step-id",
+        "verify_result"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "report",
+        "result",
+        "--root",
+        "{{ROOT}}",
+        "--step-id",
+        "verify_result",
+        "--condition-result",
+        "{\"condition_id\":\"result_verified\",\"output\":{\"type\":\"enum_value\",\"value\":\"passed\"}}",
+        "--summary",
+        "synthetic receipt; no RemNote operations",
+        "--terminal"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "status",
+        "--root",
+        "{{ROOT}}"
+      ]
+    }
+  ]
+}

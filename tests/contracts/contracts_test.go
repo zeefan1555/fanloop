@@ -234,44 +234,18 @@ func TestPrivateLeakDetectionChecksEachSnapshot(t *testing.T) {
 	}
 }
 
-func TestMaterialFlashcardsPrivacyCaseCoversLocalSurfaces(t *testing.T) {
-	repo := repositoryRoot(t)
-	value := loadCase(t, filepath.Join(repo, "tests", "contracts", "testdata", "final-flow", "material-flashcards-recovery", "case.json"))
-	for _, path := range []string{
-		"artifacts/private-source.md",
-		"artifacts/review-goal.md",
-		"artifacts/knowledge-selection.md",
-		"artifacts/card-plan.md",
-		"artifacts/cards.md",
-		"artifacts/quality-review.md",
-		"artifacts/draft-integrity.json",
-		"artifacts/preview.md",
-		"artifacts/preview-record.json",
-		"artifacts/approval-record.json",
-		"artifacts/persistence-error.json",
-		"artifacts/post-write-error.json",
-		"artifacts/post-write-validation.md",
-	} {
-		if !slices.Contains(value.PrivateFiles, path) {
-			t.Errorf("privacy contract is missing private fixture %q", path)
+func TestRemnoteContractUsesIDsWithoutLocalContentCopies(t *testing.T) {
+	value := loadCase(t, filepath.Join(repositoryRoot(t), "tests", "contracts", "testdata", "final-flow", "remnote-flashcards-recovery", "case.json"))
+	if len(value.PrivateFiles) != 0 {
+		t.Fatal("RemNote content must not be copied into local fixtures")
+	}
+	for _, command := range value.Commands {
+		for _, arg := range command.Args {
+			if strings.Contains(arg, "Decks/") || strings.Contains(arg, "artifacts/cards.md") {
+				t.Fatal("retired persistence artifact in RemNote contract")
+			}
 		}
 	}
-	for index, command := range value.Commands {
-		if len(command.Args) >= 2 && command.Args[0] == "card" && command.Args[1] == "render" && !slices.Contains(command.Args, "--dry-run") {
-			if index == 0 {
-				t.Fatal("Panorama render has no preceding Evidence-clearing command")
-			}
-			previous := value.Commands[index-1].Args
-			if len(previous) < 3 || !slices.Equal(previous[:3], []string{"flow", "report", "progress"}) ||
-				!slices.Contains(previous, "confirm_card_preview") ||
-				!slices.Contains(previous, "in_progress") ||
-				slices.Contains(previous, "--evidence") {
-				t.Error("privacy contract does not clear Current Evidence immediately before Panorama render")
-			}
-			return
-		}
-	}
-	t.Error("privacy contract does not render a non-dry-run Panorama with private fixtures present")
 }
 
 func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {

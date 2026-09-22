@@ -293,84 +293,63 @@ func TestVerificationFeatureMapIsNavigable(t *testing.T) {
 	}
 }
 
-func TestMaterialFlashcardsAssetsEnforceApprovedBoundary(t *testing.T) {
+func TestRemnoteSkillsAreBundleLocal(t *testing.T) {
 	repo := repositoryRoot(t)
-	contracts := map[string][]string{
-		"workflows/material-flashcards/prompt.yaml": {
-			"候选数量由材料决定，不设固定数量或类型配额", "create-exclusive/no-replace", "不得自动创建第二个目标",
-		},
-		"workflows/material-flashcards/skills/flashcard/SKILL.md": {
-			"Decks", "references/term-concept-card.md", "文件级校验",
-			`r"^##\s+"`, `r"^#{3,6}\s+"`, `r"decks/[^\s]+"`,
-		},
-		"workflows/material-flashcards/skills/flashcard/references/term-concept-card.md": {
-			"定义型概念卡", "区分型概念卡", "运作型概念卡", "【Why", "【What", "【How",
-		},
-		"workflows/material-flashcards/skills/flashcard-goal-framing/SKILL.md": {
-			"write_mode=create_new_only", "预览投递位置", "Vault 相对", "create-exclusive/no-replace", "blocked",
-		},
-		"workflows/material-flashcards/skills/flashcard-source-understanding/SKILL.md": {
-			"来源事实", "被归因的判断", "用户理解", "unknown", "私密材料不得进入 Event / Trace / CLI 日志或未确认的群聊",
-		},
-		"workflows/material-flashcards/skills/flashcard-knowledge-selection/SKILL.md": {
-			"0..N", "长期价值", "现实适用性", "分类级排除理由", "Vault 零写入", "新 Requirement",
-		},
-		"workflows/material-flashcards/skills/flashcard-card-planning/SKILL.md": {
-			"一张卡一个", "集合", "长枚举", "8 adopted / 8 partial / 4 non-goal", "term-concept-card.md",
-		},
-		"workflows/material-flashcards/skills/flashcard-quality-review/SKILL.md": {
-			"pass / fail / not-applicable", "不得修改任何输入", "最早受影响层", "20 rules", "不复制其规则",
-		},
-		"workflows/material-flashcards/skills/flashcard-preview-approval/SKILL.md": {
-			"quality_review", "preview_record", "approval_record", "sender_type=human", "不得自行批准", "新的明确人类批准",
-		},
-		"workflows/material-flashcards/skills/material-flashcards-panorama/SKILL.md": {
-			"只依据系统或开发者上下文中已经声明的当前 Agent 人设", "Botmux Agent：`botmux`",
-			"AIME Agent：`aime`", "Aiden Agent：`aiden`", "Codex、Claude Code 和 Trae：`local_agent`",
-			"botmux send --card-file", "第一条用户可见消息", "真正的人工问题只能随后发送", "最终回复不得重复 Panorama", "不自行拼装内容",
-			`--content "$(cat -- "$card_file")"`, "渲染前确认 Current Evidence 为空",
-			"卡片正文", "个人细节", "来源内容", "findings", "反馈",
-		},
-		"entrypoints/fanloop-workflow/routes.yaml": {
-			"material-flashcards:", "workflow: material-flashcards", "description: 从材料生成经人工确认的长期复习闪卡组",
-		},
+	root := filepath.Join(repo, "workflows", "remnote-flashcards", "skills")
+	want := []string{"control-remnote", "remnote-cli", "remnote-flashcards", "remnote-structure", "remnote-verify", "remnote-wiki"}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for relative, snippets := range contracts {
-		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
-		if err != nil {
-			t.Errorf("read %s: %v", relative, err)
-			continue
-		}
-		for _, snippet := range snippets {
-			if !strings.Contains(string(content), snippet) {
-				t.Errorf("%s is missing %q", relative, snippet)
-			}
+	if len(entries) != len(want) {
+		t.Fatalf("Skill count = %d", len(entries))
+	}
+	linkPattern := regexp.MustCompile(`\]\(([^)]+\.md)\)`)
+	for i, entry := range entries {
+		if entry.Name() != want[i] || !entry.IsDir() {
+			t.Fatalf("unexpected Skill %s", entry.Name())
 		}
 	}
-
-	for _, root := range []string{
-		filepath.Join(repo, "workflows", "material-flashcards"),
-		filepath.Join(repo, "workflows", "material-flashcards", "skills"),
-	} {
-		err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-			if entry.IsDir() {
-				return nil
-			}
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			if strings.Contains(string(content), "/Users/") {
-				t.Errorf("%s contains a machine-specific absolute path", path)
-			}
+	err = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			t.Errorf("Skill uses symlink: %s", path)
+		}
+		if entry.IsDir() || !strings.HasSuffix(path, ".md") {
 			return nil
-		})
-		if err != nil {
-			t.Errorf("walk %s: %v", root, err)
 		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, forbidden := range []string{".agents/skills/", "/Users/", "docs/adr/0002-remnote-content-organization.md"} {
+			if strings.Contains(string(content), forbidden) {
+				t.Errorf("nonportable reference %s in %s", forbidden, path)
+			}
+		}
+		for _, match := range linkPattern.FindAllStringSubmatch(string(content), -1) {
+			if strings.Contains(match[1], "://") {
+				continue
+			}
+			target := filepath.Clean(filepath.Join(filepath.Dir(path), match[1]))
+			relative, err := filepath.Rel(root, target)
+			if err != nil || strings.HasPrefix(relative, "..") {
+				t.Errorf("out-of-bundle reference %s in %s", target, path)
+				continue
+			}
+			if info, err := os.Stat(target); err != nil || !info.Mode().IsRegular() {
+				t.Errorf("broken reference %s in %s", target, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "workflows", "material-flashcards")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("retired workflow remains")
 	}
 }
 
@@ -381,7 +360,6 @@ func TestPanoramaPrecedesHumanQuestion(t *testing.T) {
 		"workflows/fanloop-maintainer/skills/fanloop-dev-workflow/SKILL.md",
 		"workflows/fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md",
 		"workflows/technical-solution-design/skills/technical-solution-panorama/SKILL.md",
-		"workflows/material-flashcards/skills/material-flashcards-panorama/SKILL.md",
 	}
 	for _, relative := range paths {
 		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
@@ -572,7 +550,7 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 	for _, suite := range []string{
 		"technical-solution-design",
 		"fanloop-maintainer",
-		"material-flashcards",
+		"remnote-flashcards",
 		"pstack-delivery",
 	} {
 		if !strings.Contains(ownership, suite) {

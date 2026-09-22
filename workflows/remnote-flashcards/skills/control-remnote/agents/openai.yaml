@@ -1,0 +1,4 @@
+interface:
+  display_name: "Control RemNote"
+  short_description: "通过电脑界面安全控制并核验 RemNote 原生状态"
+  default_prompt: "Use $control-remnote to perform and verify this RemNote desktop action."

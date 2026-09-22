@@ -21,7 +21,7 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	for index, item := range items {
 		refs[index] = item.Ref.ID
 	}
-	wantRefs := []string{"fanloop-maintainer", "material-flashcards", "pstack-delivery", "technical-solution-design"}
+	wantRefs := []string{"fanloop-maintainer", "pstack-delivery", "remnote-flashcards", "technical-solution-design"}
 	if !reflect.DeepEqual(refs, wantRefs) {
 		t.Fatalf("Workflow IDs = %v", refs)
 	}

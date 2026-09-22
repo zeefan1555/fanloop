@@ -164,7 +164,7 @@ func TestHandlerRejectsSkillSaveWhenAnotherWorkflowIsInvalid(t *testing.T) {
 	}
 	skillPath := "fanloop-maintainer/skills/fanloop-dev-tdd/SKILL.md"
 	skill := readFileResponse(t, handler, skillPath)
-	brokenWorkflow := filepath.Join(root, "material-flashcards", "workflow.yaml")
+	brokenWorkflow := filepath.Join(root, "remnote-flashcards", "workflow.yaml")
 	if err := os.WriteFile(brokenWorkflow, []byte("invalid: true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

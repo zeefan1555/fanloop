@@ -4,6 +4,8 @@ date: 2026-09-22
 amends_inventory: ADR-0062, ADR-0108
 ---
 
+库存中的旧制卡 ID 已由 [ADR-0117](0117-replace-decks-with-remnote-flashcards.md) 替换为 `remnote-flashcards`，其余本决策不变。
+
 # 记录四套生产 Workflow 清单（仅库存）
 
 生产 live 配置现为四套 Workflow，路径均为 `workflows/<id>/`：

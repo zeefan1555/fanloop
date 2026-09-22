@@ -21,7 +21,7 @@ func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("material-flashcards")
+	loaded, err := workflow.Load("remnote-flashcards")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,7 +392,7 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("material-flashcards")
+	loaded, err := workflow.Load("remnote-flashcards")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,9 +6,9 @@ scenarios:
   fanloop-maintenance:
     workflow: fanloop-maintainer
     description: 维护 Fanloop 自身代码、Workflow 与 Release
-  material-flashcards:
-    workflow: material-flashcards
-    description: 从材料生成经人工确认的长期复习闪卡组
+  remnote-flashcards:
+    workflow: remnote-flashcards
+    description: 基于已理解的概念完成 HOME 分类、RemNote 制卡、Wiki 引用与最终校验
   pstack-delivery:
     workflow: pstack-delivery
     description: 原样绑定并编排原生 pstack skills 的交付流程

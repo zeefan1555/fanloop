@@ -200,7 +200,7 @@ func TestLiveWorkflowRequirementPreservesCorruptionInvariants(t *testing.T) {
 			name: "Output registry binding mismatch",
 			corrupt: func(t *testing.T, root string) {
 				mutateJSONObject(t, filepath.Join(root, ".fanloop", "output", "state.json"), func(value map[string]any) {
-					value["workflow"].(map[string]any)["id"] = "material-flashcards"
+					value["workflow"].(map[string]any)["id"] = "remnote-flashcards"
 				})
 			},
 		},

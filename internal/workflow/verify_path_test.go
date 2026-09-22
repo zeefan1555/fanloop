@@ -11,6 +11,8 @@ import (
 )
 
 var verifyOutcomeAllowlist = map[string]bool{
+	// RemNote content/structure checks are business facts, not Fanloop candidate verification.
+	"result_verified":              true,
 	"main_agent_acceptance_passed": true,
 	"merge_tree_verified":          true,
 }
@@ -29,6 +31,7 @@ func TestVerifyOutcomeClaimRule(t *testing.T) {
 		values  []string
 		want    bool
 	}{
+		{"result_verified", "verification_result", OutputEnum, []string{"passed"}, false},
 		{"delivery_verified", "delivery_verification_result", OutputEnum, []string{"passed"}, true},
 		{"post_merge_smoke_passed", "post_merge_smoke_result", OutputEnum, []string{"passed"}, true},
 		{"blackbox_verification_failed", "blackbox_verification_result", OutputEnum, []string{"failed"}, true},

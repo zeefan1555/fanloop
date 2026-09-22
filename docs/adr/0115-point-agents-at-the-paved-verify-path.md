@@ -4,6 +4,8 @@ date: 2026-09-22
 amends: ADR-0114
 ---
 
+库存中的旧制卡 ID 已由 [ADR-0117](0117-replace-decks-with-remnote-flashcards.md) 替换为 `remnote-flashcards`，其余本决策不变。
+
 # 把 Agent 入口指到同一条验证路径
 
 ADR-0114 留下一条验证路径。本决策把这条路径写进 Agent 已经会打开的文件。

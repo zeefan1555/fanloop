@@ -236,13 +236,15 @@ with sync_playwright() as playwright:
     assert page.locator("#status").get_attribute("aria-live") == "polite"
     page.wait_for_function("parseInt(document.querySelector('#zoomValue').textContent, 10) >= 65", timeout=3000)
     assert page.locator(".step-node").first.bounding_box()["width"] >= 110
-    page.select_option("#workflowSelect", "material-flashcards")
-    page.wait_for_function("selectedWorkflow === 'material-flashcards' && document.querySelectorAll('.step-node').length === 9", timeout=5000)
+    page.select_option("#workflowSelect", "remnote-flashcards")
+    page.wait_for_function("selectedWorkflow === 'remnote-flashcards' && document.querySelectorAll('.step-node').length === 4", timeout=5000)
     page.locator("#fit").click()
     page.wait_for_function("parseInt(document.querySelector('#zoomValue').textContent, 10) >= 80", timeout=3000)
     assert page.locator(".step-node").first.bounding_box()["width"] >= 137
     readable = page.locator(".step-node").first.locator("strong").evaluate("node => parseFloat(getComputedStyle(node).fontSize) * scale")
     assert readable >= 8
+    for _ in range(7):
+        page.locator("#zoomIn").click()
     viewport = page.locator("#viewport")
     assert viewport.evaluate("node => ['auto', 'scroll'].includes(getComputedStyle(node).overflowX)")
     assert viewport.evaluate("node => node.scrollWidth > node.clientWidth")
@@ -327,8 +329,8 @@ with sync_playwright() as playwright:
     mobile = browser.new_page(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
     mobile.goto(sys.argv[1], wait_until="domcontentloaded")
     mobile.wait_for_selector(".step-node", timeout=8000)
-    mobile.select_option("#workflowSelect", "material-flashcards")
-    mobile.wait_for_function("selectedWorkflow === 'material-flashcards' && document.querySelectorAll('.step-node').length === 9", timeout=5000)
+    mobile.select_option("#workflowSelect", "remnote-flashcards")
+    mobile.wait_for_function("selectedWorkflow === 'remnote-flashcards' && document.querySelectorAll('.step-node').length === 4", timeout=5000)
     assert mobile.locator("#viewport").evaluate("node => getComputedStyle(node).touchAction") == "none"
     before = mobile.locator("#world").evaluate("node => node.style.transform")
     box = mobile.locator("#viewport").bounding_box()

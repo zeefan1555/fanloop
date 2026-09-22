@@ -56,7 +56,6 @@ func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
 	}
 	for _, relative := range []string{
 		"fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md",
-		"material-flashcards/skills/material-flashcards-panorama/SKILL.md",
 		"technical-solution-design/skills/technical-solution-panorama/SKILL.md",
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))

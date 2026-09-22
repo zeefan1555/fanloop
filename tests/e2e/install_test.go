@@ -247,16 +247,14 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		}
 	}
 	for _, skillID := range []string{
-		"flashcard", "flashcard-card-planning", "flashcard-goal-framing", "flashcard-knowledge-selection",
-		"flashcard-preview-approval", "flashcard-quality-review", "flashcard-source-understanding",
-		"material-flashcards-panorama",
+		"remnote-structure", "remnote-cli", "remnote-flashcards", "remnote-wiki", "remnote-verify", "control-remnote",
 	} {
-		path := filepath.Join(fixture.ConfigSource, "workflows", "material-flashcards", "skills", skillID, "SKILL.md")
+		path := filepath.Join(fixture.ConfigSource, "workflows", "remnote-flashcards", "skills", skillID, "SKILL.md")
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("configured %s Skill: %v", skillID, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(fixture.ConfigSource, "workflows", "material-flashcards", "skills", "flashcard", "references", "term-concept-card.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(fixture.ConfigSource, "workflows", "remnote-flashcards", "skills", "remnote-flashcards", "references", "supermemo-20-rules.md")); err != nil {
 		t.Fatalf("configured flashcard concept-card reference: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dataRoot, "releases", fixture.Version, "skills")); !os.IsNotExist(err) {
@@ -319,9 +317,9 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	}
 
 	flashcardRoot := t.TempDir()
-	flashcards := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", flashcardRoot, "--workflow", "material-flashcards", "--title", "Material flashcards Skill path E2E")
+	flashcards := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", flashcardRoot, "--workflow", "remnote-flashcards", "--title", "RemNote flashcards Skill path E2E")
 	if flashcards.err != nil {
-		t.Fatalf("initialize installed material-flashcards release: %v\nstdout: %s\nstderr: %s", flashcards.err, flashcards.stdout, flashcards.stderr)
+		t.Fatalf("initialize installed remnote-flashcards release: %v\nstdout: %s\nstderr: %s", flashcards.err, flashcards.stdout, flashcards.stderr)
 	}
 	assertFlowSkillPaths(t, flashcards.stdout, liveRoot)
 }
