@@ -8,36 +8,63 @@ import (
 	"testing"
 )
 
-func TestProductionPstackVerifyReportRequiresProveItWorks(t *testing.T) {
-	loaded, err := Load("pstack-delivery")
+func TestProductionPstackNativePlaybookDelivery(t *testing.T) {
+	loaded, err := Load("pstack-native")
 	if err != nil {
 		t.Fatal(err)
+	}
+	wants := []struct {
+		step, name, stage, job string
+		executor               StepExecutor
+	}{
+		{"select_playbook", "选择工作剧本", "align", "align", StepExecutorAgent},
+		{"define_acceptance", "定义验收标准", "align", "align", StepExecutorAgent},
+		{"design_solution", "方案设计", "build", "build", StepExecutorAgent},
+		{"implement_increments", "增量实现", "build", "build", StepExecutorAgent},
+		{"verify_behavior", "行为验证", "build", "build", StepExecutorAgent},
+		{"merge_and_release", "合并与发布更新", "ship", "ship", StepExecutorAgent},
+	}
+	wantSteps := make([]string, 0, len(wants))
+	for _, want := range wants {
+		wantSteps = append(wantSteps, want.step)
+		context, _, ok := loaded.Workflow.FindStep(want.step)
+		if !ok || context.Stage.ID != want.stage || context.Job.ID != want.job || context.Step.Name != want.name || context.Step.Executor != want.executor {
+			t.Fatalf("pstack-native Step %s = %#v, want name=%s stage=%s job=%s executor=%s", want.step, context, want.name, want.stage, want.job, want.executor)
+		}
+	}
+	if got := loaded.Workflow.OrderedStepIDs(); !reflect.DeepEqual(got, wantSteps) {
+		t.Fatalf("pstack-native Steps = %v, want %v", got, wantSteps)
 	}
 	verified, ok := loaded.Workflow.Condition("delivery_verified")
 	if !ok || verified.Output.Source != OutputSourceVerifyEvidenceOutcome || !reflect.DeepEqual(verified.Output.Values, []string{"passed"}) {
 		t.Fatalf("delivery_verified Output = %#v", verified.Output)
 	}
-	prompt, ok := loaded.Workflow.Prompts["verify_report_flow"]
+	passedSmoke, ok := loaded.Workflow.Condition("post_merge_smoke_passed")
+	if !ok || passedSmoke.Output.Source != OutputSourceVerifyEvidenceOutcome || !reflect.DeepEqual(passedSmoke.Output.Values, []string{"passed"}) {
+		t.Fatalf("post_merge_smoke_passed Output = %#v", passedSmoke.Output)
+	}
+	failedSmoke, ok := loaded.Workflow.Condition("post_merge_smoke_failed")
+	if !ok || failedSmoke.Output.Source != OutputSourceVerifyEvidenceOutcome || !reflect.DeepEqual(failedSmoke.Output.Values, []string{"failed"}) {
+		t.Fatalf("post_merge_smoke_failed Output = %#v", failedSmoke.Output)
+	}
+	prompt, ok := loaded.Workflow.Prompts["verify_behavior_flow"]
 	if !ok {
-		t.Fatal("verify_report_flow is missing")
+		t.Fatal("verify_behavior_flow is missing")
 	}
-	found := false
+	var required []string
 	for _, skill := range prompt.Skills {
-		if skill.ID != "principle-prove-it-works" {
-			continue
-		}
-		found = true
-		if skill.Optional == nil || *skill.Optional {
-			t.Fatalf("principle-prove-it-works = %#v, want required", skill)
+		if skill.Optional == nil || !*skill.Optional {
+			required = append(required, skill.ID)
 		}
 	}
-	if !found || len(prompt.Skills) != 1 {
-		t.Fatalf("verify_report skills = %#v", prompt.Skills)
+	if !reflect.DeepEqual(required, []string{"principle-prove-it-works"}) {
+		t.Fatalf("verify_behavior required skills = %v", required)
 	}
 	outcome, ok := loaded.Workflow.Prompts["verification_outcome_condition"]
 	if !ok || strings.Contains(outcome.Prompt, "交付报告已回读") || !strings.Contains(outcome.Prompt, ".cursor/skills/verify-fanloop/SKILL.md") {
 		t.Fatalf("verification outcome prompt = %q", outcome.Prompt)
 	}
+	assertWorkflowRoute(t, loaded, "verify_behavior", []string{"delivery_verified"}, "merge_and_release", false)
 }
 
 func TestProductionBuildContainsOnlyFanloopWorkflows(t *testing.T) {

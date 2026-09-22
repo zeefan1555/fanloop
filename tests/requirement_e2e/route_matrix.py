@@ -930,7 +930,7 @@ def main() -> int:
                 if complex_case:
                     # Only workflows that expose multi-condition Flow AND groups
                     # can exercise reject-partial-condition-group; single-condition
-                    # workflows (e.g. pstack-delivery) must not fail the shard for
+                    # workflows (e.g. a single-condition Flow) must not fail the shard for
                     # lacking an inapplicable negative check.
                     partial_match_applicable = True
                     partial_case = {

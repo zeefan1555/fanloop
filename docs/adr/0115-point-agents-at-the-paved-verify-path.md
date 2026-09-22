@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-09-22
 amends: ADR-0114
+amended_by: ADR-0117, ADR-0118
 ---
 
 库存中的旧制卡 ID 已由 [ADR-0117](0117-replace-decks-with-remnote-flashcards.md) 替换为 `remnote-flashcards`，其余本决策不变。
@@ -28,4 +29,4 @@ ADR-0114 留下一条验证路径。本决策把这条路径写进 Agent 已经�
 
 ## 未动
 
-Go 包、Thrift、五份生产 YAML 和移植的 pstack `SKILL.md` 正文保持原样。`workflows/pstack-delivery/skills/create-verification-skill/references/feature-map-example/` 仍在。该 Skill 正文链接这份示例地图。删除该目录会打断正文里的链接。本次不改移植正文，所以示例地图保留。Fanloop 的 Feature Map 仍是 `.cursor/skills/verify-fanloop/features/`。
+Go 包、Thrift、五份生产 YAML 和移植的 pstack `SKILL.md` 正文保持原样。`workflows/pstack-native/skills/create-verification-skill/references/feature-map-example/` 仍在。该 Skill 正文链接这份示例地图。删除该目录会打断正文里的链接。本次不改移植正文，所以示例地图保留。Fanloop 的 Feature Map 仍是 `.cursor/skills/verify-fanloop/features/`。ADR-0118 把当时清单里的 `pstack-delivery` 改为 `pstack-native`。

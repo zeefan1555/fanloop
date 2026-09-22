@@ -55,7 +55,7 @@ State、Output、Event、Trace、Card、CLI transcript 和副作用回读。Even
 
 ## 证据门禁
 
-`delivery_verified`、`blackbox_verification_passed`、`blackbox_verification_failed` 与 `post_merge_smoke_passed` 的 Output source 是 `verify.evidence.outcome`。只接受 `fanloop verify smoke` 或 `fanloop verify snapshot` 写出的绝对路径 schema-1 `manifest.json`，且文件中的 `outcome` 等于上报的枚举。
+`delivery_verified`、`blackbox_verification_passed`、`blackbox_verification_failed`、`post_merge_smoke_passed` 与 `post_merge_smoke_failed` 的 Output source 是 `verify.evidence.outcome`。只接受 `fanloop verify smoke` 或 `fanloop verify snapshot` 写出的绝对路径 schema-1 `manifest.json`，且文件中的 `outcome` 等于上报的枚举。
 
 `OUTPUT_INVALID` 且 source 为 `verify.evidence.outcome` 时，不要改 JSON，也不要把枚举改成一份手写文件。重跑 verify，读新 manifest 的 `outcome`，用该绝对路径重报。`blocked` 不能命中 passed 或 failed。禁止在没有这次 verify 运行时上报 `passed`。禁止手写 `manifest.json`。
 

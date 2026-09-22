@@ -15,7 +15,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - `technical-solution-design`：完成问题定义、方向推导、正式方案写作、独立审校和三级人工确认。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。
-- `pstack-delivery`：原样绑定并编排原生 pstack skills 的交付流程。
+- `pstack-native`：六步剧本型交付，编排 `workflows/pstack-native/skills/` 下原生 pstack skills。
 
 每套业务配置都位于 `workflows/<workflow-id>/`，五份 YAML 与 `skills/<skill-id>/` 共享同一个
 live 根目录。统一入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置。
@@ -62,7 +62,7 @@ live 配置。首次安装从 `FANLOOP_CONFIG_SOURCE`（默认当前源码仓库
 - `technical-solution` → `technical-solution-design`
 - `fanloop-maintenance` → `fanloop-maintainer`
 - `remnote-flashcards` → `remnote-flashcards`
-- `pstack-delivery` → `pstack-delivery`
+- `pstack-native` → `pstack-native`
 
 `entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
 选择技术方案场景后执行：

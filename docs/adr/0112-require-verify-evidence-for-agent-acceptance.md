@@ -2,12 +2,12 @@
 status: accepted
 date: 2026-09-22
 supersedes_in_part: ADR-0038, ADR-0109
-amended_by: ADR-0116
+amended_by: ADR-0116, ADR-0118
 ---
 
 # 要求 Agent 验收带上存活的 verify 证据
 
-**Status / Supersession:** the sentence that this cut writes `verify.evidence.outcome` on only three conditions is superseded in part by [ADR-0113](./0113-encode-verify-failures-into-skills.md). `post_merge_smoke_passed` uses the same source. Step id, name, order, and executor stay unchanged. The outer-loop sentence is specified by ADR-0116.
+**Status / Supersession:** the sentence that this cut writes `verify.evidence.outcome` on only three conditions is superseded in part by [ADR-0113](./0113-encode-verify-failures-into-skills.md). `post_merge_smoke_passed` uses the same source. The outer-loop sentence is specified by ADR-0116. The `pstack-delivery` step list below is superseded by [ADR-0118](./0118-replace-pstack-delivery-with-pstack-native.md); `delivery_verified` still requires a passed verify manifest.
 
 Fanloop 采用 poteto kitchen 的顺序。验证先于生成。CI 全绿不是验收。纠正按硬度从代码库、静态检查、规则、Skill、文风指南依次落下。园丁负责删掉多余路径。外层自动化只在这道门可靠之后才开启。本决策只落第一刀：公开 `fanloop verify` 证据成为至少一条生产完成路径的运行门禁。
 

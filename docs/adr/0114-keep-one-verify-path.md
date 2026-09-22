@@ -3,7 +3,7 @@ status: accepted
 date: 2026-09-22
 amends: ADR-0112, ADR-0113
 supersedes_in_part: ADR-0091, ADR-0101
-amended_by: ADR-0115
+amended_by: ADR-0115, ADR-0118
 ---
 
 # 园丁循环只留一条验证路径
@@ -41,6 +41,8 @@ Cursor 入口是 `.cursor/skills/verify-fanloop/SKILL.md`。维护入口是 `wor
 | verify_report | 验证与交付报告 | agent |
 
 `prompt.yaml` 的 `verify_report_flow.skills` 从三条变为一条。删除的两条是可选的 `create-verification-skill` 与 `maintain-verification-skill`。留下的是必选 `principle-prove-it-works`。
+
+ADR-0118 取代上表：该套已改名为 `pstack-native`，Step 四元组以 ADR-0118 的新表为准。`delivery_verified` 仍要求 verify manifest。
 
 `verification_outcome_condition` 变更前是「仅在独立核验无阻塞项且交付报告已回读时上报 passed。」变更后要求 Evidence 指向本次 verify 写出的绝对路径 `manifest.json`，并且 `outcome` 为 `passed`。
 

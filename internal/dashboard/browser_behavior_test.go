@@ -21,7 +21,7 @@ func TestEmbeddedStudioBrowserPollingRaces(t *testing.T) {
 		t.Skip("no Python interpreter with Playwright")
 	}
 	root := copyWorkflowTree(t)
-	if err := os.RemoveAll(filepath.Join(root, "pstack-delivery")); err != nil {
+	if err := os.RemoveAll(filepath.Join(root, "pstack-native")); err != nil {
 		t.Fatal(err)
 	}
 	base, err := NewHandler(root)

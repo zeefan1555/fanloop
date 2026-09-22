@@ -5,7 +5,7 @@
 - `technical-solution-design` document production and human gates.
 - `remnote-flashcards` HOME classification, native RemNote flashcards, Wiki links and final readback.
 - `fanloop-maintainer` four-step Define, Build, Certify and Deliver loop.
-- `pstack-delivery` thin orchestration over native pstack skills under the workflow bundle.
+- `pstack-native` six-step playbook-shaped delivery over the native pstack skill catalog in the workflow bundle.
 
 ## How to get to it (user POV)
 

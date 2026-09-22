@@ -27,7 +27,7 @@ go test ./tests/contracts -update-contracts
 
 Four production Workflow IDs currently ship under `workflows/<id>/`:
 `technical-solution-design`, `fanloop-maintainer`, `remnote-flashcards`, and
-`pstack-delivery`. Ownership of those directories remains the Live Workflow
+`pstack-native`. Ownership of those directories remains the Live Workflow
 configuration boundary above; this note only records the live suite list.
 
 ## Verify entry

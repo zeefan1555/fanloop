@@ -551,7 +551,7 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 		"technical-solution-design",
 		"fanloop-maintainer",
 		"remnote-flashcards",
-		"pstack-delivery",
+		"pstack-native",
 	} {
 		if !strings.Contains(ownership, suite) {
 			t.Errorf("docs/ownership.md missing production suite %s", suite)

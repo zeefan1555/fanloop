@@ -140,9 +140,9 @@ func advanceMaintainerToDelivery(t *testing.T, binary, root string) {
 		conditionResult("panorama_presented", "path", "\".fanloop/card/certify.md\""))
 }
 
-func TestPstackVerifyReportRequiresPassedManifest(t *testing.T) {
+func TestPstackVerifyBehaviorRequiresPassedManifest(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "pstack-delivery", "--title", "Verify manifest"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "pstack-native", "--title", "Verify manifest"), "flow.init")
 
 	advance := func(step, next string, conditions ...string) {
 		t.Helper()
@@ -154,16 +154,16 @@ func TestPstackVerifyReportRequiresPassedManifest(t *testing.T) {
 		assertSuccess(t, result, "flow.report.result")
 		assertFlowEffect(t, result.stdout, "advanced", next)
 	}
-	advance("intake", "select_bind_skills", conditionResult("delivery_goal_framed", "path", `"delivery-goal.md"`))
-	advance("select_bind_skills", "confirm_skill_plan", conditionResult("skill_plan_ready", "path", `"skill-plan.md"`))
-	advance("confirm_skill_plan", "execute", conditionResult("skill_plan_approved", "object", `{}`))
-	advance("execute", "verify_report", conditionResult("skills_executed", "path", `"execution-report.md"`))
+	advance("select_playbook", "define_acceptance", conditionResult("playbook_selected", "path", `"playbook-selection.md"`))
+	advance("define_acceptance", "design_solution", conditionResult("acceptance_defined", "path", `"acceptance.md"`))
+	advance("design_solution", "implement_increments", conditionResult("design_ready", "path", `"design-record.md"`))
+	advance("implement_increments", "verify_behavior", conditionResult("increments_done", "path", `"execution-report.md"`))
 
 	report := func(evidence ...string) result {
 		t.Helper()
-		args := []string{"flow", "report", "result", "--root", root, "--step-id", "verify_report",
+		args := []string{"flow", "report", "result", "--root", root, "--step-id", "verify_behavior",
 			"--condition-result", conditionResult("delivery_verified", "enum_value", `"passed"`),
-			"--terminal", "--summary", "verification manifest"}
+			"--next-step-id", "merge_and_release", "--summary", "verification manifest"}
 		for _, item := range evidence {
 			args = append(args, "--evidence", item)
 		}
@@ -173,9 +173,9 @@ func TestPstackVerifyReportRequiresPassedManifest(t *testing.T) {
 	assertError(t, report(verifyManifestEvidence(t, "failed")), 2, "OUTPUT_INVALID")
 	assertError(t, report(verifyManifestEvidenceAt(t, filepath.Join(t.TempDir(), "manifest.json"), "")), 2, "OUTPUT_INVALID")
 	assertError(t, report(verifyManifestEvidenceAt(t, filepath.Join(t.TempDir(), "manifest.json"), "{\"schema_version\":0,\"outcome\":\"passed\"}\n")), 2, "OUTPUT_INVALID")
-	completed := report(verifyManifestEvidence(t, "passed"))
-	assertSuccess(t, completed, "flow.report.result")
-	assertFlowEffect(t, completed.stdout, "completed", "")
+	advanced := report(verifyManifestEvidence(t, "passed"))
+	assertSuccess(t, advanced, "flow.report.result")
+	assertFlowEffect(t, advanced.stdout, "advanced", "merge_and_release")
 }
 
 func verifyManifestEvidence(t *testing.T, outcome string) string {

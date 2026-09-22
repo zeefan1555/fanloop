@@ -9,6 +9,6 @@ scenarios:
   remnote-flashcards:
     workflow: remnote-flashcards
     description: 基于已理解的概念完成 HOME 分类、RemNote 制卡、Wiki 引用与最终校验
-  pstack-delivery:
-    workflow: pstack-delivery
-    description: 原样绑定并编排原生 pstack skills 的交付流程
+  pstack-native:
+    workflow: pstack-native
+    description: 按剧本选择、验收、设计、增量实现、行为验证与合并发布编排原生 pstack skills

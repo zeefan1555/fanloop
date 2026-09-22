@@ -2,11 +2,12 @@
 status: accepted
 date: 2026-09-22
 supersedes_in_part: ADR-0112
+amended_by: ADR-0118
 ---
 
 # 把 verify 失败模式写进 Skill，并关上 post-merge 枚举
 
-**Status / Supersession:** optional `create-verification-skill` and `maintain-verification-skill` bindings on `verify_report_flow` are removed by [ADR-0114](./0114-keep-one-verify-path.md). `principle-prove-it-works` stays required. Transplanted pstack `SKILL.md` bodies stay unchanged.
+**Status / Supersession:** optional `create-verification-skill` and `maintain-verification-skill` bindings on `verify_report_flow` are removed by [ADR-0114](./0114-keep-one-verify-path.md). `principle-prove-it-works` stays required. Transplanted pstack `SKILL.md` bodies stay unchanged. [ADR-0118](./0118-replace-pstack-delivery-with-pstack-native.md) replaces the `verify_report` step with `verify_behavior` on `pstack-native`; the required skill stays on that step.
 
 Cut 1 的运行门禁仍是唯一硬约束。本决策把已知失败模式堆到那道门上。纠正顺序不变。代码库先于静态检查，然后是规则，然后是 Skill，最后是文风。不给 manifest 增加签名。
 

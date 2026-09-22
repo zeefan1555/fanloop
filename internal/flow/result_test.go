@@ -198,12 +198,12 @@ func TestEvaluateCommonStepControls(t *testing.T) {
 }
 
 func TestEvaluateResultRequiresPassedVerifyManifest(t *testing.T) {
-	loaded, err := workflow.Load("pstack-delivery")
+	loaded, err := workflow.Load("pstack-native")
 	if err != nil {
 		t.Fatal(err)
 	}
 	current := state.State{Outputs: map[string]state.RegisteredOutput{}}
-	request := resultRequest("verify_report", terminalRoute(), condition("delivery_verified", flowidl.OutputType_enum_value, "passed"))
+	request := resultRequest("verify_behavior", nextRoute("merge_and_release"), condition("delivery_verified", flowidl.OutputType_enum_value, "passed"))
 	assertVerifySourceMismatch(t, loaded.Workflow, current, request)
 
 	failedPath := writeVerifyManifest(t, "failed")
@@ -213,7 +213,7 @@ func TestEvaluateResultRequiresPassedVerifyManifest(t *testing.T) {
 	passedPath := writeVerifyManifest(t, "passed")
 	request.Evidence = fileEvidence(passedPath)
 	evaluation, failure := evaluateResult(loaded.Workflow, current, request)
-	if failure != nil || evaluation.effect != flowidl.ResultEffect_completed {
+	if failure != nil || evaluation.effect != flowidl.ResultEffect_advanced || evaluation.transition == nil || evaluation.transition.GetToStepId() != "merge_and_release" {
 		t.Fatalf("evaluation = %#v, failure = %#v", evaluation, failure)
 	}
 }

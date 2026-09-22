@@ -55,10 +55,10 @@ fanloop verify smoke
 A condition whose output `source` is `verify.evidence.outcome` accepts a result only when file evidence points at a schema-1 `manifest.json` and `outcome` equals the submitted enum (`passed`, `failed`, or `blocked`). `blocked` does not match a pass or fail condition. Record it with `flow report progress --status blocked` and the same file evidence. The manifest must exist before `--dry-run` and before the real report.
 
 ```bash
-fanloop flow report result --root "$ROOT" --step-id verify_report \
+fanloop flow report result --root "$ROOT" --step-id verify_behavior \
   --condition-result '{"condition_id":"delivery_verified","output":{"type":"enum_value","value":"passed"}}' \
   --evidence '{"source":"file","content":"fanloop verify manifest","ref":"'"$EVIDENCE_DIR"'/manifest.json"}' \
-  --terminal --summary "verification manifest passed"
+  --next-step-id merge_and_release --summary "verification manifest passed"
 ```
 
 ## Evidence
@@ -85,7 +85,7 @@ There is no helper script. The harness is the isolated `fanloop` binary.
 
 ## Failure modes
 
-`delivery_verified`, `blackbox_verification_passed`, `blackbox_verification_failed`, and `post_merge_smoke_passed` accept a result only when file evidence points at one absolute regular `manifest.json` written by `fanloop verify smoke` or `fanloop verify snapshot`. The file is schema 1. Its `outcome` equals the submitted enum.
+`delivery_verified`, `blackbox_verification_passed`, `blackbox_verification_failed`, `post_merge_smoke_passed`, and `post_merge_smoke_failed` accept a result only when file evidence points at one absolute regular `manifest.json` written by `fanloop verify smoke` or `fanloop verify snapshot`. The file is schema 1. Its `outcome` equals the submitted enum.
 
 `OUTPUT_INVALID` with source `verify.evidence.outcome` means that match failed. The path was missing or unreadable, was not an absolute regular `manifest.json`, was not schema 1, or its `outcome` differed. Two `manifest.json` evidence items fail the same way.
 
