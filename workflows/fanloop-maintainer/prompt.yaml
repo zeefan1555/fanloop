@@ -67,7 +67,10 @@ prompts:
   candidate_identity_condition: {prompt: candidate_identity_recorded 输出严格对象，至少包含 candidate_head、git_tree、binary_sha256、verification_contract_sha256 和 feature_impact_sha256。, skills: []}
   candidate_change_condition: {prompt: HEAD、Git tree、binary、验证资产、工作树或报告身份不一致时上报 candidate_changed。, skills: []}
   independent_review_condition: {prompt: 按独立 Reviewer 原始结论选择 independent_review_passed 或 independent_review_failed。, skills: []}
-  blackbox_verification_condition: {prompt: 按无源码上下文 Verifier 原始结论选择 blackbox_verification_passed 或 blackbox_verification_failed。, skills: []}
+  blackbox_verification_condition:
+    prompt: 按无源码上下文 Verifier 原始结论选择 blackbox_verification_passed 或 blackbox_verification_failed。Evidence 指向本次 fanloop verify 写出的 schema-1 manifest.json，且 outcome 与枚举一致。
+    skills:
+      - {id: fanloop-dev-verify, prompt: 按证据门禁取证。禁止手写 manifest，禁止没有这次 verify 运行就上报 passed。OUTPUT_INVALID 时重跑 verify，按文件里的 outcome 重报。, optional: false}
   main_agent_acceptance_condition: {prompt: 按主 Agent明确最终决定选择 main_agent_acceptance_passed 或 main_agent_changes_requested。, skills: []}
   main_agent_acceptance_record_condition: {prompt: main_agent_acceptance_recorded 输出精确回读的主 Agent最终候选 decision receipt ID。, skills: []}
   certification_report_condition: {prompt: certification_report_written 输出引用独立 Review、黑盒证据、候选身份和主 Agent决定的 certification-report.md。, skills: []}
@@ -81,7 +84,10 @@ prompts:
   merge_tree_condition: {prompt: merge commit tree 与 certification_head tree 完全相同时上报 merge_tree_verified。, skills: []}
   source_repository_updated_condition: {prompt: source_repository_updated 输出本 Requirement 源码 worktree detached 到的 merge commit SHA。, skills: []}
   local_cli_updated_condition: {prompt: local_cli_updated 输出全局 current version 回读的 merge commit SHA，且 Doctor healthy。, skills: []}
-  post_merge_smoke_condition: {prompt: 从 merge commit 安装的全局 current 完成 fanloop verify smoke 时上报 post_merge_smoke_passed。, skills: []}
+  post_merge_smoke_condition:
+    prompt: 从 merge commit 安装的全局 current 完成 fanloop verify smoke 后，用该次写出的 schema-1 manifest.json 上报 post_merge_smoke_passed。
+    skills:
+      - {id: fanloop-dev-verify, prompt: 按证据门禁附上 smoke 写出的绝对路径 manifest.json，outcome 必须是 passed。禁止手写该文件。OUTPUT_INVALID 时重跑 smoke，按文件里的 outcome 重报。, optional: false}
   delivery_record_condition: {prompt: delivery_record_written 输出记录 PR、checks、head/tree、merge commit/tree、源码 worktree、active CLI、Doctor 和 smoke 的 delivery-record.md。, skills: []}
   back_to_define: {prompt: 回到 Define，重新冻结 Verification Contract；旧候选、认证和交付证据全部失效。, skills: []}
   back_to_build: {prompt: 回到 Build，产生并验证新候选；旧认证、PR checks 和交付证据全部失效。, skills: []}

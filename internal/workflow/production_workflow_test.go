@@ -8,6 +8,34 @@ import (
 	"testing"
 )
 
+func TestProductionPstackVerifyReportRequiresProveItWorks(t *testing.T) {
+	loaded, err := Load("pstack-delivery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	verified, ok := loaded.Workflow.Condition("delivery_verified")
+	if !ok || verified.Output.Source != OutputSourceVerifyEvidenceOutcome || !reflect.DeepEqual(verified.Output.Values, []string{"passed"}) {
+		t.Fatalf("delivery_verified Output = %#v", verified.Output)
+	}
+	prompt, ok := loaded.Workflow.Prompts["verify_report_flow"]
+	if !ok {
+		t.Fatal("verify_report_flow is missing")
+	}
+	found := false
+	for _, skill := range prompt.Skills {
+		if skill.ID != "principle-prove-it-works" {
+			continue
+		}
+		found = true
+		if skill.Optional == nil || *skill.Optional {
+			t.Fatalf("principle-prove-it-works = %#v, want required", skill)
+		}
+	}
+	if !found || len(prompt.Skills) != 3 {
+		t.Fatalf("verify_report skills = %#v", prompt.Skills)
+	}
+}
+
 func TestProductionBuildContainsOnlyFanloopWorkflows(t *testing.T) {
 	for _, retired := range []string{"fanloop", "douyin-game", "fanloop-dev", "promotion-design"} {
 		if _, err := Load(retired); !errors.Is(err, fs.ErrNotExist) {
@@ -341,6 +369,16 @@ func TestProductionMaintainerUsesFourStepVerificationLoop(t *testing.T) {
 	receipt, ok := loaded.Workflow.Condition("main_agent_acceptance_recorded")
 	if !ok || receipt.Output.Key != "main_agent_acceptance_receipt_id" || receipt.Output.Type != OutputString {
 		t.Fatalf("main Agent acceptance receipt Condition = %#v", receipt)
+	}
+	smoke, ok := loaded.Workflow.Condition("post_merge_smoke_passed")
+	if !ok || smoke.Output.Source != OutputSourceVerifyEvidenceOutcome || !reflect.DeepEqual(smoke.Output.Values, []string{"passed"}) {
+		t.Fatalf("post_merge_smoke_passed Output = %#v", smoke.Output)
+	}
+	for _, promptID := range []string{"blackbox_verification_condition", "post_merge_smoke_condition"} {
+		prompt, ok := loaded.Workflow.Prompts[promptID]
+		if !ok || len(prompt.Skills) != 1 || prompt.Skills[0].ID != "fanloop-dev-verify" || prompt.Skills[0].Optional == nil || *prompt.Skills[0].Optional {
+			t.Fatalf("Prompt %s Skills = %#v", promptID, prompt.Skills)
+		}
 	}
 	if got := len(loaded.Workflow.Conditions); got != 32 {
 		t.Fatalf("maintainer Conditions = %d, want 32", got)

@@ -52,3 +52,11 @@ State、Output、Event、Trace、Card、CLI transcript 和副作用回读。Even
 入口时保留 session 并报告路径，不猜测或扩大删除范围。
 
 完成标准：运行产生的临时资源不再存活，证据完整可读，结论明确为 passed、failed 或 blocked。
+
+## 证据门禁
+
+`delivery_verified`、`blackbox_verification_passed`、`blackbox_verification_failed` 与 `post_merge_smoke_passed` 的 Output source 是 `verify.evidence.outcome`。只接受 `fanloop verify smoke` 或 `fanloop verify snapshot` 写出的绝对路径 schema-1 `manifest.json`，且文件中的 `outcome` 等于上报的枚举。
+
+`OUTPUT_INVALID` 且 source 为 `verify.evidence.outcome` 时，不要改 JSON，也不要把枚举改成一份手写文件。重跑 verify，读新 manifest 的 `outcome`，用该绝对路径重报。`blocked` 不能命中 passed 或 failed。禁止在没有这次 verify 运行时上报 `passed`。禁止手写 `manifest.json`。
+
+Cursor 入口是 `.cursor/skills/verify-fanloop/SKILL.md`。不要把本 Skill 的 Drive 步骤复制过去。

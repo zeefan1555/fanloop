@@ -206,6 +206,14 @@ func TestManifestOutcomeReadsSchemaOneRegularFile(t *testing.T) {
 	if _, err := ManifestOutcome(filepath.Join(directory, "not-manifest.json")); err == nil {
 		t.Fatal("non-manifest file name accepted")
 	}
+	if _, err := ManifestOutcome(filepath.Join(directory, "missing", "manifest.json")); err == nil {
+		t.Fatal("missing manifest accepted")
+	}
+	schemaZero := filepath.Join(t.TempDir(), "manifest.json")
+	writeTestFile(t, schemaZero, "{\"schema_version\":0,\"outcome\":\"passed\"}\n")
+	if _, err := ManifestOutcome(schemaZero); err == nil {
+		t.Fatal("schema_version 0 manifest accepted")
+	}
 }
 
 func mustGetwd(t *testing.T) string {

@@ -1,6 +1,6 @@
 ---
 name: verify-fanloop
-description: Drive Fanloop with the public CLI and the Feature Map, then leave a verify manifest that survives cleanup. Use before self-accepting a Fanloop change, or before a result whose output source is verify.evidence.outcome.
+description: Drive Fanloop with the public CLI and the Feature Map, then leave a verify manifest that survives cleanup. Use before self-accepting a Fanloop change, before a result whose output source is verify.evidence.outcome, and when that result returns OUTPUT_INVALID.
 ---
 
 # Verify Fanloop
@@ -82,3 +82,13 @@ Cleanup deletes only `verification/work/$RUN_ID`. It does not delete `verificati
 ## Helpers
 
 There is no helper script. The harness is the isolated `fanloop` binary.
+
+## Failure modes
+
+`delivery_verified`, `blackbox_verification_passed`, `blackbox_verification_failed`, and `post_merge_smoke_passed` accept a result only when file evidence points at one absolute regular `manifest.json` written by `fanloop verify smoke` or `fanloop verify snapshot`. The file is schema 1. Its `outcome` equals the submitted enum.
+
+`OUTPUT_INVALID` with source `verify.evidence.outcome` means that match failed. The path was missing or unreadable, was not an absolute regular `manifest.json`, was not schema 1, or its `outcome` differed. Two `manifest.json` evidence items fail the same way.
+
+Re-run `fanloop verify smoke` or `fanloop verify snapshot`. Read `outcome` from the new manifest. Submit that enum with that absolute path. `blocked` matches neither a passed nor a failed condition. Report progress blocked and attach the same file. Do not edit the JSON.
+
+Do not submit `passed` without that verify run. Do not hand-write `manifest.json`.

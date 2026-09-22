@@ -20,5 +20,4 @@ code and lack of business durable mutation.
 
 ## Gotchas
 
-Evidence does not participate in Route matching. Output types and constraints come from Status, not from memory. CLI
-transcripts contain complete unredacted input and output, so verification uses synthetic values only.
+Evidence does not participate in Route matching. A condition whose output source is `verify.evidence.outcome` still rejects the result with `OUTPUT_INVALID` unless one absolute regular schema-1 `manifest.json` from `fanloop verify smoke` or `fanloop verify snapshot` has the same `outcome` as the submitted enum. Do not hand-write that file. Output types and constraints come from Status, not from memory. CLI transcripts contain complete unredacted input and output, so verification uses synthetic values only.

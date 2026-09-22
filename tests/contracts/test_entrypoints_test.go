@@ -129,6 +129,10 @@ func TestMaintainerFourStepVerificationAssetsAreComplete(t *testing.T) {
 		},
 		"workflows/fanloop-maintainer/skills/fanloop-dev-verify/SKILL.md": {
 			"Launch", "Doctor", "Drive", "Evidence", "Cleanup", "references/features/README.md", "INVALID_ARGUMENT", ".fanloop/log/cli.jsonl", ".fanloop/trace/events.jsonl",
+			"证据门禁", "OUTPUT_INVALID", "post_merge_smoke_passed", "禁止手写 `manifest.json`",
+		},
+		".cursor/skills/verify-fanloop/SKILL.md": {
+			"fanloop verify smoke", "fanloop verify snapshot", "OUTPUT_INVALID", "post_merge_smoke_passed", "Do not hand-write `manifest.json`",
 		},
 		"workflows/fanloop-maintainer/skills/fanloop-dev-maintain-verification/SKILL.md": {
 			"clean", "changed", "blocked", "doc drift", "harness gap", "product gap",

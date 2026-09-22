@@ -59,7 +59,7 @@ func completeMaintainerDelivery(t *testing.T, binary, root, deliveryState string
 	t.Helper()
 
 	mergeCommit := "3333333333333333333333333333333333333333"
-	completed := run(binary, "flow", "report", "result", "--root", root,
+	args := []string{"flow", "report", "result", "--root", root,
 		"--step-id", "merge_and_update_local",
 		"--condition-result", deliveryState,
 		"--condition-result", conditionResult("merge_request_published", "url_list", `["https://github.com/zeefan1555/fanloop/pull/7"]`),
@@ -72,7 +72,9 @@ func completeMaintainerDelivery(t *testing.T, binary, root, deliveryState string
 		"--condition-result", conditionResult("post_merge_smoke_passed", "enum_value", "\"passed\""),
 		"--condition-result", conditionResult("delivery_record_written", "path", "\"delivery-record.md\""),
 		"--condition-result", conditionResult("panorama_presented", "path", "\".fanloop/card/handoff.md\""),
-		"--terminal", "--summary", "PR merged and local CLI updated")
+		"--terminal", "--summary", "PR merged and local CLI updated"}
+	assertError(t, run(binary, args...), 2, "OUTPUT_INVALID")
+	completed := run(binary, append(args, "--evidence", verifyManifestEvidence(t, "passed"))...)
 	assertSuccess(t, completed, "flow.report.result")
 	assertFlowEffect(t, completed.stdout, "completed", "")
 }
@@ -169,6 +171,8 @@ func TestPstackVerifyReportRequiresPassedManifest(t *testing.T) {
 	}
 	assertError(t, report(), 2, "OUTPUT_INVALID")
 	assertError(t, report(verifyManifestEvidence(t, "failed")), 2, "OUTPUT_INVALID")
+	assertError(t, report(verifyManifestEvidenceAt(t, filepath.Join(t.TempDir(), "manifest.json"), "")), 2, "OUTPUT_INVALID")
+	assertError(t, report(verifyManifestEvidenceAt(t, filepath.Join(t.TempDir(), "manifest.json"), "{\"schema_version\":0,\"outcome\":\"passed\"}\n")), 2, "OUTPUT_INVALID")
 	completed := report(verifyManifestEvidence(t, "passed"))
 	assertSuccess(t, completed, "flow.report.result")
 	assertFlowEffect(t, completed.stdout, "completed", "")
@@ -176,13 +180,19 @@ func TestPstackVerifyReportRequiresPassedManifest(t *testing.T) {
 
 func verifyManifestEvidence(t *testing.T, outcome string) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "manifest.json")
 	body, err := json.Marshal(map[string]any{"schema_version": 1, "outcome": outcome})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, append(body, '\n'), 0o600); err != nil {
-		t.Fatal(err)
+	return verifyManifestEvidenceAt(t, filepath.Join(t.TempDir(), "manifest.json"), string(append(body, '\n')))
+}
+
+func verifyManifestEvidenceAt(t *testing.T, path, body string) string {
+	t.Helper()
+	if body != "" {
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	evidence, err := json.Marshal(map[string]string{
 		"source":  "file",

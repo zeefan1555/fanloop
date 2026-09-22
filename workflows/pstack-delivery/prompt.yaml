@@ -50,7 +50,7 @@ prompts:
     skills:
       - {id: create-verification-skill, prompt: 可选：需要沉淀新的验证 skill 时使用。, optional: true}
       - {id: maintain-verification-skill, prompt: 可选：需要更新既有验证 skill 时使用。, optional: true}
-      - {id: principle-prove-it-works, prompt: 可选：用可证明证据核对交付结果。, optional: true}
+      - {id: principle-prove-it-works, prompt: 必选。delivery_verified 只接受 fanloop verify smoke 或 snapshot 写出的 schema-1 manifest.json，且 outcome 为 passed。禁止手写 JSON，禁止没有这次 verify 运行就上报 passed。OUTPUT_INVALID 时重跑 verify，按文件里的 outcome 重报。步骤见 .cursor/skills/verify-fanloop/SKILL.md。, optional: false}
 
   artifact_condition:
     prompt: 上报当前 Step 已写入、回读并通过本层门禁的 Requirement Root 相对文件路径。Summary 与 Evidence 不得复制文件正文。

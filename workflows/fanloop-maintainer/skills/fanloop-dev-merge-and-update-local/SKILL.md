@@ -30,6 +30,7 @@ description: 只交付已认证候选；合并唯一 PR，校验 merge tree，�
    不切换、重置、清理或删除其他 checkout。
 9. 清除 data、config、Skill Root 和 Botmux 覆盖，从 merge commit 执行 `./scripts/install-local.sh`。
    全局 current 的 version commit 必须等于 merge commit，Doctor healthy，并运行 `fanloop verify smoke`。
+   该次 smoke 写出的 schema-1 `manifest.json` 是 `post_merge_smoke_passed` 的 Evidence。文件 `outcome` 必须是 `passed`。不要手写 manifest。`OUTPUT_INVALID` 时重跑 smoke，按文件里的 outcome 重报。
 10. 补全并回读 delivery-record.md。PR 已合并后的失败只重试同一 merge commit，不创建或合并第二个 PR。
 
 全部通过后返回 `merge_request_published`、`remote_checks_passed`、`review_comment_synced`、`code_merged`、

@@ -113,7 +113,7 @@ conditions:
     output: {key: local_cli_commit, type: string}
   post_merge_smoke_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: post_merge_smoke_condition}
-    output: {key: post_merge_smoke_result, type: enum_value, values: [passed]}
+    output: {key: post_merge_smoke_result, type: enum_value, values: [passed], source: verify.evidence.outcome}
   delivery_record_written:
     prompt_ref: {file: prompt.yaml, prompt_id: delivery_record_condition}
     output: {key: delivery_record_path, type: path}
