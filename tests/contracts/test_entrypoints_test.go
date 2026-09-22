@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -82,6 +83,24 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 
 func TestLocalBuildReplacesDistributionEntrypoints(t *testing.T) {
 	repo := repositoryRoot(t)
+	data, err := os.ReadFile(filepath.Join(repo, "package.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pkg struct {
+		Private bool              `json:"private"`
+		Scripts map[string]string `json:"scripts"`
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&pkg); err != nil {
+		t.Fatal(err)
+	}
+	if !pkg.Private || len(pkg.Scripts) != 2 ||
+		pkg.Scripts["build"] != "./scripts/build-local.sh" ||
+		pkg.Scripts["install:local"] != "./scripts/install-local.sh" {
+		t.Fatal("package.json must only expose the two private local build scripts")
+	}
 	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh"} {
 		info, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative)))
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
@@ -89,7 +108,7 @@ func TestLocalBuildReplacesDistributionEntrypoints(t *testing.T) {
 		}
 	}
 	for _, relative := range []string{
-		"package.json", ".goreleaser.yml", ".github/workflows/release.yml",
+		".goreleaser.yml", ".github/workflows/release.yml",
 		"scripts/build-release.sh", "scripts/prepare-release.sh", "scripts/package-release.sh",
 		"scripts/package-release.js", "scripts/resolve-release-version.js",
 		"scripts/verify-published-package.sh", "scripts/install.js", "scripts/run.js",

@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "./scripts/build-local.sh",
+    "install:local": "./scripts/install-local.sh"
+  }
+}

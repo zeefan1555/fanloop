@@ -31,7 +31,15 @@ live 根目录。统一入口独立放在 `entrypoints/fanloop-workflow/`，场�
 可幂等复用，不同提交不会覆盖同名不可变 Release。Workflow/Skill 与范文改动不改变未提交 CLI
 构建的内容摘要。
 
-只构建、直接运行：
+安装了 Node.js 与 npm 后，在仓库根目录运行以下本地入口；无需先运行 `npm install`：
+
+```bash
+npm run build          # 只构建，不改变本机安装
+npm run install:local  # 构建并安装；更新源码后重跑即可更新 CLI
+```
+
+这两个命令直接调用现有 Bash 脚本，仍需要上述 Go、Git 和 Bash；不下载或发布 npm 包。
+需要捕获构建目录时直接调用 Shell 入口：
 
 ```bash
 fanloop_build_dir="$(./scripts/build-local.sh)"

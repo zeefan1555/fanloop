@@ -9,7 +9,8 @@
 
 ## How to get to it (user POV)
 
-Run `./scripts/build-local.sh` to build without switching current, or `./scripts/install-local.sh` to install. Inspect the
+Run `npm run build` (or `./scripts/build-local.sh`) to build without switching current, or
+`npm run install:local` (or `./scripts/install-local.sh`) to install from the repository; npm scripts need Node.js/npm but no `npm install`. Inspect the
 active installation with `fanloop version`, `fanloop doctor`, and `fanloop verify doctor`; add `--root` to diagnose an
 initialized Requirement. Run `fanloop verify smoke` for the fixed isolated public-CLI journey and its evidence bundle.
 
