@@ -48,3 +48,11 @@ Skill 正文保留；新增的 Fanloop 展示 Skill 不属于原生 catalog。�
 配置交付不要求代码 manifest、构建或 CLI 安装，但必须回读 MERGED、merge tree 和 live 文件，不能停在工作区。
 本补充取代本 ADR 与 AGENTS 中“纯配置不初始化 Maintainer”的表述；只有明确只改本机 live 的请求直接编辑。
 RemNote Card Cluster 使用已有 SDK 的 `cc` 添加/查询，以 CLI 回读 true 为准，取消 UI 添加与截图要求。
+
+2026-09-23 Skill 职责拆分：四个 Step 与既有 Condition 组合不变；Define 记录 maintenance_kind，后续
+按该输出选 Route，范围变化先回 Define。配置范围/修改/检查/交付分别绑定 fanloop-config-define、
+fanloop-config-edit、fanloop-config-check、fanloop-config-deliver，原代码 Prompt/Skills 保留。
+公共 current.prompt 仅绑定路由 Skill；配置业务 Skill 绑定在各 Step 对应 Condition Prompt，按所选
+Route 加载，避免首条配置 Route 的 Skill 被代码任务无条件执行。CLI 仍列出两类候选，未新增引擎动态过滤能力。
+本次按用户明确要求新增四份配置 Skill，取代先前将两套业务步骤写入公共 Skill 的做法；不配套修改
+冻结 Skill 数量的代码测试，既有测试与生产配置耦合仍是独立代码问题。

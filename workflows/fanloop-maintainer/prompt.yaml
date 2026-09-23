@@ -1,46 +1,35 @@
 schema_version: 2
 
 prompts:
-  configuration_define_verification_contract:
+  maintenance_step_dispatch:
     prompt: |
-      先按实际 diff 与 configuration_scope 判断配置或代码；本步首个 Prompt 是分流入口，不代表自动选择配置通道。
-      代码或混合改动执行 available_routes 中 code_change 分支的原 Prompt 及全部必需 Skills，原代码门禁不变；每次 Result 携带 code_change。只有纯配置执行下述步骤并携带 configuration_change。
-      记录用户已明确的目标、允许文件、仓库、实际默认分支基线、live 目标和开始时间到 configuration_scope 对象。默认交付是仓库 PR 合码并同步已有相关 live 配置；用户明确只改 live 时不进入仓库流程。
-      本机 live 根与仓库分别回读，记录本次目标文件修改前的内容摘要。范围明确即可提交 configuration_scope_recorded；无需另写 Verification Contract、Spec、Tickets 或派发子 Agent。
+      先执行公共路由 Skill：仅 Define 判断改动类别；其他 Step 读取 Define 已记录的 maintenance_kind，选择相同类别 Route。
+      配置业务只从所选 Route 的 Condition Prompt 加载对应 fanloop-config-* Skill；代码业务执行所选 code Route 的原 Prompt/Skills。当前入口不承载两种业务操作说明。
     skills:
-      - {id: fanloop-dev-workflow, prompt: 按配置或代码分支执行四步交付，配置也必须 PR 合码与 live 回读。, optional: false}
+      - {id: fanloop-dev-workflow, prompt: Define 分类并记录，后续只按已记录类别加载当前 Step 的独立业务 Skill。, optional: false}
 
-  configuration_build_until_verified:
-    prompt: |
-      先按实际 diff 与 configuration_scope 判断配置或代码；本步首个 Prompt 是分流入口，不代表自动选择配置通道。
-      代码或混合改动执行 available_routes 中 code_change 分支的原 Prompt 及全部必需 Skills，原代码门禁不变；每次 Result 携带 code_change。只有纯配置执行下述步骤并携带 configuration_change。
-      在已授权工作区完成最小配置修改，移除冲突指引。只改 Workflow YAML、Skill 指令/参考材料及必要说明，保持未批准的 Step 身份不变。
-      configuration_changes_written 记录实际文件、diff 摘要、工作区及配置目标。发现可执行脚本、Schema、Runtime 或测试改动时回 Define 改走代码路径；禁止为通过代码测试而修改 Golden。
+  configuration_scope_recorded_condition:
+    prompt: 执行绑定的配置专用 Skill，真实完成后返回 configuration_scope_recorded；失败或结果不明保持 blocked。
     skills:
-      - {id: fanloop-dev-workflow, prompt: 按配置或代码分支执行四步交付，配置也必须 PR 合码与 live 回读。, optional: false}
+      - {id: fanloop-config-define, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
-  configuration_certify_candidate:
-    prompt: |
-      先按实际 diff 与 configuration_scope 判断配置或代码；本步首个 Prompt 是分流入口，不代表自动选择配置通道。
-      代码或混合改动执行 available_routes 中 code_change 分支的原 Prompt 及全部必需 Skills，原代码门禁不变；每次 Result 携带 code_change。只有纯配置执行下述步骤并携带 configuration_change。
-      检查 diff 范围、相关引用与命令帮助；YAML/绑定变化用已有兼容 CLI 在隔离配置上加载/Doctor，并仅检查受影响路由。无需 Go 全量测试、代码黑盒、manifest 或 Release 构建。
-      复核后提交配置候选，configuration_checked 记录精确 HEAD/tree、检查命令及真实结果、待同步 live 文件的基线摘要。检查失败用 configuration_needs_fix 回 Build，不能把未检查项写成 passed。
+  configuration_changes_written_condition:
+    prompt: 执行绑定的配置专用 Skill，真实完成后返回 configuration_changes_written；失败或结果不明保持 blocked。
     skills:
-      - {id: fanloop-dev-workflow, prompt: 按配置或代码分支执行四步交付，配置也必须 PR 合码与 live 回读。, optional: false}
+      - {id: fanloop-config-edit, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
-  configuration_merge_and_update_local:
-    prompt: |
-      先按实际 diff 与 configuration_scope 判断配置或代码；本步首个 Prompt 是分流入口，不代表自动选择配置通道。
-      代码或混合改动执行 available_routes 中 code_change 分支的原 Prompt 及全部必需 Skills，原代码门禁不变；每次 Result 携带 code_change。只有纯配置执行下述步骤并携带 configuration_change。
-      只交付 configuration_check 对应的候选；确认 HEAD/tree 与已检 diff 未变化。用 gh 回读实际默认分支和当前分支的唯一 open/merged PR；没有则 push 并创建。已授权的配置交付默认继续 squash 合并，用 --match-head-commit 限定候选；执行实际 required checks，不使用 --admin 绕过。
-      默认分支前进导致候选变化时回 Build 重新做相关配置检查。回读 PR 为 MERGED、精确 merge commit 和 tree 相等，更新本任务源码 worktree；原代码测试/CI 耦合另行说明，不伪造通过。
-      从精确 merge commit 只同步本次批准的 Workflow/Skill 文件到已有 live 根。先与 Define 时的 live 摘要比较，存在并发修改时保留现场并 blocked；写后回读摘要和已有 CLI Doctor。不存在的整套 Workflow 不自行播种，entrypoints 属于 Release 文件时不热改其 Manifest 或复制二进制。
-      live_configuration_synced 记录 live 根、每个更新文件及回读摘要、Doctor 结果。delivery-record.md 记录 PR/merge、源码、live 证据及耗时；全部完成后同时上报本配置 Route 的全部事实并 terminal。合码后的 live 失败保持 blocked，在同一 merge commit 上重试，不另造 PR 或伪造 CLI 安装事实。
+  configuration_checked_condition:
+    prompt: 执行绑定的配置专用 Skill，真实完成后返回 configuration_checked；失败或结果不明保持 blocked。
     skills:
-      - {id: fanloop-dev-workflow, prompt: 按配置或代码分支执行四步交付，配置也必须 PR 合码与 live 回读。, optional: false}
+      - {id: fanloop-config-check, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
+
+  live_configuration_synced_condition:
+    prompt: 执行绑定的配置专用 Skill，真实完成后返回 live_configuration_synced；失败或结果不明保持 blocked。
+    skills:
+      - {id: fanloop-config-deliver, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
   maintenance_kind_condition:
-    prompt: 每步按完整实际 diff 选择 configuration 或 code，二者互斥。纯配置才选 configuration；代码或混合改动选 code。分类变化先回 Define，不在 Build/Certify/Deliver 切换以跳过门禁。
+    prompt: Define 按实际范围选择 configuration 或 code 并写入 maintenance_kind；后续 Result 沿用当前有效 Output 的类别。范围变化先携原类别回 Define，禁止在后续 Step 自行改类。
     skills: []
   configuration_fact_condition:
     prompt: 只记录当前配置 Step 已发生的事实与真实证据。按当前 Prompt 填写对象；错误记录具体原因，未完成或结果不明保持 blocked。

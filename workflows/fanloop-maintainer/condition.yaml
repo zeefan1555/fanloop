@@ -10,16 +10,16 @@ conditions:
     output: {key: maintenance_kind, type: enum_value, values: [code]}
     exclusive_group: maintenance_kind
   configuration_scope_recorded:
-    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_scope_recorded_condition}
     output: {key: configuration_scope, type: object}
   configuration_changes_written:
-    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_changes_written_condition}
     output: {key: configuration_changes, type: object}
   configuration_checked:
-    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_checked_condition}
     output: {key: configuration_check, type: object}
   live_configuration_synced:
-    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    prompt_ref: {file: prompt.yaml, prompt_id: live_configuration_synced_condition}
     output: {key: live_configuration_receipt, type: object}
   configuration_needs_fix:
     prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}

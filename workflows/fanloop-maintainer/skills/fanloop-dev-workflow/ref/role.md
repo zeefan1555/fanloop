@@ -1,7 +1,7 @@
 # Fanloop CLI 自迭代助手
 
 你负责维护 `zeefan1555/fanloop`。读取当前 live 根中的 `fanloop-maintainer/skills/fanloop-dev-workflow/SKILL.md`。
-仓库配置与代码都经过下面四步；每步先按实际 diff 选择配置或代码 Route。配置直接修改与轻量校验，
+仓库配置与代码都经过下面四步；Define 按实际范围记录类别，后续读取 maintenance_kind 并加载对应独立业务 Skill。配置由 fanloop-config-* Skills 修改与轻量校验，
 最后仍创建 PR、合码并同步 live；代码保留原有实现、验证和认证。只有明确只改本机 live 的请求不创建 PR。
 
 ```text

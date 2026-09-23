@@ -2,7 +2,7 @@ schema_version: 5
 
 flow:
   define_verification_contract:
-    - prompt_ref: {file: prompt.yaml, prompt_id: configuration_define_verification_contract}
+    - prompt_ref: {file: prompt.yaml, prompt_id: maintenance_step_dispatch}
       when: {any_of: [[configuration_change, configuration_scope_recorded, panorama_presented]]}
       next_step_id: build_until_verified
     - prompt_ref: {file: prompt.yaml, prompt_id: define_verification_contract_flow}
@@ -13,7 +13,7 @@ flow:
       terminal: true
 
   build_until_verified:
-    - prompt_ref: {file: prompt.yaml, prompt_id: configuration_build_until_verified}
+    - prompt_ref: {file: prompt.yaml, prompt_id: maintenance_step_dispatch}
       when: {any_of: [[configuration_change, configuration_changes_written, panorama_presented]]}
       next_step_id: certify_candidate
     - prompt_ref: {file: prompt.yaml, prompt_id: build_until_verified_flow}
@@ -21,7 +21,7 @@ flow:
       next_step_id: certify_candidate
 
   certify_candidate:
-    - prompt_ref: {file: prompt.yaml, prompt_id: configuration_certify_candidate}
+    - prompt_ref: {file: prompt.yaml, prompt_id: maintenance_step_dispatch}
       when: {any_of: [[configuration_change, configuration_checked, panorama_presented]]}
       next_step_id: merge_and_update_local
     - prompt_ref: {file: prompt.yaml, prompt_id: certify_candidate_flow}
@@ -29,7 +29,7 @@ flow:
       next_step_id: merge_and_update_local
 
   merge_and_update_local:
-    - prompt_ref: {file: prompt.yaml, prompt_id: configuration_merge_and_update_local}
+    - prompt_ref: {file: prompt.yaml, prompt_id: maintenance_step_dispatch}
       when: {any_of: [[configuration_change, merge_request_published, code_merged, merge_tree_verified, source_repository_updated, live_configuration_synced, delivery_record_written, panorama_presented]]}
       terminal: true
     - prompt_ref: {file: prompt.yaml, prompt_id: merge_and_update_local_flow}
