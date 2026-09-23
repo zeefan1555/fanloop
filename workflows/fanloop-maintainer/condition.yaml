@@ -1,6 +1,30 @@
 schema_version: 3
 
 conditions:
+  configuration_change:
+    prompt_ref: {file: prompt.yaml, prompt_id: maintenance_kind_condition}
+    output: {key: maintenance_kind, type: enum_value, values: [configuration]}
+    exclusive_group: maintenance_kind
+  code_change:
+    prompt_ref: {file: prompt.yaml, prompt_id: maintenance_kind_condition}
+    output: {key: maintenance_kind, type: enum_value, values: [code]}
+    exclusive_group: maintenance_kind
+  configuration_scope_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    output: {key: configuration_scope, type: object}
+  configuration_changes_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    output: {key: configuration_changes, type: object}
+  configuration_checked:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    output: {key: configuration_check, type: object}
+  live_configuration_synced:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    output: {key: live_configuration_receipt, type: object}
+  configuration_needs_fix:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    output: {key: configuration_issue, type: string}
+
   panorama_presented:
     prompt_ref: {file: prompt.yaml, prompt_id: panorama_delivery_condition}
     output: {key: panorama_snapshot_path, type: path}

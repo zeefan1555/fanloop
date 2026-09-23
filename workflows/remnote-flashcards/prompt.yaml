@@ -33,14 +33,13 @@ prompts:
       新单卡直接属于今日笔记并挂选定 Tag；同一学习链路 2–7 张卡属于普通 text 主题，只给主题打 Tag，并添加内置 Card Cluster；更多卡按学习链路拆组。
       先用 SDK 获取并核验今日笔记。更新原卡保留原位置、Rem ID、cardId 和复习记录；回流时先恢复 progress Evidence 中的 ID，只补缺项或原位修复。
       本步先把卡片写完整、保证独立可懂；保留已有有效 Wiki 引用，记录待关联概念，Wiki 创建/更新及新增引用统一留到 update_wiki_links，不写虚构引用或占位链接。
-      写前 status；按需使用 control-remnote 完成 CLI 暂不支持的 Card Cluster，并回读主题保持 text、未固定且标题无残留。
+      写前 status；按 remnote-flashcards 的集群指引，通过 SDK 给主题添加内置 Power-up cc，并用 object-has-powerup 回读 true；主题保持普通 text，标题、父级和卡片集合不变。
       flashcards_written 的 object 包含 created_rem_ids、updated_rem_ids、reused_rem_ids、card_ids、topic_ids、daily_rem_ids、tag_id、source_refs、skipped_count 和待关联的卡片 ID。
       全部重复时允许 created/updated 为空，保留复用 ID 与跳过原因，仍进入 Wiki 更新及最终校验；不要为凑数量创建卡片。
       内容与结构已回读、批次 ID 已记录才能前进；分类错误回 resolve_home_tag，卡片缺陷或可恢复的部分写入回本步。缺少授权或结果不明则 blocked。
     skills:
       - {id: remnote-flashcards, prompt: 执行增量查重、制卡、自检、写入与集群；Wiki 更新和补引用留给下一步。, optional: false}
       - {id: remnote-cli, prompt: 写前 status，写入后逐项回读并记录真实 ID。, optional: false}
-      - {id: control-remnote, prompt: 仅 CLI 无法完成本批次 Card Cluster 等原生状态时调用。, optional: true}
 
   update_wiki_links_flow:
     prompt: |
@@ -72,7 +71,6 @@ prompts:
     skills:
       - {id: remnote-verify, prompt: 对最终卡片和 Wiki 执行所有适用质量与结构检查。, optional: false}
       - {id: remnote-cli, prompt: 按精确 ID 回读真实状态，不把超时或截断当通过。, optional: false}
-      - {id: control-remnote, prompt: 仅本批次原生集群状态仍缺必要界面证据时调用。, optional: true}
 
   record_condition:
     prompt: |

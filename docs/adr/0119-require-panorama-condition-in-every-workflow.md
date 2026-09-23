@@ -40,3 +40,11 @@ Skill 正文保留；新增的 Fanloop 展示 Skill 不属于原生 catalog。�
 本次撤回为全景图配置配套增加的 Go 测试及 Contract case/Golden 修改，只保留配置及治理文档。
 当前代码测试直接断言生产配置，CI 也无条件执行代码验证；这项既有耦合尚未重构，不能宣称代码
 测试已独立于生产配置。本次规则变更不是 CI 实现变更，后续框架解耦应作为单独代码改动处理。
+
+2026-09-23 补充：用户明确轻量化仍须经过真实步骤并完成合码与 live 交付。保留原四个 Step 的 id、名称、
+顺序和 executor，每步增加 `configuration_change` 路由；原代码事实组合额外带互斥的 `code_change`，
+原代码 Prompt、必需 Skills 和验证保留。首条 Route 的 Prompt 分流：代码读取 available_routes 中的原 Prompt/Skills，
+配置执行范围记录、修改、轻量检查、PR 合码和 live 同步。每个 AND 组均要求 Panorama；不改 Runtime 或 IDL。
+配置交付不要求代码 manifest、构建或 CLI 安装，但必须回读 MERGED、merge tree 和 live 文件，不能停在工作区。
+本补充取代本 ADR 与 AGENTS 中“纯配置不初始化 Maintainer”的表述；只有明确只改本机 live 的请求直接编辑。
+RemNote Card Cluster 使用已有 SDK 的 `cc` 添加/查询，以 CLI 回读 true 为准，取消 UI 添加与截图要求。

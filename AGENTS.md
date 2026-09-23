@@ -22,15 +22,15 @@
 
 1. 纯配置变更包括五份 Workflow YAML、绑定 Skill 的指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置只做受影响 Bundle 的加载与 Schema 校验、引用和必需 Skill 检查、路由完整性检查；需要运行验证时使用已有兼容 CLI 和隔离配置，按需检查受影响路径。配置内容与快照路径是证据，不要求新 binary 或 candidate commit。
-3. 纯配置变更不启动 `fanloop-maintainer` 代码交付流程，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及 PR 合码、live 同步闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
 5. 配置交付区分仓库种子与实际 live 根；验证并回读用户指定的配置目标，不通过重新构建或安装 CLI 覆盖 live 配置。已有 Step 人审与 IDL 门禁按各自适用范围保留。
 
-完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验结果及实际更新目标。
+完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验结果、PR/merge 和实际 live 回读；只有用户明确只改 live 时可不提 PR。
 
 ## 主 Agent 监督自迭代
 
-触发条件：使用 `fanloop-maintainer` 维护 Fanloop 代码；纯配置变更使用上方配置路径。
+触发条件：使用 `fanloop-maintainer` 维护 Fanloop 代码；纯配置变更使用上方配置通道，由当前 Agent直接推进，无需派发执行子 Agent。
 
 1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；只有用户主动改变已对齐内容时才重新询问用户。
 2. 当用户针对当前 Requirement 明确授权主 Agent 全程自行决定时，主 Agent 可在完整审阅对应材料后代行需求批准、最终候选验收和 main 集成确认，无需逐次向用户复询。该授权不转授给执行子 Agent，不适用于其他 Requirement，也不替代 YAML/IDL 人审材料、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。

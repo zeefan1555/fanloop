@@ -186,7 +186,7 @@ Why、What、How 必须共同服务于同一个记忆目标。每部分都承担
 
 完成前核对：
 
-- `remnote-verify` 已证明：新单卡直接属于今日笔记并挂正确 HOME Tag；多卡直接属于同一个 `text` 主题，该主题直接属于今日笔记并挂正确 HOME Tag，并显示内置“卡片集群” Power-up；主题未被转换为 Document/Folder，标题没有残留 `/cluster`。
+- `remnote-verify` 已证明：新单卡直接属于今日笔记并挂正确 HOME Tag；多卡直接属于同一个 `text` 主题，该主题直接属于今日笔记并挂正确 HOME Tag，且已通过 CLI 回读内置“卡片集群” Power-up `cc` 为 `true`；主题未被转换为 Document/Folder，标题没有残留 `/cluster`。
 - 新建顶层主题、普通笔记和文章符合“日期 + 类型或来源 + 中文主题”；卡片正面、原文标题和 WIKI 规范名没有被该模板污染。
 - 本次新增的 PARA 分类 Tag 按 `remnote-structure` 回读为 Concept；文章内容本身仍按文章规则保持 `text`。Wiki 页面按 `remnote-wiki` 直接属于对应分区，不创建概念 Tag。
 - 原文导入闪卡一篇源文章对应一张卡，标题、正文顺序和可见内容与源文一致，Obsidian 元数据已移除，正文没有意外生成子卡片。
