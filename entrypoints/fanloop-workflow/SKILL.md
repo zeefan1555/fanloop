@@ -16,7 +16,7 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 解析出绝对 Requirement Root 后、第一次执行 `flow status` 前，检查
 `<ABSOLUTE_REQUIREMENT_ROOT>/bound-release-home/current/bin/fanloop`。该路径存在时就是该 Requirement
 的固定控制器。它后续的 `flow`、`trace`、`card` 和 `doctor`
-命令都必须同时设置对应 `bound-release-home` 下的 `FANLOOP_DATA_HOME`，以及
+命令都必须同时设置对应 `bound-release-home` 下的 `FANLOOP_DATA_HOME`，以及显式隔离来源 `FANLOOP_CONFIG_SOURCE=<controller-home>/current` 和
 `skill-roots/{codex,agent,trae,claude}` 四个 Skill Root；不得再调用全局 `fanloop`。先用该控制器执行
 `flow status`，失败即原样阻塞，不得回退到全局 current、扫描其他 Release、改写 State 或猜测版本。
 
@@ -29,11 +29,10 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
-维护 Fanloop 时先判断目标是本机 live 配置还是仓库默认配置。只修改
-`$FANLOOP_DATA_HOME/current/workflows/**`（默认 `$HOME/.fanloop/current/workflows/**`）时，直接使用
-Dashboard 或精确文件编辑并运行 Doctor，不创建 Git diff，也不初始化 `fanloop-maintainer`。修改仓库中的
-`workflows/**`、CLI/Runtime、IDL、测试、构建、安装或发布逻辑时必须使用 `fanloop-maintainer`；已经初始化的
-Requirement 继续按其持久 Workflow ID 推进。
+维护 Fanloop 的代码或生产配置时使用 `fanloop-maintainer`，Define按实际范围选择代码或配置通道。
+生产配置在Fornax发布；CLI按 `fornax.json` 选择已发布Workflow与完整Skill资源，同步到
+`$FANLOOP_DATA_HOME/current/workflows/**` 后返回当前Skill路径。Dashboard只读，本地运行副本不是编辑入口。
+同步/认证失败保持blocked，不回退旧配置。代码交付保持原验证、PR合码和CLI更新流程。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。此前单独执行的 update 失败不阻止已有 Requirement 继续。
 2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。

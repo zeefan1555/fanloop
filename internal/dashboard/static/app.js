@@ -2,7 +2,6 @@ const files = document.querySelector('#files');
 const editor = document.querySelector('#editor');
 const title = document.querySelector('#title');
 const status = document.querySelector('#status');
-const save = document.querySelector('#save');
 const refresh = document.querySelector('#refresh');
 const workflowSelect = document.querySelector('#workflowSelect');
 const fragmentSelect = document.querySelector('#fragmentSelect');
@@ -25,9 +24,6 @@ let activeTab = 'step';
 let selectedFragment = null;
 let selected = '';
 let observed = '';
-let saved = '';
-let stale = false;
-let saving = false;
 let stateMessage = '';
 let stateError = false;
 let loadGeneration = 0;
@@ -44,30 +40,22 @@ async function json(url, options) {
   return body;
 }
 
-function isDirty() { return editor.value !== saved; }
+
 
 function updateState(message, error = false) {
   if (message !== undefined) {
     stateMessage = message;
     stateError = error;
   }
-  const dirty = isDirty();
-  save.disabled = !selected || !dirty || stale || saving;
-  document.querySelector('#discard').disabled = !selected || (!dirty && !stale);
-  status.textContent = stateMessage || (stale ? 'Changed on disk. Refresh before editing again.' : dirty ? 'Unsaved changes' : selected ? 'Saved' : 'Ready');
+  status.textContent = stateMessage || (selected ? 'Read-only · published configuration' : 'Ready');
   status.classList.toggle('error', stateError && Boolean(stateMessage));
-  document.querySelector('#healthText').textContent = stale ? 'External change detected' : 'Live files ready';
-  document.body.classList.toggle('is-stale', stale);
+  document.querySelector('#healthText').textContent = 'Published configuration';
   updateLineNumbers();
 }
 
 function updateLineNumbers() {
   const count = Math.max(editor.value.split('\n').length, 1);
   lineNumbers.textContent = Array.from({ length: count }, (_, index) => index + 1).join('\n');
-}
-
-function confirmDiscard() {
-  return !isDirty() || window.confirm('Discard unsaved changes?');
 }
 
 function lineOffsets(content, fragment) {
@@ -97,7 +85,7 @@ function selectSourceRange(fragment) {
 function scheduleSourceRangeSelection(fragment) {
   const generation = loadGeneration;
   requestAnimationFrame(() => {
-    if (generation === loadGeneration && !isDirty()) selectSourceRange(fragment);
+    if (generation === loadGeneration) selectSourceRange(fragment);
   });
 }
 
@@ -105,24 +93,12 @@ async function load(path, force = false, fragment = selectedFragment) {
   const generation = ++loadGeneration;
   const next = await json(`/api/file?path=${encodeURIComponent(path)}`);
   if (generation !== loadGeneration) return;
-  const dirty = editor.value !== saved;
-  if (!force && selected === path && dirty) {
-    if (next.sha256 !== observed) {
-      stale = true;
-      updateState('');
-    } else {
-      updateState();
-    }
-    return;
-  }
   if (!force && selected === path && next.sha256 === observed) {
     updateState();
     return;
   }
   selected = path;
   observed = next.sha256;
-  saved = next.content;
-  stale = false;
   editor.value = next.content;
   editor.disabled = false;
   title.textContent = path;
@@ -140,7 +116,6 @@ function renderFiles() {
     button.textContent = item.path.slice(selectedWorkflow.length + 1);
     button.title = item.path;
     button.addEventListener('click', () => {
-      if (!confirmDiscard()) return;
       activeTab = 'file';
       selectedFragment = null;
       renderInspector();
@@ -185,7 +160,7 @@ async function loadTopology(workflowID, openSource = false, fit = false, force =
     renderSummary();
     renderGraph(fit);
     renderInspector();
-    if (!openSource && !isDirty()) scheduleSourceRangeSelection(selectedFragment);
+    if (!openSource) scheduleSourceRangeSelection(selectedFragment);
     document.querySelector('#graphMessage').hidden = true;
     world.hidden = false;
     if (openSource) await chooseDefaultFragment();
@@ -418,7 +393,6 @@ async function chooseDefaultFragment() {
 async function selectStep(stepID) {
   if (stepID === selectedStep) {
     if (activeTab === 'file') {
-      if (!confirmDiscard()) return;
       activeTab = 'step';
       selectedFragment = null;
       renderInspector();
@@ -429,7 +403,7 @@ async function selectStep(stepID) {
     filterEdges();
     return;
   }
-  if (!confirmDiscard()) return;
+
   selectedStep = stepID;
   focusedStep = stepID;
   activeTab = 'step';
@@ -442,7 +416,7 @@ async function selectStep(stepID) {
 
 async function selectTab(tab) {
   if (tab === activeTab) return;
-  if (!confirmDiscard()) return;
+
   activeTab = tab;
   selectedFragment = null;
   renderInspector();
@@ -475,47 +449,15 @@ function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 }
 
-editor.addEventListener('input', () => { ++loadGeneration; updateState(''); });
 editor.addEventListener('scroll', () => { lineNumbers.scrollTop = editor.scrollTop; });
 refresh.addEventListener('click', async () => {
-  if (!selected || !confirmDiscard()) return;
+  if (!selected) return;
   try {
     await load(selected, true, selectedFragment);
     await loadTopology(selectedWorkflow, false, false, true);
   } catch (error) { showError(error); }
 });
-save.addEventListener('click', async () => {
-  const path = selected;
-  const content = editor.value;
-  const saveGeneration = ++loadGeneration;
-  saving = true;
-  updateState('Saving...');
-  try {
-    const next = await json('/api/file', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, content, observed_sha256: observed }) });
-    if (selected === path) {
-      const contentUnchanged = editor.value === next.content;
-      observed = next.sha256;
-      saved = next.content;
-      stale = false;
-      updateState(contentUnchanged ? 'Saved' : '');
-      await loadTopology(selectedWorkflow, false, false, true);
-      const refreshed = currentFragments().find(fragment => fragment.id === selectedFragment?.id);
-      if (refreshed) selectedFragment = refreshed;
-      if (contentUnchanged && loadGeneration === saveGeneration) selectSourceRange(selectedFragment);
-    }
-  } catch (error) {
-    if (selected === path) {
-      if (error.response?.status === 409) stale = true;
-      showError(error);
-    }
-  } finally {
-    saving = false;
-    if (selected === path) updateState();
-  }
-});
-document.querySelector('#discard').addEventListener('click', () => selected && load(selected, true, selectedFragment).catch(showError));
 workflowSelect.addEventListener('change', async event => {
-  if (!confirmDiscard()) { workflowSelect.value = selectedWorkflow; return; }
   selectedWorkflow = event.target.value;
   selectedStep = '';
   focusedStep = '';
@@ -525,7 +467,6 @@ workflowSelect.addEventListener('change', async event => {
   try { await loadTopology(selectedWorkflow, true, true); } catch (error) { showError(error); }
 });
 fragmentSelect.addEventListener('change', () => {
-  if (!confirmDiscard()) { fragmentSelect.value = selectedFragment?.id || ''; return; }
   selectedFragment = currentFragments().find(fragment => fragment.id === fragmentSelect.value) || null;
   if (selectedFragment) load(selectedFragment.path, true, selectedFragment).catch(showError);
 });
@@ -571,7 +512,7 @@ viewport.addEventListener('wheel', event => {
 }, { passive: false });
 
 setInterval(async () => {
-  if (selected && !saving) {
+  if (selected) {
     try { await load(selected, false, selectedFragment); } catch (error) { showError(error); }
   }
   if (selectedWorkflow) {

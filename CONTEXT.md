@@ -6,10 +6,9 @@
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
 **Live Workflow**
-位于 `$FANLOOP_DATA_HOME/current/workflows/<workflow-id>/` 的可编辑流程配置。五份 YAML 共同定义执行图：
-`workflow.yaml` 注册 Stage/Job/Step，`flow.yaml` 声明正常 Route，`condition.yaml` 声明原子 Condition 与
-OutputSpec，`loop.yaml` 声明回流 Route，`prompt.yaml` 保存 Prompt 与 SkillBinding；绑定 Skill 位于同目录的
-`skills/<skill-id>/SKILL.md`。它不是 Release artifact，没有版本或 digest。
+Fornax 已发布的五份 YAML 和绑定 `skills/**` 资源。每套Workflow对应一个Fornax Skill包，包含完整资源。配置消费命令先下载并完整校验，再同步到 `$FANLOOP_DATA_HOME/current/workflows/<id>/`；本地是
+运行副本，不能编辑为独立真值。五 YAML 继续分别定义层级、正常Route、Condition、Loop和Prompt。
+Fornax版本独立于CLI Release，不进入State或YAML Schema；没有旧配置fallback。
 
 **Requirement Workflow Resolution**
 Requirement 只持久化 Workflow ID 与创建它的 CLI Release version。每次 CLI 调用都按该 ID 从同一个
@@ -76,12 +75,8 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。
 
 **Workflow Dashboard**
-`fanloop dashboard` 在随机 loopback 端口前台启动嵌入式页面，只读写 live Workflow 根中已有的五份 YAML
-和 `SKILL.md`。保存携带上次读取的 SHA-256；服务端拒绝 stale、越界、符号链接、无效 YAML 与空 Skill，
-并以原子替换提交。页面从当前 live 文件投影 Stage / Job / Step、Flow / Loop Route 及其关联的 Prompt、
-Condition 和 Skill；common controls 的 Prompt、Condition 和 Skill 会出现在每个受管 Step，动态 jump
-不会被画成虚假静态边。选择图中对象时仍打开完整真实文件，并定位对应源码范围。页面轮询外部变化，不覆盖
-已变脏的编辑器。
+`fanloop dashboard` 在随机loopback端口提供只读拓扑与完整源码导航，启动同步Fornax配置；HTTP读取
+与CLI同步使用相同锁，防止读到部分更新。页面轮询本地已同步内容；没有文件保存接口或编辑状态。
 
 **Source Anchor**
 Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based inclusive 行范围，只用于在完整文件中

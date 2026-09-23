@@ -51,7 +51,7 @@ func TestVerifyOutcomeClaimRule(t *testing.T) {
 	}
 }
 
-func TestProductionVerifyClaimsUseEvidenceOutcome(t *testing.T) {
+func TestRuntimeFixtureVerifyClaimsUseEvidenceOutcome(t *testing.T) {
 	loaded, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -81,41 +81,6 @@ func TestProductionVerifyClaimsUseEvidenceOutcome(t *testing.T) {
 	}
 }
 
-func TestMaintainerSkillCatalogIsFrozen(t *testing.T) {
-	entries, err := os.ReadDir(filepath.Join(sourceRepo(t), "workflows", "fanloop-maintainer", "skills"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var got []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			t.Fatalf("maintainer skills has non-directory %s", entry.Name())
-		}
-		got = append(got, entry.Name())
-	}
-	want := []string{
-		"fanloop-dev-agent-acceptance",
-		"fanloop-dev-bootstrap",
-		"fanloop-dev-code-review",
-		"fanloop-dev-decision-receipt",
-		"fanloop-dev-domain-modeling",
-		"fanloop-dev-grill-with-docs",
-		"fanloop-dev-grilling",
-		"fanloop-dev-implement",
-		"fanloop-dev-maintain-verification",
-		"fanloop-dev-merge-and-update-local",
-		"fanloop-dev-panorama",
-		"fanloop-dev-tdd",
-		"fanloop-dev-to-spec",
-		"fanloop-dev-to-tickets",
-		"fanloop-dev-verify",
-		"fanloop-dev-workflow",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("maintainer skill directories = %v, want %v; add a fanloop-dev skill only by deleting another in the same change", got, want)
-	}
-}
-
 func TestCursorVerifyEntryIsTheOnlyFeatureMap(t *testing.T) {
 	repo := sourceRepo(t)
 	skills, err := os.ReadDir(filepath.Join(repo, ".cursor", "skills"))
@@ -135,28 +100,10 @@ func TestCursorVerifyEntryIsTheOnlyFeatureMap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode()&os.ModeSymlink == 0 {
-		t.Fatal(".cursor/skills/verify-fanloop/features is a real directory")
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatal("Feature Map must be code-owned real directory")
 	}
-	target, err := os.Readlink(link)
-	if err != nil {
-		t.Fatal(err)
-	}
-	const wantTarget = "../../../workflows/fanloop-maintainer/skills/fanloop-dev-verify/references/features"
-	if target != wantTarget {
-		t.Fatalf("features symlink = %s, want %s", target, wantTarget)
-	}
-	resolvedLink, err := filepath.EvalSymlinks(link)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resolvedMap, err := filepath.EvalSymlinks(filepath.Join(repo, "workflows", "fanloop-maintainer", "skills", "fanloop-dev-verify", "references", "features"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resolvedLink != resolvedMap {
-		t.Fatalf("features symlink resolves to %s, map is %s", resolvedLink, resolvedMap)
-	}
+	resolvedMap := link
 
 	var maps []string
 	err = filepath.WalkDir(repo, func(path string, entry fs.DirEntry, walkErr error) error {

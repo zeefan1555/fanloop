@@ -53,3 +53,5 @@ ADR-0091 中「项目验证能力的唯一真值迁入 `.agents/skills/verify-fa
 ADR-0101 中「验证入口位于 `skills/fanloop-maintainer/fanloop-dev-verify/`」不再有效。现行路径是 `workflows/fanloop-maintainer/skills/fanloop-dev-verify/`。
 
 ADR-0112 与 ADR-0113 的 manifest 门禁、Skill 禁手写 manifest、以及不改 Step 拓扑仍然有效。
+
+本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-fornax.md) 按其明确范围修订；其余门禁继续有效。

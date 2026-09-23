@@ -1,0 +1,37 @@
+# Frozen runtime test fixture; not production configuration.
+schema_version: 4
+loop:
+  resolve_home_tag:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[home_tag_needs_fix]]}
+      back_step_id: resolve_home_tag
+  write_flashcards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[home_tag_needs_fix]]}
+      back_step_id: resolve_home_tag
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[flashcards_need_fix]]}
+      back_step_id: write_flashcards
+  update_wiki_links:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[home_tag_needs_fix]]}
+      back_step_id: resolve_home_tag
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[flashcards_need_fix]]}
+      back_step_id: write_flashcards
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[wiki_links_need_fix]]}
+      back_step_id: update_wiki_links
+  verify_result:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[home_tag_needs_fix]]}
+      back_step_id: resolve_home_tag
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[flashcards_need_fix]]}
+      back_step_id: write_flashcards
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[wiki_links_need_fix]]}
+      back_step_id: update_wiki_links
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[verification_retry]]}
+      back_step_id: verify_result

@@ -26,7 +26,22 @@ type requestValidator interface {
 func TestMain(main *testing.M) {
 	_ = os.Unsetenv("BOTMUX_CHAT_ID")
 	_ = os.Unsetenv("BOTMUX_SESSION_ID")
-	os.Exit(main.Run())
+	repository, err := filepath.Abs("..")
+	if err != nil {
+		panic(err)
+	}
+	dataRoot, err := os.MkdirTemp("", "fanloop-cmd-tests-")
+	if err != nil {
+		panic(err)
+	}
+	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(filepath.Join(repository, "tests", "testdata", "workflows"))); err != nil {
+		panic(err)
+	}
+	_ = os.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	_ = os.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(repository, "tests", "testdata"))
+	code := main.Run()
+	_ = os.RemoveAll(dataRoot)
+	os.Exit(code)
 }
 
 func TestProcessDoesNotInheritBotmuxBinding(t *testing.T) {

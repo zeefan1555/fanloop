@@ -18,8 +18,11 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
+	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/output"
+	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -91,6 +94,47 @@ func runOperation[T any](
 	request, failure := commandRequest(command, controls.input, ioStreams.in, typed)
 	if failure != nil {
 		return fail(failure)
+	}
+
+	if validator, ok := any(request).(interface{ IsValid() error }); ok {
+		if err := validator.IsValid(); err != nil {
+			return fail(invalidArgument(err.Error()))
+		}
+	}
+	if root != "" {
+		if _, failure := store.New(root); failure != nil {
+			return fail(failure)
+		}
+	}
+	if id != "version" && !strings.HasPrefix(id, "verify.") {
+		dataRoot, err := release.DefaultDataRoot()
+		if err != nil {
+			return fail(normalizePublicError(err))
+		}
+
+		selection := ""
+		needsConfiguration := true
+		if init, ok := any(request).(*flowidl.FlowInitRequest); ok {
+			selection = init.Workflow
+		} else if root != "" && spec.RequirementScope == commonidl.RequirementScope_existing {
+			local, failure := store.New(root)
+			if failure != nil {
+				return fail(failure)
+			}
+			current, failure := local.Load()
+			if failure != nil {
+				needsConfiguration = false
+			} else {
+				selection = current.Release.Workflow.ID
+			}
+		}
+		if needsConfiguration {
+			unlock, err := workflow.PrepareConfiguration(ctx, dataRoot, selection)
+			if err != nil {
+				return fail(normalizePublicError(err))
+			}
+			defer unlock()
+		}
 	}
 	result, failure := run(ctx, request, controls.dryRun)
 	if failure != nil {

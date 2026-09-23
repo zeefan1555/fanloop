@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -137,6 +138,67 @@ func TestSnapshotRejectsEvidenceInsideRequirementState(t *testing.T) {
 	}
 }
 
+func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) {
+	repository, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataRoot := t.TempDir()
+	workflowRoot := filepath.Join(dataRoot, "current", "workflows")
+	if err := os.CopyFS(workflowRoot, os.DirFS(filepath.Join(repository, "tests", "testdata", "workflows"))); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	t.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(dataRoot, "current"))
+	marker := filepath.Join(workflowRoot, "remnote-flashcards", "skills", "remnote-flashcards", "SKILL.md")
+	want, err := os.ReadFile(marker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var frozenRoot string
+	calls := 0
+	runtime := Runtime{
+		DataRoot:     dataRoot,
+		WorkflowRoot: workflowRoot,
+		NewRunID:     func() string { return "0123456789abcdef0123456789abcdef" },
+		Run: func(_ context.Context, executable string, env []string, args []string) (commandResult, error) {
+			calls++
+			childDataRoot := environmentValue(env, "FANLOOP_DATA_HOME")
+			if childDataRoot == "" || childDataRoot == dataRoot {
+				t.Fatalf("snapshot child data root = %q", childDataRoot)
+			}
+			if frozenRoot == "" {
+				frozenRoot = childDataRoot
+				if err := os.WriteFile(marker, []byte("changed after freeze\n"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			} else if childDataRoot != frozenRoot {
+				t.Fatalf("snapshot child roots changed: %q != %q", childDataRoot, frozenRoot)
+			}
+			frozenMarker := filepath.Join(childDataRoot, "current", "workflows", "remnote-flashcards", "skills", "remnote-flashcards", "SKILL.md")
+			got, err := os.ReadFile(frozenMarker)
+			if err != nil || !reflect.DeepEqual(got, want) {
+				t.Fatalf("frozen configuration changed: %v", err)
+			}
+			if environmentValue(env, "FANLOOP_CONFIG_SOURCE") != filepath.Join(childDataRoot, "current") {
+				t.Fatal("snapshot child did not use its frozen configuration source")
+			}
+			return commandResult{Argv: append([]string{executable}, args...), StartedAt: time.Now(), Stdout: []byte("{}\n")}, nil
+		},
+	}
+	root := t.TempDir()
+	destination := filepath.Join(t.TempDir(), "snapshot")
+	if _, err := runtime.Snapshot(context.Background(), root, &verifyidl.VerifySnapshotRequest{EvidenceDir: &destination}); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 5 {
+		t.Fatalf("snapshot observations = %d, want 5", calls)
+	}
+	if _, err := os.Stat(frozenRoot); !os.IsNotExist(err) {
+		t.Fatalf("frozen configuration root remains: %v", err)
+	}
+}
+
 func TestFinishSmokeCleanupStopsWhenDryRunFails(t *testing.T) {
 	dataRoot := t.TempDir()
 	runID := "0123456789abcdef0123456789abcdef"
@@ -233,4 +295,14 @@ func writeTestFile(t *testing.T, path, content string) {
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func environmentValue(environment []string, name string) string {
+	prefix := name + "="
+	for _, item := range environment {
+		if strings.HasPrefix(item, prefix) {
+			return strings.TrimPrefix(item, prefix)
+		}
+	}
+	return ""
 }

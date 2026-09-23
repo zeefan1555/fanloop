@@ -266,7 +266,7 @@ func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 func runCase(t *testing.T, binary, casePath string, value contractCase) contractResult {
 	t.Helper()
 	root := t.TempDir()
-	copyTree(t, filepath.Join(repositoryRoot(t), "workflows"), filepath.Join(root, ".fanloop-user", "current", "workflows"))
+	copyTree(t, filepath.Join(repositoryRoot(t), "tests", "testdata", "workflows"), filepath.Join(root, ".fanloop-user", "current", "workflows"))
 	before := filepath.Join(filepath.Dir(casePath), "before")
 	if _, err := os.Stat(before); err == nil {
 		copyTree(t, before, root)

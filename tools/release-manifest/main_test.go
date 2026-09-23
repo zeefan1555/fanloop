@@ -49,57 +49,6 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	}
 }
 
-func TestPanoramaSkillsOwnHostRoutingAndPresentationCommands(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", "..", "workflows"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, relative := range []string{
-		"fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md",
-		"technical-solution-design/skills/technical-solution-panorama/SKILL.md",
-	} {
-		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		delivery := string(content)
-		for _, value := range []string{
-			"只依据系统或开发者上下文中已经声明的当前 Agent 人设",
-			"Botmux Agent：`botmux`",
-			"AIME Agent：`aime`",
-			"Aiden Agent：`aiden`",
-			"Codex、Claude Code 和 Trae：`local_agent`",
-			"--format markdown",
-			"--format lark-json",
-			"botmux send --card-file",
-			"lark-cli im +messages-reply",
-			"aiden-bot-cli send-card --card-file",
-			"第一条用户可见消息",
-			"真正的人工问题只能随后发送",
-			"最终回复不得重复 Panorama",
-			"不自行拼装内容",
-			"不得跨模式 fallback、双发、扫描旧快照",
-		} {
-			if !strings.Contains(delivery, value) {
-				t.Fatalf("%s does not contain %q", relative, value)
-			}
-		}
-		if relative == "fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md" &&
-			!strings.Contains(delivery, `{"condition_id":"panorama_presented"`) {
-			t.Fatalf("%s does not return the maintainer panorama condition", relative)
-		}
-		if relative != "fanloop-maintainer/skills/fanloop-dev-panorama/SKILL.md" &&
-			!strings.Contains(delivery, `{"condition_id":"panorama_card_published"`) {
-			t.Fatalf("%s does not return the standard panorama condition", relative)
-		}
-		for _, forbidden := range []string{"command -v", "BOTMUX_CHAT_ID:-", "BOTMUX_SESSION_ID:-", "<CURRENT_BOTMUX_SESSION_ID>"} {
-			if strings.Contains(delivery, forbidden) {
-				t.Fatalf("%s contains forbidden guidance %q", relative, forbidden)
-			}
-		}
-	}
-}
-
 func TestDiscoverEntrypoint(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, release.ExposedSkillPath, "SKILL.md")
@@ -130,7 +79,7 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, name := range workflow.BundleFileNames() {
-		content, err := os.ReadFile(filepath.Join(repository, "workflows", "technical-solution-design", name))
+		content, err := os.ReadFile(filepath.Join(repository, "tests", "testdata", "workflows", "technical-solution-design", name))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -188,7 +137,7 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	if exposed.Name != release.ExposedSkillName {
 		t.Fatalf("entrypoint = %#v", exposed)
 	}
-	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml"), definitions); err != nil {
+	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml")); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -209,23 +158,19 @@ func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
 		}
 	}
 	path := filepath.Join(filepath.Dir(entrypoint), "routes.yaml")
-	definitions, err := workflow.ListFrom(filepath.Join("..", "..", "workflows"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := validateSelectorRoutes(path, definitions); err != nil {
+
+	if err := validateSelectorRoutes(path); err != nil {
 		t.Fatalf("production selector is invalid: %v", err)
 	}
 }
 
-func TestValidateSelectorRejectsUnknownWorkflow(t *testing.T) {
+func TestValidateSelectorRejectsEmptyWorkflow(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "routes.yaml")
-	content := []byte("schema_version: 2\nscenarios:\n  missing:\n    workflow: missing\n    description: missing\n")
+	content := []byte("schema_version: 2\nscenarios:\n  missing:\n    workflow: \n    description: missing\n")
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	definitions := []workflow.Loaded{{Ref: workflow.Ref{ID: "technical-solution-design"}}}
-	if err := validateSelectorRoutes(path, definitions); err == nil || !strings.Contains(err.Error(), `unknown Workflow "missing"`) {
+	if err := validateSelectorRoutes(path); err == nil || !strings.Contains(err.Error(), `invalid Workflow selector scenario rule`) {
 		t.Fatalf("unknown selector target error = %v", err)
 	}
 }
@@ -259,29 +204,6 @@ func TestWorkflowEntryOwnsProtocolAndPanoramaFirst(t *testing.T) {
 	}
 	if strings.Contains(skill, "fanloop update") {
 		t.Fatal("local Workflow entry still requires an online update")
-	}
-}
-
-func TestMaintainerEntryInitializesWithoutOnlineUpdate(t *testing.T) {
-	path := filepath.Join("..", "..", "workflows", "fanloop-maintainer", "skills", "fanloop-dev-workflow", "SKILL.md")
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	skill := string(content)
-	if strings.Contains(skill, "fanloop update") {
-		t.Fatal("maintainer Workflow entry still requires an online update")
-	}
-	for _, value := range []string{
-		"通用 `fanloop-workflow` 的 Panorama-first 契约",
-		"第一条用户可见消息",
-		"真正的人工问题只能随后发送",
-		"最终回复不重新",
-		"只在 Panorama 下方展示当前完整问题",
-	} {
-		if !strings.Contains(skill, value) {
-			t.Fatalf("maintainer Workflow entry does not contain %q", value)
-		}
 	}
 }
 

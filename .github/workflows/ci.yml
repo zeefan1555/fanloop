@@ -3,9 +3,10 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [master]
 
 env:
+  FANLOOP_CONFIG_SOURCE: ${{ github.workspace }}/tests/testdata
   CANDIDATE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:

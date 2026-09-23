@@ -230,7 +230,7 @@ func TestTopologyRejectsAFileReplacedBySymlinkAfterStartup(t *testing.T) {
 	}
 }
 
-func TestEmbeddedStudioUsesLiveTopologyAndWholeFileSaves(t *testing.T) {
+func TestEmbeddedStudioUsesPublishedTopologyAndSourceAnchors(t *testing.T) {
 	page, err := assets.ReadFile("static/index.html")
 	if err != nil {
 		t.Fatal(err)
@@ -263,8 +263,6 @@ func TestEmbeddedStudioUsesLiveTopologyAndWholeFileSaves(t *testing.T) {
 		"/api/topology?workflow=",
 		"/api/file?path=",
 		"setSelectionRange",
-		"confirmDiscard()",
-		"method: 'POST'",
 		"selectedFragment",
 		"loadTopology",
 		"renderGraph",
@@ -278,8 +276,8 @@ func TestEmbeddedStudioUsesLiveTopologyAndWholeFileSaves(t *testing.T) {
 			t.Fatalf("studio script contains prototype-only behavior %q", forbidden)
 		}
 	}
-	if strings.Count(value, "method: 'POST'") != 1 || !strings.Contains(value, "json('/api/file', { method: 'POST'") {
-		t.Fatal("POST /api/file must remain the sole browser write path")
+	if strings.Contains(value, "method: 'POST'") {
+		t.Fatal("read-only dashboard includes a write request")
 	}
 
 	styles, err := assets.ReadFile("static/style.css")

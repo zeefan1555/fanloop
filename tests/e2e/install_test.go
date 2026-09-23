@@ -105,7 +105,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(oldRelease.ConfigSource, "workflows", "fanloop-maintainer", "skills", "fanloop-dev-workflow", "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(repository, "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(os.Environ(), "HOME="+home)
 	if output, err := pinned.CombinedOutput(); err != nil {
@@ -197,21 +197,19 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	}
 }
 
-func TestReleaseUpgradeDoesNotRequireConfigurationSource(t *testing.T) {
+func TestReleaseUpgradeRejectsMissingExplicitVerificationSource(t *testing.T) {
 	repository := repositoryRoot(t)
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
 	initial := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	if result := runInstaller(t, initial, dataRoot, codexRoot, agentsRoot); result.err != nil {
-		t.Fatalf("initial install: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+		t.Fatal(result.stderr)
 	}
-
 	upgrade := makeReleaseFixture(t, repository, "1.2.4", "1.2.4")
-	upgrade.ConfigSource = filepath.Join(t.TempDir(), "missing-configuration-source")
-	result := runInstaller(t, upgrade, dataRoot, codexRoot, agentsRoot)
-	if result.err != nil {
-		t.Fatalf("upgrade depends on configuration source: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	upgrade.ConfigSource = filepath.Join(t.TempDir(), "missing")
+	if result := runInstaller(t, upgrade, dataRoot, codexRoot, agentsRoot); result.err == nil {
+		t.Fatal("accepted missing verification source")
 	}
-	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.4"))
+	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.3"))
 }
 
 func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
@@ -254,9 +252,7 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 			t.Fatalf("configured %s Skill: %v", skillID, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(fixture.ConfigSource, "workflows", "remnote-flashcards", "skills", "remnote-flashcards", "references", "supermemo-20-rules.md")); err != nil {
-		t.Fatalf("configured flashcard concept-card reference: %v", err)
-	}
+
 	if _, err := os.Stat(filepath.Join(dataRoot, "releases", fixture.Version, "skills")); !os.IsNotExist(err) {
 		t.Fatalf("installed release contains live Skills: %v", err)
 	}
@@ -731,7 +727,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 func makeReleaseFixtureWithChangedMaintainerPrompt(t *testing.T, repository, releaseVersion, compiledVersion string) releaseFixture {
 	t.Helper()
 	candidateRepository := copyRepositorySource(t, repository)
-	path := filepath.Join(candidateRepository, "workflows", "fanloop-maintainer", "prompt.yaml")
+	path := filepath.Join(candidateRepository, "tests", "testdata", "workflows", "fanloop-maintainer", "prompt.yaml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -781,7 +777,7 @@ func writeReleaseFixture(t *testing.T, repository, staging, binary, releaseVersi
 	if err := os.WriteFile(manifestPath, append(content, '\n'), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return releaseFixture{Directory: staging, ConfigSource: repository, Version: releaseVersion}
+	return releaseFixture{Directory: staging, ConfigSource: filepath.Join(repository, "tests", "testdata"), Version: releaseVersion}
 }
 
 func runBoundController(controllerHome string, args ...string) cliResult {

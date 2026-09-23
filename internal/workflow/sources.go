@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -19,21 +18,7 @@ func DefaultRoot() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dataRoot := filepath.Join(home, ".fanloop")
-	executable, executableErr := os.Executable()
-	if executableErr == nil {
-		resolved, resolveErr := filepath.EvalSymlinks(executable)
-		if resolveErr == nil && isWithin(filepath.Join(dataRoot, "releases"), resolved) {
-			return filepath.Join(dataRoot, "current", "workflows"), nil
-		}
-	}
-	{
-		_, source, _, ok := runtime.Caller(0)
-		if !ok {
-			return "", fmt.Errorf("locate source Workflows")
-		}
-		return filepath.Clean(filepath.Join(filepath.Dir(source), "..", "..", "workflows")), nil
-	}
+	return filepath.Join(home, ".fanloop", "current", "workflows"), nil
 }
 
 func isWithin(root, path string) bool {

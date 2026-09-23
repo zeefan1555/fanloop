@@ -11,6 +11,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/dashboardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/output"
+	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -21,7 +22,7 @@ func newDashboardCommand(ioStreams streams) *cobra.Command {
   Start the local Workflow configuration dashboard.
 
 Effect:
-  Local write. The foreground server listens only on 127.0.0.1 with an OS-selected port and edits allowlisted files under current/workflows.
+  Local write. The foreground server listens only on 127.0.0.1 with an OS-selected port and displays synchronized Fornax configuration under current/workflows as read-only.
 
 Request JSON:
   {}
@@ -37,7 +38,7 @@ Controls:
   This command does not support --root or --dry-run.
 
 Next step:
-  Open the returned loopback URL. Stop the foreground process when editing is complete.`
+  Open the returned loopback URL. Stop the foreground process when viewing is complete.`
 	command.Example = "  fanloop dashboard"
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		request, failure := commandRequest(command, controls.input, ioStreams.in, func() (*dashboardidl.DashboardStartRequest, *erroridl.PublicError) {
@@ -56,7 +57,17 @@ Next step:
 		if err != nil {
 			return dashboardFailure(ioStreams, err)
 		}
+
+		dataRoot, err := release.DefaultDataRoot()
+		if err != nil {
+			return dashboardFailure(ioStreams, err)
+		}
+		unlock, err := workflow.PrepareConfiguration(command.Context(), dataRoot)
+		if err != nil {
+			return dashboardFailure(ioStreams, err)
+		}
 		handler, err := dashboard.NewHandler(root)
+		unlock()
 		if err != nil {
 			return dashboardFailure(ioStreams, err)
 		}

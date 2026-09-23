@@ -5,11 +5,11 @@ description: Drive Fanloop with the public CLI and the Feature Map, then leave a
 
 # Verify Fanloop
 
-The drive procedure and Feature Map live in `workflows/fanloop-maintainer/skills/fanloop-dev-verify/`. This file is the Cursor entry. `features/` is that map. Do not copy it.
+This is the single code-owned verification procedure. `features/README.md` indexes its Feature Map. Published Fornax Skills point here; they do not carry another copy.
 
 ## Launch
 
-From the repository root, install the candidate into an isolated data home. Do not point `FANLOOP_DATA_HOME` at `~/.fanloop`.
+From the repository root, record the clean candidate HEAD and install it into an isolated data home. Do not point `FANLOOP_DATA_HOME` at `~/.fanloop`. Supply `FANLOOP_CONFIG_SOURCE` as an absolute frozen, reviewed configuration publication directory containing `workflows/` (or `tests/testdata` for generic runtime proof). This explicit source is verification-only and rejected for the global data home. Preserve its package versions and complete file manifest. For a real Fornax sync integration test, leave that variable unset and copy reviewed connection settings to the isolated `fornax.json`; credential use must be explicitly authorized.
 
 ```bash
 export FANLOOP_DATA_HOME="$(mktemp -d)"
@@ -61,9 +61,13 @@ fanloop flow report result --root "$ROOT" --step-id verify_behavior \
   --next-step-id merge_and_release --summary "verification manifest passed"
 ```
 
+Read each leaf `--help`, create an empty absolute Requirement directory (`INVALID_ARGUMENT` if it does not exist), and read fresh `flow status` before Workflow actions. Run a write's `--dry-run`, verify that State/Output/Event/Trace/Card business files did not change, then invoke and read back the real action. Dry-run may append `.fanloop/log/cli.jsonl`; it also synchronizes configuration. Never equate dry-run with zero filesystem activity. Use synthetic data. External Trace/Lark writes require explicit authorization of identity, target and timing.
+
 ## Evidence
 
 `fanloop verify smoke` prints `run_id`, `evidence_dir`, and `outcome`. The proof file is `$EVIDENCE_DIR/manifest.json`. It contains `schema_version` 1 and `outcome` of `passed`, `failed`, or `blocked`, plus the commands that produced it. Exit code 1 means failed or blocked. Read `outcome` from the manifest, not from the exit code.
+
+Record exact candidate HEAD and binary digest, Feature/variant, argv/stdin/stdout/stderr/exit code, before/after Status and stable final state, relevant State/Output/Event/Trace/Card, `.fanloop/log/cli.jsonl` and observable side effects. Read events through public `trace status`/`trace render` and reconcile the `.fanloop/trace/events.jsonl` tail. Internal Go calls, a final output alone, or an old candidate cannot prove the public journey. Evidence permissions must limit access to the current user; do not copy historical Requirements or user credentials into evidence.
 
 Keep this directory outside the requirement root and outside `verification/work`. Cleanup must not delete it.
 

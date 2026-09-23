@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"net/http"
 	"os"
@@ -29,12 +28,6 @@ type fileResponse struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
 	SHA256  string `json:"sha256"`
-}
-
-type saveRequestBody struct {
-	Path           string `json:"path"`
-	Content        string `json:"content"`
-	ObservedSHA256 string `json:"observed_sha256"`
 }
 
 type apiError struct {
@@ -73,6 +66,15 @@ func NewHandler(root string) (http.Handler, error) {
 }
 
 func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if strings.HasPrefix(request.URL.Path, "/api/") {
+		unlock, err := workflow.LockConfiguration(filepath.Dir(filepath.Dir(h.root)), false)
+		if err != nil {
+			h.writeError(writer, http.StatusInternalServerError, "configuration_locked", err.Error(), "")
+			return
+		}
+		defer unlock()
+	}
+
 	switch request.URL.Path {
 	case "/api/files":
 		if request.Method != http.MethodGet {
@@ -84,8 +86,6 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodGet:
 			h.read(writer, request.URL.Query().Get("path"))
-		case http.MethodPost:
-			h.save(writer, request.Body)
 		default:
 			h.writeError(writer, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed.", "")
 		}
@@ -163,63 +163,6 @@ func (h *handler) read(writer http.ResponseWriter, relative string) {
 	h.writeJSON(writer, http.StatusOK, fileResponse{Path: relative, Content: string(content), SHA256: digest(content)})
 }
 
-func (h *handler) save(writer http.ResponseWriter, body io.Reader) {
-	decoder := json.NewDecoder(io.LimitReader(body, 4<<20))
-	decoder.DisallowUnknownFields()
-	var request saveRequestBody
-	if err := decoder.Decode(&request); err != nil {
-		h.writeError(writer, http.StatusBadRequest, "invalid_request", err.Error(), "")
-		return
-	}
-	var trailing json.RawMessage
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		h.writeError(writer, http.StatusBadRequest, "invalid_request", "Request must contain one JSON value.", "")
-		return
-	}
-	h.saveMu.Lock()
-	defer h.saveMu.Unlock()
-
-	path, err := h.resolve(request.Path)
-	if err != nil {
-		h.writeError(writer, http.StatusBadRequest, "invalid_path", err.Error(), "")
-		return
-	}
-	current, err := os.ReadFile(path)
-	if err != nil {
-		h.writeError(writer, http.StatusBadRequest, "invalid_path", err.Error(), "")
-		return
-	}
-	currentDigest := digest(current)
-	if request.ObservedSHA256 != currentDigest {
-		h.writeError(writer, http.StatusConflict, "stale_file", "The file changed after it was loaded.", currentDigest)
-		return
-	}
-	if err := h.validateCandidate(request.Path, []byte(request.Content)); err != nil {
-		h.writeError(writer, http.StatusUnprocessableEntity, "invalid_content", err.Error(), "")
-		return
-	}
-	path, err = h.resolve(request.Path)
-	if err != nil {
-		h.writeError(writer, http.StatusBadRequest, "invalid_path", err.Error(), "")
-		return
-	}
-	latest, err := os.ReadFile(path)
-	if err != nil {
-		h.writeError(writer, http.StatusBadRequest, "invalid_path", err.Error(), "")
-		return
-	}
-	latestDigest := digest(latest)
-	if latestDigest != currentDigest {
-		h.writeError(writer, http.StatusConflict, "stale_file", "The file changed after it was loaded.", latestDigest)
-		return
-	}
-	if err := atomicWrite(path, []byte(request.Content)); err != nil {
-		h.writeError(writer, http.StatusInternalServerError, "write_failed", err.Error(), "")
-		return
-	}
-	h.writeJSON(writer, http.StatusOK, fileResponse{Path: request.Path, Content: request.Content, SHA256: digest([]byte(request.Content))})
-}
-
 func (h *handler) allowedPaths() ([]string, error) {
 	definitions, err := workflow.ListFrom(h.root)
 	if err != nil {
@@ -284,64 +227,6 @@ func (h *handler) resolveAllowed(relative string, allowed []string) (string, err
 		return "", fmt.Errorf("path is not a regular allowlisted file")
 	}
 	return path, nil
-}
-
-func (h *handler) validateCandidate(relative string, content []byte) error {
-	parts := strings.Split(relative, "/")
-	if len(parts) >= 4 && parts[1] == "skills" {
-		if strings.TrimSpace(string(content)) == "" {
-			return fmt.Errorf("SKILL.md must not be empty")
-		}
-	} else if len(parts) != 2 {
-		return fmt.Errorf("path is not editable")
-	}
-	temporary, err := os.MkdirTemp("", "fanloop-dashboard-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(temporary)
-	if err := os.CopyFS(temporary, os.DirFS(h.root)); err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(temporary, filepath.FromSlash(relative)), content, 0o600); err != nil {
-		return err
-	}
-	_, err = workflow.ListFrom(temporary)
-	return err
-}
-
-func atomicWrite(path string, content []byte) error {
-	info, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-	temporary, err := os.CreateTemp(filepath.Dir(path), ".dashboard-")
-	if err != nil {
-		return err
-	}
-	temporaryPath := temporary.Name()
-	defer os.Remove(temporaryPath)
-	if err := temporary.Chmod(info.Mode().Perm()); err == nil {
-		_, err = temporary.Write(content)
-	}
-	if err == nil {
-		err = temporary.Sync()
-	}
-	if closeErr := temporary.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return err
-	}
-	if err := os.Rename(temporaryPath, path); err != nil {
-		return err
-	}
-	directory, err := os.Open(filepath.Dir(path))
-	if err != nil {
-		return err
-	}
-	defer directory.Close()
-	return directory.Sync()
 }
 
 func digest(content []byte) string {

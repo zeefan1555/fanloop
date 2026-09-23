@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
+func TestRuntimeFixturesAreValidFiveFileBundles(t *testing.T) {
 	items, err := List()
 	if err != nil {
 		t.Fatal(err)
@@ -56,8 +56,8 @@ func TestProductionWorkflowsAreValidFiveFileBundles(t *testing.T) {
 	}
 }
 
-func TestProductionWorkflowSourcesAreFlatAndVersionless(t *testing.T) {
-	root := filepath.Join("..", "..", "workflows")
+func TestRuntimeFixtureSourcesAreFlatAndVersionless(t *testing.T) {
+	root := filepath.Join("..", "..", "tests", "testdata", "workflows")
 	if _, err := os.Stat(filepath.Join(root, "defaults.json")); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("defaults.json must not exist: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 	dataRoot := t.TempDir()
 	liveRoot := filepath.Join(dataRoot, "current", "workflows")
 	workflowID := "technical-solution-design"
-	sourceRoot := filepath.Join("..", "..", "workflows", workflowID)
+	sourceRoot := filepath.Join("..", "..", "tests", "testdata", "workflows", workflowID)
 	targetRoot := filepath.Join(liveRoot, workflowID)
 	if err := os.CopyFS(targetRoot, os.DirFS(sourceRoot)); err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 }
 
 func TestListFromRejectsSymlinkedLiveRootChain(t *testing.T) {
-	source := filepath.Join("..", "..", "workflows")
+	source := filepath.Join("..", "..", "tests", "testdata", "workflows")
 	for _, test := range []struct {
 		name string
 		root func(*testing.T) string

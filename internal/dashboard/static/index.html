@@ -12,7 +12,6 @@
     <div class="top-actions">
       <span class="health"><i></i><span id="healthText">Live files ready</span></span>
       <button class="icon-button" id="refresh" type="button" title="Refresh live files" aria-label="Refresh live files">↻</button>
-      <button class="primary-button" id="save" type="button" disabled>Save file</button>
     </div>
   </header>
 
@@ -91,9 +90,8 @@
       </div>
       <div class="editor-shell">
         <pre id="lineNumbers" aria-hidden="true"></pre>
-        <textarea id="editor" spellcheck="false" disabled aria-label="Workflow source editor"></textarea>
+        <textarea id="editor" spellcheck="false" readonly disabled aria-label="Workflow source viewer"></textarea>
       </div>
-      <div class="inspector-footer"><span id="selection">No source selected</span><button id="discard" type="button" disabled>Discard</button></div>
     </aside>
   </main>
   <script src="/app.js"></script>

@@ -10,9 +10,9 @@
 
 触发条件：需求经过 `/grill-with-docs`、飞书评审或对话澄清。
 
-1. 编码前，把已确认的决策整理为决策、约束和验收条件。需要入库的行为契约直接落在对应的现有真值中，例如生产 YAML、Thrift IDL 或契约测试；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
+1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约发布到 Fornax，并记录已审核版本与摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
 2. 只沉淀用户明确确认的结论。开放问题继续保留为开放问题，不把推荐项自动写成决策。
-3. 让需要入库的契约真值与实现处于同一分支，并在实现提交之前或同一提交中纳入 Git；外部文档、聊天记录和未跟踪文件不能作为唯一事实源。
+3. 让代码契约真值与实现处于同一分支，并在实现提交之前或同一提交中纳入 Git；外部文档、聊天记录和未跟踪文件不能作为唯一事实源。
 
 完成标准：逐项对照澄清来源与目标分支相对 merge base 的 diff；每个已确认的行为、边界和验收条件都能定位到已跟踪文件。
 
@@ -22,11 +22,11 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 1. 纯配置变更包括五份 Workflow YAML、绑定 Skill 的指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置只做受影响 Bundle 的加载与 Schema 校验、引用和必需 Skill 检查、路由完整性检查；需要运行验证时使用已有兼容 CLI 和隔离配置，按需检查受影响路径。执行行为变化在 Certify 由全新、不继承修改上下文的 Sub Agent 实际试用受影响场景，回读原始产物后判定；纯错别字/排版可记录理由免测。配置内容与试用证据不要求新 binary 或代码验证 manifest。
-3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及 PR 合码、live 同步闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及 Fornax commit/release、本地同步闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
-5. 配置交付区分仓库种子与实际 live 根；验证并回读用户指定的配置目标，不通过重新构建或安装 CLI 覆盖 live 配置。已有 Step 人审与 IDL 门禁按各自适用范围保留。
+5. 配置交付固定 Fornax 空间、key、版本与完整资源摘要；验证并回读用户指定的发布目标和本地运行副本，不为配置发布重建 CLI。已有 Step 人审与 IDL 门禁按各自适用范围保留。
 
-完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验结果、PR/merge 和实际 live 回读；只有用户明确只改 live 时可不提 PR。
+完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、Fornax发布及实际本地同步回读。
 
 ## 主 Agent 监督自迭代
 
@@ -41,14 +41,15 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 完成标准：主 Agent完成对齐、派发、监督和三类决定；执行子 Agent独立驱动 Workflow、完成受管实现、合并唯一 PR 并更新本地 Fanloop，所有决定都能回溯到主 Agent明确回复。
 
-## Live Workflow 与绑定 Skill 真值
+## Fornax Workflow 与绑定 Skill 真值
 
-触发条件：读取、修改、安装或执行 Workflow 及其绑定 Skill，或通过 Dashboard 查看和编辑它们。
+触发条件：读取、修改、安装或执行 Workflow/Skill，或查看 Dashboard。
 
-1. `$FANLOOP_DATA_HOME/current/workflows/<workflow-id>/` 是五份 Workflow YAML 与 `skills/<skill-id>/SKILL.md` 的唯一 live 真值。
-2. Workflow 与绑定 Skill 没有内容版本、digest、Release 副本或 fallback；Fanloop 与 Agent 每次都从该 live 根重新读取当前内容，不缓存旧内容，也不从其他同名 Skill 猜测或回退。
-3. Dashboard 的 topology、source anchor 与 whole-file 保存必须读取和修改同一 live 真值，不得建立平行配置源或生成副本。
-4. Dashboard 和 live 读取语义不得绕过下方 Workflow YAML 与 Thrift IDL 的人工审核门禁。
+1. Fornax 已发布的完整Workflow Skill包是生产五份 YAML、绑定 Skill 及资源的唯一配置真值。`fornax.json` 只选择空间与Workflow/Skill，不保存凭证或另一份YAML。
+2. 配置消费命令通过 `fornax-cli` 查询明确的已发布版本，安全下载、校验并同步到 `$FANLOOP_DATA_HOME/current/workflows/<id>/`。同步失败本次操作失败，不从旧配置、源码或其他Skill根回退。
+3. 本地目录是运行副本；Dashboard仅只读。配置修改经隔离候选、必要人审/独立行为试用、Fornax commit/release与公开CLI回读交付，不以本地编辑冒充发布。
+4. 配置发布使用 `scripts/validate-configuration.py` 对固定下载集执行全部Workflow Route Matrix并记录版本/文件摘要。代码CI使用 `tests/testdata` 的独立运行时fixture，不绑定个人凭据、生产正文或远端latest。
+5. Agent每次读取最新Status返回的精确Skill路径。Fornax内容版本不写入Requirement State或CLI Release；保留五份YAML与Thrift人审门禁。
 
 ## YAML 架构真值与人工审核
 
@@ -88,7 +89,7 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 1. 实现期间必须运行受影响的聚焦测试、必要格式检查和一次 `./tests/run-unit`；命令、结果和当前 HEAD 写入验证记录。
 2. 代码变更影响用户可见 CLI、Workflow 执行机制、安装、状态、投影或 Skill 脚本行为时，从同一候选安装隔离 Release。安装、`fanloop verify doctor`、Feature Map 和 `verify.evidence.outcome` 只按 `.cursor/skills/verify-fanloop/SKILL.md` 执行。四套生产 Workflow 目录写在 `docs/ownership.md`。审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent 只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
-3. `.github/scripts/run-requirement-validation` 只属于 CI，实现完整 Requirement lifecycle 与全部生产 Workflow Route Matrix；它不是本地开发入口，也不得被 Maintainer Skill 要求手工执行。
+3. `.github/scripts/run-requirement-validation` 只属于 CI，实现完整 Requirement lifecycle 与通用运行时 fixture Route Matrix；它不是本地开发入口，也不得被 Maintainer Skill 要求手工执行。
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。
 

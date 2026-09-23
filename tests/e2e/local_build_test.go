@@ -24,6 +24,7 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 	environment := append(withoutBotmuxBinding(os.Environ()),
 		"GOOS=js", "GOARCH=wasm",
 		"FANLOOP_DATA_HOME="+dataRoot,
+		"FANLOOP_CONFIG_SOURCE="+filepath.Join(repository, "tests", "testdata"),
 		"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
 		"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
 		"FANLOOP_TRAE_SKILLS_ROOT="+traeRoot,
@@ -72,7 +73,7 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 		t.Fatalf("local install did not return its local release: %v\n%s", err, installOutput)
 	}
 	version := installed.Data.ReleaseVersion
-	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, releaseFixture{ConfigSource: repository, Version: version}, traeRoot, claudeRoot)
+	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, releaseFixture{ConfigSource: filepath.Join(repository, "tests", "testdata"), Version: version}, traeRoot, claudeRoot)
 	assertLocalBuildContents(t, repository, filepath.Join(dataRoot, "releases", version))
 	if fixtureDirectoryDigest(t, installBuild) != fixtureDirectoryDigest(t, filepath.Join(dataRoot, "releases", version)) {
 		t.Fatal("installation changed the built local directory")

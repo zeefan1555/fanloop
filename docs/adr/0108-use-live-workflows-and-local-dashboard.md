@@ -61,3 +61,5 @@ current/
 `01a0c298-5af7-7163-b89b-b9bc3695fb93` 批准了完整需求、未变化的生产 YAML/Step 对比、列举的 Thrift
 直接切换与 Dashboard `INVALID_INPUT_JSON` 注解补充；receipt 为
 `decision-f3b346ca790472604989e12c343e71c1a29950fe64672dee88c476db4921256a`。
+
+本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-fornax.md) 按其明确范围修订；其余门禁继续有效。

@@ -12,8 +12,9 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$test_data_root/current"
-cp -R "$repo_root/workflows" "$test_data_root/current/workflows"
+cp -R "$repo_root/tests/testdata/workflows" "$test_data_root/current/workflows"
 export FANLOOP_DATA_HOME="$test_data_root"
+export FANLOOP_CONFIG_SOURCE="$repo_root/tests/testdata"
 
 unformatted="$({
   while IFS= read -r -d '' file; do

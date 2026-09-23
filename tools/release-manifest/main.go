@@ -13,7 +13,6 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/releaseidl"
 	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
-	"github.com/zeefan1555/fanloop/internal/workflow"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -53,14 +52,7 @@ func build(version, source, dist string) (release.Manifest, error) {
 	}
 	manifest.Skills = []*release.Skill{entrypoint}
 
-	definitions, err := workflow.ListFrom(filepath.Join(source, "workflows"))
-	if err != nil {
-		return manifest, fmt.Errorf("validate live Workflow source: %w", err)
-	}
-	if len(definitions) == 0 {
-		return manifest, fmt.Errorf("validate live Workflow source: no Workflows found")
-	}
-	if err := validateSelectorRoutes(filepath.Join(source, "entrypoints", release.ExposedSkillName, "routes.yaml"), definitions); err != nil {
+	if err := validateSelectorRoutes(filepath.Join(source, "entrypoints", release.ExposedSkillName, "routes.yaml")); err != nil {
 		return manifest, err
 	}
 
@@ -83,7 +75,7 @@ type selectorRoutes struct {
 	} `yaml:"scenarios"`
 }
 
-func validateSelectorRoutes(path string, definitions []workflow.Loaded) error {
+func validateSelectorRoutes(path string) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read Workflow selector: %w", err)
@@ -101,25 +93,12 @@ func validateSelectorRoutes(path string, definitions []workflow.Loaded) error {
 	if routes.SchemaVersion != 2 || len(routes.Scenarios) == 0 {
 		return fmt.Errorf("invalid Workflow selector schema or scenarios")
 	}
-	wanted := map[string]bool{}
-	for _, item := range definitions {
-		wanted[item.Ref.ID] = true
-	}
-	covered := map[string]bool{}
 	for scenario, rule := range routes.Scenarios {
 		if scenario == "" || rule.Workflow == "" || rule.Description == "" {
 			return fmt.Errorf("invalid Workflow selector scenario rule")
 		}
-		if !wanted[rule.Workflow] {
-			return fmt.Errorf("Workflow selector uses unknown Workflow %q", rule.Workflow)
-		}
-		covered[rule.Workflow] = true
 	}
-	for workflowID := range wanted {
-		if !covered[workflowID] {
-			return fmt.Errorf("Workflow selector has no scenario for Workflow %q", workflowID)
-		}
-	}
+
 	return nil
 }
 

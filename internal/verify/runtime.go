@@ -167,7 +167,13 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 	if err := os.MkdirAll(requirementRoot, 0o700); err != nil {
 		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
 	}
+
+	unlock, err := workflow.PrepareConfiguration(ctx, runtime.DataRoot)
+	if err != nil {
+		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
+	}
 	env, err := runtime.isolatedEnvironment(workRoot)
+	unlock()
 	if err != nil {
 		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
 	}
@@ -206,7 +212,7 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 	if strings.TrimSpace(versionData.ReleaseVersion) == "" || strings.TrimSpace(versionData.CommitSHA) == "" {
 		return fail("version", "Version output omitted candidate identity.", "Repair the version output contract.", true)
 	}
-	definitions, err := workflow.ListFrom(runtime.WorkflowRoot)
+	definitions, err := workflow.ListFrom(filepath.Join(workRoot, "data", "current", "workflows"))
 	if err != nil || len(definitions) == 0 {
 		return fail("workflows", "Live Workflows are unavailable.", "Restore current/workflows.", true)
 	}
@@ -438,7 +444,25 @@ func (runtime Runtime) Snapshot(ctx context.Context, requirementRoot string, req
 	if containsPath(filepath.Join(root, ".fanloop"), destination) {
 		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "evidence_dir must be outside requirement .fanloop state")
 	}
-	files, err := runtime.captureSnapshot(ctx, root, filepath.Clean(destination), os.Environ())
+	unlock, err := workflow.PrepareConfiguration(ctx, runtime.DataRoot)
+	if err != nil {
+		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
+	}
+	frozenDataRoot, err := os.MkdirTemp(runtime.DataRoot, ".snapshot-config-")
+	if err == nil {
+		err = copyTree(runtime.WorkflowRoot, filepath.Join(frozenDataRoot, "current", "workflows"))
+	}
+	unlock()
+	if err != nil {
+		if frozenDataRoot != "" {
+			_ = os.RemoveAll(frozenDataRoot)
+		}
+		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
+	}
+	defer os.RemoveAll(frozenDataRoot)
+	env := replaceEnvironment(os.Environ(), "FANLOOP_DATA_HOME", frozenDataRoot)
+	env = replaceEnvironment(env, "FANLOOP_CONFIG_SOURCE", filepath.Join(frozenDataRoot, "current"))
+	files, err := runtime.captureSnapshot(ctx, root, filepath.Clean(destination), env)
 	if err != nil {
 		var failure *erroridl.PublicError
 		if errors.As(err, &failure) {
@@ -579,8 +603,8 @@ func (runtime Runtime) isolatedEnvironment(workRoot string) ([]string, error) {
 			}
 		}
 	}
-	environment := withoutEnvironment(os.Environ(), "FANLOOP_DATA_HOME", "FANLOOP_CONFIG_ROOT", "FANLOOP_CODEX_SKILLS_ROOT", "FANLOOP_AGENT_SKILLS_ROOT", "FANLOOP_TRAE_SKILLS_ROOT", "FANLOOP_CLAUDE_SKILLS_ROOT", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID")
-	environment = append(environment, "FANLOOP_DATA_HOME="+dataRoot)
+	environment := withoutEnvironment(os.Environ(), "FANLOOP_DATA_HOME", "FANLOOP_CONFIG_ROOT", "FANLOOP_CONFIG_SOURCE", "FANLOOP_CODEX_SKILLS_ROOT", "FANLOOP_AGENT_SKILLS_ROOT", "FANLOOP_TRAE_SKILLS_ROOT", "FANLOOP_CLAUDE_SKILLS_ROOT", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID")
+	environment = append(environment, "FANLOOP_DATA_HOME="+dataRoot, "FANLOOP_CONFIG_SOURCE="+filepath.Join(dataRoot, "current"))
 	for name, path := range roots {
 		environment = append(environment, name+"="+path)
 	}

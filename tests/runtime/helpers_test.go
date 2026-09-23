@@ -36,7 +36,7 @@ func buildCLI(t *testing.T) string {
 
 func seedLiveWorkflows(t *testing.T, dataRoot string) {
 	t.Helper()
-	source := filepath.Join(repositoryRoot(t), "workflows")
+	source := filepath.Join(repositoryRoot(t), "tests", "testdata", "workflows")
 	target := filepath.Join(dataRoot, "current", "workflows")
 	if err := filepath.WalkDir(source, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {

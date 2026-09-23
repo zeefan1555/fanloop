@@ -1,0 +1,19 @@
+# Frozen runtime test fixture; not production configuration.
+schema_version: 5
+flow:
+  resolve_home_tag:
+    - prompt_ref: {file: prompt.yaml, prompt_id: resolve_home_tag_flow}
+      when: {any_of: [[home_tag_ready]]}
+      next_step_id: write_flashcards
+  write_flashcards:
+    - prompt_ref: {file: prompt.yaml, prompt_id: write_flashcards_flow}
+      when: {any_of: [[flashcards_written]]}
+      next_step_id: update_wiki_links
+  update_wiki_links:
+    - prompt_ref: {file: prompt.yaml, prompt_id: update_wiki_links_flow}
+      when: {any_of: [[wiki_links_updated]]}
+      next_step_id: verify_result
+  verify_result:
+    - prompt_ref: {file: prompt.yaml, prompt_id: verify_result_flow}
+      when: {any_of: [[result_verified]]}
+      terminal: true

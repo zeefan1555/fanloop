@@ -40,3 +40,5 @@ ADR-0052 的 Thrift 契约边界。
 包括只读 topology、精确 source anchors、六类 inspector、whole-file-only 保存、零生产 YAML/IDL diff 和
 全部现有安全边界；receipt 为
 `decision-92936ba93e776b702ad336329aa7036a4ebdc497a26d0c9ca18ef1dbf2032315`。
+
+本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-fornax.md) 按其明确范围修订；其余门禁继续有效。

@@ -1,6 +1,7 @@
 package install
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -45,6 +46,34 @@ func Run(request Request) (Result, error) {
 			return Result{}, fmt.Errorf("%s must be an absolute path", name)
 		}
 	}
+
+	unlock, err := workflow.LockConfiguration(request.DataRoot, true)
+	if err != nil {
+		return Result{}, err
+	}
+	defer unlock()
+
+	remoteConfiguration := request.ConfigSource == ""
+	if remoteConfiguration {
+		temporary, err := os.MkdirTemp(request.DataRoot, ".fornax-install-")
+		if err != nil {
+			return Result{}, err
+		}
+		defer os.RemoveAll(temporary)
+		settings, err := os.ReadFile(filepath.Join(request.DataRoot, "fornax.json"))
+		if err != nil {
+			return Result{}, err
+		}
+		if err := os.WriteFile(filepath.Join(temporary, "fornax.json"), settings, 0600); err != nil {
+			return Result{}, err
+		}
+		if err := workflow.SyncFornax(context.Background(), temporary); err != nil {
+			return Result{}, err
+		}
+		request.ConfigSource = filepath.Join(temporary, "current")
+	} else if err := workflow.ValidateIsolatedSource(request.DataRoot, request.ConfigSource); err != nil {
+		return Result{}, err
+	}
 	manifest, err := release.Load(request.Source)
 	if err != nil {
 		return Result{}, fmt.Errorf("release manifest: %w", err)
@@ -62,7 +91,7 @@ func Run(request Request) (Result, error) {
 	}
 
 	workflowRoot := filepath.Join(current, "workflows")
-	if !stableCurrent {
+	if !stableCurrent || remoteConfiguration {
 		if !filepath.IsAbs(request.ConfigSource) || filepath.Clean(request.ConfigSource) == string(filepath.Separator) {
 			return Result{}, fmt.Errorf("configuration source must be an absolute path")
 		}
@@ -187,7 +216,7 @@ func Run(request Request) (Result, error) {
 		rollbackInstall()
 		return Result{}, err
 	}
-	if err := ensureCurrent(current, workflowRoot, filepath.Join("..", "releases", manifest.ReleaseVersion)); err != nil {
+	if err := ensureCurrent(current, workflowRoot, filepath.Join("..", "releases", manifest.ReleaseVersion), remoteConfiguration); err != nil {
 		if _, restoreErr := createSkillLinks(removedLinks); restoreErr != nil {
 			err = fmt.Errorf("activate current: %v; restore retired Skill links: %w", err, restoreErr)
 		}
@@ -504,10 +533,46 @@ func atomicSymlink(path, target string) error {
 	return os.Rename(temporary, path)
 }
 
-func ensureCurrent(current, workflowSource, releaseTarget string) error {
+func ensureCurrent(current, workflowSource, releaseTarget string, replaceConfiguration bool) error {
 	info, err := os.Lstat(current)
 	if err == nil && info.IsDir() && info.Mode()&os.ModeSymlink == 0 {
-		return activateCurrent(current, releaseTarget)
+		if !replaceConfiguration {
+			return activateCurrent(current, releaseTarget)
+		}
+		temporary, err := os.MkdirTemp(current, ".activate-")
+		if err != nil {
+			return err
+		}
+		cleanupTemporary := true
+		defer func() {
+			if cleanupTemporary {
+				_ = os.RemoveAll(temporary)
+			}
+		}()
+		staged := filepath.Join(temporary, "workflows")
+		if err := copyTree(workflowSource, staged); err != nil {
+			return err
+		}
+		live, previous := filepath.Join(current, "workflows"), filepath.Join(temporary, "previous")
+		if err := os.Rename(live, previous); err != nil {
+			return err
+		}
+		if err := os.Rename(staged, live); err != nil {
+			if restore := os.Rename(previous, live); restore != nil {
+				cleanupTemporary = false
+				return fmt.Errorf("activate configuration: %v; restore retained at %s: %w", err, previous, restore)
+			}
+			return err
+		}
+		if err := activateCurrent(current, releaseTarget); err != nil {
+			_ = os.RemoveAll(live)
+			if restore := os.Rename(previous, live); restore != nil {
+				cleanupTemporary = false
+				return fmt.Errorf("activate release: %v; restore configuration: %w", err, restore)
+			}
+			return err
+		}
+		return nil
 	}
 	if err != nil && !os.IsNotExist(err) {
 		return err

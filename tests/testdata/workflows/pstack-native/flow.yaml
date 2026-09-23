@@ -1,0 +1,39 @@
+# Frozen runtime test fixture; not production configuration.
+schema_version: 5
+
+flow:
+  select_playbook:
+    - prompt_ref: {file: prompt.yaml, prompt_id: select_playbook_flow}
+      when: {any_of: [[playbook_selected]]}
+      next_step_id: define_acceptance
+    - prompt_ref: {file: prompt.yaml, prompt_id: select_playbook_flow}
+      when: {any_of: [[figure_it_out_selected]]}
+      next_step_id: define_acceptance
+
+  define_acceptance:
+    - prompt_ref: {file: prompt.yaml, prompt_id: define_acceptance_flow}
+      when: {any_of: [[acceptance_defined]]}
+      next_step_id: design_solution
+
+  design_solution:
+    - prompt_ref: {file: prompt.yaml, prompt_id: design_solution_flow}
+      when: {any_of: [[design_ready], [design_skipped]]}
+      next_step_id: implement_increments
+
+  implement_increments:
+    - prompt_ref: {file: prompt.yaml, prompt_id: implement_increments_flow}
+      when: {any_of: [[increments_done]]}
+      next_step_id: verify_behavior
+
+  verify_behavior:
+    - prompt_ref: {file: prompt.yaml, prompt_id: verify_behavior_flow}
+      when: {any_of: [[delivery_verified]]}
+      next_step_id: merge_and_release
+
+  merge_and_release:
+    - prompt_ref: {file: prompt.yaml, prompt_id: merge_and_release_flow}
+      when:
+        any_of:
+          - [delivery_main_unchanged, merge_request_published, remote_checks_passed, code_merged, merge_tree_verified, source_repository_updated, local_cli_updated, post_merge_smoke_passed, delivery_record_written]
+          - [delivery_pr_already_merged, merge_request_published, remote_checks_passed, code_merged, merge_tree_verified, source_repository_updated, local_cli_updated, post_merge_smoke_passed, delivery_record_written]
+      terminal: true
