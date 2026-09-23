@@ -16,9 +16,21 @@
 
 完成标准：逐项对照澄清来源与目标分支相对 merge base 的 diff；每个已确认的行为、边界和验收条件都能定位到已跟踪文件。
 
+## 代码与配置分离
+
+先按改动内容选择验证路径；配置改变业务流程，不等于修改执行引擎。
+
+1. 纯配置变更包括五份 Workflow YAML、绑定 Skill 的指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
+2. 配置只做受影响 Bundle 的加载与 Schema 校验、引用和必需 Skill 检查、路由完整性检查；需要运行验证时使用已有兼容 CLI 和隔离配置，按需检查受影响路径。配置内容与快照路径是证据，不要求新 binary 或 candidate commit。
+3. 纯配置变更不启动 `fanloop-maintainer` 代码交付流程，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
+5. 配置交付区分仓库种子与实际 live 根；验证并回读用户指定的配置目标，不通过重新构建或安装 CLI 覆盖 live 配置。已有 Step 人审与 IDL 门禁按各自适用范围保留。
+
+完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验结果及实际更新目标。
+
 ## 主 Agent 监督自迭代
 
-触发条件：使用 `fanloop-maintainer` 维护 Fanloop 自身。
+触发条件：使用 `fanloop-maintainer` 维护 Fanloop 代码；纯配置变更使用上方配置路径。
 
 1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；只有用户主动改变已对齐内容时才重新询问用户。
 2. 当用户针对当前 Requirement 明确授权主 Agent 全程自行决定时，主 Agent 可在完整审阅对应材料后代行需求批准、最终候选验收和 main 集成确认，无需逐次向用户复询。该授权不转授给执行子 Agent，不适用于其他 Requirement，也不替代 YAML/IDL 人审材料、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。
@@ -45,9 +57,19 @@
 1. 五份 Workflow YAML 是流程架构与推进语义的唯一真值；Stage、Job、Step、原子 Condition、正常/回流 Route 和 Prompt/Skills 必须能从 YAML 读出。Go 代码只实现通用加载、校验与执行，不承载某个 Workflow 的专用流程。
 2. 涉及 YAML 文件、字段、类型、引用关系或推进语义的代码修改，编码前先提供真实生产 YAML 的变更前后示例和影响说明，经人明确审核通过后再实施或合并。
 3. 生产 `workflow.yaml` 的 Step 集合与拓扑是人工维护的契约。每次生产 YAML 变更都必须逐项比较当前默认版本与目标版本的 Step `id`、`name`、顺序和 `executor`，明确记录是否存在新增、删除、改名、重排或 executor 变化。未经针对具体 Step diff 的人工批准，这四项必须完全不变；任何变化都必须作为独立契约变更高亮报告，不能夹在 Condition、Route、Prompt 或其他 YAML 审核中默认通过。
-4. 审核通过后，同步更新 YAML、模型/Schema、加载校验、运行时和对应 Contract；涉及 `idl/yaml.thrift` 时同时遵循下方 Thrift IDL 门禁。公开 CLI 契约按 ADR-0040/0050 以 Thrift 与叶子 Help 为真值，生成的 Go `CommandSpec` 只读。
+4. 审核通过后，纯配置变更只更新 YAML、绑定 Skill 与必要说明并校验 Bundle；确实改变模型/Schema 或通用执行语义时，才同步加载校验、运行时和对应代码 Contract。涉及 `idl/yaml.thrift` 时同时遵循下方 Thrift IDL 门禁。公开 CLI 契约按 ADR-0040/0050 以 Thrift 与叶子 Help 为真值，生成的 Go `CommandSpec` 只读。
 
 完成标准：人只阅读五份生产 YAML 就能理解 Workflow 做什么、哪些 Condition 组合会前进以及哪些组合可回到哪里；Step `id`、`name`、顺序和 `executor` 的基线对比结论明确；每个 YAML 结构变化都能定位到明确的人审记录。
+
+## Workflow 全景图 Condition
+
+触发条件：新增或修改生产 Workflow。
+
+1. 每个 Workflow 必须在 `condition.yaml` 声明全景图 Condition，输出 `panorama_snapshot_path:path`，并通过 `prompt.yaml` 绑定同一 Workflow live 根中的必需展示 Skill。
+2. 全景图 Condition 必须接入实际 Route；需要展示的 Step，其正常、终止及回流 Route 的每个 `when.any_of` AND 组都必须包含该 Condition，不能只声明而允许路由绕过。
+3. 每次进入这些 Step（包括回流重入）先展示本次 renderer 的完整内容；宿主展示成功后才上报本次精确快照路径。失败或结果不明时报告 blocked；同一次 Step 内复用已展示回执，进入新 Step 后重新展示。
+
+完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。必要时用已有 CLI 检查回执缺失的拒绝行为，不为此触发代码交付门禁。
 
 ## Thrift IDL 契约人工审核
 
@@ -60,12 +82,12 @@
 
 完成标准：每个 `.thrift` diff 都能定位到修改前的人审记录；实际 diff 与审核过的前后示例一致，生成物新鲜，所有受影响消费者与 Contract 已同步验证。
 
-## 验证门禁
+## 代码验证门禁
 
-触发条件：修改 Go、Node、Python、Workflow、IDL、生成链、构建或发布脚本等会改变产品或测试行为的代码。
+触发条件：修改 Go、Node、Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、Runtime、生成链、构建、发布或测试基础设施。纯 Workflow YAML、Skill 指令与参考材料变更走上方配置路径。
 
 1. 实现期间必须运行受影响的聚焦测试、必要格式检查和一次 `./tests/run-unit`；命令、结果和当前 HEAD 写入验证记录。
-2. 用户可见 CLI、Workflow、安装、状态、投影或 Skill 行为变化时，从同一候选安装隔离 Release。安装、`fanloop verify doctor`、Feature Map 和 `verify.evidence.outcome` 只按 `.cursor/skills/verify-fanloop/SKILL.md` 执行。四套生产 Workflow 目录写在 `docs/ownership.md`。审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent 只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
+2. 代码变更影响用户可见 CLI、Workflow 执行机制、安装、状态、投影或 Skill 脚本行为时，从同一候选安装隔离 Release。安装、`fanloop verify doctor`、Feature Map 和 `verify.evidence.outcome` 只按 `.cursor/skills/verify-fanloop/SKILL.md` 执行。四套生产 Workflow 目录写在 `docs/ownership.md`。审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent 只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
 3. `.github/scripts/run-requirement-validation` 只属于 CI，实现完整 Requirement lifecycle 与全部生产 Workflow Route Matrix；它不是本地开发入口，也不得被 Maintainer Skill 要求手工执行。
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。
@@ -85,4 +107,4 @@
 
 ## 外层循环
 
-同一变更在 `.cursor/skills/verify-fanloop/SKILL.md` 留下 `outcome` 为 `passed` 的 schema-1 manifest 之前，不要为该变更启动云端 Agent 或并行 Agent。步骤见 `docs/outer-loop.md`。
+代码变更在 `.cursor/skills/verify-fanloop/SKILL.md` 留下 `outcome` 为 `passed` 的 schema-1 manifest 之前，不要为该变更启动云端 Agent 或并行 Agent。步骤见 `docs/outer-loop.md`。纯配置变更不要求代码验证 manifest。

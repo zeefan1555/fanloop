@@ -14,8 +14,8 @@ orchestration directory.
 Changes to `internal/idl/`, `internal/output/`, public Cobra
 flags, State or Event schemas, release manifests, or reviewed contract Goldens
 cross boundaries. They require review from Quality plus every affected owning
-boundary. The required review check always runs `./tests/run-unit`; user-visible behavior also requires an isolated
-candidate, Doctor, the affected public scenarios and fresh-context black-box acceptance. Path filters must not skip it.
+boundary. For code changes, the required review check runs `./tests/run-unit`; user-visible behavior also requires an isolated
+candidate, Doctor, the affected public scenarios and fresh-context black-box acceptance. Code changes must not skip it. Pure Workflow YAML and Skill instruction/reference edits use the configuration validation path in `AGENTS.md`: bundle loading, schema, references, required Skills and route checks with an existing compatible CLI. They do not require a build, code test run, contract Golden update or CLI installation. Executable scripts and changes to the loader, Schema or Runtime remain code changes.
 
 Contract Goldens change only after explicit review with:
 
@@ -38,4 +38,4 @@ Install, `fanloop verify doctor`, the Feature Map, and `verify.evidence.outcome`
 
 ## Outer loop
 
-Cuts 1 through 5 are closed. A change needs a local schema-1 verify manifest with outcome `passed` before any cloud agent or parallel agent run for that change. The decision is [ADR-0116](adr/0116-require-local-verify-before-outer-loop.md). The steps are [outer-loop.md](outer-loop.md). Later work is product behavior on this path.
+Cuts 1 through 5 are closed. A code change needs a local schema-1 verify manifest with outcome `passed` before any cloud agent or parallel agent run for that change. The decision is [ADR-0116](adr/0116-require-local-verify-before-outer-loop.md). The steps are [outer-loop.md](outer-loop.md). Later work is product behavior on this path.

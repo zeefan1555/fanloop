@@ -5,8 +5,17 @@ schema_version: 2
 # Skill 正文真值在 workflows/pstack-native/skills/，禁止改 SKILL.md。
 
 prompts:
+  panorama_delivery_condition:
+    prompt: |
+      每次进入 Step（包括回流重入）先执行绑定 Skill，展示 renderer 生成的最新 Panorama，再执行业务 Prompt。
+      展示成功后保留本次精确 panorama_snapshot_path，与业务 Condition 一同上报；同一次 Step 内不重复展示。
+      渲染或展示失败、结果不明时报告 blocked，不提交成功 Condition 或选择 Route。
+    skills:
+      - {id: workflow-panorama, prompt: 原样展示本次 Panorama，成功后返回精确 snapshot_path。, optional: false}
+
   select_playbook_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       根据用户目标，从 poteto-mode 的 playbook 菜单中选择一本工作剧本（Feature、Bug fix、Refactoring、Investigation 等），或在无合适窄剧本 / 大型跨切面工作时选择 figure-it-out。
       写入并回读 playbook-selection.md：所选剧本 id、理由、将原样遵守的步骤清单（或 figure-it-out 将设计的阶段占位）。不得改写 pstack skill 正文。
       选中现成剧本上报 playbook_selected；选中 figure-it-out 上报 figure_it_out_selected。Evidence 只含相对路径与 sha256。
@@ -62,6 +71,7 @@ prompts:
 
   define_acceptance_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       基于已选剧本，写出可验证的完成条件：目标、范围、非目标、可证伪的验收谓词、严格程度。写入并回读 acceptance.md。
       验收必须能在真实产品路径上证伪；禁止以「编译通过」或自述代替。完成时上报 acceptance_defined；发现剧本选错上报 playbook_wrong。
       下方 skills 含全部 47 个 catalog id：principle-prove-it-works 必选，其余按需。
@@ -116,6 +126,7 @@ prompts:
 
   design_solution_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       理解受影响子系统；对非机械、过边界的形状变化运行设计探索。写入并回读 design-record.md（含备选方案与取舍）。
       完成设计探索上报 design_ready。确属机械改动、形状已具体时可上报 design_skipped，但必须写明 skip 理由；禁止默默跳过。
       验收标准变化上报 acceptance_changed；剧本错误上报 playbook_wrong。
@@ -171,6 +182,7 @@ prompts:
 
   implement_increments_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       严格按已选剧本步骤与验收标准，将工作拆成可独立验证的单元，按序实现。每单元：最小改动 → 聚焦验证 → 通过后再进下一单元。
       写入并回读 execution-report.md（单元列表、证据索引、失败与修复）。宿主须原样尊重 skill 内 Task/subagent 指示；不得改写 pstack skill 正文。
       全部单元完成上报 increments_done。单元失败可本层重试并上报 increment_failed；设计不足上报 design_inadequate；验收变化上报 acceptance_changed。
@@ -226,6 +238,7 @@ prompts:
 
   verify_behavior_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       对照 acceptance.md，在真实产品路径上验证最终候选。写入并回读 verification-report.md。
       全部通过时上报 delivery_verified（Evidence 必须指向本次 fanloop verify 写出的 schema-1 manifest.json，且 outcome 为 passed）。
       失败时上报 verification_failed，并只选最早受影响层回流。禁止手写 manifest。步骤见 .cursor/skills/verify-fanloop/SKILL.md。
@@ -281,6 +294,7 @@ prompts:
 
   merge_and_release_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       在行为验证已通过的前提下：创建或更新指向 main 的唯一 PR，等待 required checks，squash 合并，校验 merge tree，更新本 Requirement 源码 worktree 与本地 CLI，再跑 post-merge verify smoke。
       写入并回读 delivery-record.md。成功后按 flow 组合上报并 terminal。产品类远端检查失败上报 remote_product_checks_failed；post-merge smoke 失败上报 post_merge_smoke_failed。禁止 --admin 强合或第二 PR。
       下方 skills 含全部 47 个 catalog id：principle-prove-it-works 必选，其余按需。落地时可再挂 fanloop-dev-merge-and-update-local。

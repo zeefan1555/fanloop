@@ -1,6 +1,9 @@
 schema_version: 3
 
 conditions:
+  panorama_presented:
+    prompt_ref: {file: prompt.yaml, prompt_id: panorama_delivery_condition}
+    output: {key: panorama_snapshot_path, type: path, description: 本次成功展示的精确 Panorama 快照}
   playbook_selected:
     prompt_ref: {file: prompt.yaml, prompt_id: artifact_condition}
     output: {key: playbook_selection_path, type: path}

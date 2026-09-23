@@ -1,6 +1,8 @@
 # 取得本地证据后再开外层循环
 
-同一变更要开云端 Agent、并行 Agent，或请求合并之前，按本页取得本地 verify 证据。规则在 [ADR-0116](adr/0116-require-local-verify-before-outer-loop.md)。驱动步骤只使用 [`.cursor/skills/verify-fanloop/SKILL.md`](../.cursor/skills/verify-fanloop/SKILL.md)。命令和 Feature Map 都只在该 Skill 里。
+代码变更要开云端 Agent、并行 Agent，或请求合并之前，按本页取得本地 verify 证据。规则在 [ADR-0116](adr/0116-require-local-verify-before-outer-loop.md)。驱动步骤只使用 [`.cursor/skills/verify-fanloop/SKILL.md`](../.cursor/skills/verify-fanloop/SKILL.md)。命令和 Feature Map 都只在该 Skill 里。
+
+纯 Workflow YAML、Skill 指令及参考材料变更按 `AGENTS.md` 的配置校验路径执行，不要求本页的构建、隔离 Release 或代码验证 manifest。
 
 ## 取得证据
 

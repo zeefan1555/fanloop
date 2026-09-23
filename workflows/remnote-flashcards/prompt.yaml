@@ -1,7 +1,16 @@
 schema_version: 2
 prompts:
+  panorama_delivery_condition:
+    prompt: |
+      每次进入 Step（包括回流重入）先执行绑定 Skill，展示 renderer 生成的最新 Panorama，再执行业务 Prompt。
+      展示成功后保留本次精确 panorama_snapshot_path，与业务 Condition 一同上报；同一次 Step 内不重复展示。
+      渲染或展示失败、结果不明时报告 blocked，不提交成功 Condition 或选择 Route。
+    skills:
+      - {id: workflow-panorama, prompt: 原样展示本次 Panorama，成功后返回精确 snapshot_path。, optional: false}
+
   resolve_home_tag_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       直接使用前面对话中已讨论的概念、结论和来源；第一步就是定位 HOME 分类，不重新启动概念访谈。
       本 Workflow 用于已授权的制卡任务；只读查询不启动本流程。材料无法恢复或范围不清时报告 blocked，说明实际缺口。
       按 remnote-structure 定位唯一 HOME，在相关分类及祖先路径内搜索最具体的 Concept Tag，按真实 ID 消歧。
@@ -17,6 +26,7 @@ prompts:
 
   write_flashcards_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       使用已确定的 HOME Tag 和前面对话的学习成果，调用 remnote-flashcards 完成查重、制卡、自检与真实写入。
       按独立记忆目标查询已有卡片及原生复习证据：重复跳过，实质补充编辑原卡答案，新目标才创建；复习数据不可用时明确记为 unavailable，不推断掌握程度。
       普通卡按现有 Skill 执行费曼法、SuperMemo、原子拆卡和 Why/What/How；原文导入或摘录沿用对应模式，不改写指定原文。
@@ -34,6 +44,7 @@ prompts:
 
   update_wiki_links_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       闪卡写入后，调用 remnote-wiki 定向查找本次概念的规范名和 aliases，复用唯一 Wiki 页面。
       对已有页面补充本次有依据的新知识；缺页且达到页面门槛时创建。没有知识增量则复用，不重复建页或追加相同内容。
       Wiki 页面保持正确 WIKI 分区下的普通 text；仅本批次写入页面时同步相关 index/log，保留真实来源和已有引用。
@@ -49,6 +60,7 @@ prompts:
 
   verify_result_flow:
     prompt: |
+      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       调用 remnote-verify 对本批次最终真实内容完成质量与结构校验，包含第三步补引用后的卡片。
       检查卡片独立、原子、可判分、低干扰和可追溯；核对父级、日期、HOME Concept Tag 及反查、实际卡片 ID 集合、答案结构、Card Cluster 和引用可解析。
       新卡按实际创建日期核验，原卡更新保留原日期与 ID；本批次曾部分成功或回流时，不因日期变化重建已写卡片。
