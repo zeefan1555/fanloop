@@ -9,7 +9,7 @@ prompts:
       - {id: fanloop-dev-workflow, prompt: Define 分类并记录，后续只按已记录类别加载当前 Step 的独立业务 Skill。, optional: false}
 
   configuration_scope_recorded_condition:
-    prompt: 执行绑定的配置专用 Skill，真实完成后返回 configuration_scope_recorded；失败或结果不明保持 blocked。
+    prompt: 执行配置 Define Skill，记录范围及 trial_plan（行为变化、最小场景、成功标准、允许副作用和停止位置）后返回 configuration_scope_recorded。
     skills:
       - {id: fanloop-config-define, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
@@ -19,9 +19,9 @@ prompts:
       - {id: fanloop-config-edit, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
   configuration_checked_condition:
-    prompt: 执行绑定的配置专用 Skill，真实完成后返回 configuration_checked；失败或结果不明保持 blocked。
+    prompt: 执行配置检查 Skill；行为变化必须由全新 Sub Agent 实际试用并回读原始证据，纯文字修正可记录具体免测理由。只有基础检查通过且 trial 为 passed 或有据的 not_applicable 才返回 configuration_checked；行为失败回 Build，环境阻塞保持 blocked。
     skills:
-      - {id: fanloop-config-check, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
+      - {id: fanloop-config-check, prompt: 完成基础检查及适用的全新 Sub Agent 行为试用，核验原始产物与候选身份。, optional: false}
 
   live_configuration_synced_condition:
     prompt: 执行绑定的配置专用 Skill，真实完成后返回 live_configuration_synced；失败或结果不明保持 blocked。

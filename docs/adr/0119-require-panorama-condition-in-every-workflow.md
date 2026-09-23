@@ -56,3 +56,9 @@ fanloop-config-edit、fanloop-config-check、fanloop-config-deliver，原代码 
 Route 加载，避免首条配置 Route 的 Skill 被代码任务无条件执行。CLI 仍列出两类候选，未新增引擎动态过滤能力。
 本次按用户明确要求新增四份配置 Skill，取代先前将两套业务步骤写入公共 Skill 的做法；不配套修改
 冻结 Skill 数量的代码测试，既有测试与生产配置耦合仍是独立代码问题。
+
+2026-09-23 配置行为试用：用户批准在现有 Certify 增加独立 Sub Agent 动态测试。Define 在范围对象中
+记录 trial_plan；改变执行行为时，由全新上下文的 Agent 实际使用候选 Workflow/Skill 并留下原始产物，
+主 Agent 逐项回读后才提交 configuration_checked。纯文字修正可有据记录 not_applicable，不能伪装 passed；
+行为失败沿 configuration_needs_fix 回 Build，环境/授权不足保持 blocked。只使用已有兼容 CLI、隔离配置
+和授权测试对象，止于真实发布前；不新增 Step、Condition、Runtime 或代码验收安装链。
