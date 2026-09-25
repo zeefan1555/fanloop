@@ -73,3 +73,7 @@ done <<< "$expected"
 go vet ./...
 go test -short -buildvcs=false ./...
 PYTHONDONTWRITEBYTECODE=1 python3 tests/requirement_e2e/test_route_matrix.py
+
+node --test scripts/*.test.js
+artifact="$(./scripts/build-npm-release.sh "$(cat VERSION)")"
+FANLOOP_EXPECTED_COMMIT="$(git rev-parse HEAD)" node scripts/verify-published-package.js "$(cat VERSION)" "$artifact"

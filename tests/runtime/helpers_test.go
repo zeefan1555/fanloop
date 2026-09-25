@@ -62,6 +62,12 @@ func seedLiveWorkflows(t *testing.T, dataRoot string) {
 	}); err != nil {
 		t.Fatalf("seed live Workflows: %v", err)
 	}
+	for _, id := range []string{"linear-runtime", "runtime-controls"} {
+		source := filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id)
+		if err := os.CopyFS(filepath.Join(target, id), os.DirFS(source)); err != nil {
+			t.Fatalf("seed synthetic Workflow %s: %v", id, err)
+		}
+	}
 }
 
 func run(binary string, args ...string) result {

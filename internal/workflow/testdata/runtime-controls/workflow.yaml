@@ -1,0 +1,13 @@
+schema_version: 7
+id: runtime-controls
+
+stages:
+  - id: runtime
+    name: Runtime
+    jobs:
+      - id: controls
+        name: Controls
+        steps:
+          - {id: first, name: First, executor: agent}
+          - {id: second, name: Second, executor: agent}
+          - {id: third, name: Third, executor: human}

@@ -1,0 +1,37 @@
+name: Release npm package
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: fanloop-npm-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+      - name: Install pinned Thrift generators
+        run: |
+          go install github.com/cloudwego/thriftgo@v0.4.3
+          go install github.com/cloudwego/thrift-gen-validator@v0.2.5
+      - run: ./tests/run-unit
+      - name: Build npm release
+        run: ./scripts/build-npm-release.sh
+      - name: Publish candidate and promote latest
+        env:
+          FANLOOP_EXPECTED_COMMIT: ${{ github.sha }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/publish-npm-package.js --access=public --tag=candidate

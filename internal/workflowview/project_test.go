@@ -10,29 +10,29 @@ import (
 )
 
 func TestProjectAwaitingConfirmationShowsOnlyCommonControls(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadRuntimeControls()
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "frame_requirement_background"
-	projected := Project(loaded.Workflow, state.State{CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, Outputs: map[string]state.RegisteredOutput{}})
+	stepID := "first"
+	projected := ProjectLoaded(loaded, state.State{CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, Outputs: map[string]state.RegisteredOutput{}})
 	if projected.Current.Execution.Status.String() != "awaiting_confirmation" || len(projected.Current.Prompt.Skills) != 0 || len(projected.Current.Conditions) != 0 {
 		t.Fatalf("awaiting current = %#v", projected.Current)
 	}
-	if len(projected.Current.CommonSkills) != 2 || len(projected.Current.CommonConditions) != 2 || len(projected.Current.AvailableRoutes) != 17 || !projected.Current.AvailableRoutes[0].Route.GetStartCurrentStep() {
+	if len(projected.Current.CommonSkills) != 1 || len(projected.Current.CommonConditions) != 2 || !projected.Current.AvailableRoutes[0].Route.GetStartCurrentStep() {
 		t.Fatalf("common controls = %#v", projected.Current)
 	}
 }
 
 func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadRuntimeControls()
 	if err != nil {
 		t.Fatal(err)
 	}
 	definition := loaded.Workflow
-	stepID := "confirm_technical_problem"
+	stepID := "first"
 	route := definition.Flows[stepID][0]
-	conditionID := "panorama_card_published"
+	conditionID := "first_completed"
 	condition, _ := definition.Condition(conditionID)
 
 	routePrompt := definition.Prompts[route.PromptRef.PromptID]
@@ -41,28 +41,27 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	conditionPrompt := definition.Prompts[condition.PromptRef.PromptID]
 	conditionPrompt.Prompt = "condition prompt from test bundle"
 	definition.Prompts[condition.PromptRef.PromptID] = conditionPrompt
+	loaded.Workflow = definition
+	t.Setenv("FANLOOP_DATA_HOME", t.TempDir())
 
-	projected := Project(definition, state.State{
+	projected := ProjectLoaded(loaded, state.State{
 		CurrentStepID: &stepID, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{},
 	})
 	if projected.Current.Prompt.Content != routePrompt.Prompt || projected.Current.AvailableRoutes[0].Prompt.Content != routePrompt.Prompt {
 		t.Fatalf("Step or Route Prompt was not resolved from the Workflow Bundle: %#v", projected.Current)
 	}
-	if len(projected.Current.Prompt.Skills) != 1 || !strings.HasSuffix(
-		projected.Current.Prompt.Skills[0].Path,
-		filepath.FromSlash("workflows/technical-solution-design/skills/technical-problem-approval/SKILL.md"),
+	if len(projected.Current.CommonSkills) != 1 || !strings.HasSuffix(
+		projected.Current.CommonSkills[0].Path,
+		filepath.FromSlash("runtime-controls/skills/common-control-guide/SKILL.md"),
 	) {
-		t.Fatalf("source Skill path was not resolved from the bound Workflow group: %#v", projected.Current.Prompt.Skills)
+		t.Fatalf("source Skill path was not resolved from the bound Workflow group: %#v", projected.Current.CommonSkills)
 	}
 	for _, view := range projected.Current.Conditions {
 		if view.Id != conditionID {
 			continue
 		}
-		if view.Prompt.Content != conditionPrompt.Prompt || len(view.Prompt.Skills) != 1 ||
-			view.Prompt.Skills[0].Id != "technical-solution-panorama" ||
-			!strings.HasSuffix(view.Prompt.Skills[0].Path,
-				filepath.FromSlash("workflows/technical-solution-design/skills/technical-solution-panorama/SKILL.md")) {
+		if view.Prompt.Content != conditionPrompt.Prompt || len(view.Prompt.Skills) != 0 {
 			t.Fatalf("Condition Prompt or Skill was not resolved from the Workflow Bundle: %#v", view.Prompt)
 		}
 		return
@@ -70,14 +69,19 @@ func TestProjectResolvesPromptsFromWorkflowBundle(t *testing.T) {
 	t.Fatalf("Condition Prompt %q was not resolved from the Workflow Bundle", conditionID)
 }
 
-func TestFormatPanoramaStageShowsMaintainerSteps(t *testing.T) {
-	loaded, err := workflow.Load("fanloop-maintainer")
+func TestFormatPanoramaStageShowsConfiguredSteps(t *testing.T) {
+	loaded, err := loadRuntimeControls()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := FormatPanoramaStage(loaded.Workflow.Stages[0], func(step workflow.Step) string { return step.Name })
-	want := "Define：目标与验收契约"
+	display := Display(loaded.Workflow, state.State{})
+	got := FormatPanoramaStage(display.Stages[0], func(step DisplayStep) string { return step.Name })
+	want := "Runtime：First → Second → Third"
 	if got != want {
 		t.Fatalf("Panorama Stage = %q, want %q", got, want)
 	}
+}
+
+func loadRuntimeControls() (workflow.Loaded, error) {
+	return workflow.LoadFrom(filepath.Join("..", "workflow", "testdata"), "runtime-controls")
 }

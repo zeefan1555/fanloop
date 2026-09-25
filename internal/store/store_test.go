@@ -13,6 +13,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/workflowview"
 )
 
 func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
@@ -21,7 +22,7 @@ func TestCommitAndLoadBoundValidateStateEventTail(t *testing.T) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("remnote-flashcards")
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +132,7 @@ func TestTraceConfigWritesStorageThriftSchema(t *testing.T) {
 }
 
 func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +157,7 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 		"- Requirement：Meego source",
 		"- 来源：https://example.invalid/redacted",
 		"- Requirement Root：/tmp/requirement",
-		"- Workflow：technical-solution-design",
+		"- Workflow：linear-runtime",
 		"- Release：dev",
 	} {
 		if !strings.Contains(projection, want) {
@@ -165,8 +166,8 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 	}
 }
 
-func TestMaintainerTracePanoramaShowsFourStepDelivery(t *testing.T) {
-	loaded, err := workflow.Load("fanloop-maintainer")
+func TestTracePanoramaShowsConfiguredSteps(t *testing.T) {
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,10 +181,7 @@ func TestMaintainerTracePanoramaShowsFourStepDelivery(t *testing.T) {
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"Define：**目标与验收契约（Ready）**",
-		"Build：实现与自主验证",
-		"Certify：独立候选认证",
-		"Deliver：PR 合码与本地更新",
+		"Runtime：**First（Ready）** → Second → Third",
 	} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)
@@ -192,20 +190,20 @@ func TestMaintainerTracePanoramaShowsFourStepDelivery(t *testing.T) {
 }
 
 func TestTracePanoramaRendersSkippedStepsWithoutCompletionMark(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
-	stepID := "research_solution_options"
-	current := state.State{CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, SkippedStepIDs: []string{"frame_requirement_background"}, Outputs: map[string]state.RegisteredOutput{}}
-	panorama := tracePanorama(current, loaded.Workflow)
-	if !strings.Contains(panorama, "已跳过 业务背景") || strings.Contains(panorama, "✅ 业务背景") {
+	stepID := "second"
+	current := state.State{CurrentStepID: &stepID, CurrentStepStatus: state.StepAwaitingConfirmation, SkippedStepIDs: []string{"first"}, Outputs: map[string]state.RegisteredOutput{}}
+	panorama := tracePanorama(workflowview.Display(loaded.Workflow, current))
+	if !strings.Contains(panorama, "已跳过 First") || strings.Contains(panorama, "✅ First") {
 		t.Fatalf("skipped Step was rendered as completed:\n%s", panorama)
 	}
 }
 
 func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T) {
-	loaded, err := workflow.Load("fanloop-maintainer")
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,13 +211,13 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 	step, _ := loaded.Workflow.FirstStepID()
 	current := state.State{
 		SchemaVersion: state.CurrentStateSchemaVersion,
-		Requirement:   state.Requirement{Title: "Self iteration"},
+		Requirement:   state.Requirement{Title: "Synthetic workflow"},
 		Release:       state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID: &step, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{
-			"verification_contract_path": {Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`), ProducerStepID: "define_verification_contract"},
-			"verification_report_path":   {Type: workflow.OutputPath, Value: json.RawMessage(`"verification-report.md"`), ProducerStepID: "build_until_verified"},
-			"merge_request_urls":         {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/pull/123"]`), ProducerStepID: "merge_and_update_local"},
+			"first_artifact":  {Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`), ProducerStepID: "first"},
+			"second_artifact": {Type: workflow.OutputPath, Value: json.RawMessage(`"second.md"`), ProducerStepID: "second"},
+			"artifact_urls":   {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://example.com/artifact/123"]`), ProducerStepID: "third"},
 		},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
 			DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction,
@@ -229,9 +227,9 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 	}
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
-		"| verification_contract_path | path | define_verification_contract | requirements.md |",
-		"| verification_report_path | path | build_until_verified | verification-report.md |",
-		"| merge_request_urls | url_list | merge_and_update_local | [\"https://github.com/zeefan1555/fanloop/pull/123\"] |",
+		"| first_artifact | path | first | first.md |",
+		"| second_artifact | path | second | second.md |",
+		"| artifact_urls | url_list | third | [\"https://example.com/artifact/123\"] |",
 		"📜 CLI 日志：[查看完整输入输出](https://example.invalid/redacted)",
 	} {
 		if !strings.Contains(projection, want) {
@@ -274,7 +272,7 @@ func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("fanloop-maintainer")
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,31 +293,21 @@ func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 		t.Fatal(failure)
 	}
 
-	target := "certify_candidate"
+	target := "third"
 	next := current
 	next.CurrentStepID = &target
 	next.CurrentStepSummary = "invalid route"
-	next.Outputs = map[string]state.RegisteredOutput{
-		"verification_contract_path":       {Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`), ProducerStepID: step},
-		"requirements_decision":            {Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`), ProducerStepID: step},
-		"requirements_decision_receipt_id": {Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`), ProducerStepID: step},
-		"panorama_snapshot_path":           {Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`), ProducerStepID: step},
-	}
+	next.Outputs = map[string]state.RegisteredOutput{"first_artifact": {Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`), ProducerStepID: step}}
 	next.LastEventID = "e2"
 	next.UpdatedAt = now.Add(time.Minute)
 	result := state.Event{
 		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: next.UpdatedAt, Kind: state.EventFlowResult,
 		Command: "flow.report.result", Workflow: oldRef, CausedByEventID: "e1",
 		Payload: state.Payload(state.FlowResultPayload{
-			ConditionResults: []state.ConditionResult{
-				{ConditionID: "verification_contract_written", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`)}},
-				{ConditionID: "requirements_approved", Output: state.OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`)}},
-				{ConditionID: "requirements_decision_recorded", Output: state.OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`)}},
-				{ConditionID: "panorama_presented", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`)}},
-			},
-			Summary: "invalid route", Effect: state.ResultAdvanced,
+			ConditionResults: []state.ConditionResult{{ConditionID: "first_completed", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)}}},
+			Summary:          "invalid route", Effect: state.ResultAdvanced,
 			Transition:    state.Transition{Direction: state.TransitionFlow, FromStepID: step, ToStepID: target},
-			OutputChanges: state.OutputChanges{Accepted: []string{"verification_contract_path", "requirements_decision", "requirements_decision_receipt_id", "panorama_snapshot_path"}},
+			OutputChanges: state.OutputChanges{Accepted: []string{"first_artifact"}},
 		}),
 	}
 	if failure := local.Commit(next, result); failure == nil || failure.Code != erroridl.ErrorCode_STATE_CORRUPT || !strings.Contains(failure.Message, "Flow Route") {
@@ -392,7 +380,7 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 	if failure != nil {
 		t.Fatal(failure)
 	}
-	loaded, err := workflow.Load("remnote-flashcards")
+	loaded, err := loadRuntimeControls(t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,4 +392,15 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 		t.Fatal(failure)
 	}
 	return local, current
+}
+
+func loadRuntimeControls(t *testing.T) (workflow.Loaded, error) {
+	t.Helper()
+	dataRoot := t.TempDir()
+	workflowsRoot := filepath.Join(dataRoot, "current", "workflows")
+	if err := os.CopyFS(filepath.Join(workflowsRoot, "linear-runtime"), os.DirFS(filepath.Join("..", "workflow", "testdata", "linear-runtime"))); err != nil {
+		return workflow.Loaded{}, err
+	}
+	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	return workflow.Load("linear-runtime")
 }

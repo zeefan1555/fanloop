@@ -1,0 +1,23 @@
+schema_version: 2
+
+common_skills:
+  - id: common-control-guide
+    prompt: Use the common control guide before starting or jumping.
+    optional: false
+
+prompts:
+  step_start_control:
+    prompt: Start the current Step after human confirmation.
+    skills: []
+  human_step_jump_control:
+    prompt: Jump after human confirmation of the target and effects.
+    skills: []
+  advance:
+    prompt: Advance after the current Step completes.
+    skills: []
+  revise:
+    prompt: Return to the affected Step for revision.
+    skills: []
+  result_condition:
+    prompt: Report the current Step result.
+    skills: []

@@ -1,0 +1,23 @@
+schema_version: 5
+
+step_start:
+  prompt_ref: {file: prompt.yaml, prompt_id: step_start_control}
+  when: {any_of: [[start_confirmed]]}
+
+jump:
+  prompt_ref: {file: prompt.yaml, prompt_id: human_step_jump_control}
+  when: {any_of: [[jump_requested]]}
+
+flow:
+  first:
+    - prompt_ref: {file: prompt.yaml, prompt_id: advance}
+      when: {any_of: [[first_completed]]}
+      next_step_id: second
+  second:
+    - prompt_ref: {file: prompt.yaml, prompt_id: advance}
+      when: {any_of: [[second_completed, second_evidence]]}
+      next_step_id: third
+  third:
+    - prompt_ref: {file: prompt.yaml, prompt_id: advance}
+      when: {any_of: [[third_completed]]}
+      terminal: true

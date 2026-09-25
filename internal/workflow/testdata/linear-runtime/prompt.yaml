@@ -1,0 +1,12 @@
+schema_version: 2
+
+prompts:
+  advance:
+    prompt: Advance after the current Step completes.
+    skills: []
+  revise:
+    prompt: Return to the affected Step for revision.
+    skills: []
+  result_condition:
+    prompt: Report the current Step result.
+    skills: []

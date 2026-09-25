@@ -66,7 +66,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 		t.Fatalf("matching Loop Condition did not return: %s", looped.stdout)
 	}
 	status := run("flow", "status", "--root", root)
-	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "define_goals_and_problems"`) || !strings.Contains(status.stdout, `"status": "awaiting_confirmation"`) {
+	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "define_goals_and_problems"`) || !strings.Contains(status.stdout, `"status": "fixing"`) {
 		t.Fatalf("requirement did not preserve its returned Step: %s", status.stdout)
 	}
 

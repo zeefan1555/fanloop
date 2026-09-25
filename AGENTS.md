@@ -93,7 +93,14 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。
 
-完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过后自动 squash 合并唯一 PR；随后只更新本 Requirement 的源码 worktree，并从精确 merge commit 更新全局 CLI、回读版本和 Doctor。该流程不发布远端制品。
+完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过后自动 squash 合并唯一 PR；随后只更新本 Requirement 的源码 worktree。GitHub Actions 从精确 merge commit 发布公开 npm 包，并回读 candidate、latest、匿名安装、版本、Doctor 与 smoke。
+
+## 公开 npm 发布
+
+1. 只有 GitHub `master` push 触发 `.github/workflows/release.yml`；不保留内部 registry、GitHub Packages 或手工 `npm publish` 入口。
+2. 发布先验证本地 tarball，再发布不可变 candidate，验证精确版本后提升 latest，并再次匿名安装验证。
+3. npm 版本不可覆盖；`VERSION` 定义版本线，流水线从 npmjs.org 选择未占用的下一个 patch。
+4. `NPM_TOKEN` 只存在于 GitHub Actions secret，不得打印、提交或落盘。
 
 ## ADR 一致性
 

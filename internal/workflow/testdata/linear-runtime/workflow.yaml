@@ -1,0 +1,13 @@
+schema_version: 7
+id: linear-runtime
+
+stages:
+  - id: runtime
+    name: Runtime
+    jobs:
+      - id: lifecycle
+        name: Lifecycle
+        steps:
+          - {id: first, name: First, executor: agent}
+          - {id: second, name: Second, executor: agent}
+          - {id: third, name: Third, executor: human}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"slices"
 	"sort"
 	"strings"
 
@@ -89,22 +88,23 @@ type cardContent struct {
 	Action    cardAction
 }
 
-func buildCardContent(view cardidl.CardView, current state.State, definition workflow.Workflow) cardContent {
-	stageName, stepName := currentLocation(current, definition)
-	stages := make([]cardStage, 0, len(definition.Stages))
-	for _, stage := range definition.Stages {
-		stages = append(stages, cardStage{Name: stage.Name, Output: stageOutputContent(current, definition, stage)})
+func buildCardContent(view cardidl.CardView, current state.State, loaded workflow.Loaded) cardContent {
+	display := workflowview.Display(loaded.Workflow, current)
+	stageName, stepName := cardLocation(display)
+	stages := make([]cardStage, 0, len(loaded.Workflow.Stages))
+	for _, stage := range loaded.Workflow.Stages {
+		stages = append(stages, cardStage{Name: stage.Name, Output: stageOutputContent(current, loaded.Workflow, stage)})
 	}
 	return cardContent{
 		Title: current.Requirement.Title, StageName: stageName, StepName: stepName,
-		Status: cardStatus(current, definition), Progress: progressPercent(current, definition),
-		Panorama: statusPanorama(view, current, definition), Stages: stages,
-		Evidence: currentEvidence(current), Action: buildCardAction(current, definition),
+		Status: cardStatus(display), Progress: display.ProgressPercent,
+		Panorama: statusPanorama(view, display), Stages: stages,
+		Evidence: currentEvidence(current), Action: buildCardAction(current, loaded, display),
 	}
 }
 
-func renderLarkCard(view cardidl.CardView, current state.State, definition workflow.Workflow) larkCard {
-	return renderLarkCardContent(buildCardContent(view, current, definition))
+func renderLarkCard(view cardidl.CardView, current state.State, loaded workflow.Loaded) larkCard {
+	return renderLarkCardContent(buildCardContent(view, current, loaded))
 }
 
 func renderLarkCardContent(content cardContent) larkCard {
@@ -141,105 +141,71 @@ func newLarkColumn(background, content string) larkColumn {
 	}
 }
 
-func currentLocation(current state.State, definition workflow.Workflow) (string, string) {
-	if current.CurrentStepID == nil {
+func cardLocation(display workflowview.DisplaySnapshot) (string, string) {
+	if display.Status == workflowview.DisplayDone {
 		return "Done", "流程已完成"
 	}
-	context, _, ok := definition.FindStep(*current.CurrentStepID)
-	if !ok {
-		return "Unknown", *current.CurrentStepID
+	if !display.Location.Found {
+		return "Unknown", display.Location.StepID
 	}
-	return context.Stage.Name, context.Step.Name
+	return display.Location.StageName, display.Location.StepName
 }
 
-func cardStatus(current state.State, definition workflow.Workflow) string {
-	if current.CurrentStepID == nil {
-		return "Done"
-	}
-	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
-		return "Awaiting Confirmation"
-	}
-	if context, _, ok := definition.FindStep(*current.CurrentStepID); ok && context.Step.Executor == workflow.StepExecutorHuman {
+func cardStatus(display workflowview.DisplaySnapshot) string {
+	if display.RequiresHumanReview && display.Status != workflowview.DisplayAwaitingConfirmation {
 		return "Human Review"
 	}
-	switch current.CurrentStepStatus {
-	case state.StepBlocked:
+	switch display.Status {
+	case workflowview.DisplayDone:
+		return "Done"
+	case workflowview.DisplayAwaitingConfirmation:
+		return "Awaiting Confirmation"
+	case workflowview.DisplayBlocked:
 		return "Blocked"
-	case state.StepFixing:
+	case workflowview.DisplayFixing:
 		return "Fixing"
-	case state.StepInProgress:
+	case workflowview.DisplayInProgress:
 		return "In Progress"
 	default:
 		return "Ready"
 	}
 }
 
-func progressPercent(current state.State, definition workflow.Workflow) int {
-	steps := definition.OrderedStepIDs()
-	if current.CurrentStepID == nil {
-		return 100
-	}
-	_, position, ok := definition.FindStep(*current.CurrentStepID)
-	if !ok || len(steps) == 0 {
-		return 0
-	}
-	return (position*100 + len(steps)/2) / len(steps)
-}
-
-func statusPanorama(view cardidl.CardView, current state.State, definition workflow.Workflow) string {
-	_, currentPosition, found := currentStepPosition(current, definition)
-	lines := make([]string, 0, len(definition.Stages)+1)
-	position := 0
-	for _, stage := range definition.Stages {
-		if view == cardidl.CardView_current && found {
-			containsCurrent := false
-			for _, job := range stage.Jobs {
-				for _, step := range job.Steps {
-					if current.CurrentStepID != nil && step.ID == *current.CurrentStepID {
-						containsCurrent = true
-						break
-					}
-				}
-			}
-			if !containsCurrent {
-				position += stageStepCount(stage)
-				continue
-			}
+func statusPanorama(view cardidl.CardView, display workflowview.DisplaySnapshot) string {
+	lines := make([]string, 0, len(display.Stages)+1)
+	for _, stage := range display.Stages {
+		if view == cardidl.CardView_current && display.Location.Found && display.Status != workflowview.DisplayDone && !displayStageContainsCurrent(stage) {
+			continue
 		}
-		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflow.Step) string {
+		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflowview.DisplayStep) string {
 			label := step.Name
-			switch {
-			case slices.Contains(current.SkippedStepIDs, step.ID):
+			switch step.State {
+			case workflowview.DisplayStepSkipped:
 				label = "已跳过 " + label
-			case !found || position < currentPosition:
+			case workflowview.DisplayStepCompleted:
 				label = "✅ " + label
-			case position == currentPosition:
-				label = "**" + label + "（" + cardStatus(current, definition) + "）**"
+			case workflowview.DisplayStepCurrent:
+				label = "**" + label + "（" + cardStatus(display) + "）**"
 			}
-			position++
 			return label
 		}))
 	}
 	if len(lines) == 0 {
 		return "流程已完成"
 	}
-	lines = append(lines, fmt.Sprintf("整体进度：%d%%", progressPercent(current, definition)))
+	lines = append(lines, fmt.Sprintf("整体进度：%d%%", display.ProgressPercent))
 	return strings.Join(lines, "\n")
 }
 
-func stageStepCount(stage workflow.Stage) int {
-	count := 0
+func displayStageContainsCurrent(stage workflowview.DisplayStage) bool {
 	for _, job := range stage.Jobs {
-		count += len(job.Steps)
+		for _, step := range job.Steps {
+			if step.State == workflowview.DisplayStepCurrent {
+				return true
+			}
+		}
 	}
-	return count
-}
-
-func currentStepPosition(current state.State, definition workflow.Workflow) (workflow.StepContext, int, bool) {
-	if current.CurrentStepID == nil {
-		return workflow.StepContext{}, len(definition.OrderedStepIDs()), false
-	}
-	return definition.FindStep(*current.CurrentStepID)
+	return false
 }
 
 func traceLink(current state.State) string {
@@ -370,32 +336,31 @@ func currentEvidence(current state.State) string {
 	return strings.Join(lines, "\n")
 }
 
-func buildCardAction(current state.State, definition workflow.Workflow) cardAction {
-	if current.CurrentStepID == nil {
+func buildCardAction(current state.State, loaded workflow.Loaded, display workflowview.DisplaySnapshot) cardAction {
+	if display.Status == workflowview.DisplayDone {
 		return cardAction{Theme: "green-50", Title: "✅ 流程已完成", Summary: "全部 Workflow Step 已完成。"}
 	}
-	context, _, ok := definition.FindStep(*current.CurrentStepID)
-	if !ok {
+	if !display.Location.Found {
 		return cardAction{Theme: "red-50", Title: "⛔ 当前阻塞", Summary: "当前 Step 不在绑定的 Workflow 中。"}
 	}
 	summary := strings.TrimSpace(current.CurrentStepSummary)
-	projected := workflowview.Project(definition, current).Current
+	projected := workflowview.ProjectLoaded(loaded, current).Current
 	if summary == "" && projected != nil && projected.Prompt != nil {
 		summary = strings.TrimSpace(projected.Prompt.Content)
 	}
-	switch current.CurrentStepStatus {
-	case state.StepBlocked:
+	switch display.Status {
+	case workflowview.DisplayBlocked:
 		return cardAction{Theme: "red-50", Title: "⛔ 当前阻塞", Summary: summary, Prompt: "请补充所缺的关键信息。"}
-	case state.StepFixing:
-		return cardAction{Theme: "orange-50", Title: "🔁 正在修复", Summary: summary}
+	case workflowview.DisplayFixing:
+		return cardAction{Theme: "orange-50", Title: "🔄 正在修复", Summary: summary}
 	}
-	if context.Step.Executor == workflow.StepExecutorHuman {
+	if display.Location.Executor == workflow.StepExecutorHuman {
 		prompt := "如认可，请回复：`批准继续`"
-		if routes := definition.Flows[*current.CurrentStepID]; len(routes) > 0 {
+		if routes := loaded.Workflow.Flows[display.Location.StepID]; len(routes) > 0 {
 			flow := routes[0]
 			if flow.Terminal {
 				prompt = "如认可，请回复：`批准完成`"
-			} else if nextContext, _, nextFound := definition.FindStep(flow.NextStepID); nextFound && nextContext.Stage.ID != context.Stage.ID {
+			} else if nextContext, _, nextFound := loaded.Workflow.FindStep(flow.NextStepID); nextFound && nextContext.Stage.ID != display.Location.StageID {
 				prompt = "如认可，请回复：`批准进入 " + nextContext.Stage.Name + "`"
 			}
 		}

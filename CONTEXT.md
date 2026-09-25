@@ -94,8 +94,12 @@ Review、黑盒验证和主 Agent最终决定。
 冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current。全新 Sub-agent 只使用隔离 CLI、叶子 Help、
 Feature Map 和 Acceptance Set 做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户凭据。Feature Map 位于 `.cursor/skills/verify-fanloop/features/`。Deliver 发现
 main 前进时只记录新 base 并回 Build，不能修改候选；重新认证后发布唯一 PR、等待 required checks、自动
-squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 与全局 CLI 更新到
-merge commit，运行 Doctor 与 smoke。该流程不发布远端制品，也不触碰其他 checkout。
+squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 更新到 merge commit。
+GitHub Actions 从该 `master` 提交自动发布公开 npm 包。
+
+**Public npm Release**
+GitHub Actions 从 `master` 构建公开 npm 包并发布到 npmjs.org。发布事务依次验证本地 tarball、candidate、
+精确版本、latest、匿名无 Go 安装、Doctor 和 smoke。Workflow 配置继续从 Fornax 同步，不进入 npm 制品。
 
 **Maintainer Reports**
 固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和
@@ -105,7 +109,7 @@ merge commit，运行 Doctor 与 smoke。该流程不发布远端制品，也不
 ## 公开契约
 
 **CommandSpec**
-16 个公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地更新从选定源码执行 `./scripts/install-local.sh`；npm launcher 与 `fanloop update` 分发入口已移除。
+16 个公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地源码更新执行 `./scripts/install-local.sh`；正式分发使用 npm launcher 的 `fanloop install` / `fanloop update`。
 
 **统一结果信封**
 成功写 stdout，使用 `ok/data/meta/_notice`；错误写 stderr，包含稳定 type、code、message、hint 和 retryable。

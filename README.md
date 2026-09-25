@@ -37,7 +37,13 @@ npm run build          # 只构建，不改变本机安装
 npm run install:local  # 构建并安装；更新源码后重跑即可更新 CLI
 ```
 
-这两个命令直接调用现有 Bash 脚本，仍需要上述 Go、Git 和 Bash；不下载或发布 npm 包。
+这两个命令用于源码开发，仍需要上述 Go、Git 和 Bash。普通安装通过内部 npm 包完成，不需要 Go：
+
+```bash
+NPM_CONFIG_REGISTRY=https://registry.npmjs.org/ \
+  npx --yes --package=@zeefan1555/fanloop-cli@latest -- fanloop install
+fanloop update
+```
 需要捕获构建目录时直接调用 Shell 入口：
 
 ```bash
@@ -157,10 +163,18 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 源码边界
 
-源码位于私有 GitHub 仓库 `zeefan1555/fanloop`。现有 CI 验证代码和本地安装，使用者自行从源码
-构建；不发布 npm 包、跨平台归档或 GitHub 二进制制品。构建与安装边界见
+源码位于 GitHub 仓库 `zeefan1555/fanloop`。合入 `master` 后，GitHub Actions 自动发布
+公开 npm 包 `@zeefan1555/fanloop-cli`。
+发行包携带 darwin/linux 的 amd64/arm64 二进制；Workflow 仍由 Fornax 提供，不进入 npm 包。
+
+```bash
+npm run build:release
+```
+
+发布流水线验证本地 tarball、candidate、`latest`、匿名无 Go 安装、Doctor 和 smoke。构建与安装边界见
 [ADR-0095](./docs/adr/0095-local-source-builds.md)，live Workflow 与 Dashboard 边界见
-[ADR-0120](./docs/adr/0120-host-production-workflows-in-fornax.md)。代码授权仍为 `UNLICENSED`。
+[ADR-0120](./docs/adr/0120-host-production-workflows-in-fornax.md)，npm 发布见
+[ADR-0121](./docs/adr/0121-publish-public-npm-releases.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

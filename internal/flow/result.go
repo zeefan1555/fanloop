@@ -20,8 +20,6 @@ type resultEvaluation struct {
 	transition        *flowidl.Transition
 	durableEffect     state.ResultEffect
 	durableTransition state.Transition
-	skippedStepIDs    []string
-	updateSkipped     bool
 }
 
 func validateResultRequest(request *flowidl.FlowResultRequest) *erroridl.PublicError {
@@ -147,7 +145,7 @@ func evaluateResult(definition workflow.Workflow, current state.State, request *
 		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_ROUTE_AMBIGUOUS, "Condition results match more than one selected Loop Route", nil)
 	}
 	backStepID := request.Route.GetBackStepId()
-	invalidated, err := outputsFromStep(definition, backStepID, current.Outputs)
+	invalidated, err := state.InvalidatedOutputs(definition, backStepID, current.Outputs)
 	if err != nil {
 		return resultEvaluation{}, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 	}
@@ -203,7 +201,7 @@ func evaluateCommonControl(definition workflow.Workflow, current state.State, re
 	}
 	invalidated := []string{}
 	if effect == flowidl.ResultEffect_jumped {
-		invalidated, err = outputsFromStep(definition, target, current.Outputs)
+		invalidated, err = state.InvalidatedOutputs(definition, target, current.Outputs)
 		if err != nil {
 			return resultEvaluation{}, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 		}
@@ -213,35 +211,7 @@ func evaluateCommonControl(definition workflow.Workflow, current state.State, re
 		accepted:         map[string]state.RegisteredOutput{}, invalidated: invalidated, effect: effect,
 		transition:    &flowidl.Transition{Direction: direction, FromStepId: request.StepId, ToStepId: stringPointer(target)},
 		durableEffect: durableEffect, durableTransition: state.Transition{Direction: durableDirection, FromStepID: request.StepId, ToStepID: target},
-		skippedStepIDs: jumpedSkippedSteps(definition, current, request.StepId, target),
-		updateSkipped:  effect == flowidl.ResultEffect_jumped,
 	}, nil
-}
-
-func jumpedSkippedSteps(definition workflow.Workflow, current state.State, source, target string) []string {
-	ordered := definition.OrderedStepIDs()
-	_, sourcePosition, _ := definition.FindStep(source)
-	_, targetPosition, _ := definition.FindStep(target)
-	skipped := map[string]bool{}
-	for _, stepID := range current.SkippedStepIDs {
-		skipped[stepID] = true
-	}
-	if targetPosition > sourcePosition {
-		for _, stepID := range ordered[sourcePosition:targetPosition] {
-			skipped[stepID] = true
-		}
-	} else {
-		for _, stepID := range ordered[targetPosition:] {
-			delete(skipped, stepID)
-		}
-	}
-	result := make([]string, 0, len(skipped))
-	for _, stepID := range ordered {
-		if skipped[stepID] {
-			result = append(result, stepID)
-		}
-	}
-	return result
 }
 
 func verifyEvidenceOutcomeMatches(evidence []*flowidl.Evidence, claimed string) bool {
@@ -299,25 +269,6 @@ func matchingLoopRoutes(routes []workflow.LoopRoute, backStepID string, conditio
 		}
 	}
 	return available, matches
-}
-
-func outputsFromStep(definition workflow.Workflow, target string, outputs map[string]state.RegisteredOutput) ([]string, error) {
-	_, targetPosition, ok := definition.FindStep(target)
-	if !ok {
-		return nil, errText("Loop target is unknown")
-	}
-	result := make([]string, 0)
-	for key, output := range outputs {
-		_, producerPosition, ok := definition.FindStep(output.ProducerStepID)
-		if !ok {
-			return nil, errText("registered Output has an unknown producer")
-		}
-		if producerPosition >= targetPosition {
-			result = append(result, key)
-		}
-	}
-	sort.Strings(result)
-	return result, nil
 }
 
 func sortedOutputKeys(values map[string]state.RegisteredOutput) []string {

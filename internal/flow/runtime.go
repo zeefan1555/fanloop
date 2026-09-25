@@ -67,7 +67,7 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		return nil, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, "workflow has no steps", nil)
 	}
 	now := runtime.now()
-	initialStatus := entryStepStatus(loaded.Workflow)
+	initialStatus := state.EntryStepStatus(loaded.Workflow)
 	next := state.State{
 		SchemaVersion: state.CurrentStateSchemaVersion,
 		Requirement: state.Requirement{
@@ -197,33 +197,16 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 		return nil, resultFailure
 	}
 	previousEventID := current.LastEventID
-	for _, key := range evaluation.invalidated {
-		delete(current.Outputs, key)
+	payload := state.FlowResultPayload{
+		ConditionResults: evaluation.conditionResults, Evidence: durableEvidence(request.Evidence), Summary: request.Summary,
+		Effect: evaluation.durableEffect, Transition: evaluation.durableTransition,
+		OutputChanges: state.OutputChanges{Accepted: sortedOutputKeys(evaluation.accepted), Invalidated: append([]string(nil), evaluation.invalidated...)},
 	}
-	for key, output := range evaluation.accepted {
-		current.Outputs[key] = output
-	}
-	if evaluation.updateSkipped {
-		current.SkippedStepIDs = append([]string(nil), evaluation.skippedStepIDs...)
+	current, err := state.ApplyFlowResult(loaded.Workflow, current, payload, state.ResultTargetStatus(loaded.Workflow, payload.Effect))
+	if err != nil {
+		return nil, internalError(err)
 	}
 	current.UpdatedAt = runtime.now()
-	switch evaluation.effect {
-	case flowidl.ResultEffect_completed:
-		current.CurrentStepID = nil
-		current.CurrentStepStatus = ""
-		current.CurrentStepSummary = ""
-		current.CurrentEvidence = nil
-	case flowidl.ResultEffect_started:
-		current.CurrentStepID = stringPointer(evaluation.transition.GetToStepId())
-		current.CurrentStepStatus = state.StepInProgress
-		current.CurrentStepSummary = request.Summary
-		current.CurrentEvidence = durableEvidence(request.Evidence)
-	default:
-		current.CurrentStepID = stringPointer(evaluation.transition.GetToStepId())
-		current.CurrentStepStatus = entryStepStatus(loaded.Workflow)
-		current.CurrentStepSummary = request.Summary
-		current.CurrentEvidence = durableEvidence(request.Evidence)
-	}
 	response := &flowidl.FlowResultResponse{
 		Effect: evaluation.effect, Transition: evaluation.transition, State: workflowview.ProjectLoaded(loaded, current),
 		InvalidatedOutputs: append([]string{}, evaluation.invalidated...),
@@ -242,24 +225,13 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 	event := state.Event{
 		SchemaVersion: state.CurrentEventSchemaVersion, ID: response.GetEventId(), OccurredAt: current.UpdatedAt,
 		Kind: state.EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: previousEventID,
-		Payload: state.Payload(state.FlowResultPayload{
-			ConditionResults: evaluation.conditionResults, Evidence: durableEvidence(request.Evidence), Summary: request.Summary,
-			Effect: evaluation.durableEffect, Transition: evaluation.durableTransition,
-			OutputChanges: state.OutputChanges{Accepted: sortedOutputKeys(evaluation.accepted), Invalidated: append([]string(nil), evaluation.invalidated...)},
-		}),
+		Payload: state.Payload(payload),
 	}
 	if failure := validateAndCommit(local, loaded.Workflow, current, event); failure != nil {
 		return nil, failure
 	}
 	runtime.afterAcceptedReport(ctx, root, current, event.ID)
 	return response, nil
-}
-
-func entryStepStatus(definition workflow.Workflow) state.StepStatus {
-	if definition.StepStart != nil {
-		return state.StepAwaitingConfirmation
-	}
-	return state.StepReady
 }
 
 func validateProgressRequest(request *flowidl.FlowProgressRequest) *erroridl.PublicError {

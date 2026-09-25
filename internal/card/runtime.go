@@ -42,16 +42,12 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	if _, failure := store.New(root); failure != nil {
 		return nil, failure
 	}
-	projection, err := LoadProjection(root)
+	projection, loaded, err := LoadProjection(root)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
 	}
-	loaded, err := workflow.Load(projection.Release.Workflow.ID)
-	if err != nil {
-		return nil, errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, err.Error(), nil)
-	}
 	current := projection.State()
-	content, snapshotContent, err := renderContent(request, current, loaded.Workflow)
+	content, snapshotContent, err := renderContent(request, current, loaded)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
 	}
@@ -76,8 +72,8 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	return response, nil
 }
 
-func renderContent(request *cardidl.CardRenderRequest, current state.State, definition workflow.Workflow) (*commonidl.JsonValue, any, error) {
-	content := buildCardContent(request.View, current, definition)
+func renderContent(request *cardidl.CardRenderRequest, current state.State, loaded workflow.Loaded) (*commonidl.JsonValue, any, error) {
+	content := buildCardContent(request.View, current, loaded)
 	if request.Format == cardidl.CardFormat_markdown {
 		markdown := renderMarkdownContent(content)
 		value, err := commonidl.FromAny(markdown)
@@ -88,8 +84,8 @@ func renderContent(request *cardidl.CardRenderRequest, current state.State, defi
 	return value, lark, err
 }
 
-func renderMarkdown(view cardidl.CardView, current state.State, definition workflow.Workflow) string {
-	return renderMarkdownContent(buildCardContent(view, current, definition))
+func renderMarkdown(view cardidl.CardView, current state.State, loaded workflow.Loaded) string {
+	return renderMarkdownContent(buildCardContent(view, current, loaded))
 }
 
 func renderMarkdownContent(content cardContent) string {

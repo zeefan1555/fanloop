@@ -19,6 +19,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
+	"github.com/zeefan1555/fanloop/internal/workflowview"
 )
 
 func (runtime Runtime) Sync(ctx context.Context, root string, request *traceidl.TraceSyncRequest, dryRun bool) (*traceidl.TraceSyncResponse, error) {
@@ -317,6 +318,7 @@ func runLarkJSON(ctx context.Context, args []string, stdin io.Reader, fallbackCo
 }
 
 func registryFields(registry traceconfig.Registry, current state.State, definition workflow.Workflow, events []state.Event, traceURL, key, openID string) map[string]any {
+	display := workflowview.Display(definition, current)
 	loops := 0
 	for _, event := range events {
 		if event.Kind == state.EventFlowResult {
@@ -329,7 +331,7 @@ func registryFields(registry traceconfig.Registry, current state.State, definiti
 	mapping := registry.Fields
 	fields := map[string]any{
 		mapping.TraceKey: key, mapping.Title: current.Requirement.Title,
-		mapping.Location: registryStageAndAudit(current, definition, events), mapping.Status: registryStatus(current, definition), mapping.LoopCount: loops,
+		mapping.Location: registryStageAndAudit(display, events), mapping.Status: registryStatus(display), mapping.LoopCount: loops,
 		mapping.SourceURL: registrySourceValue(registry, current), mapping.TraceURL: traceURL,
 		mapping.UpdatedAt: registryTime(current.UpdatedAt), mapping.Origin: "runtime",
 	}
@@ -380,8 +382,8 @@ func registryOutputValue(output state.RegisteredOutput) any {
 	return value
 }
 
-func registryStageAndAudit(current state.State, definition workflow.Workflow, events []state.Event) string {
-	stage := currentStageStep(current, definition)
+func registryStageAndAudit(display workflowview.DisplaySnapshot, events []state.Event) string {
+	stage := registryLocation(display)
 	if audit := latestFlowAudit(events); audit != "" {
 		return stage + "\n" + audit
 	}
@@ -434,30 +436,24 @@ func sortedStrings(values []string) []string {
 	return result
 }
 
-func currentStageStep(current state.State, definition workflow.Workflow) string {
-	stepID := current.CurrentStepID
-	if stepID == nil {
-		ordered := definition.OrderedStepIDs()
-		if len(ordered) == 0 {
-			return "completed"
-		}
-		stepID = &ordered[len(ordered)-1]
+func registryLocation(display workflowview.DisplaySnapshot) string {
+	if display.Status == workflowview.DisplayDone && display.Location.StepID == "" {
+		return "completed"
 	}
-	context, _, ok := definition.FindStep(*stepID)
-	if !ok {
-		return *stepID
+	if !display.Location.Found {
+		return display.Location.StepID
 	}
-	return context.Stage.Name + " / " + context.Job.Name + " / " + context.Step.Name
+	return display.Location.StageName + " / " + display.Location.JobName + " / " + display.Location.StepName
 }
 
-func registryStatus(current state.State, definition workflow.Workflow) string {
-	if current.CurrentStepID == nil {
+func registryStatus(display workflowview.DisplaySnapshot) string {
+	if display.Status == workflowview.DisplayDone {
 		return "已完成"
 	}
-	if current.CurrentStepStatus == state.StepBlocked {
+	if display.Status == workflowview.DisplayBlocked {
 		return "Blocked"
 	}
-	if context, _, ok := definition.FindStep(*current.CurrentStepID); ok && context.Step.Executor == workflow.StepExecutorHuman {
+	if display.RequiresHumanReview {
 		return "Human Review"
 	}
 	return "In Progress"

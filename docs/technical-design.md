@@ -99,8 +99,10 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 五YAML仍是通用加载器的唯一执行图，Fornax内容版本不进入Requirement或CLI Release。
 配置选择及运行副本、测试fixture、完整单包边界见 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
-GitHub 托管源码并保留现有代码检查，不承担 npm 或二进制发布；构建不依赖 Node.js、GoReleaser
-或 tar/xz。完整决定见 [ADR-0095](./adr/0095-local-source-builds.md)。
+GitHub 托管源码与检查。`master` 更新触发 GitHub Actions 构建 darwin/linux、amd64/arm64 制品，
+公开发布 `@zeefan1555/fanloop-cli`，再验证 candidate、latest、匿名安装、Doctor 与 smoke。npm 包只携带
+CLI 和统一入口；生产 Workflow 继续从 Fornax 同步。完整决定见
+[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0121](./adr/0121-publish-public-npm-releases.md)。
 
 新增生产Workflow在Fornax发布完整包并更新用户fornax.json选择。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 

@@ -53,6 +53,13 @@ func WriteProjection(root string, current state.State) error {
 	if err := projection.Validate(); err != nil {
 		return err
 	}
+	loaded, err := workflow.Load(current.Release.Workflow.ID)
+	if err != nil {
+		return err
+	}
+	if err := projection.ValidateAgainst(loaded.Workflow); err != nil {
+		return err
+	}
 	storedState, err := state.ToStorageIDL(current)
 	if err != nil {
 		return err
@@ -84,39 +91,39 @@ func WriteProjection(root string, current state.State) error {
 	return replaceFile(ProjectionPath(root), append(content, '\n'))
 }
 
-func LoadProjection(root string) (Projection, error) {
+func LoadProjection(root string) (Projection, workflow.Loaded, error) {
 	content, err := os.ReadFile(ProjectionPath(root))
 	if err != nil {
-		return Projection{}, err
+		return Projection{}, workflow.Loaded{}, err
 	}
 	var stored storageidl.CardProjection
 	decoder := json.NewDecoder(bytes.NewReader(content))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&stored); err != nil {
-		return Projection{}, err
+		return Projection{}, workflow.Loaded{}, err
 	}
 	var trailing json.RawMessage
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
 			err = fmt.Errorf("trailing JSON value")
 		}
-		return Projection{}, err
+		return Projection{}, workflow.Loaded{}, err
 	}
 	if stored.SchemaVersion != storageidl.CARD_PROJECTION_SCHEMA_VERSION {
-		return Projection{}, fmt.Errorf("unsupported Card projection schema_version %d", stored.SchemaVersion)
+		return Projection{}, workflow.Loaded{}, fmt.Errorf("unsupported Card projection schema_version %d", stored.SchemaVersion)
 	}
 	if err := stored.IsValid(); err != nil {
-		return Projection{}, err
+		return Projection{}, workflow.Loaded{}, err
 	}
 	outputs, err := state.OutputsFromStorageIDL(stored.Outputs)
 	if err != nil {
-		return Projection{}, err
+		return Projection{}, workflow.Loaded{}, err
 	}
 	integrations := &storageidl.Integrations{}
 	if stored.TraceDocumentUrl != nil {
 		registry, err := storageidl.RegistryProfileFromString(string(projectionRegistry(stored.Release.Workflow.Id, stored.GetCliLogDocumentUrl())))
 		if err != nil {
-			return Projection{}, err
+			return Projection{}, workflow.Loaded{}, err
 		}
 		integrations.Trace = &storageidl.TraceBinding{
 			DocumentUrl: stored.GetTraceDocumentUrl(), Registry: registry,
@@ -133,7 +140,7 @@ func LoadProjection(root string) (Projection, error) {
 		SkippedStepIds: append([]string{}, stored.SkippedStepIds...),
 	}, outputs)
 	if err != nil {
-		return Projection{}, err
+		return Projection{}, workflow.Loaded{}, err
 	}
 	projection := Projection{
 		SchemaVersion: int(stored.SchemaVersion), Requirement: current.Requirement, Release: current.Release,
@@ -143,10 +150,14 @@ func LoadProjection(root string) (Projection, error) {
 		SkippedStepIDs: append([]string{}, current.SkippedStepIDs...),
 		SourceEventID:  stored.SourceEventId, UpdatedAt: current.UpdatedAt,
 	}
-	if err := projection.Validate(); err != nil {
-		return Projection{}, err
+	loaded, err := workflow.Load(projection.Release.Workflow.ID)
+	if err != nil {
+		return Projection{}, workflow.Loaded{}, err
 	}
-	return projection, nil
+	if err := projection.ValidateAgainst(loaded.Workflow); err != nil {
+		return Projection{}, workflow.Loaded{}, err
+	}
+	return projection, loaded, nil
 }
 
 func (value Projection) Validate() error {
@@ -171,11 +182,14 @@ func (value Projection) Validate() error {
 	if err := current.Validate(); err != nil {
 		return fmt.Errorf("invalid Card projection: %w", err)
 	}
-	loaded, err := workflow.Load(value.Release.Workflow.ID)
-	if err != nil {
+	return nil
+}
+
+func (value Projection) ValidateAgainst(definition workflow.Workflow) error {
+	if err := value.Validate(); err != nil {
 		return err
 	}
-	if err := current.ValidateAgainst(loaded.Workflow); err != nil {
+	if err := value.State().ValidateAgainst(definition); err != nil {
 		return fmt.Errorf("invalid Card projection: %w", err)
 	}
 	return nil

@@ -71,7 +71,7 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 			t.Errorf("AGENTS.md does not require %s", command)
 		}
 	}
-	for _, contract := range []string{"执行子 Agent 创建并持有 Requirement Root", "直接修改受管代码", "只向主 Agent回报", "不得自行批准", "自动 squash 合并唯一 PR", "只更新本 Requirement 的源码 worktree", "精确 merge commit"} {
+	for _, contract := range []string{"执行子 Agent 创建并持有 Requirement Root", "直接修改受管代码", "只向主 Agent回报", "不得自行批准", "自动 squash 合并唯一 PR", "只更新本 Requirement 的源码 worktree", "公开 npm 包"} {
 		if !strings.Contains(string(agents), contract) {
 			t.Errorf("AGENTS.md does not define maintainer contract %q", contract)
 		}
@@ -81,7 +81,7 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 	}
 }
 
-func TestLocalBuildReplacesDistributionEntrypoints(t *testing.T) {
+func TestNpmDistributionRetainsLocalBuildEntrypoints(t *testing.T) {
 	repo := repositoryRoot(t)
 	data, err := os.ReadFile(filepath.Join(repo, "package.json"))
 	if err != nil {
@@ -89,29 +89,30 @@ func TestLocalBuildReplacesDistributionEntrypoints(t *testing.T) {
 	}
 	var pkg struct {
 		Private bool              `json:"private"`
+		Name    string            `json:"name"`
+		Bin     map[string]string `json:"bin"`
 		Scripts map[string]string `json:"scripts"`
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
-	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&pkg); err != nil {
 		t.Fatal(err)
 	}
-	if !pkg.Private || len(pkg.Scripts) != 2 ||
+	if pkg.Private || pkg.Name != "@zeefan1555/fanloop-cli" || pkg.Bin["fanloop"] != "scripts/run.js" ||
 		pkg.Scripts["build"] != "./scripts/build-local.sh" ||
-		pkg.Scripts["install:local"] != "./scripts/install-local.sh" {
-		t.Fatal("package.json must only expose the two private local build scripts")
+		pkg.Scripts["install:local"] != "./scripts/install-local.sh" ||
+		pkg.Scripts["build:release"] != "./scripts/build-npm-release.sh" {
+		t.Fatal("npm distribution must retain local build scripts and expose the official launcher")
 	}
-	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh"} {
+	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh", "scripts/build-npm-release.sh"} {
 		info, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative)))
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
 			t.Fatalf("local entrypoint %s is not executable: %v", relative, err)
 		}
 	}
 	for _, relative := range []string{
-		".goreleaser.yml", ".github/workflows/release.yml",
+		".goreleaser.yml",
 		"scripts/build-release.sh", "scripts/prepare-release.sh", "scripts/package-release.sh",
-		"scripts/package-release.js", "scripts/resolve-release-version.js",
-		"scripts/verify-published-package.sh", "scripts/install.js", "scripts/run.js",
+		"scripts/verify-published-package.sh",
 	} {
 		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative))); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("retired distribution entrypoint remains: %s (%v)", relative, err)

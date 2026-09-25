@@ -11,7 +11,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
-func FormatPanoramaStage(stage workflow.Stage, stepLabel func(workflow.Step) string) string {
+func FormatPanoramaStage(stage DisplayStage, stepLabel func(DisplayStep) string) string {
 	jobs := make([]string, 0, len(stage.Jobs))
 	for _, job := range stage.Jobs {
 		steps := make([]string, 0, len(job.Steps))
@@ -25,14 +25,6 @@ func FormatPanoramaStage(stage workflow.Stage, stepLabel func(workflow.Step) str
 		}
 	}
 	return stage.Name + "：" + strings.Join(jobs, " ｜ ")
-}
-
-func Project(definition workflow.Workflow, current state.State) *flowidl.FlowState {
-	loaded, err := workflow.Load(definition.ID)
-	if err != nil {
-		return project(definition, current, map[string]string{})
-	}
-	return project(definition, current, loaded.SkillPaths)
 }
 
 func ProjectLoaded(loaded workflow.Loaded, current state.State) *flowidl.FlowState {

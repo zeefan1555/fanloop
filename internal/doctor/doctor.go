@@ -146,7 +146,7 @@ func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifes
 		path := filepath.Join(root, skill.Name)
 		info, err := os.Lstat(path)
 		if err != nil || info.Mode()&os.ModeSymlink == 0 {
-			return check("skill_links", statusFail, fmt.Sprintf("Skill link %q is missing or is not managed by Fanloop.", path), "Reinstall Fanloop without replacing user-owned paths.")
+			return check("skill_links", statusFail, fmt.Sprintf("Skill link %q is missing or is not managed by Fanloop.", path), "Reinstall Loop without replacing user-owned paths.")
 		}
 		actual, actualErr := os.Readlink(path)
 		if !filepath.IsAbs(actual) {
@@ -154,7 +154,7 @@ func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifes
 		}
 		expected := filepath.Join(releaseRoot, filepath.FromSlash(skill.Path))
 		if actualErr != nil || filepath.Clean(actual) != filepath.Clean(expected) {
-			return check("skill_links", statusFail, fmt.Sprintf("Skill link %q does not point to the current release.", path), "Reinstall Fanloop to restore the managed Skill links.")
+			return check("skill_links", statusFail, fmt.Sprintf("Skill link %q does not point to the current release.", path), "Reinstall Loop to restore the managed Skill links.")
 		}
 	}
 	return check("skill_links", statusPass, "Codex, Agent, Trae, and Claude Workflow Skill links point to the current release.", "")
@@ -363,7 +363,7 @@ func validateCardSnapshots(root string) error {
 }
 
 func validateCardProjection(root string, current state.State, hasCurrent bool) *idl.DoctorCheck {
-	projection, err := cardruntime.LoadProjection(root)
+	projection, _, err := cardruntime.LoadProjection(root)
 	if err != nil {
 		return check("card_projection", statusFail, "Card projection is invalid: "+err.Error(), "Repair or restore .fanloop/card/projection.json.")
 	}

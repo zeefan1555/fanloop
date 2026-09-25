@@ -14,17 +14,14 @@ import (
 )
 
 func TestProjectionWritesStorageThriftSchema(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
-	if err != nil {
-		t.Fatal(err)
-	}
+	loaded := loadInstalledLinearRuntime(t)
 	step, _ := loaded.Workflow.FirstStepID()
 	now := time.Date(2026, 8, 18, 0, 0, 0, 0, time.UTC)
 	current := state.State{
 		SchemaVersion: state.CurrentStateSchemaVersion,
 		Requirement:   state.Requirement{Title: "Storage Thrift"},
 		Release:       state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
-		CurrentStepID: &step, CurrentStepStatus: state.StepAwaitingConfirmation,
+		CurrentStepID: &step, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{}, Integrations: state.Integrations{},
 		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
 	}
@@ -43,7 +40,7 @@ func TestProjectionWritesStorageThriftSchema(t *testing.T) {
 	if document["schema_version"] != float64(7) {
 		t.Fatalf("schema_version = %v, want 7", document["schema_version"])
 	}
-	if _, err := LoadProjection(root); err != nil {
+	if _, _, err := LoadProjection(root); err != nil {
 		t.Fatal(err)
 	}
 	document["cli_log_document_url"] = "https://example.invalid/redacted"
@@ -54,21 +51,18 @@ func TestProjectionWritesStorageThriftSchema(t *testing.T) {
 	if err := os.WriteFile(ProjectionPath(root), content, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadProjection(root); err == nil {
+	if _, _, err := LoadProjection(root); err == nil {
 		t.Fatal("Card projection accepted a CLI log document without a Trace document")
 	}
 }
 
-func TestMaintainerTestProjectionKeepsSingleDocumentBinding(t *testing.T) {
-	loaded, err := workflow.Load("fanloop-maintainer")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestTestRegistryProjectionKeepsSingleDocumentBinding(t *testing.T) {
+	loaded := loadInstalledLinearRuntime(t)
 	step, _ := loaded.Workflow.FirstStepID()
 	now := time.Date(2026, 8, 25, 0, 0, 0, 0, time.UTC)
 	current := state.State{
 		SchemaVersion: state.CurrentStateSchemaVersion,
-		Requirement:   state.Requirement{Title: "Maintainer test"},
+		Requirement:   state.Requirement{Title: "Test registry"},
 		Release:       state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID: &step, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{},
@@ -81,13 +75,28 @@ func TestMaintainerTestProjectionKeepsSingleDocumentBinding(t *testing.T) {
 	if err := WriteProjection(root, current); err != nil {
 		t.Fatal(err)
 	}
-	projection, err := LoadProjection(root)
+	projection, _, err := LoadProjection(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if projection.CLILogDocumentURL != "" || projection.TraceDocumentURL != current.Integrations.Trace.DocumentURL {
 		t.Fatalf("projection = %#v", projection)
 	}
+}
+
+func loadInstalledLinearRuntime(t *testing.T) workflow.Loaded {
+	t.Helper()
+	dataRoot := t.TempDir()
+	bundleRoot := filepath.Join(dataRoot, "current", "workflows", "linear-runtime")
+	if err := os.CopyFS(bundleRoot, os.DirFS(filepath.Join("..", "workflow", "testdata", "linear-runtime"))); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	loaded, err := workflow.Load("linear-runtime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return loaded
 }
 
 func TestBindingWritesStorageThriftSchema(t *testing.T) {

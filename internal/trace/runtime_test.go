@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -23,26 +24,26 @@ func TestLatestFlowAuditUsesConditionResultEvent(t *testing.T) {
 		Kind: state.EventFlowResult,
 		Payload: state.Payload(state.FlowResultPayload{
 			ConditionResults: []state.ConditionResult{{
-				ConditionID: "technical_solution_designed",
+				ConditionID: "artifact_ready",
 				Output: state.OutputValue{
-					Type: workflow.OutputURL, Value: json.RawMessage(`"https://example.com/design"`),
+					Type: workflow.OutputURL, Value: json.RawMessage(`"https://example.com/artifact"`),
 				},
 			}},
 			Effect: state.ResultAdvanced,
 			Transition: state.Transition{
-				Direction: state.TransitionFlow, FromStepID: "design_technical_solution", ToStepID: "confirm_technical_solution",
+				Direction: state.TransitionFlow, FromStepID: "draft", ToStepID: "review",
 			},
-			OutputChanges: state.OutputChanges{Accepted: []string{"technical_design_document_url"}},
+			OutputChanges: state.OutputChanges{Accepted: []string{"artifact_url"}},
 		}),
 	}}
 	audit := latestFlowAudit(events)
 	for _, want := range []string{
 		"report=result",
 		"effect=advanced",
-		"from=design_technical_solution",
-		"to=confirm_technical_solution",
-		"conditions=technical_solution_designed",
-		"accepted=technical_design_document_url",
+		"from=draft",
+		"to=review",
+		"conditions=artifact_ready",
+		"accepted=artifact_url",
 	} {
 		if !strings.Contains(audit, want) {
 			t.Fatalf("audit is missing %q: %s", want, audit)
@@ -51,10 +52,12 @@ func TestLatestFlowAuditUsesConditionResultEvent(t *testing.T) {
 }
 
 func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
+	registry := traceconfig.Registry{Fields: syntheticRegistryFields()}
+	registry.Fields.SourceDocumentOnly = true
 	tests := []struct {
 		name    string
 		current state.State
-		wantPRD any
+		want    any
 	}{
 		{
 			name: "Meego locator only",
@@ -67,57 +70,53 @@ func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
 			current: state.State{Requirement: state.Requirement{
 				SourceURL: "https://example.invalid/redacted",
 			}},
-			wantPRD: "https://example.invalid/redacted",
+			want: "https://example.invalid/redacted",
 		},
 		{
 			name: "clarified PRD overrides Meego locator",
 			current: state.State{
 				Requirement: state.Requirement{SourceURL: "https://example.invalid/redacted"},
 				Outputs: map[string]state.RegisteredOutput{
-					"requirement_document_url": {
+					"source_document_url": {
 						Type: workflow.OutputURL, Value: json.RawMessage(`"https://example.invalid/redacted"`),
 					},
 				},
 			},
-			wantPRD: "https://example.invalid/redacted",
+			want: "https://example.invalid/redacted",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, "unconfigured-workflow")
-			if !ok {
-				t.Fatal("production default Registry is missing")
-			}
 			fields := registryFields(registry, test.current, workflow.Workflow{}, nil, "", "trace-key", "owner")
-			if got := fields["PRD"]; got != test.wantPRD {
-				t.Fatalf("Registry PRD = %#v, want %#v", got, test.wantPRD)
+			if got := fields["Source"]; got != test.want {
+				t.Fatalf("Registry Source = %#v, want %#v", got, test.want)
 			}
 		})
 	}
 }
 
-func TestRegistryFieldsProjectsMaintainerPRWithoutReusingPRD(t *testing.T) {
+func TestRegistryFieldsProjectsConfiguredOutputsWithoutReusingSource(t *testing.T) {
 	current := state.State{
-		Requirement: state.Requirement{Title: "Self iteration"},
-		Release:     state.Release{Workflow: state.WorkflowRef{ID: "fanloop-maintainer"}},
+		Requirement: state.Requirement{Title: "Custom flow"},
+		Release:     state.Release{Workflow: state.WorkflowRef{ID: "custom-flow"}},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
 			DocumentURL:       "https://example.invalid/redacted",
-			Registry:          "production",
+			Registry:          traceconfig.RegistryProduction,
 			CLILogDocumentURL: "https://example.invalid/redacted",
 		}},
 		Outputs: map[string]state.RegisteredOutput{
-			"merge_request_urls": {Value: json.RawMessage(`["https://github.com/zeefan1555/fanloop/merge_requests/123"]`)},
+			"artifact_links": {Value: json.RawMessage(`["https://example.com/artifacts/123"]`)},
 		},
 	}
-	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
-	if !ok {
-		t.Fatal("Workflow Registry override is missing")
-	}
+	registry := traceconfig.Registry{Fields: syntheticRegistryFields()}
+	registry.Fields.SourceDocumentOnly = true
+	registry.Fields.CLILogURL = "CLI log"
+	registry.Fields.Outputs = map[string]string{"artifact_links": "Artifact"}
 	fields := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")
 	want := map[string]any{
-		"PRD":    nil,
-		"MR":     "https://github.com/zeefan1555/fanloop/merge_requests/123",
-		"CLI 日志": "https://example.invalid/redacted",
+		"Source":   nil,
+		"Artifact": "https://example.com/artifacts/123",
+		"CLI log":  "https://example.invalid/redacted",
 	}
 	for key, value := range want {
 		if got := fields[key]; got != value {
@@ -125,22 +124,68 @@ func TestRegistryFieldsProjectsMaintainerPRWithoutReusingPRD(t *testing.T) {
 		}
 	}
 	current.Requirement.SourceURL = "https://example.invalid/redacted"
-	if got := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")["PRD"]; got != current.Requirement.SourceURL {
-		t.Fatalf("maintainer real PRD = %#v, want %q", got, current.Requirement.SourceURL)
+	if got := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")["Source"]; got != current.Requirement.SourceURL {
+		t.Fatalf("real source document = %#v, want %q", got, current.Requirement.SourceURL)
 	}
 
 	ordinary := current
 	ordinary.Release.Workflow.ID = "unconfigured-workflow"
 	ordinary.Integrations.Trace.CLILogDocumentURL = ""
-	ordinaryRegistry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, ordinary.Release.Workflow.ID)
-	if !ok {
-		t.Fatal("production default Registry is missing")
-	}
+	ordinaryRegistry := traceconfig.Registry{Fields: syntheticRegistryFields()}
+	ordinary.Outputs = nil
 	ordinaryFields := registryFields(ordinaryRegistry, ordinary, workflow.Workflow{}, nil, ordinary.Integrations.Trace.DocumentURL, "trace-key", "owner")
-	for _, key := range []string{"MR", "CLI 日志"} {
+	for _, key := range []string{"Artifact", "CLI log"} {
 		if _, exists := ordinaryFields[key]; exists {
 			t.Fatalf("ordinary Registry unexpectedly contains %q: %#v", key, ordinaryFields)
 		}
+	}
+}
+
+func TestRegistryFieldsPreserveWorkflowDisplaySemantics(t *testing.T) {
+	loaded, err := workflow.LoadFrom(filepath.Join("..", "workflow", "testdata"), "runtime-controls")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, third := "first", "third"
+	tests := []struct {
+		name     string
+		current  state.State
+		location string
+		status   string
+	}{
+		{name: "blocked agent", current: state.State{CurrentStepID: &first, CurrentStepStatus: state.StepBlocked}, location: "Runtime / Controls / First", status: "Blocked"},
+		{name: "human review", current: state.State{CurrentStepID: &third, CurrentStepStatus: state.StepReady}, location: "Runtime / Controls / Third", status: "Human Review"},
+		{name: "completed", current: state.State{}, location: "Runtime / Controls / Third", status: "已完成"},
+	}
+	registry := traceconfig.Registry{Fields: syntheticRegistryFields()}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fields := registryFields(registry, test.current, loaded.Workflow, nil, "", "trace-key", "")
+			if fields["Location"] != test.location || fields["Status"] != test.status {
+				t.Fatalf("registry display = location %#v status %#v, want %q / %q", fields["Location"], fields["Status"], test.location, test.status)
+			}
+		})
+	}
+}
+
+func TestPlannedSyncTargetsIncludeConfiguredCLILog(t *testing.T) {
+	current := state.State{Integrations: state.Integrations{Trace: &state.TraceBinding{
+		DocumentURL:       "https://example.com/trace",
+		Registry:          traceconfig.RegistryProduction,
+		CLILogDocumentURL: "https://example.com/cli-log",
+	}}}
+	targets := plannedSyncTargets(current)
+	if len(targets) != 3 || targets[0].Target != traceidl.TraceTarget_trace_document ||
+		targets[1].Target != traceidl.TraceTarget_cli_log_document || targets[2].Target != traceidl.TraceTarget_registry {
+		t.Fatalf("planned targets = %#v", targets)
+	}
+}
+
+func syntheticRegistryFields() traceconfig.RegistryFields {
+	return traceconfig.RegistryFields{
+		TraceKey: "Trace key", Title: "Title", Owner: "Owner", Location: "Location", Status: "Status",
+		LoopCount: "Loop count", SourceURL: "Source", SourceOutput: "source_document_url",
+		TraceURL: "Trace", UpdatedAt: "Updated at", Origin: "Origin",
 	}
 }
 

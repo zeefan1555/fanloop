@@ -2,6 +2,9 @@ package state
 
 import (
 	"encoding/json"
+	"maps"
+	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -9,7 +12,7 @@ import (
 )
 
 func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadLinearRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,7 +20,7 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
 	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
-	second := "define_goals_and_problems"
+	second := "second"
 	now := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
 	current := State{
 		SchemaVersion: CurrentStateSchemaVersion,
@@ -54,18 +57,18 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 
 	flowResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`)},
+			ConditionID: "first_completed", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)},
 		}},
 		Summary: "background defined", Effect: ResultAdvanced,
 		Transition:    Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second},
-		OutputChanges: OutputChanges{Accepted: []string{"background_section_path"}},
+		OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}},
 	}
 	current.CurrentStepID = &second
 	current.CurrentStepStatus = StepReady
 	current.CurrentStepSummary = flowResult.Summary
 	current.CurrentEvidence = nil
 	current.Outputs = map[string]RegisteredOutput{
-		"background_section_path": {Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`), ProducerStepID: first},
+		"first_artifact": {Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`), ProducerStepID: first},
 	}
 	current.LastEventID = "e3"
 	current.UpdatedAt = now.Add(2 * time.Minute)
@@ -77,19 +80,20 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 
 	loopResult := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "background_changed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`)},
+			ConditionID: "second_rework", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`)},
 		}},
 		Summary: "background changed", Effect: ResultLooped,
 		Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first},
 		OutputChanges: OutputChanges{
-			Accepted:    []string{"technical_feedback_scope"},
-			Invalidated: []string{"background_section_path"},
+			Accepted:    []string{"second_revision"},
+			Invalidated: []string{"first_artifact"},
 		},
 	}
 	current.CurrentStepID = &first
+	current.CurrentStepStatus = StepFixing
 	current.CurrentStepSummary = loopResult.Summary
 	current.Outputs = map[string]RegisteredOutput{
-		"technical_feedback_scope": {Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`), ProducerStepID: second},
+		"second_revision": {Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`), ProducerStepID: second},
 	}
 	current.LastEventID = "e4"
 	current.UpdatedAt = now.Add(3 * time.Minute)
@@ -108,6 +112,11 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	if err := ValidateHistory(events, current, loaded); err != nil {
 		t.Fatal(err)
 	}
+	current.CurrentStepStatus = StepReady
+	if err := ValidateHistory(events, current, loaded); err == nil {
+		t.Fatal("history replay accepted a looped tail that was not fixing")
+	}
+	current.CurrentStepStatus = StepFixing
 	loaded.Workflow.Flows[first] = nil
 	loaded.Workflow.Loops[second] = nil
 	loaded.Workflow.StepStart = stepStart
@@ -117,35 +126,35 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 }
 
 func TestHistoryPreservesOutputsAcceptedByLoopResult(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadLinearRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
 	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
 	first, _ := loaded.Workflow.FirstStepID()
-	second := "define_goals_and_problems"
+	second := "second"
 	now := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
 	current := State{
 		SchemaVersion: CurrentStateSchemaVersion,
 		Requirement:   Requirement{Title: "State v8"}, Release: Release{Version: "dev", Workflow: WorkflowRefFrom(loaded.Ref)},
-		CurrentStepID: &first, CurrentStepStatus: StepReady, CurrentStepSummary: "background changed",
+		CurrentStepID: &first, CurrentStepStatus: StepFixing, CurrentStepSummary: "second rework",
 		Outputs: map[string]RegisteredOutput{
-			"technical_feedback_scope": {Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`), ProducerStepID: second},
+			"second_revision": {Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`), ProducerStepID: second},
 		}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
 	}
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: current.Release.Workflow, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
-			ConditionResults: []ConditionResult{{ConditionID: "background_defined", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".technical-solution/sections/01-business-background.md"`)}}},
-			Summary:          "background defined", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"background_section_path"}},
+			ConditionResults: []ConditionResult{{ConditionID: "first_completed", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)}}},
+			Summary:          "first complete", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}},
 		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{{
-				ConditionID: "background_changed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"background"`)},
+				ConditionID: "second_rework", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`)},
 			}},
-			Summary: "background changed", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
-				Accepted: []string{"technical_feedback_scope"}, Invalidated: []string{"background_section_path"},
+			Summary: "second rework", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: second, ToStepID: first}, OutputChanges: OutputChanges{
+				Accepted: []string{"second_revision"}, Invalidated: []string{"first_artifact"},
 			},
 		})},
 	}
@@ -154,8 +163,162 @@ func TestHistoryPreservesOutputsAcceptedByLoopResult(t *testing.T) {
 	}
 }
 
+func TestApplyFlowResultCoversEveryEffect(t *testing.T) {
+	loaded, err := loadLinearRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidence := []Evidence{{Source: EvidenceSystem, Content: "checked"}}
+	artifact := func(conditionID, value string) []ConditionResult {
+		return []ConditionResult{{ConditionID: conditionID, Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"` + value + `"`)}}}
+	}
+	base := func(step string) State {
+		return State{
+			CurrentStepID: &step, CurrentStepStatus: StepInProgress,
+			Outputs: map[string]RegisteredOutput{
+				"first_artifact": {Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`), ProducerStepID: "first"},
+				"third_artifact": {Type: workflow.OutputPath, Value: json.RawMessage(`"third.md"`), ProducerStepID: "third"},
+			},
+		}
+	}
+	tests := []struct {
+		name        string
+		current     State
+		payload     FlowResultPayload
+		wantStep    string
+		wantStatus  StepStatus
+		wantOutputs []string
+		wantSkipped []string
+	}{
+		{
+			name: "advanced", current: base("first"), wantStep: "second", wantStatus: StepReady,
+			payload: FlowResultPayload{ConditionResults: artifact("first_completed", "next.md"), Summary: "advanced", Evidence: evidence, Effect: ResultAdvanced,
+				Transition: Transition{Direction: TransitionFlow, FromStepID: "first", ToStepID: "second"}, OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}}},
+			wantOutputs: []string{"first_artifact", "third_artifact"},
+		},
+		{
+			name: "looped", current: base("second"), wantStep: "first", wantStatus: StepFixing,
+			payload: FlowResultPayload{ConditionResults: []ConditionResult{{ConditionID: "second_rework", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`)}}}, Summary: "looped", Evidence: evidence, Effect: ResultLooped,
+				Transition: Transition{Direction: TransitionLoop, FromStepID: "second", ToStepID: "first"}, OutputChanges: OutputChanges{Accepted: []string{"second_revision"}, Invalidated: []string{"first_artifact", "third_artifact"}}},
+			wantOutputs: []string{"second_revision"},
+		},
+		{
+			name: "completed", current: base("third"),
+			payload: FlowResultPayload{ConditionResults: artifact("third_completed", "done.md"), Summary: "completed", Evidence: evidence, Effect: ResultCompleted,
+				Transition: Transition{Direction: TransitionFlow, FromStepID: "third"}, OutputChanges: OutputChanges{Accepted: []string{"third_artifact"}}},
+			wantOutputs: []string{"first_artifact", "third_artifact"},
+		},
+		{
+			name: "started", current: base("first"), wantStep: "first", wantStatus: StepInProgress,
+			payload: FlowResultPayload{ConditionResults: []ConditionResult{{ConditionID: "start_confirmed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"confirmed"`)}}}, Summary: "started", Evidence: evidence, Effect: ResultStarted,
+				Transition: Transition{Direction: TransitionStart, FromStepID: "first", ToStepID: "first"}},
+			wantOutputs: []string{"first_artifact", "third_artifact"},
+		},
+		{
+			name: "jumped", current: base("first"), wantStep: "third", wantStatus: StepReady,
+			payload: FlowResultPayload{ConditionResults: []ConditionResult{{ConditionID: "jump_requested", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"third"`)}}}, Summary: "jumped", Evidence: evidence, Effect: ResultJumped,
+				Transition: Transition{Direction: TransitionJump, FromStepID: "first", ToStepID: "third"}, OutputChanges: OutputChanges{Invalidated: []string{"third_artifact"}}},
+			wantOutputs: []string{"first_artifact"}, wantSkipped: []string{"first", "second"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			next, err := ApplyFlowResult(loaded.Workflow, test.current, test.payload, ResultTargetStatus(loaded.Workflow, test.payload.Effect))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := StateRef(next); got != (StepState{StepID: test.wantStep, Status: test.wantStatus}) {
+				t.Fatalf("current = %#v, want step=%q status=%q", got, test.wantStep, test.wantStatus)
+			}
+			if next.CurrentStepSummary != map[bool]string{true: "", false: test.payload.Summary}[test.payload.Effect == ResultCompleted] ||
+				!slices.Equal(next.CurrentEvidence, map[bool][]Evidence{true: nil, false: evidence}[test.payload.Effect == ResultCompleted]) ||
+				!slices.Equal(sortedKeys(next.Outputs), test.wantOutputs) || !slices.Equal(next.SkippedStepIDs, test.wantSkipped) {
+				t.Fatalf("next = %#v", next)
+			}
+		})
+	}
+
+	current := base("first")
+	current.SkippedStepIDs = []string{"first"}
+	beforeOutputs := maps.Clone(current.Outputs)
+	beforeSkipped := append([]string(nil), current.SkippedStepIDs...)
+	_, err = ApplyFlowResult(loaded.Workflow, current, FlowResultPayload{
+		ConditionResults: []ConditionResult{{ConditionID: "missing", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"missing.md"`)}}},
+		Effect:           ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: "first", ToStepID: "second"},
+	}, StepReady)
+	if err == nil {
+		t.Fatal("invalid Result was applied")
+	}
+	if !maps.EqualFunc(current.Outputs, beforeOutputs, equalRegisteredOutput) || !slices.Equal(current.SkippedStepIDs, beforeSkipped) {
+		t.Fatalf("failed Result mutated input State: %#v", current)
+	}
+}
+
+func TestHistoryDoesNotReinterpretIntermediateResultStatus(t *testing.T) {
+	loaded, err := loadLinearRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded.Workflow.StepStart, loaded.Workflow.Jump = nil, nil
+	loaded.Workflow.CommonSkills, loaded.Workflow.CommonConditions = nil, nil
+	now := time.Date(2026, 9, 25, 0, 0, 0, 0, time.UTC)
+	workflowRef := WorkflowRefFrom(loaded.Ref)
+	current := State{
+		SchemaVersion: CurrentStateSchemaVersion, Requirement: Requirement{Title: "historical loop status"},
+		Release: Release{Version: "dev", Workflow: workflowRef}, CurrentStepID: stringPointer("first"), CurrentStepStatus: StepInProgress,
+		CurrentStepSummary: "continued under historical status", Outputs: map[string]RegisteredOutput{"second_revision": {Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`), ProducerStepID: "second"}},
+		SkippedStepIDs: []string{}, Integrations: Integrations{}, LastEventID: "e4", CreatedAt: now, UpdatedAt: now.Add(3 * time.Minute),
+	}
+	events := []Event{
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: workflowRef, Payload: Payload(FlowInitializedPayload{StepID: "first", StepStatus: StepReady})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
+			ConditionResults: []ConditionResult{{ConditionID: "first_completed", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)}}},
+			Summary:          "advanced", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: "first", ToStepID: "second"}, OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}},
+		})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
+			ConditionResults: []ConditionResult{{ConditionID: "second_rework", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`)}}},
+			Summary:          "looped before fixing status existed", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: "second", ToStepID: "first"}, OutputChanges: OutputChanges{Accepted: []string{"second_revision"}, Invalidated: []string{"first_artifact"}},
+		})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: now.Add(3 * time.Minute), Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e3", Payload: Payload(FlowProgressPayload{
+			FromStepID: "first", FromStepStatus: StepReady, ToStepStatus: StepInProgress, Summary: "continued under historical status",
+		})},
+	}
+	if err := ValidateHistory(events, current, loaded); err != nil {
+		t.Fatalf("intermediate Result status was reinterpreted: %v", err)
+	}
+}
+
+func TestHistoryPreservesStartedStatusBetweenEvents(t *testing.T) {
+	loaded, err := loadRuntimeControls()
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 9, 25, 0, 0, 0, 0, time.UTC)
+	workflowRef := WorkflowRefFrom(loaded.Ref)
+	evidence := []Evidence{{Source: EvidenceHuman, Content: "approved"}}
+	current := State{
+		SchemaVersion: CurrentStateSchemaVersion, Requirement: Requirement{Title: "started status"},
+		Release: Release{Version: "dev", Workflow: workflowRef}, CurrentStepID: stringPointer("first"), CurrentStepStatus: StepInProgress,
+		CurrentStepSummary: "continued", Outputs: map[string]RegisteredOutput{}, SkippedStepIDs: []string{}, Integrations: Integrations{},
+		LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
+	}
+	events := []Event{
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: workflowRef, Payload: Payload(FlowInitializedPayload{StepID: "first", StepStatus: StepAwaitingConfirmation})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
+			ConditionResults: []ConditionResult{{ConditionID: "start_confirmed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"confirmed"`)}}},
+			Summary:          "started", Evidence: evidence, Effect: ResultStarted, Transition: Transition{Direction: TransitionStart, FromStepID: "first", ToStepID: "first"}, OutputChanges: OutputChanges{},
+		})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(FlowProgressPayload{
+			FromStepID: "first", FromStepStatus: StepReady, ToStepStatus: StepInProgress, Summary: "continued",
+		})},
+	}
+	if err := ValidateHistory(events, current, loaded); err == nil {
+		t.Fatal("history replay accepted Progress from a status that did not follow started")
+	}
+}
+
 func TestHistoricalControlResultsAreNotReevaluatedAgainstLiveControls(t *testing.T) {
-	loaded, err := workflow.Load("technical-solution-design")
+	loaded, err := loadRuntimeControls()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +326,7 @@ func TestHistoricalControlResultsAreNotReevaluatedAgainstLiveControls(t *testing
 	evidence := []Evidence{{Source: EvidenceHuman, Content: "approved"}}
 	started := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "step_scope_confirmed",
+			ConditionID: "start_confirmed",
 			Output:      OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"confirmed"`)},
 		}},
 		Summary: "started", Effect: ResultStarted,
@@ -172,7 +335,7 @@ func TestHistoricalControlResultsAreNotReevaluatedAgainstLiveControls(t *testing
 	}
 	jumped := FlowResultPayload{
 		ConditionResults: []ConditionResult{{
-			ConditionID: "human_step_jump_requested",
+			ConditionID: "jump_requested",
 			Output:      OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"` + steps[1] + `"`)},
 		}},
 		Summary: "jumped", Effect: ResultJumped,
@@ -197,30 +360,33 @@ func TestHistoricalControlResultsAreNotReevaluatedAgainstLiveControls(t *testing
 	}
 }
 
-func TestResultSelectsSharedConditionsByExplicitFlowTarget(t *testing.T) {
-	loaded, err := workflow.Load("fanloop-maintainer")
+func TestResultSelectsConditionsByExplicitFlowTarget(t *testing.T) {
+	loaded, err := loadLinearRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 	payload := FlowResultPayload{
-		ConditionResults: []ConditionResult{
-			{ConditionID: "verification_contract_written", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"requirements.md"`)}},
-			{ConditionID: "requirements_approved", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"approved"`)}},
-			{ConditionID: "requirements_decision_recorded", Output: OutputValue{Type: workflow.OutputString, Value: json.RawMessage(`"approval-receipt"`)}},
-			{ConditionID: "panorama_presented", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`".fanloop/card/define.json"`)}},
-		},
-		Summary: "verification contract approved",
+		ConditionResults: []ConditionResult{{
+			ConditionID: "first_completed", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)},
+		}},
+		Summary: "first complete",
 		Effect:  ResultAdvanced,
 		Transition: Transition{
-			Direction: TransitionFlow, FromStepID: "define_verification_contract", ToStepID: "build_until_verified",
+			Direction: TransitionFlow, FromStepID: "first", ToStepID: "second",
 		},
-		OutputChanges: OutputChanges{Accepted: []string{
-			"verification_contract_path", "requirements_decision", "requirements_decision_receipt_id", "panorama_snapshot_path",
-		}},
+		OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}},
 	}
 	if err := validateResultAgainst(loaded.Workflow, payload); err != nil {
 		t.Fatalf("explicit Flow target rejected: %v", err)
 	}
+}
+
+func loadLinearRuntime() (workflow.Loaded, error) {
+	return workflow.LoadFrom(filepath.Join("..", "workflow", "testdata"), "linear-runtime")
+}
+
+func loadRuntimeControls() (workflow.Loaded, error) {
+	return workflow.LoadFrom(filepath.Join("..", "workflow", "testdata"), "runtime-controls")
 }
 
 func TestDecodeRejectsOldGuardState(t *testing.T) {

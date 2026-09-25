@@ -19,7 +19,7 @@ func TestDecodeRejectsWorkflowBusinessVersionField(t *testing.T) {
 	if err := json.Unmarshal(content, &document); err != nil {
 		t.Fatal(err)
 	}
-	document["workflows"] = []any{map[string]any{"id": "technical-solution-design"}}
+	document["workflows"] = []any{map[string]any{"id": "retired-workflow"}}
 	content, err = json.Marshal(document)
 	if err != nil {
 		t.Fatal(err)

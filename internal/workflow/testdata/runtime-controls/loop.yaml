@@ -1,0 +1,15 @@
+schema_version: 4
+
+loop:
+  first:
+    - prompt_ref: {file: prompt.yaml, prompt_id: revise}
+      when: {any_of: [[first_rework]]}
+      back_step_id: first
+  second:
+    - prompt_ref: {file: prompt.yaml, prompt_id: revise}
+      when: {any_of: [[second_rework]]}
+      back_step_id: first
+  third:
+    - prompt_ref: {file: prompt.yaml, prompt_id: revise}
+      when: {any_of: [[third_rework]]}
+      back_step_id: second

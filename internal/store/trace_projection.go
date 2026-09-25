@@ -3,7 +3,6 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +18,7 @@ var beijingTimezone = time.FixedZone("UTC+8", 8*60*60)
 
 // RenderEvents rebuilds the human-facing Trace from committed State and Events.
 func RenderEvents(root string, current state.State, definition workflow.Workflow, events []state.Event) []byte {
+	display := workflowview.Display(definition, current)
 	var output strings.Builder
 	output.WriteString("# Workflow Trace\n\n")
 	fmt.Fprintf(&output, "- Requirement：%s\n", current.Requirement.Title)
@@ -30,7 +30,7 @@ func RenderEvents(root string, current state.State, definition workflow.Workflow
 	fmt.Fprintf(&output, "- 回流次数：共 %d 次\n", traceLoopCount(events))
 
 	output.WriteString("\n## 状态全景\n\n")
-	output.WriteString(tracePanorama(current, definition))
+	output.WriteString(tracePanorama(display))
 	output.WriteString("\n\n")
 	output.WriteString(traceDocumentLink(current))
 
@@ -132,71 +132,44 @@ func traceTargetErrorText(target state.TraceTargetResult) string {
 	return target.Reason
 }
 
-func tracePanorama(current state.State, definition workflow.Workflow) string {
-	currentPosition := len(definition.OrderedStepIDs())
-	currentFound := current.CurrentStepID == nil
-	if current.CurrentStepID != nil {
-		_, position, ok := definition.FindStep(*current.CurrentStepID)
-		if ok {
-			currentPosition, currentFound = position, true
-		}
-	}
-	position := 0
-	lines := make([]string, 0, len(definition.Stages)+1)
-	for _, stage := range definition.Stages {
-		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflow.Step) string {
+func tracePanorama(display workflowview.DisplaySnapshot) string {
+	lines := make([]string, 0, len(display.Stages)+1)
+	for _, stage := range display.Stages {
+		lines = append(lines, workflowview.FormatPanoramaStage(stage, func(step workflowview.DisplayStep) string {
 			label := step.Name
-			switch {
-			case slices.Contains(current.SkippedStepIDs, step.ID):
+			switch step.State {
+			case workflowview.DisplayStepSkipped:
 				label = "已跳过 " + label
-			case current.CurrentStepID == nil || currentFound && position < currentPosition:
+			case workflowview.DisplayStepCompleted:
 				label = "✅ " + label
-			case currentFound && position == currentPosition:
-				label = "**" + label + "（" + traceStatusLabel(current, definition) + "）**"
+			case workflowview.DisplayStepCurrent:
+				label = "**" + label + "（" + traceStatusLabel(display) + "）**"
 			}
-			position++
 			return label
 		}))
 	}
-	lines = append(lines, fmt.Sprintf("整体进度：%d%%", traceProgressPercent(current, definition)))
+	lines = append(lines, fmt.Sprintf("整体进度：%d%%", display.ProgressPercent))
 	return strings.Join(lines, "\n")
 }
 
-func traceStatusLabel(current state.State, definition workflow.Workflow) string {
-	if current.CurrentStepID == nil {
-		return "Done"
-	}
-	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
-		return "Awaiting Confirmation"
-	}
-	if context, _, ok := definition.FindStep(*current.CurrentStepID); ok && context.Step.Executor == workflow.StepExecutorHuman {
+func traceStatusLabel(display workflowview.DisplaySnapshot) string {
+	if display.RequiresHumanReview && display.Status != workflowview.DisplayAwaitingConfirmation {
 		return "Human Review"
 	}
-	switch current.CurrentStepStatus {
-	case state.StepBlocked:
+	switch display.Status {
+	case workflowview.DisplayDone:
+		return "Done"
+	case workflowview.DisplayAwaitingConfirmation:
+		return "Awaiting Confirmation"
+	case workflowview.DisplayBlocked:
 		return "Blocked"
-	case state.StepFixing:
+	case workflowview.DisplayFixing:
 		return "Fixing"
-	case state.StepInProgress:
+	case workflowview.DisplayInProgress:
 		return "In Progress"
 	default:
 		return "Ready"
 	}
-}
-
-func traceProgressPercent(current state.State, definition workflow.Workflow) int {
-	steps := definition.OrderedStepIDs()
-	if len(steps) == 0 || current.CurrentStepID == nil {
-		if current.CurrentStepID == nil {
-			return 100
-		}
-		return 0
-	}
-	_, position, ok := definition.FindStep(*current.CurrentStepID)
-	if !ok {
-		return 0
-	}
-	return (position*100 + len(steps)/2) / len(steps)
 }
 
 func traceDocumentLink(current state.State) string {

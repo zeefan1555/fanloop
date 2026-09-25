@@ -1,0 +1,30 @@
+schema_version: 3
+
+conditions:
+  first_completed:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: first_artifact, type: path}
+    exclusive_group: first_outcome
+  first_rework:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: first_revision, type: enum_value, values: [rework]}
+    exclusive_group: first_outcome
+  second_completed:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: second_artifact, type: path}
+    exclusive_group: second_outcome
+  second_evidence:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: second_evidence_path, type: path}
+  second_rework:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: second_revision, type: enum_value, values: [rework]}
+    exclusive_group: second_outcome
+  third_completed:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: third_artifact, type: path}
+    exclusive_group: third_outcome
+  third_rework:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_condition}
+    output: {key: third_revision, type: enum_value, values: [rework]}
+    exclusive_group: third_outcome

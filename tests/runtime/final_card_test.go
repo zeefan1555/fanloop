@@ -34,7 +34,7 @@ set -eu
 : > "$BOTMUX_CALLED"
 `)
 
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Bootstrap panorama")
+	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Bootstrap panorama")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
 		"CALL_LOG="+callLog, "BOTMUX_CALLED="+botmuxCalled,
@@ -57,66 +57,14 @@ set -eu
 		t.Fatalf("Card projection did not retain Trace binding:\n%s", projection)
 	}
 
-	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root,
-		"--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "framing"), "flow.report.progress")
+		"--step-id", "first", "--status", "in_progress", "--summary", "working"), "flow.report.progress")
 	assertSuccess(t, run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_requirement_background",
-		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),
-		"--next-step-id", "define_goals_and_problems", "--summary", "background framed"), "flow.report.result")
+		"--step-id", "first",
+		"--condition-result", conditionResult("first_completed", "path", `"first.md"`),
+		"--next-step-id", "second", "--summary", "first complete"), "flow.report.result")
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
 		t.Fatalf("flow report unexpectedly invoked botmux: %v", err)
-	}
-}
-
-func TestMaintainerFlowInitBindsTraceAndCLILogWithoutSendingPanorama(t *testing.T) {
-	binary, root := buildCLI(t), t.TempDir()
-	fakeBin := filepath.Dir(binary)
-	callLog := filepath.Join(t.TempDir(), "calls.log")
-	createCount := filepath.Join(t.TempDir(), "create-count")
-	botmuxCalled := filepath.Join(t.TempDir(), "botmux-called")
-	const traceURL = "https://example.invalid/redacted"
-	const logURL = "https://example.invalid/redacted"
-	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), `#!/bin/sh
-set -eu
-printf '%s\n' "$*" >> "$CALL_LOG"
-if [ -f "$CREATE_COUNT" ]; then
-  printf '%s\n' '{"ok":true,"data":{"document":{"url":"https://example.invalid/redacted"}}}'
-else
-  : > "$CREATE_COUNT"
-  printf '%s\n' '{"ok":true,"data":{"document":{"url":"https://example.invalid/redacted"}}}'
-fi
-`)
-	writeExecutable(t, filepath.Join(fakeBin, "botmux"), `#!/bin/sh
-set -eu
-: > "$BOTMUX_CALLED"
-`)
-
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Maintainer panorama")
-	command.Env = append(command.Env,
-		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
-		"CALL_LOG="+callLog, "CREATE_COUNT="+createCount, "BOTMUX_CALLED="+botmuxCalled,
-	)
-	assertSuccess(t, collect(command), "flow.init")
-
-	status := run(binary, "trace", "status", "--root", root)
-	assertSuccess(t, status, "trace.status")
-	for _, want := range []string{traceURL, `"cli_log_document_url": "` + logURL + `"`} {
-		if !strings.Contains(status.stdout, want) {
-			t.Fatalf("flow init did not bind %q:\n%s", want, status.stdout)
-		}
-	}
-	if got := strings.TrimSpace(string(readFile(t, callLog))); strings.Count(got, "docs +create --as bot ") != 2 || strings.Contains(got, "--as user") {
-		t.Fatalf("flow init external calls = %q, want two Trace document creates", got)
-	}
-	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
-		t.Fatalf("flow init unexpectedly invoked botmux: %v", err)
-	}
-	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
-	for _, want := range []string{`"trace_document_url": "` + traceURL + `"`, `"cli_log_document_url": "` + logURL + `"`} {
-		if !strings.Contains(projection, want) {
-			t.Fatalf("Card projection did not retain %q:\n%s", want, projection)
-		}
 	}
 }
 
@@ -127,7 +75,7 @@ func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *test
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), "#!/bin/sh\nexit 9\n")
 	writeExecutable(t, filepath.Join(fakeBin, "botmux"), "#!/bin/sh\n: > \"$BOTMUX_CALLED\"\n")
 
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Provision failure")
+	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Provision failure")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap", "BOTMUX_CALLED="+botmuxCalled,
 	)
@@ -150,7 +98,7 @@ func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *test
 
 func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Driver layout"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Driver layout"), "flow.init")
 	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	if _, err := os.Stat(projectionPath); err != nil {
 		t.Fatalf("flow init did not create Card projection: %v", err)
@@ -202,22 +150,21 @@ func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {
 
 func TestCardRenderUsesIndependentProjection(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Independent card"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Independent card"), "flow.init")
 
 	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
 	projection := readFile(t, projectionPath)
-	if !bytes.Contains(projection, []byte(`"current_step_id": "frame_requirement_background"`)) {
+	if !bytes.Contains(projection, []byte(`"current_step_id": "first"`)) {
 		t.Fatalf("initial Card projection does not contain the current Step:\n%s", projection)
 	}
 
-	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
 	reported := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_requirement_background",
-		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),
-		"--next-step-id", "define_goals_and_problems", "--summary", "background defined")
+		"--step-id", "first",
+		"--condition-result", conditionResult("first_completed", "path", `"first.md"`),
+		"--next-step-id", "second", "--summary", "first complete")
 	assertSuccess(t, reported, "flow.report.result")
 	projection = readFile(t, projectionPath)
-	for _, want := range []string{`"current_step_id": "define_goals_and_problems"`, `"background_section_path"`} {
+	for _, want := range []string{`"current_step_id": "second"`, `"first_artifact"`} {
 		if !bytes.Contains(projection, []byte(want)) {
 			t.Fatalf("updated Card projection does not contain %s:\n%s", want, projection)
 		}
@@ -239,27 +186,52 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 	}
 }
 
-func TestTechnicalSolutionCardHasNoInventedURLOutputs(t *testing.T) {
+func TestSyntheticCardHasNoInventedURLOutputs(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "URL artifacts"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "URL artifacts"), "flow.init")
 
 	rendered := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
 	assertSuccess(t, rendered, "card.render")
 	outputs := outputColumnContents(t, decodeCard(t, rendered.stdout).Data.Content)
 
 	if !strings.Contains(outputs, "暂未生成") {
-		t.Fatalf("technical solution path Outputs must keep the URL section empty:\n%s", outputs)
+		t.Fatalf("path Outputs must keep the URL section empty:\n%s", outputs)
+	}
+}
+
+func TestFixingPanoramaUsesFixedLoopEmoji(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Rework icon"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root,
+		"--step-id", "first", "--status", "fixing", "--summary", "fixing review feedback"), "flow.report.progress")
+
+	markdownResult := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "markdown")
+	assertSuccess(t, markdownResult, "card.render")
+	markdownCard := decodeCard(t, markdownResult.stdout)
+	var markdown string
+	if err := json.Unmarshal(markdownCard.Data.Content, &markdown); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(markdown, "🔄 正在修复") || strings.Contains(markdown, "🔁 正在修复") {
+		t.Fatalf("Markdown fixing action uses the wrong emoji:\n%s", markdown)
+	}
+
+	larkResult := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
+	assertSuccess(t, larkResult, "card.render")
+	larkContent := decodeCard(t, larkResult.stdout).Data.Content
+	if !bytes.Contains(larkContent, []byte("🔄 正在修复")) || bytes.Contains(larkContent, []byte("🔁 正在修复")) {
+		t.Fatalf("Lark fixing action uses the wrong emoji:\n%s", larkContent)
 	}
 }
 
 func TestCardRenderDoesNotFallBackToNonURLOutputs(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "No URL artifacts"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "No URL artifacts"), "flow.init")
 
 	rendered := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "lark-json")
 	assertSuccess(t, rendered, "card.render")
 	outputs := outputColumnContents(t, decodeCard(t, rendered.stdout).Data.Content)
-	if strings.Contains(outputs, "background_section_path") {
+	if strings.Contains(outputs, "first_artifact") {
 		t.Fatalf("non-URL Condition Output must not be rendered as a stage output:\n%s", outputs)
 	}
 	if !strings.Contains(outputs, "暂未生成") {
@@ -302,7 +274,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 	}
 	if value.Schema != "2.0" || value.Header.Template != "default" ||
 		value.Header.Title.Content != "后端研发交付 · Driver layout" ||
-		value.Header.Subtitle.Content != "业务问题 · 业务背景" || len(value.Header.TextTagList) != 2 {
+		value.Header.Subtitle.Content != "Runtime · First" || len(value.Header.TextTagList) != 2 {
 		t.Fatalf("Driver header contract was lost: %s", content)
 	}
 	if len(value.Body.Elements) != 5 {
@@ -324,7 +296,7 @@ func assertDriverCardLayout(t *testing.T, content []byte) {
 			t.Fatalf("Output heading = %q", element.Content)
 		}
 	}
-	for _, want := range []string{"状态全景", "业务背景", "总体方案设计", "文档终审", "当前执行证据", "当前进行中"} {
+	for _, want := range []string{"状态全景", "First", "Second", "Third", "当前执行证据", "当前进行中"} {
 		if !bytes.Contains(content, []byte(want)) {
 			t.Fatalf("Driver panorama does not contain %q: %s", want, content)
 		}

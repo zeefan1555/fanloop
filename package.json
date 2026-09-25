@@ -1,7 +1,42 @@
 {
-  "private": true,
+  "name": "@zeefan1555/fanloop-cli",
+  "version": "0.6.2",
+  "description": "Fanloop workflow CLI",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zeefan1555/fanloop.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "bin": {
+    "fanloop": "scripts/run.js"
+  },
   "scripts": {
     "build": "./scripts/build-local.sh",
-    "install:local": "./scripts/install-local.sh"
-  }
+    "install:local": "./scripts/install-local.sh",
+    "build:release": "./scripts/build-npm-release.sh",
+    "test": "node --test scripts/*.test.js",
+    "prepublishOnly": "node -e \"throw new Error('Publish the verified tarball through the release pipeline')\""
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "README.md",
+    "scripts/install.js",
+    "scripts/run.js",
+    "checksums.txt",
+    "releases"
+  ],
+  "license": "UNLICENSED"
 }

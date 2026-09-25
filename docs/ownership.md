@@ -9,6 +9,7 @@ orchestration directory.
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the read-only loopback viewer |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
+| Release | `.github/workflows/release.yml`, `scripts/{build-npm-release,publish-npm-package,verify-published-package}.*` | Public npm build, candidate/latest publication and anonymous smoke verification |
 | Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh` | Immutable CLI builds, Fornax configuration synchronization, diagnosis and nested Release switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
