@@ -126,7 +126,7 @@ func runOperation[T any](
 		if needsConfiguration {
 			unlock, err := workflow.PrepareConfiguration(ctx, dataRoot)
 			if err != nil {
-				return fail(normalizePublicError(err))
+				return fail(normalizeConfigurationError(spec, err))
 			}
 			defer unlock()
 		}
@@ -290,6 +290,17 @@ func normalizePublicError(err error) *erroridl.PublicError {
 		return failure
 	}
 	return errs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
+}
+
+func normalizeConfigurationError(spec idl.CommandSpec, err error) *erroridl.PublicError {
+	if errors.Is(err, workflow.ErrInvalidConfiguration) {
+		for _, allowed := range spec.Errors {
+			if allowed.Code == erroridl.ErrorCode_WORKFLOW_INVALID {
+				return errs.NewCode(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
+			}
+		}
+	}
+	return normalizePublicError(err)
 }
 
 func normalizePublicErrorOrNil(err error) *erroridl.PublicError {

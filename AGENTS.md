@@ -24,7 +24,7 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 2. 配置只做受影响 Bundle 的加载与 Schema 校验、引用和必需 Skill 检查、路由完整性检查；需要运行验证时使用已有兼容 CLI 和隔离配置，按需检查受影响路径。执行行为变化在 Certify 由全新、不继承修改上下文的 Sub Agent 实际试用受影响场景，回读原始产物后判定；纯错别字/排版可记录理由免测。配置内容与试用证据不要求新 binary 或代码验证 manifest。
 3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及 Fornax commit/release、本地同步闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
-5. 配置交付固定 Fornax 空间、key、版本与完整资源摘要；验证并回读用户指定的发布目标和本地运行副本，不为配置发布重建 CLI。已有 Step 人审与 IDL 门禁按各自适用范围保留。
+5. 配置交付固定 Fornax 空间、key、版本与完整资源摘要；验证并回读用户指定的发布目标和本地运行副本，不为配置发布重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 与 IDL 门禁按各自适用范围保留。
 
 完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、Fornax发布及实际本地同步回读。
 
@@ -33,7 +33,7 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 触发条件：使用 `fanloop-maintainer` 维护 Fanloop 代码；纯配置变更由当前 Agent直接推进，不派发实现子 Agent；Certify 的独立行为试用按上方规则派发。
 
 1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；只有用户主动改变已对齐内容时才重新询问用户。
-2. 当用户针对当前 Requirement 明确授权主 Agent 全程自行决定时，主 Agent 可在完整审阅对应材料后代行需求批准、最终候选验收和 main 集成确认，无需逐次向用户复询。该授权不转授给执行子 Agent，不适用于其他 Requirement，也不替代 YAML/IDL 人审材料、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。
+2. 当用户针对当前 Requirement 明确授权主 Agent 全程自行决定时，主 Agent 可在完整审阅对应材料后代行需求批准、最终候选验收和 main 集成确认，无需逐次向用户复询。该授权不转授给执行子 Agent，不适用于其他 Requirement，也不替代 IDL 人审、自动 YAML 校验、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。
 3. 执行子 Agent 创建并持有 Requirement Root，持续读取最新 `flow status`、执行当前 Prompt/Skills、选择 Route、提交 Progress/Result，并直接修改受管代码直到 PR 合码和本地更新完成。主 Agent 不创建或驱动 Requirement，也不直接修改受管代码。
 4. 执行子 Agent只向主 Agent回报，不直接联系用户。到达需求批准、最终候选验收或 main 集成确认时，必须向主 Agent申请明确决定并等待回复，不得自行批准。
 5. 执行子 Agent每次读取最新 Status 和当前 Step 的全部必需 Skills，逐项核验真实产物后上报 Progress 或 Result。主 Agent发现偏差时通过 follow-up 要求其继续修复、补证据或重跑验证。
@@ -60,20 +60,20 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 1. Fornax 已发布的完整Workflow Skill包是生产五份 YAML、绑定 Skill 及资源的唯一配置真值。`fornax.json` 只选择空间与Workflow/Skill，不保存凭证或另一份YAML。
 2. 只有显式 `fanloop update` 通过 `fornax-cli` 查询明确的已发布版本，安全下载、校验并原子替换 `$FANLOOP_DATA_HOME/current/workflows`。同步失败保留旧树，不从源码或其他Skill根回退；普通 CLI 与本地安装不得隐式联网。
-3. 本地目录是运行副本；Dashboard 默认只读。只有显式设置绝对路径 `FANLOOP_CONFIG_SOURCE` 时，Dashboard 才能编辑隔离候选，并必须拒绝 live 根、符号链接、陈旧摘要和不完整 Bundle。配置修改经隔离候选、必要人审/独立行为试用、Fornax commit/release、显式 `fanloop update` 与公开CLI回读交付，不以本地保存冒充发布。
+3. 本地目录是运行副本；Dashboard 默认只读。只有显式设置绝对路径 `FANLOOP_CONFIG_SOURCE` 时，Dashboard 才能编辑隔离候选，并必须拒绝 live 根、符号链接、陈旧摘要和不完整 Bundle。配置修改经隔离候选、自动校验/必要的独立行为试用、Fornax commit/release、显式 `fanloop update` 与公开CLI回读交付，不以本地保存冒充发布。
 4. 配置发布使用 `scripts/validate-configuration.py` 对固定下载集执行全部Workflow Route Matrix并记录版本/文件摘要。代码CI使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}` 的独立运行时fixture，并在临时根下组装 `workflows/`，不绑定个人凭据、生产正文或远端latest。
-5. Agent每次读取最新Status返回的精确Skill路径。Fornax内容版本不写入Requirement State或CLI Release；保留五份YAML与Thrift人审门禁。
+5. Agent每次读取最新Status返回的精确Skill路径。Fornax内容版本不写入Requirement State或CLI Release；五份 YAML 在加载时自动校验，Thrift继续保留人审门禁。
 
-## YAML 架构真值与人工审核
+## YAML 架构真值与自动校验
 
 触发条件：变更 Workflow YAML，或修改其模型、加载、校验、Schema 与执行语义。
 
 1. 五份 Workflow YAML 是流程架构与推进语义的唯一真值；Stage、Job、Step、原子 Condition、正常/回流 Route 和 Prompt/Skills 必须能从 YAML 读出。Go 代码只实现通用加载、校验与执行，不承载某个 Workflow 的专用流程。
-2. 涉及 YAML 文件、字段、类型、引用关系或推进语义的代码修改，编码前先提供真实生产 YAML 的变更前后示例和影响说明，经人明确审核通过后再实施或合并。
-3. 生产 `workflow.yaml` 的 Step 集合与拓扑是人工维护的契约。每次生产 YAML 变更都必须逐项比较当前默认版本与目标版本的 Step `id`、`name`、顺序和 `executor`，明确记录是否存在新增、删除、改名、重排或 executor 变化。未经针对具体 Step diff 的人工批准，这四项必须完全不变；任何变化都必须作为独立契约变更高亮报告，不能夹在 Condition、Route、Prompt 或其他 YAML 审核中默认通过。
-4. 审核通过后，纯配置变更只更新 YAML、绑定 Skill 与必要说明并校验 Bundle；确实改变模型/Schema 或通用执行语义时，才同步加载校验、运行时和对应代码 Contract。涉及 `idl/yaml.thrift` 时同时遵循下方 Thrift IDL 门禁。公开 CLI 契约按 ADR-0040/0050 以 Thrift 与叶子 Help 为真值，生成的 Go `CommandSpec` 只读。
+2. YAML 变更不设置独立人工审批。修改必须在隔离完整 Bundle 中完成，并通过严格解码、生成类型校验、跨文件引用/图校验、必需 Skill 校验和适用的行为试用后，才允许发布。
+3. 每次生产 `workflow.yaml` 变更都自动比较当前发布版本与候选版本的 Step `id`、`name`、顺序和 `executor`，记录新增、删除、改名、重排或 executor 变化；差异属于普通配置契约事实，不再形成单独人工门禁。
+4. 纯配置变更只更新 YAML、绑定 Skill 与必要说明并校验 Bundle；确实改变模型/Schema 或通用执行语义时，才同步加载校验、运行时和对应代码 Contract。涉及 `idl/yaml.thrift` 时同时遵循下方 Thrift IDL 门禁。公开 CLI 契约按 ADR-0040/0050 以 Thrift 与叶子 Help 为真值，生成的 Go `CommandSpec` 只读。
 
-完成标准：人只阅读五份生产 YAML 就能理解 Workflow 做什么、哪些 Condition 组合会前进以及哪些组合可回到哪里；Step `id`、`name`、顺序和 `executor` 的基线对比结论明确；每个 YAML 结构变化都能定位到明确的人审记录。
+完成标准：五份生产 YAML 能完整表达 Workflow；加载时稳定拒绝语法、结构、引用、Condition、Route、Step 与 Skill 绑定错误；验证记录包含公开 CLI 错误码、退出码和无业务副作用证据。
 
 ## Workflow 全景图 Condition
 

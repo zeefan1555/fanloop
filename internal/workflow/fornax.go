@@ -508,7 +508,14 @@ func ValidateIsolatedSource(dataRoot, source string) error {
 	if absolute == global || isWithin(global, absolute) {
 		return fmt.Errorf("local configuration sources are only allowed in isolated verification data homes")
 	}
-	if _, err := ListFrom(filepath.Join(source, "workflows")); err != nil {
+	workflowRoot := filepath.Join(source, "workflows")
+	if err := requireRealWorkflowRoot(workflowRoot); err != nil {
+		return fmt.Errorf("explicit verification source: %w", err)
+	}
+	if _, err := os.ReadDir(workflowRoot); err != nil {
+		return fmt.Errorf("explicit verification source: %w", err)
+	}
+	if _, err := ListFrom(workflowRoot); err != nil {
 		return fmt.Errorf("explicit verification source: %w", err)
 	}
 	return nil

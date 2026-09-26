@@ -19,6 +19,12 @@ Read `flow init --help`. Prove missing Workflow selection fails with `INVALID_AR
 with a real Workflow and confirm no State exists; perform the real init and read Status to confirm the selected Workflow ID
 is bound and its Prompt/Skill paths come from the live root.
 
+For an authoring failure matrix, copy the synthetic Workflow tree into a fresh isolated configuration root and mutate one
+case at a time: malformed YAML syntax, an unknown field, an invalid Step executor, an unknown Condition, an unknown Prompt,
+and an invalid Route target. Each `flow init` must return `WORKFLOW_INVALID`, exit `5`, identify the invalid file or
+relationship, and leave `.fanloop/flow/state.json` absent. This automated load check replaces any YAML-specific human
+approval; it does not replace product behavior trials for valid configuration.
+
 ## Gotchas
 
 Selection only applies before initialization. An initialized Requirement keeps its persisted Workflow ID while every CLI

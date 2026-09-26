@@ -19,6 +19,14 @@ import (
 var workflowIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 var configIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var ErrInvalidSelector = errors.New("invalid workflow selector")
+var ErrInvalidConfiguration = errors.New("invalid workflow configuration")
+
+func invalidConfiguration(err error) error {
+	if errors.Is(err, ErrInvalidConfiguration) {
+		return err
+	}
+	return fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
+}
 
 func Load(id string) (Loaded, error) {
 	root, err := DefaultRoot()
@@ -59,7 +67,7 @@ func loadFromRef(root string, ref Ref) (Loaded, error) {
 		return Loaded{}, err
 	}
 	if loaded.Ref.ID != ref.ID {
-		return Loaded{}, fmt.Errorf("workflow path does not match its id")
+		return Loaded{}, invalidConfiguration(fmt.Errorf("workflow path does not match its id"))
 	}
 	loaded.SkillPaths, err = loadSkillPaths(bundleRoot, loaded.Workflow)
 	if err != nil {
@@ -189,19 +197,19 @@ func DecodeBundle(workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML []
 		{"prompt.yaml", promptYAML, &prompt},
 	} {
 		if err := decodeYAML(item.content, item.value); err != nil {
-			return Loaded{}, fmt.Errorf("%s: %w", item.name, err)
+			return Loaded{}, invalidConfiguration(fmt.Errorf("%s: %w", item.name, err))
 		}
 		if err := item.value.IsValid(); err != nil {
-			return Loaded{}, fmt.Errorf("%s: %w", item.name, err)
+			return Loaded{}, invalidConfiguration(fmt.Errorf("%s: %w", item.name, err))
 		}
 	}
 	normalizeYAMLOptionalDefaults(&flow, &condition)
 	value, err := normalizeYAMLDocuments(&authoring, &flow, &condition, &loop, &prompt)
 	if err != nil {
-		return Loaded{}, err
+		return Loaded{}, invalidConfiguration(err)
 	}
 	if err := ValidateBundle(&value, flow.SchemaVersion, condition.SchemaVersion, loop.SchemaVersion, prompt.SchemaVersion); err != nil {
-		return Loaded{}, err
+		return Loaded{}, invalidConfiguration(err)
 	}
 	return Loaded{Workflow: value, Ref: Ref{ID: value.ID}}, nil
 }
@@ -236,7 +244,7 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 			continue
 		}
 		if !missing[entry.Name()] {
-			return fmt.Errorf("unexpected Workflow Bundle entry %s", entry.Name())
+			return invalidConfiguration(fmt.Errorf("unexpected Workflow Bundle entry %s", entry.Name()))
 		}
 		info, err := entry.Info()
 		if err != nil {
@@ -249,7 +257,7 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 	}
 	for _, name := range BundleFileNames() {
 		if missing[name] {
-			return fmt.Errorf("missing Workflow Bundle file %s: %w", name, fs.ErrNotExist)
+			return invalidConfiguration(fmt.Errorf("missing Workflow Bundle file %s: %w", name, fs.ErrNotExist))
 		}
 	}
 	return nil
@@ -268,6 +276,9 @@ func loadSkillPaths(bundleRoot string, definition Workflow) (map[string]string, 
 		}
 		path := filepath.Join(root, entry.Name(), "SKILL.md")
 		info, err := os.Lstat(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, invalidConfiguration(fmt.Errorf("Skill %q is missing regular SKILL.md", entry.Name()))
+		}
 		if err != nil || !info.Mode().IsRegular() {
 			return nil, fmt.Errorf("Skill %q is missing regular SKILL.md", entry.Name())
 		}
@@ -276,13 +287,13 @@ func loadSkillPaths(bundleRoot string, definition Workflow) (map[string]string, 
 			return nil, err
 		}
 		if strings.TrimSpace(string(content)) == "" {
-			return nil, fmt.Errorf("Skill %q has empty SKILL.md", entry.Name())
+			return nil, invalidConfiguration(fmt.Errorf("Skill %q has empty SKILL.md", entry.Name()))
 		}
 		paths[entry.Name()] = path
 	}
 	for _, binding := range allSkillBindings(definition) {
 		if paths[binding.ID] == "" {
-			return nil, fmt.Errorf("Workflow %s uses unknown Skill %q", definition.ID, binding.ID)
+			return nil, invalidConfiguration(fmt.Errorf("Workflow %s uses unknown Skill %q", definition.ID, binding.ID))
 		}
 	}
 	return paths, nil
