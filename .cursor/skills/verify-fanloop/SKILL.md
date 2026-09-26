@@ -30,6 +30,9 @@ For the fresh-bootstrap variant, omit the three `FANLOOP_CONFIG_SOURCE` setup li
 
 Ready when `fanloop version` reports `commit_sha` equal to `git rev-parse HEAD` and the previous global `~/.fanloop/current` target is unchanged.
 
+Before Launch, use the approved risk level to choose the smallest Feature Impact Set that still covers every changed user
+surface. Build in small batches with focused checks; reserve this full isolated run for the stable candidate.
+
 Teardown is Cleanup. Kill only processes you started. This CLI is short-lived. There is no server to keep up.
 
 ## Doctor
@@ -73,6 +76,14 @@ Read each leaf `--help`, create an empty absolute Requirement directory (`INVALI
 `fanloop verify smoke` prints `run_id`, `evidence_dir`, and `outcome`. The proof file is `$EVIDENCE_DIR/manifest.json`. It contains `schema_version` 1 and `outcome` of `passed`, `failed`, or `blocked`, plus the commands that produced it. Exit code 1 means failed or blocked. Read `outcome` from the manifest, not from the exit code.
 
 Record exact candidate HEAD and binary digest, Feature/variant, argv/stdin/stdout/stderr/exit code, before/after Status and stable final state, relevant State/Output/Event/Trace/Card, `.fanloop/log/cli.jsonl` and observable side effects. Read events through public `trace status`/`trace render` and reconcile the `.fanloop/trace/events.jsonl` tail. Internal Go calls, a final output alone, or an old candidate cannot prove the public journey. Evidence permissions must limit access to the current user; do not copy historical Requirements or user credentials into evidence.
+
+After the manifest passes, perform Pre-Certify once: require a clean worktree and record one candidate identity containing
+HEAD, Git tree, patch digest, binary digest, verification contract digest, Feature Impact Set digest and, when production
+configuration is in scope, `configuration_manifest_sha256`. Independent Code
+Review and black-box verification may then run in parallel only with that same identity and isolated writable roots. Wait
+for both receipts. Stage this Skill and `features/` from the frozen commit into a read-only verification directory for a
+no-source-context verifier, and verify its digest before dispatch. Any source, test, verification-asset or configuration
+candidate change invalidates the manifest and both certification results.
 
 Keep this directory outside the requirement root and outside `verification/work`. Cleanup must not delete it.
 

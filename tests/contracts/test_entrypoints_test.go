@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -78,6 +79,96 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 	}
 	if strings.Contains(string(agents), "./tests/run-e2e") {
 		t.Error("AGENTS.md still requires the retired local E2E entrypoint")
+	}
+
+	runUnit, err := os.ReadFile(filepath.Join(repo, "tests", "run-unit"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, contract := range []string{
+		"export GOTOOLCHAIN=auto",
+		"run_check vet",
+		"run_check go-test",
+		"run_check route-matrix",
+		"wait_for_checks",
+	} {
+		if !strings.Contains(string(runUnit), contract) {
+			t.Errorf("tests/run-unit is missing parallel gate contract %q", contract)
+		}
+	}
+}
+
+func TestSelfIterationUsesOneFrozenCandidate(t *testing.T) {
+	repo := repositoryRoot(t)
+	read := func(relative string) string {
+		t.Helper()
+		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(content)
+	}
+
+	catalog := read("AGENTS.md") + "\n" + read("docs/outer-loop.md") + "\n" + read(".cursor/skills/verify-fanloop/SKILL.md")
+	for _, contract := range []string{
+		"low|medium|high",
+		"Pre-Certify",
+		"小批",
+		"并行认证",
+		"一次性交付",
+		"返工来源",
+		"candidate identity",
+		"configuration_manifest_sha256",
+	} {
+		if !strings.Contains(catalog, contract) {
+			t.Errorf("self-iteration guidance is missing %q", contract)
+		}
+	}
+	technicalDesign := read("docs/technical-design.md")
+	if strings.Contains(technicalDesign, "Certify 先执行独立 Review，确认身份未变后再执行黑盒验收") {
+		t.Error("technical design retains the retired serial certification rule")
+	}
+	agents := read("AGENTS.md")
+	if strings.Contains(agents, "审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent") {
+		t.Error("AGENTS.md retains the retired serial certification rule")
+	}
+}
+
+func TestRunUnitWaitsForAllChecksAndAggregatesFailure(t *testing.T) {
+	repo := repositoryRoot(t)
+	marker := filepath.Join(t.TempDir(), "delayed-success-finished")
+	helper := filepath.Join(repo, "tests", "lib", "check-group.sh")
+	logRoot := t.TempDir()
+	script := `
+set -u
+source "$1"
+check_log_root="$2"
+run_check delayed-success bash -c 'sleep 0.2; printf "delayed body\n"; : > "$1"' _ "$3"
+run_check fast-failure bash -c 'printf "failure body\n"; exit 7'
+set +e
+wait_for_checks
+result=$?
+set -e
+test -f "$3"
+exit "$result"
+`
+	command := exec.Command("bash", "-c", script, "run-unit-check-group", helper, logRoot, marker)
+	output, err := command.CombinedOutput()
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 1 {
+		t.Fatalf("wait_for_checks error = %v, output:\n%s", err, output)
+	}
+	for _, want := range []string{
+		"[START] delayed-success",
+		"[START] fast-failure",
+		"[PASS] delayed-success",
+		"[FAIL] fast-failure",
+		"delayed body",
+		"failure body",
+	} {
+		if !strings.Contains(string(output), want) {
+			t.Errorf("output missing %q:\n%s", want, output)
+		}
 	}
 }
 

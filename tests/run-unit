@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+export GOTOOLCHAIN=auto
 
 test_data_root="$(mktemp -d "${TMPDIR:-/tmp}/fanloop-unit.XXXXXX")"
 generated_root="$(mktemp -d "${TMPDIR:-/tmp}/fanloop-generated.XXXXXX")"
@@ -72,6 +73,10 @@ while IFS= read -r file; do
   fi
 done <<< "$expected"
 
-go vet ./...
-go test -short -buildvcs=false ./...
-PYTHONDONTWRITEBYTECODE=1 python3 tests/requirement_e2e/test_route_matrix.py
+check_log_root="$test_data_root"
+source "$repo_root/tests/lib/check-group.sh"
+
+run_check vet go vet ./...
+run_check go-test go test -short -buildvcs=false ./...
+run_check route-matrix env PYTHONDONTWRITEBYTECODE=1 python3 tests/requirement_e2e/test_route_matrix.py
+wait_for_checks

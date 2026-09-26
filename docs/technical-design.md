@@ -60,14 +60,16 @@ Human Step 的审核与 Panorama 由五份 YAML 驱动。`fanloop-maintainer` �
 ## 当前配置实例
 
 `fanloop-maintainer` 使用 4 Stage / 4 Job / 4 Step：Define 冻结目标与验收契约，Build 持续实现和自主验证，
-Certify 先执行独立 Review，确认身份未变后再执行黑盒验收，并记录主 Agent决定及回执；Deliver 合并唯一 PR、校验 tree 并更新本地
+Certify 在 Pre-Certify 后并行执行独立 Review 与黑盒验收，等待两者结束再记录主 Agent决定及回执；Deliver 合并唯一 PR、校验 tree 并更新本地
 CLI。Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 
 用户先与主 Agent 对齐目录和目标；主 Agent派生并持续监督只向其回报的执行子 Agent，执行子 Agent创建、
 持有并驱动 Requirement，且直接修改受管代码。Build 运行聚焦测试、`./tests/run-unit` 和真实公开 CLI
-自验证；Certify 冻结 `certification_base` / `certification_head`，先完成独立整体 Review，再在身份未变时
-由恰好一个无实现上下文的全新
-Sub-agent 使用 1 至 3 个公开 CLI 场景做黑盒测试，全程不改全局 current。执行子 Agent向主 Agent申请候选
+自验证；提交并确认 clean 后，Pre-Certify 一次性复核契约、完整 diff、验证资产、外部依赖与 candidate identity；
+涉及生产配置时身份同时包含 `configuration_manifest_sha256`。
+Certify 冻结 `certification_base` / `certification_head` 后，并行启动独立整体 Review 和恰好一个无实现上下文的全新
+Sub-agent 黑盒验证；二者读取同一候选、使用隔离写状态且全部结束后再聚合。黑盒使用 1 至 3 个公开 CLI 场景，
+全程不改全局 current。执行子 Agent向主 Agent申请候选
 验收决定；main 前进时 Deliver 记录 `delivery_main_head` 回 Build，由 Build 集成该提交并产生新候选。`merge_and_update_local` 由执行子 Agent发布唯一 PR、从 active main Ruleset 动态读取并校验精确 final head 的
 required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。已合并重入先固定原 merge commit，合码后的本地失败只恢复该提交。
 黑盒公开 CLI 证据只承担可直接观测的 candidate/Doctor、四步 Panorama、Step ID/名称和旧 Step 缺失；
@@ -112,3 +114,6 @@ GitHub 只托管源码、PR 和 CI；不构建或发布 npm、跨平台归档或
 
 它覆盖格式、IDL 新鲜度、静态检查、Go 测试与 Contract。完整 Requirement lifecycle 与独立fixture的
 Route Matrix 由 CI 的 `requirement-e2e` 执行；固定生产发布的矩阵由 `scripts/validate-configuration.py` 执行。本地用户表面按 `.cursor/skills/verify-fanloop/SKILL.md` 用隔离候选验证。
+
+`run-unit` 先完成格式与生成物检查，再并发执行互不共享可写状态的 vet、Go test 和本地 Route Matrix；
+它等待所有已启动检查并聚合失败。脚本显式使用 Go 自动工具链选择，避免宿主 `GOTOOLCHAIN=local` 让仓库门禁在运行前失败。

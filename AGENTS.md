@@ -41,6 +41,19 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 完成标准：主 Agent完成对齐、派发、监督和三类决定；执行子 Agent独立驱动 Workflow、完成受管实现、合并唯一 PR 并更新本地 Fanloop，所有决定都能回溯到主 Agent明确回复。
 
+## 自迭代短反馈闭环
+
+触发条件：任何 Fanloop 代码自迭代。
+
+1. Define 在编码前记录 `low|medium|high` 风险、Acceptance Set、Feature Impact Set、依赖/权限、允许副作用和停止位置；不确定时按 `high`。契约未获批准不得修改受管代码。
+2. Build 按可独立验证的小批纵向切片推进。每批只关闭一个风险或验收缺口并立即跑最小聚焦检查；失败归类为 `product`、`test/harness`、`environment` 或 `contract drift`，没有新证据时不得重复同一尝试。
+3. 最后一次完整 `./tests/run-unit` 与公开 CLI 验证通过、提交并确认工作树 clean 后执行 **Pre-Certify**：复核完整 diff、ADR/契约、生成物、Feature Map、manifest、外部依赖和唯一 candidate identity；涉及生产配置时 identity 必须包含 `configuration_manifest_sha256`。任一项失败留在 Build。
+4. 只有 Pre-Certify 通过，才可启动外层 Agent。独立 Code Review 与黑盒验证可并行认证，但必须读取同一冻结 candidate identity，使用互不共享的可写目录，并等待两者全部结束；黑盒使用的验证 Skill/Feature Map 必须从该提交复制到隔离只读目录并核对摘要。任一候选文件变化使两者全部失效。
+5. 认证通过后才进行一次性交付：生产配置只发布一个已验证版本，代码只维护一个 PR；合并使用显式 squash subject/body，最终 trailer block 中 `Co-Authored-By: Aiden` 恰好一次。
+6. `delivery-record.md` 记录 lead time、Build/Certify 次数、返工来源和对应改进。只把重复出现、可执行且能被验证的原因沉淀为新规则，避免为单次事件增加流程。
+
+完成标准：一个冻结候选对应一组本地证据、两份独立认证回执和一次交付；任何返工都回到最早责任阶段，而不是在 Review、CI 或发布时继续补丁。
+
 ## Fornax Workflow 与绑定 Skill 真值
 
 触发条件：读取、修改、安装或执行 Workflow/Skill，或查看 Dashboard。
@@ -88,7 +101,7 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 触发条件：修改 Go、Node、Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、Runtime、生成链、构建、发布或测试基础设施。纯 Workflow YAML、Skill 指令与参考材料变更走上方配置路径。
 
 1. 实现期间必须运行受影响的聚焦测试、必要格式检查和一次 `./tests/run-unit`；命令、结果和当前 HEAD 写入验证记录。
-2. 代码变更影响用户可见 CLI、Workflow 执行机制、安装、状态、投影或 Skill 脚本行为时，从同一候选安装隔离 Release。安装、`fanloop verify doctor`、Feature Map 和 `verify.evidence.outcome` 只按 `.cursor/skills/verify-fanloop/SKILL.md` 执行。四套生产 Workflow 目录写在 `docs/ownership.md`。审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent 只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
+2. 代码变更影响用户可见 CLI、Workflow 执行机制、安装、状态、投影或 Skill 脚本行为时，从同一候选安装隔离 Release。安装、`fanloop verify doctor`、Feature Map 和 `verify.evidence.outcome` 只按 `.cursor/skills/verify-fanloop/SKILL.md` 执行。生产 Workflow 目录写在 `docs/ownership.md`。Pre-Certify 通过后冻结 `candidate_head`，同时启动独立 Code Review 与一个无实现上下文的全新 Sub-agent 黑盒验证；后者只使用公开 CLI 验证需求中批准的场景。不得拿已发布版本、旧安装、机器人或源码阅读当证据。
 3. `.github/scripts/run-requirement-validation` 只属于 CI，实现完整 Requirement lifecycle 与通用运行时 fixture Route Matrix；它不是本地开发入口，也不得被 Maintainer Skill 要求手工执行。
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。
