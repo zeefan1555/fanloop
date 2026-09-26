@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/release"
 )
 
 func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T) {
@@ -21,10 +23,11 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 		t.Fatal(err)
 	}
 	dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
+	configSource := makeSyntheticConfigSource(t, repository, "sample-custom")
 	environment := append(withoutBotmuxBinding(os.Environ()),
 		"GOOS=js", "GOARCH=wasm",
 		"FANLOOP_DATA_HOME="+dataRoot,
-		"FANLOOP_CONFIG_SOURCE="+filepath.Join(repository, "tests", "testdata"),
+		"FANLOOP_CONFIG_SOURCE="+configSource,
 		"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
 		"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
 		"FANLOOP_TRAE_SKILLS_ROOT="+traeRoot,
@@ -73,7 +76,7 @@ func TestLocalBuildAndInstallKeepMatchedSourceWithoutExemplarMedia(t *testing.T)
 		t.Fatalf("local install did not return its local release: %v\n%s", err, installOutput)
 	}
 	version := installed.Data.ReleaseVersion
-	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, releaseFixture{ConfigSource: filepath.Join(repository, "tests", "testdata"), Version: version}, traeRoot, claudeRoot)
+	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, releaseFixture{ConfigSource: configSource, Version: version}, traeRoot, claudeRoot)
 	assertLocalBuildContents(t, repository, filepath.Join(dataRoot, "releases", version))
 	if fixtureDirectoryDigest(t, installBuild) != fixtureDirectoryDigest(t, filepath.Join(dataRoot, "releases", version)) {
 		t.Fatal("installation changed the built local directory")
@@ -117,9 +120,14 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	if want := []string{"bin", "entrypoints", "release.json"}; !reflect.DeepEqual(names, want) {
 		t.Fatalf("local build entries = %v, want one copy of each component: %v", names, want)
 	}
-	for _, component := range []string{"entrypoints"} {
-		if fixtureDirectoryDigest(t, filepath.Join(repository, component)) != fixtureDirectoryDigest(t, filepath.Join(root, component)) {
-			t.Fatalf("local build changed or omitted %s files", component)
+	for _, exposed := range release.ExposedSkills() {
+		source := filepath.Join(repository, filepath.FromSlash(exposed.Path))
+		if exposed.Name == release.AuthoringSkillName {
+			source = filepath.Join(repository, ".agents", "skills", exposed.Name)
+		}
+		destination := filepath.Join(root, filepath.FromSlash(exposed.Path))
+		if fixtureDirectoryDigest(t, source) != fixtureDirectoryDigest(t, destination) {
+			t.Fatalf("local build changed or omitted public Skill %s", exposed.Name)
 		}
 	}
 	if _, err := os.Stat(filepath.Join(root, "workflows")); !os.IsNotExist(err) {
@@ -137,6 +145,9 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 		CLI    struct {
 			BinarySHA256 string `json:"binary_sha256"`
 		} `json:"cli"`
+		Skills []struct {
+			Name string `json:"name"`
+		} `json:"skills"`
 	}
 	content, err := os.ReadFile(filepath.Join(root, "release.json"))
 	if err != nil {
@@ -144,6 +155,13 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	}
 	if err := json.Unmarshal(content, &manifest); err != nil || manifest.Schema != 4 || manifest.CLI.BinarySHA256 != fixtureFileDigest(t, filepath.Join(root, "bin", "fanloop")) {
 		t.Fatalf("local manifest does not bind the native binary: %v\n%s", err, content)
+	}
+	gotSkills := make([]string, len(manifest.Skills))
+	for index, skill := range manifest.Skills {
+		gotSkills[index] = skill.Name
+	}
+	if want := []string{release.WorkflowSkillName, release.AuthoringSkillName}; !reflect.DeepEqual(gotSkills, want) {
+		t.Fatalf("local manifest Skills = %v, want %v", gotSkills, want)
 	}
 }
 

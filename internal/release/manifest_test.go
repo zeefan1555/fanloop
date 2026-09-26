@@ -41,7 +41,7 @@ func TestDecodeUsesGeneratedChildValidation(t *testing.T) {
 	}
 }
 
-func TestValidateAllowsOnlyPackagedWorkflowEntrypoint(t *testing.T) {
+func TestValidateAllowsBothPublicEntrypoints(t *testing.T) {
 	manifest := validTestManifest()
 	if err := manifest.Validate(); err != nil {
 		t.Fatalf("entrypoint-only release rejected: %v", err)
@@ -66,15 +66,19 @@ func TestValidateRejectsInvalidGroupedSkillPaths(t *testing.T) {
 	}
 }
 
-func TestDecodeRequiresExposedWorkflowSkill(t *testing.T) {
-	manifest := validTestManifest()
-	manifest.Skills = nil
-	content, err := json.Marshal(manifest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := Decode(content); err == nil {
-		t.Fatalf("release without %s was accepted", ExposedSkillName)
+func TestDecodeRequiresEveryExposedSkill(t *testing.T) {
+	for missingIndex, missing := range ExposedSkills() {
+		t.Run(missing.Name, func(t *testing.T) {
+			manifest := validTestManifest()
+			manifest.Skills = append(manifest.Skills[:missingIndex], manifest.Skills[missingIndex+1:]...)
+			content, err := json.Marshal(manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := Decode(content); err == nil {
+				t.Fatalf("release without %s was accepted", missing.Name)
+			}
+		})
 	}
 }
 
@@ -126,7 +130,8 @@ func validTestManifest() Manifest {
 		Cli:            &CLIRelease{Version: "1.2.3", BinarySha256: digest},
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
 		Skills: []*Skill{
-			{Name: ExposedSkillName, Version: "1.2.3", Path: ExposedSkillPath, Sha256: digest},
+			{Name: WorkflowSkillName, Version: "1.2.3", Path: WorkflowSkillPath, Sha256: digest},
+			{Name: AuthoringSkillName, Version: "1.2.3", Path: AuthoringSkillPath, Sha256: digest},
 		},
 	}
 }

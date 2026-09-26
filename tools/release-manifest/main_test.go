@@ -11,7 +11,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
-func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
+func TestBuildCreatesMatchedLoopManifest(t *testing.T) {
 	source, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantSkills := []string{"fanloop-workflow"}
+	wantSkills := []string{"fanloop-workflow", "create-fanloop-workflow"}
 	gotSkills := make([]string, len(manifest.Skills))
 	for index, skill := range manifest.Skills {
 		gotSkills[index] = skill.Name
@@ -49,21 +49,33 @@ func TestBuildCreatesMatchedFanloopManifest(t *testing.T) {
 	}
 }
 
-func TestDiscoverEntrypoint(t *testing.T) {
+func TestDiscoverEntrypoints(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, release.ExposedSkillPath, "SKILL.md")
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
+	for _, exposed := range release.ExposedSkills() {
+		sourcePath := exposed.Path
+		if exposed.Name == release.AuthoringSkillName {
+			sourcePath = ".agents/skills/" + exposed.Name
+		}
+		path := filepath.Join(root, filepath.FromSlash(sourcePath), "SKILL.md")
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(exposed.Name), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := os.WriteFile(path, []byte("entrypoint"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	skill, err := discoverEntrypoint(root, "1.2.3")
+	skills, err := discoverEntrypoints(root, "1.2.3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if skill.Name != release.ExposedSkillName || skill.Path != release.ExposedSkillPath || skill.Version != "1.2.3" || skill.Sha256 == "" {
-		t.Fatalf("discoverEntrypoint() = %#v", skill)
+	if len(skills) != 2 {
+		t.Fatalf("discoverEntrypoints() = %#v", skills)
+	}
+	for index, exposed := range release.ExposedSkills() {
+		skill := skills[index]
+		if skill.Name != exposed.Name || skill.Path != exposed.Path || skill.Version != "1.2.3" || skill.Sha256 == "" {
+			t.Fatalf("discoverEntrypoints()[%d] = %#v", index, skill)
+		}
 	}
 }
 
@@ -78,23 +90,31 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	if err := os.MkdirAll(bundleRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range workflow.BundleFileNames() {
-		content, err := os.ReadFile(filepath.Join(repository, "tests", "testdata", "workflows", "technical-solution-design", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if name == "workflow.yaml" {
-			content = []byte(strings.Replace(string(content), "id: technical-solution-design", "id: "+workflowID, 1))
-		}
-		if err := os.WriteFile(filepath.Join(bundleRoot, name), content, 0o600); err != nil {
-			t.Fatal(err)
-		}
+	example := filepath.Join(repository, "examples", "workflows", "example")
+	if err := os.CopyFS(bundleRoot, os.DirFS(example)); err != nil {
+		t.Fatal(err)
 	}
-	entrypoint := filepath.Join(root, "entrypoints", release.ExposedSkillName, "SKILL.md")
+	workflowPath := filepath.Join(bundleRoot, "workflow.yaml")
+	content, err := os.ReadFile(workflowPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content = []byte(strings.Replace(string(content), "id: example", "id: "+workflowID, 1))
+	if err := os.WriteFile(workflowPath, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	entrypoint := filepath.Join(root, release.WorkflowSkillPath, "SKILL.md")
 	if err := os.MkdirAll(filepath.Dir(entrypoint), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(entrypoint, []byte("---\nname: fanloop-workflow\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	authoring := filepath.Join(root, ".agents", "skills", release.AuthoringSkillName, "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(authoring), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(authoring, []byte("---\nname: create-fanloop-workflow\n---\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	loaded, err := workflow.LoadDirectory(bundleRoot)
@@ -130,11 +150,11 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	if len(definitions) != 1 || len(definitions[0].SkillPaths) == 0 {
 		t.Fatal("config-only Workflow has no Skills")
 	}
-	exposed, err := discoverEntrypoint(root, "1.2.3")
+	exposed, err := discoverEntrypoints(root, "1.2.3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if exposed.Name != release.ExposedSkillName {
+	if exposed[0].Name != release.WorkflowSkillName {
 		t.Fatalf("entrypoint = %#v", exposed)
 	}
 	if err := validateSelectorRoutes(filepath.Join(filepath.Dir(entrypoint), "routes.yaml")); err != nil {
@@ -142,68 +162,14 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	}
 }
 
-func TestProductionSelectorRequiresExplicitScenario(t *testing.T) {
-	entrypoint, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	content, err := os.ReadFile(entrypoint)
-	if err != nil {
-		t.Fatal(err)
-	}
-	skill := string(content)
-	for _, value := range []string{"已初始化 State", "显式选择的场景", "不得初始化默认 Workflow", "routes.yaml"} {
-		if !strings.Contains(skill, value) {
-			t.Fatalf("Workflow entry does not contain %q", value)
-		}
-	}
-	path := filepath.Join(filepath.Dir(entrypoint), "routes.yaml")
-
-	if err := validateSelectorRoutes(path); err != nil {
-		t.Fatalf("production selector is invalid: %v", err)
-	}
-}
-
-func TestValidateSelectorRejectsEmptyWorkflow(t *testing.T) {
+func TestValidateSelectorAllowsFornaxManagedWorkflow(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "routes.yaml")
-	content := []byte("schema_version: 2\nscenarios:\n  missing:\n    workflow: \n    description: missing\n")
+	content := []byte("schema_version: 2\nscenarios:\n  missing:\n    workflow: missing\n    description: missing\n")
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := validateSelectorRoutes(path); err == nil || !strings.Contains(err.Error(), `invalid Workflow selector scenario rule`) {
-		t.Fatalf("unknown selector target error = %v", err)
-	}
-}
-
-func TestWorkflowEntryOwnsProtocolAndPanoramaFirst(t *testing.T) {
-	path, err := filepath.Abs(filepath.Join("..", "..", "entrypoints", "fanloop-workflow", "SKILL.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	skill := string(content)
-	for _, value := range []string{
-		"flow status",
-		"routes.yaml",
-		"flow init",
-		"`current.prompt`",
-		"`available_routes`",
-		"`panorama_presented` 或 `panorama_card_published`",
-		"`data.content`",
-		"Panorama 是进入新 Step 后第一条用户可见消息",
-		"真正的人工问题只能随后发送",
-		"最终回复不得重新 render、重复或改写它",
-		"展示失败时按 Skill 上报 blocked",
-	} {
-		if !strings.Contains(skill, value) {
-			t.Fatalf("fanloop-workflow Skill does not contain %q", value)
-		}
-	}
-	if strings.Contains(skill, "fanloop update") {
-		t.Fatal("local Workflow entry still requires an online update")
+	if err := validateSelectorRoutes(path); err != nil {
+		t.Fatalf("Fornax-managed selector rejected: %v", err)
 	}
 }
 
@@ -222,14 +188,14 @@ func TestDirectoryVerificationRejectsIncompleteOrChangedBuild(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			root := t.TempDir()
 			writeTestFile(t, root, "bin/fanloop", []byte("binary"))
-			skillPath := release.ExposedSkillPath
+			skillPath := release.WorkflowSkillPath
 			writeTestFile(t, root, skillPath+"/SKILL.md", []byte("example Skill"))
 			digest, err := release.DirectoryDigest(filepath.Join(root, skillPath))
 			if err != nil {
 				t.Fatal(err)
 			}
 			manifest := release.Manifest{
-				Skills: []*release.Skill{{Name: release.ExposedSkillName, Path: skillPath, Sha256: digest}},
+				Skills: []*release.Skill{{Name: release.WorkflowSkillName, Path: skillPath, Sha256: digest}},
 			}
 			if _, err := verifyDirectory(root, manifest); err != nil {
 				t.Fatalf("valid directory rejected: %v", err)
@@ -288,5 +254,10 @@ func writeTestReleaseDirectory(t *testing.T, source, destination string) {
 		}); err != nil {
 			t.Fatal(err)
 		}
+	}
+	authoringSource := filepath.Join(source, ".agents", "skills", release.AuthoringSkillName)
+	authoringTarget := filepath.Join(destination, filepath.FromSlash(release.AuthoringSkillPath))
+	if err := os.CopyFS(authoringTarget, os.DirFS(authoringSource)); err != nil {
+		t.Fatal(err)
 	}
 }

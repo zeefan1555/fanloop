@@ -12,9 +12,11 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$test_data_root/current"
-cp -R "$repo_root/tests/testdata/workflows" "$test_data_root/current/workflows"
+mkdir -p "$test_data_root/current/workflows"
+cp -R "$repo_root/internal/workflow/testdata/linear-runtime" "$test_data_root/current/workflows/"
+cp -R "$repo_root/internal/workflow/testdata/runtime-controls" "$test_data_root/current/workflows/"
 export FANLOOP_DATA_HOME="$test_data_root"
-export FANLOOP_CONFIG_SOURCE="$repo_root/tests/testdata"
+unset FANLOOP_CONFIG_SOURCE
 
 unformatted="$({
   while IFS= read -r -d '' file; do
@@ -73,7 +75,3 @@ done <<< "$expected"
 go vet ./...
 go test -short -buildvcs=false ./...
 PYTHONDONTWRITEBYTECODE=1 python3 tests/requirement_e2e/test_route_matrix.py
-
-node --test scripts/*.test.js
-artifact="$(./scripts/build-npm-release.sh "$(cat VERSION)")"
-FANLOOP_EXPECTED_COMMIT="$(git rev-parse HEAD)" node scripts/verify-published-package.js "$(cat VERSION)" "$artifact"

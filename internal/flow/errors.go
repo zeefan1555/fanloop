@@ -28,7 +28,7 @@ func loadWorkflow(selector string) (workflow.Loaded, *erroridl.PublicError) {
 	case errors.Is(err, workflow.ErrInvalidSelector):
 		return workflow.Loaded{}, newFlowError(erroridl.ErrorCode_INVALID_ARGUMENT, err.Error(), nil)
 	case errors.Is(err, fs.ErrNotExist):
-		return workflow.Loaded{}, newFlowError(erroridl.ErrorCode_WORKFLOW_NOT_FOUND, err.Error(), nil)
+		return workflow.Loaded{}, newFlowError(erroridl.ErrorCode_WORKFLOW_NOT_FOUND, "workflow \""+selector+"\" not found", nil)
 	default:
 		return workflow.Loaded{}, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 	}

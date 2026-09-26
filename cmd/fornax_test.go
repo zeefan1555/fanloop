@@ -17,23 +17,23 @@ import (
 	"testing"
 )
 
-func TestFornaxPublishedConfigurationFailsClosed(t *testing.T) {
+func TestFornaxPublishedConfigurationUpdatesExplicitlyAndFailsClosed(t *testing.T) {
 	repository, err := filepath.Abs("..")
 	if err != nil {
 		t.Fatal(err)
 	}
 	dataRoot := t.TempDir()
-	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(filepath.Join(repository, "tests", "testdata", "workflows"))); err != nil {
+	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata"))); err != nil {
 		t.Fatal(err)
 	}
-	const workflowID = "remnote-flashcards"
-	const secondWorkflowID = "pstack-native"
+	const workflowID = "linear-runtime"
+	const secondWorkflowID = "runtime-controls"
 	makePackage := func(id, marker string) []byte {
 		var buffer bytes.Buffer
 		writer := zip.NewWriter(&buffer)
 		entry, _ := writer.Create("wrapper/SKILL.md")
 		_, _ = entry.Write([]byte("configuration"))
-		source := filepath.Join(repository, "tests", "testdata", "workflows", id)
+		source := filepath.Join(repository, "internal", "workflow", "testdata", id)
 		if err := filepath.WalkDir(source, func(path string, item fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -55,9 +55,9 @@ func TestFornaxPublishedConfigurationFailsClosed(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		markerSkill := "remnote-flashcards"
+		markerSkill := "test-guide"
 		if id == secondWorkflowID {
-			markerSkill = "architect"
+			markerSkill = "common-control-guide"
 		}
 		entry, _ = writer.Create("wrapper/workflows/" + id + "/skills/" + markerSkill + "/" + marker + ".txt")
 		_, _ = entry.Write([]byte(marker))
@@ -109,8 +109,8 @@ with open(os.environ['TEST_FORNAX_LOG'],'a') as f:f.write(json.dumps(args)+'\n')
 if s['fail']:sys.exit(1)
 if args[:2]==['skill','list-releases']:
  skill_id=args[args.index('--skill-id')+1]
- result={'code':0,'items':[{'skill_id':skill_id,'env':'Online','feature':'prod','release_status':1,'version':s['versions'][skill_id],'updated_at':'1'}]}
- if s['ambiguous']:result['items'].append(dict(result['items'][0],version='9.0.0',updated_at='2'))
+ result={'code':0,'items':[{'skill_id':skill_id,'env':'Online','feature':'prod','release_status':1,'version':'0.9.0','updated_at':'1'},{'skill_id':skill_id,'env':'Online','feature':'prod','release_status':1,'version':'0.8.0','updated_at':'1'},{'skill_id':skill_id,'env':'Online','feature':'prod','release_status':1,'version':s['versions'][skill_id],'updated_at':'2'}]}
+ if s['ambiguous']:result['items'].append(dict(result['items'][2],version='9.0.0'))
 elif args[:2]==['skill','batch-get-by-key']:
  version=args[args.index('--version')+1]
  key=args[args.index('--skill-key')+1]
@@ -144,13 +144,19 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 	if output, err := call("flow", "init", "--root", root, "--workflow", workflowID, "--title", "Fornax test"); err != nil {
 		t.Fatalf("init: %v %s", err, output)
 	}
+	if _, err := os.Stat(logPath); !os.IsNotExist(err) {
+		t.Fatal("ordinary flow init contacted Fornax")
+	}
+	if output, err := call("update"); err != nil {
+		t.Fatalf("initial update: %v %s", err, output)
+	}
 	liveRoot := filepath.Join(dataRoot, "current", "workflows")
 	live := filepath.Join(liveRoot, workflowID)
 	secondLive := filepath.Join(liveRoot, secondWorkflowID)
-	if _, err := os.Stat(filepath.Join(live, "skills/remnote-flashcards/first.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(live, "skills/test-guide/first.txt")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(secondLive, "skills/architect/first.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(secondLive, "skills/common-control-guide/first.txt")); err != nil {
 		t.Fatal(err)
 	}
 	calls, err := os.ReadFile(logPath)
@@ -164,16 +170,16 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 	versions["456"] = "1.0.1"
 	versions["789"] = "1.0.1"
 	writeJSON(statePath, state)
-	if output, err := call("flow", "status", "--root", root); err != nil {
+	if output, err := call("update"); err != nil {
 		t.Fatalf("refresh: %v %s", err, output)
 	}
-	if _, err := os.Stat(filepath.Join(live, "skills/remnote-flashcards/first.txt")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(live, "skills/test-guide/first.txt")); !os.IsNotExist(err) {
 		t.Fatal("removed resource survived refresh")
 	}
-	if _, err := os.Stat(filepath.Join(secondLive, "skills/architect/first.txt")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(secondLive, "skills/common-control-guide/first.txt")); !os.IsNotExist(err) {
 		t.Fatal("removed resource in non-selected Workflow survived refresh")
 	}
-	if _, err := os.Stat(filepath.Join(secondLive, "skills/architect/second.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(secondLive, "skills/common-control-guide/second.txt")); err != nil {
 		t.Fatal("non-selected Workflow was not refreshed with the complete set")
 	}
 	before := treeDigest(t, liveRoot)
@@ -188,7 +194,7 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 		previous := state[test.key]
 		state[test.key] = test.value
 		writeJSON(statePath, state)
-		if output, err := call("flow", "status", "--root", root); err == nil {
+		if output, err := call("update"); err == nil {
 			t.Fatalf("accepted %s failure: %s", test.key, output)
 		}
 		if treeDigest(t, liveRoot) != before {
@@ -206,6 +212,12 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 	}
 
 	writeJSON(statePath, state)
+	state["fail"] = true
+	writeJSON(statePath, state)
+	callsBefore, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var group sync.WaitGroup
 	failures := make(chan string, 8)
 	for index := 0; index < 8; index++ {
@@ -223,6 +235,13 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 	for failure := range failures {
 		t.Fatal(failure)
 	}
+	callsAfter, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(callsBefore, callsAfter) {
+		t.Fatal("ordinary concurrent reads contacted Fornax")
+	}
 	if treeDigest(t, liveRoot) != before {
 		t.Fatal("concurrent reads changed complete configuration")
 	}
@@ -233,9 +252,6 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 	if treeDigest(t, liveRoot) != before {
 		t.Fatal("invalid release install changed live tree")
 	}
-	state["fail"] = true
-	writeJSON(statePath, state)
-	callsBefore, _ := os.ReadFile(logPath)
 	for _, args := range [][]string{{"--help"}, {"version"}, {"flow", "status", "--help"}} {
 		if output, err := call(args...); err != nil {
 			t.Fatalf("offline help/version: %v %s", err, output)
@@ -246,7 +262,7 @@ pathlib.Path(args[args.index('-o')+1],'result.json').write_text(json.dumps(resul
 			t.Fatal("invalid invocation accepted")
 		}
 	}
-	callsAfter, _ := os.ReadFile(logPath)
+	callsAfter, _ = os.ReadFile(logPath)
 	if !bytes.Equal(callsBefore, callsAfter) {
 		t.Fatal("help/version or invalid invocation contacted Fornax")
 	}

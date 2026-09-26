@@ -7,10 +7,10 @@ orchestration directory.
 | --- | --- | --- |
 | Live Workflow configuration | Fornax published packages, installed `current/workflows/` | Five-file Workflow definitions, bound Agent instructions, complete resources and publication validation |
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
-| Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the read-only loopback viewer |
+| Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback live/candidate viewer |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
-| Release | `.github/workflows/release.yml`, `scripts/{build-npm-release,publish-npm-package,verify-published-package}.*` | Public npm build, candidate/latest publication and anonymous smoke verification |
-| Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh` | Immutable CLI builds, Fornax configuration synchronization, diagnosis and nested Release switching |
+| Configuration refresh | `cmd/update.go`, `internal/workflow/fornax.go` | Explicit Fornax discovery/download, full-tree validation, locking and atomic `current/workflows` replacement |
+| Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh`, `package.json` | Immutable local CLI builds, offline installation, diagnosis and nested Release switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
 flags, State or Event schemas, release manifests, or reviewed contract Goldens

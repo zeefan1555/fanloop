@@ -22,6 +22,13 @@ struct VersionResponse {
   // field 5 retired: Workflows are live configuration, not Release artifacts.
 }
 
+struct ConfigurationUpdateRequest {}
+
+struct ConfigurationUpdateResponse {
+  1: required list<string> workflow_ids,
+  2: required string       workflow_root,
+}
+
 struct DoctorRequest {}
 
 enum DoctorScope {
@@ -74,6 +81,17 @@ service OpsService {
     cli.id = "version",
     cli.summary = "Show release and State Schema versions",
     cli.risk = "read",
+    cli.requirement_scope = "none",
+    cli.supports_dry_run = "false",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,INTERNAL",
+  )
+
+  ConfigurationUpdateResponse Update(
+    1: required ConfigurationUpdateRequest request,
+  ) throws (1: error.PublicError error) (
+    cli.id = "update",
+    cli.summary = "Synchronize published Workflow configuration from Fornax",
+    cli.risk = "local_write",
     cli.requirement_scope = "none",
     cli.supports_dry_run = "false",
     cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,INTERNAL",

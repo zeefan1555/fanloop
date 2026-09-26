@@ -7,7 +7,7 @@ if [[ $# -gt 1 ]]; then
 fi
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$repo_root"
-export GOTOOLCHAIN=local
+export GOTOOLCHAIN="${GOTOOLCHAIN:-auto}"
 command -v go >/dev/null || { echo "Go 1.23+ is required" >&2; exit 1; }
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 if [[ $# -eq 1 ]]; then
@@ -68,6 +68,7 @@ go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X github.com/zeefan1555/fanloop/internal/buildinfo.ReleaseVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.Commit=$commit" \
   -o "$build_root/bin/fanloop" . >&2
 cp -R "$repo_root/entrypoints" "$build_root/"
+cp -R "$repo_root/.agents/skills/create-fanloop-workflow" "$build_root/entrypoints/"
 go run ./tools/release-manifest --version "$version" --source "$repo_root" \
   --dist "$build_root" --output "$build_root/release.json" >&2
 if [[ "$(git rev-parse HEAD)" != "$commit" || "$(git status --porcelain -- "${source_paths[@]}")" != "$source_status" || "$(source_fingerprint)" != "$source_digest" ]]; then

@@ -6,7 +6,7 @@
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
 **Live Workflow**
-Fornax 已发布的五份 YAML 和绑定 `skills/**` 资源。每套Workflow对应一个Fornax Skill包，包含完整资源。配置消费命令先下载并完整校验，再同步到 `$FANLOOP_DATA_HOME/current/workflows/<id>/`；本地是
+Fornax 已发布的五份 YAML 和绑定 `skills/**` 资源。每套Workflow对应一个Fornax Skill包，包含完整资源。显式 `fanloop update` 下载并完整校验整个选择集，再原子替换 `$FANLOOP_DATA_HOME/current/workflows`；本地是
 运行副本，不能编辑为独立真值。五 YAML 继续分别定义层级、正常Route、Condition、Loop和Prompt。
 Fornax版本独立于CLI Release，不进入State或YAML Schema；没有旧配置fallback。
 
@@ -75,8 +75,7 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。
 
 **Workflow Dashboard**
-`fanloop dashboard` 在随机loopback端口提供只读拓扑与完整源码导航，启动同步Fornax配置；HTTP读取
-与CLI同步使用相同锁，防止读到部分更新。页面轮询本地已同步内容；没有文件保存接口或编辑状态。
+`fanloop dashboard` 在随机loopback端口提供拓扑与完整源码导航，不隐式同步 Fornax。默认读取 live 根且只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 打开隔离候选模式。HTTP读取与候选保存使用同一锁，保存要求 allowlist、观察 SHA-256、无符号链接、完整 Bundle 校验和原子替换。候选保存不发布生产配置。
 
 **Source Anchor**
 Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based inclusive 行范围，只用于在完整文件中
@@ -94,12 +93,10 @@ Review、黑盒验证和主 Agent最终决定。
 冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current。全新 Sub-agent 只使用隔离 CLI、叶子 Help、
 Feature Map 和 Acceptance Set 做真实黑盒验收，不读源码、不使用机器人、Botmux 或用户凭据。Feature Map 位于 `.cursor/skills/verify-fanloop/features/`。Deliver 发现
 main 前进时只记录新 base 并回 Build，不能修改候选；重新认证后发布唯一 PR、等待 required checks、自动
-squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 更新到 merge commit。
-GitHub Actions 从该 `master` 提交自动发布公开 npm 包。
+squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交本地安装和回读。
 
-**Public npm Release**
-GitHub Actions 从 `master` 构建公开 npm 包并发布到 npmjs.org。发布事务依次验证本地 tarball、candidate、
-精确版本、latest、匿名无 Go 安装、Doctor 和 smoke。Workflow 配置继续从 Fornax 同步，不进入 npm 制品。
+**Local Source Distribution**
+GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装不访问 Fornax 并保留现有配置；配置只由 `fanloop update` 显式同步。
 
 **Maintainer Reports**
 固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和
@@ -109,7 +106,7 @@ GitHub Actions 从 `master` 构建公开 npm 包并发布到 npmjs.org。发布�
 ## 公开契约
 
 **CommandSpec**
-16 个公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地源码更新执行 `./scripts/install-local.sh`；正式分发使用 npm launcher 的 `fanloop install` / `fanloop update`。
+公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地源码更新执行 `./scripts/install-local.sh`；`fanloop update` 是唯一访问 Fornax 的生产命令。
 
 **统一结果信封**
 成功写 stdout，使用 `ok/data/meta/_notice`；错误写 stderr，包含稳定 type、code、message、hint 和 retryable。

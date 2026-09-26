@@ -1,7 +1,6 @@
 package install
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -53,27 +52,6 @@ func Run(request Request) (Result, error) {
 	}
 	defer unlock()
 
-	remoteConfiguration := request.ConfigSource == ""
-	if remoteConfiguration {
-		temporary, err := os.MkdirTemp(request.DataRoot, ".fornax-install-")
-		if err != nil {
-			return Result{}, err
-		}
-		defer os.RemoveAll(temporary)
-		settings, err := os.ReadFile(filepath.Join(request.DataRoot, "fornax.json"))
-		if err != nil {
-			return Result{}, err
-		}
-		if err := os.WriteFile(filepath.Join(temporary, "fornax.json"), settings, 0600); err != nil {
-			return Result{}, err
-		}
-		if err := workflow.SyncFornax(context.Background(), temporary); err != nil {
-			return Result{}, err
-		}
-		request.ConfigSource = filepath.Join(temporary, "current")
-	} else if err := workflow.ValidateIsolatedSource(request.DataRoot, request.ConfigSource); err != nil {
-		return Result{}, err
-	}
 	manifest, err := release.Load(request.Source)
 	if err != nil {
 		return Result{}, fmt.Errorf("release manifest: %w", err)
@@ -86,25 +64,43 @@ func Run(request Request) (Result, error) {
 		return Result{}, err
 	}
 	stableCurrent := false
+	legacyCurrent := false
 	if info, statErr := os.Lstat(current); statErr == nil {
 		stableCurrent = info.IsDir() && info.Mode()&os.ModeSymlink == 0
+		legacyCurrent = info.Mode()&os.ModeSymlink != 0
 	}
 
 	workflowRoot := filepath.Join(current, "workflows")
-	if !stableCurrent || remoteConfiguration {
-		if !filepath.IsAbs(request.ConfigSource) || filepath.Clean(request.ConfigSource) == string(filepath.Separator) {
-			return Result{}, fmt.Errorf("configuration source must be an absolute path")
+	if !stableCurrent {
+		if legacyCurrent {
+			legacyRoot, err := filepath.EvalSymlinks(current)
+			if err != nil {
+				return Result{}, fmt.Errorf("legacy current: %w", err)
+			}
+			workflowRoot = filepath.Join(legacyRoot, "workflows")
+		} else if request.ConfigSource == "" {
+			workflowRoot = ""
+		} else {
+			if err := workflow.ValidateIsolatedSource(request.DataRoot, request.ConfigSource); err != nil {
+				return Result{}, err
+			}
+			if !filepath.IsAbs(request.ConfigSource) || filepath.Clean(request.ConfigSource) == string(filepath.Separator) {
+				return Result{}, fmt.Errorf("configuration source must be an absolute path")
+			}
+			configSource, err := filepath.EvalSymlinks(request.ConfigSource)
+			if err != nil {
+				return Result{}, fmt.Errorf("configuration source: %w", err)
+			}
+			request.ConfigSource = configSource
+			workflowRoot = filepath.Join(request.ConfigSource, "workflows")
 		}
-		configSource, err := filepath.EvalSymlinks(request.ConfigSource)
-		if err != nil {
-			return Result{}, fmt.Errorf("configuration source: %w", err)
-		}
-		request.ConfigSource = configSource
-		workflowRoot = filepath.Join(request.ConfigSource, "workflows")
 	}
-	definitions, err := workflow.ListFrom(workflowRoot)
-	if err != nil {
-		return Result{}, fmt.Errorf("live Workflows: %w", err)
+	definitions := []workflow.Loaded{}
+	if workflowRoot != "" {
+		definitions, err = workflow.ListFrom(workflowRoot)
+		if err != nil {
+			return Result{}, fmt.Errorf("live Workflows: %w", err)
+		}
 	}
 	configuredSkills := []string{}
 	for _, definition := range definitions {
@@ -113,11 +109,15 @@ func Run(request Request) (Result, error) {
 		}
 	}
 	sort.Strings(configuredSkills)
-	if result := (doctor.Runtime{ReleaseRoot: request.Source, BinaryPath: sourceBinary, WorkflowRoot: workflowRoot}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
+	doctorWorkflowRoot := workflowRoot
+	if stableCurrent && len(definitions) == 0 {
+		doctorWorkflowRoot = ""
+	}
+	if result := (doctor.Runtime{ReleaseRoot: request.Source, BinaryPath: sourceBinary, WorkflowRoot: doctorWorkflowRoot}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 		return Result{}, fmt.Errorf("Doctor rejected staged release %s", manifest.ReleaseVersion)
 	}
 
-	linksToCreate, externalLinks, err := preflightSkillLinks(request, manifest)
+	linksToCreate, err := preflightSkillLinks(request, manifest)
 	if err != nil {
 		return Result{}, err
 	}
@@ -133,7 +133,7 @@ func Run(request Request) (Result, error) {
 		}
 		existing, loadErr := release.Load(target)
 		healthy := loadErr == nil && reflect.DeepEqual(existing, manifest) &&
-			(doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop"), WorkflowRoot: workflowRoot}).Run("").Status != opsidl.DoctorStatus_unhealthy
+			(doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop"), WorkflowRoot: doctorWorkflowRoot}).Run("").Status != opsidl.DoctorStatus_unhealthy
 		if !healthy {
 			if !request.ReplaceInvalid {
 				return Result{}, fmt.Errorf("refusing to replace immutable release %s", manifest.ReleaseVersion)
@@ -159,7 +159,7 @@ func Run(request Request) (Result, error) {
 		if err := copyTree(request.Source, temporary); err != nil {
 			return Result{}, err
 		}
-		if result := (doctor.Runtime{ReleaseRoot: temporary, BinaryPath: filepath.Join(temporary, "bin", "fanloop"), WorkflowRoot: workflowRoot}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
+		if result := (doctor.Runtime{ReleaseRoot: temporary, BinaryPath: filepath.Join(temporary, "bin", "fanloop"), WorkflowRoot: doctorWorkflowRoot}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 			return Result{}, fmt.Errorf("Doctor rejected copied release %s", manifest.ReleaseVersion)
 		}
 		if replaceExisting {
@@ -194,33 +194,28 @@ func Run(request Request) (Result, error) {
 			rollbackInstall()
 			return Result{}, fmt.Errorf("live Workflows: %w", err)
 		}
-		if result := (doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop"), WorkflowRoot: liveRoot}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
+		if result := (doctor.Runtime{ReleaseRoot: target, BinaryPath: filepath.Join(target, "bin", "fanloop"), WorkflowRoot: doctorWorkflowRoot}).Run(""); result.Status == opsidl.DoctorStatus_unhealthy {
 			rollbackInstall()
 			return Result{}, fmt.Errorf("Doctor rejected release %s with live Workflows", manifest.ReleaseVersion)
 		}
 	}
 
-	removedExternalLinks, err := removeSkillLinks(externalLinks)
-	if err != nil {
-		rollbackInstall()
-		return Result{}, err
-	}
 	createdLinks, err := createSkillLinks(linksToCreate)
 	if err != nil {
 		rollbackInstall()
-		return Result{}, restoreSkillLinks(err, removedExternalLinks)
+		return Result{}, err
 	}
 	removedLinks, err := removeSkillLinks(obsoleteLinks)
 	if err != nil {
-		err = rollbackSkillLinkChanges(err, createdLinks, removedExternalLinks)
+		rollbackLinks(createdLinks)
 		rollbackInstall()
 		return Result{}, err
 	}
-	if err := ensureCurrent(current, workflowRoot, filepath.Join("..", "releases", manifest.ReleaseVersion), remoteConfiguration); err != nil {
+	if err := ensureCurrent(current, workflowRoot, filepath.Join("..", "releases", manifest.ReleaseVersion), false); err != nil {
 		if _, restoreErr := createSkillLinks(removedLinks); restoreErr != nil {
 			err = fmt.Errorf("activate current: %v; restore retired Skill links: %w", err, restoreErr)
 		}
-		err = rollbackSkillLinkChanges(err, createdLinks, removedExternalLinks)
+		rollbackLinks(createdLinks)
 		rollbackInstall()
 		return Result{}, err
 	}
@@ -248,48 +243,52 @@ func reservePath(root, prefix string) (string, error) {
 
 type linkPlan struct{ path, target string }
 
-func preflightSkillLinks(request Request, manifest release.Manifest) ([]linkPlan, []linkPlan, error) {
-	toCreate, external := []linkPlan{}, []linkPlan{}
-	skill, _ := manifest.Skill(release.ExposedSkillName)
-	for _, root := range request.SkillRoots.Values() {
-		plan := linkPlan{
-			path:   filepath.Join(root, skill.Name),
-			target: filepath.Join(request.DataRoot, "current", filepath.FromSlash(skill.Path)),
+func preflightSkillLinks(request Request, manifest release.Manifest) ([]linkPlan, error) {
+	toCreate := []linkPlan{}
+	for _, exposed := range release.ExposedSkills() {
+		skill, _ := manifest.Skill(exposed.Name)
+		for _, root := range request.SkillRoots.Values() {
+			plan := linkPlan{
+				path:   filepath.Join(root, skill.Name),
+				target: filepath.Join(request.DataRoot, "current", filepath.FromSlash(skill.Path)),
+			}
+			create, err := preflightManagedLink(plan)
+			if err != nil {
+				return nil, err
+			}
+			toCreate = append(toCreate, create...)
 		}
-		create, replace, err := preflightManagedLink(plan)
-		if err != nil {
-			return nil, nil, err
-		}
-		toCreate = append(toCreate, create...)
-		external = append(external, replace...)
 	}
-	return toCreate, external, nil
+	return toCreate, nil
 }
 
-func preflightManagedLink(plan linkPlan) ([]linkPlan, []linkPlan, error) {
+func preflightManagedLink(plan linkPlan) ([]linkPlan, error) {
 	info, err := os.Lstat(plan.path)
 	if os.IsNotExist(err) {
-		return []linkPlan{plan}, nil, nil
+		return []linkPlan{plan}, nil
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if info.Mode()&os.ModeSymlink == 0 {
-		return nil, nil, fmt.Errorf("refusing to replace non-Fanloop path %s", plan.path)
+		return nil, fmt.Errorf("refusing to replace non-Fanloop path %s", plan.path)
 	}
 	target, err := os.Readlink(plan.path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if filepath.Clean(target) == filepath.Clean(plan.target) {
-		return nil, nil, nil
+		return nil, nil
 	}
-	return []linkPlan{plan}, []linkPlan{{path: plan.path, target: target}}, nil
+	return nil, fmt.Errorf("refusing to replace non-Fanloop Skill link %s", plan.path)
 }
 
 func preflightObsoleteSkillLinks(request Request) ([]linkPlan, error) {
 	packagedSkills := currentSkills(filepath.Join(request.DataRoot, "current"))
-	wanted := map[string]bool{release.ExposedSkillName: true}
+	wanted := map[string]bool{}
+	for _, exposed := range release.ExposedSkills() {
+		wanted[exposed.Name] = true
+	}
 	obsolete := []linkPlan{}
 	for _, skill := range packagedSkills {
 		if wanted[skill.name] {
@@ -469,21 +468,6 @@ func rollbackLinks(paths []string) {
 	}
 }
 
-func restoreSkillLinks(cause error, plans []linkPlan) error {
-	if len(plans) == 0 {
-		return cause
-	}
-	if _, err := createSkillLinks(plans); err != nil {
-		return fmt.Errorf("%w; restore external Skill links: %v", cause, err)
-	}
-	return cause
-}
-
-func rollbackSkillLinkChanges(cause error, created []string, external []linkPlan) error {
-	rollbackLinks(created)
-	return restoreSkillLinks(cause, external)
-}
-
 func activateCurrent(current, target string) error {
 	if err := os.MkdirAll(current, 0o755); err != nil {
 		return err
@@ -586,7 +570,12 @@ func ensureCurrent(current, workflowSource, releaseTarget string, replaceConfigu
 		return err
 	}
 	defer os.RemoveAll(staged)
-	if err := copyTree(workflowSource, filepath.Join(staged, "workflows")); err != nil {
+	stagedWorkflows := filepath.Join(staged, "workflows")
+	if workflowSource == "" {
+		if err := os.MkdirAll(stagedWorkflows, 0o755); err != nil {
+			return err
+		}
+	} else if err := copyTree(workflowSource, stagedWorkflows); err != nil {
 		return err
 	}
 	for name, target := range map[string]string{"bin": "release/bin", "entrypoints": "release/entrypoints", "release.json": "release/release.json"} {

@@ -46,9 +46,9 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 触发条件：读取、修改、安装或执行 Workflow/Skill，或查看 Dashboard。
 
 1. Fornax 已发布的完整Workflow Skill包是生产五份 YAML、绑定 Skill 及资源的唯一配置真值。`fornax.json` 只选择空间与Workflow/Skill，不保存凭证或另一份YAML。
-2. 配置消费命令通过 `fornax-cli` 查询明确的已发布版本，安全下载、校验并同步到 `$FANLOOP_DATA_HOME/current/workflows/<id>/`。同步失败本次操作失败，不从旧配置、源码或其他Skill根回退。
-3. 本地目录是运行副本；Dashboard仅只读。配置修改经隔离候选、必要人审/独立行为试用、Fornax commit/release与公开CLI回读交付，不以本地编辑冒充发布。
-4. 配置发布使用 `scripts/validate-configuration.py` 对固定下载集执行全部Workflow Route Matrix并记录版本/文件摘要。代码CI使用 `tests/testdata` 的独立运行时fixture，不绑定个人凭据、生产正文或远端latest。
+2. 只有显式 `fanloop update` 通过 `fornax-cli` 查询明确的已发布版本，安全下载、校验并原子替换 `$FANLOOP_DATA_HOME/current/workflows`。同步失败保留旧树，不从源码或其他Skill根回退；普通 CLI 与本地安装不得隐式联网。
+3. 本地目录是运行副本；Dashboard 默认只读。只有显式设置绝对路径 `FANLOOP_CONFIG_SOURCE` 时，Dashboard 才能编辑隔离候选，并必须拒绝 live 根、符号链接、陈旧摘要和不完整 Bundle。配置修改经隔离候选、必要人审/独立行为试用、Fornax commit/release、显式 `fanloop update` 与公开CLI回读交付，不以本地保存冒充发布。
+4. 配置发布使用 `scripts/validate-configuration.py` 对固定下载集执行全部Workflow Route Matrix并记录版本/文件摘要。代码CI使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}` 的独立运行时fixture，并在临时根下组装 `workflows/`，不绑定个人凭据、生产正文或远端latest。
 5. Agent每次读取最新Status返回的精确Skill路径。Fornax内容版本不写入Requirement State或CLI Release；保留五份YAML与Thrift人审门禁。
 
 ## YAML 架构真值与人工审核
@@ -93,14 +93,14 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 4. 发布唯一 PR 后，CI 硬门禁必须回读同一 `candidate_head` 的 Ruleset 与 required checks。源码、测试或验证资产更新后，旧本地验证、Review、Sub-agent 验收与 CI 全部失效，必须形成新 HEAD 并从本地验证重跑。
 5. 任一必需验证失败都阻止合并；不得用旧脚本、旧二进制、代码审阅或远端 CI 倒推本地验证结论。
 
-完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过后自动 squash 合并唯一 PR；随后只更新本 Requirement 的源码 worktree。GitHub Actions 从精确 merge commit 发布公开 npm 包，并回读 candidate、latest、匿名安装、版本、Doctor 与 smoke。
+完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过后自动 squash 合并唯一 PR；随后只更新本 Requirement 的源码 worktree，并从精确 merge commit 本地构建、安装和回读版本、Doctor 与 smoke。
 
-## 公开 npm 发布
+## 本地源码分发
 
-1. 只有 GitHub `master` push 触发 `.github/workflows/release.yml`；不保留内部 registry、GitHub Packages 或手工 `npm publish` 入口。
-2. 发布先验证本地 tarball，再发布不可变 candidate，验证精确版本后提升 latest，并再次匿名安装验证。
-3. npm 版本不可覆盖；`VERSION` 定义版本线，流水线从 npmjs.org 选择未占用的下一个 patch。
-4. `NPM_TOKEN` 只存在于 GitHub Actions secret，不得打印、提交或落盘。
+1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、bnpm、Luban 或手工 `npm publish` 入口。
+2. `npm run build` 与 `npm run install:local` 只是本地 Shell 入口的快捷方式，不生成或发布 npm 包。
+3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装不访问 Fornax，也不改变已有 `current/workflows`。
+4. 生产配置只由显式 `fanloop update` 联网刷新。普通 CLI 与本地安装必须保持离线可用。
 
 ## ADR 一致性
 
@@ -110,6 +110,7 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 2. 在 MR 的 `ADR impact` 中记录本次保留、修订、取代的 ADR；确实无影响时记录 `none` 及理由。
 3. 计划行为与仍有效的 ADR 冲突时，先新增或修订 ADR，明确冲突范围和取代关系，再同步技术设计、代码、测试与 Contract。已有决策不得被实现静默改写。
 4. 提交前，用目标分支的最新 merge base 复核完整 diff，并重新对照相关 ADR；测试通过不能替代这一步。
+5. ADR 文件名的四位数字前缀只用于排序，不是唯一标识。相同数字、不同完整文件名的 ADR 必须原样共存；不得仅因数字重复而重命名、顺延编号、阻塞、回流或让候选重新验证。只处理真实的同路径 Git 内容冲突和失效引用。
 
 完成标准：变更与所有相关有效 ADR 一致；有意改变的决策具备已提交的 ADR 记录、明确的取代关系和对应回归证据。
 

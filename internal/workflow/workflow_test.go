@@ -12,52 +12,31 @@ import (
 	"testing"
 )
 
-func TestRuntimeFixturesAreValidFiveFileBundles(t *testing.T) {
-	items, err := List()
+func TestListFromLoadsArbitraryWorkflowInventory(t *testing.T) {
+	root := t.TempDir()
+	want := []string{"alpha-loop", "beta-loop", "delta-loop", "gamma-loop"}
+	for _, id := range want {
+		writeValidWorkflow(t, root, id)
+	}
+
+	items, err := ListFrom(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	refs := make([]string, len(items))
+	got := make([]string, len(items))
 	for index, item := range items {
-		refs[index] = item.Ref.ID
-	}
-	wantRefs := []string{"fanloop-maintainer", "pstack-native", "remnote-flashcards", "technical-solution-design"}
-	if !reflect.DeepEqual(refs, wantRefs) {
-		t.Fatalf("Workflow IDs = %v", refs)
-	}
-	for _, item := range items {
-		if len(item.Workflow.OrderedStepIDs()) != len(item.Workflow.Flows) || len(item.Workflow.OrderedStepIDs()) != len(item.Workflow.Loops) {
-			t.Fatalf("%s has steps=%d flow=%d loop=%d", item.Ref.ID, len(item.Workflow.OrderedStepIDs()), len(item.Workflow.Flows), len(item.Workflow.Loops))
+		got[index] = item.Ref.ID
+		if item.SkillPaths["writer"] == "" {
+			t.Fatalf("%s did not resolve its bound Skill", item.Ref.ID)
 		}
 	}
-	loaded, err := Load("technical-solution-design")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(loaded.Workflow.OrderedStepIDs()) != 16 || len(loaded.Workflow.Conditions) != 34 {
-		t.Fatalf("real Bundle shape = steps:%d conditions:%d", len(loaded.Workflow.OrderedStepIDs()), len(loaded.Workflow.Conditions))
-	}
-	pinned, err := LoadRef(loaded.Ref)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pinned.Ref != loaded.Ref {
-		t.Fatalf("pinned Workflow = %#v, want %#v", pinned.Ref, loaded.Ref)
-	}
-	problemPrompt := loaded.Workflow.Prompts["frame_requirement_background_flow"]
-	if len(problemPrompt.Skills) != 1 || problemPrompt.Skills[0].ID != "technical-background-framing" || problemPrompt.Skills[0].Optional == nil || *problemPrompt.Skills[0].Optional {
-		t.Fatalf("problem Prompt Skills = %#v", problemPrompt.Skills)
-	}
-	if routes := loaded.Workflow.Loops["confirm_technical_solution"]; len(routes) != 12 {
-		t.Fatalf("confirm_technical_solution Loop Routes = %#v", routes)
-	}
-	if _, err := Load("fixture"); !errors.Is(err, fs.ErrNotExist) {
-		t.Fatalf("fixture workflow is still loadable: %v", err)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Workflow IDs = %v, want %v", got, want)
 	}
 }
 
 func TestRuntimeFixtureSourcesAreFlatAndVersionless(t *testing.T) {
-	root := filepath.Join("..", "..", "tests", "testdata", "workflows")
+	root := "testdata"
 	if _, err := os.Stat(filepath.Join(root, "defaults.json")); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("defaults.json must not exist: %v", err)
 	}
@@ -65,8 +44,8 @@ func TestRuntimeFixtureSourcesAreFlatAndVersionless(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(paths) != 4 {
-		t.Fatalf("flat production Workflow sources = %v, want four", paths)
+	if len(paths) != 2 {
+		t.Fatalf("flat test Workflow sources = %v, want two", paths)
 	}
 	versioned, err := filepath.Glob(filepath.Join(root, "*", "*", "workflow.yaml"))
 	if err != nil {
@@ -86,7 +65,7 @@ func TestRuntimeFixtureSourcesAreFlatAndVersionless(t *testing.T) {
 	}
 }
 
-func TestWorkflowSelectorRejectsRetiredBusinessVersion(t *testing.T) {
+func TestWorkflowSelectorRejectsVersionedID(t *testing.T) {
 	if _, err := LoadSelector("fanloop@14.0.0"); !errors.Is(err, ErrInvalidSelector) {
 		t.Fatalf("versioned selector error = %v, want ErrInvalidSelector", err)
 	}
@@ -95,12 +74,9 @@ func TestWorkflowSelectorRejectsRetiredBusinessVersion(t *testing.T) {
 func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 	dataRoot := t.TempDir()
 	liveRoot := filepath.Join(dataRoot, "current", "workflows")
-	workflowID := "technical-solution-design"
-	sourceRoot := filepath.Join("..", "..", "tests", "testdata", "workflows", workflowID)
+	workflowID := "reloadable-loop"
 	targetRoot := filepath.Join(liveRoot, workflowID)
-	if err := os.CopyFS(targetRoot, os.DirFS(sourceRoot)); err != nil {
-		t.Fatal(err)
-	}
+	writeValidWorkflow(t, liveRoot, workflowID)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
 
 	before, err := Load(workflowID)
@@ -112,7 +88,7 @@ func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	updated := bytes.Replace(promptYAML, []byte("只写业务背景"), []byte("只写 live Workflow 背景"), 1)
+	updated := bytes.Replace(promptYAML, []byte("Write the note"), []byte("Write the live note"), 1)
 	if bytes.Equal(updated, promptYAML) {
 		t.Fatal("test fixture prompt replacement did not match")
 	}
@@ -135,8 +111,29 @@ func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 	}
 }
 
+func writeValidWorkflow(t *testing.T, root, id string) {
+	t.Helper()
+	bundleRoot := filepath.Join(root, id)
+	if err := os.MkdirAll(filepath.Join(bundleRoot, "skills", "writer"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML := validBundle()
+	workflowYAML = bytes.Replace(workflowYAML, []byte("id: sample"), []byte("id: "+id), 1)
+	for name, content := range map[string][]byte{
+		"workflow.yaml": workflowYAML, "flow.yaml": flowYAML, "condition.yaml": conditionYAML,
+		"loop.yaml": loopYAML, "prompt.yaml": promptYAML,
+	} {
+		if err := os.WriteFile(filepath.Join(bundleRoot, name), content, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(bundleRoot, "skills", "writer", "SKILL.md"), []byte("---\nname: writer\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestListFromRejectsSymlinkedLiveRootChain(t *testing.T) {
-	source := filepath.Join("..", "..", "tests", "testdata", "workflows")
+	source := "testdata"
 	for _, test := range []struct {
 		name string
 		root func(*testing.T) string

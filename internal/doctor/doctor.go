@@ -123,7 +123,7 @@ func skillCheck(root string, manifest release.Manifest) *idl.DoctorCheck {
 			return check("skills", statusFail, fmt.Sprintf("Skill %q checksum does not match.", skill.Name), "Reinstall this Fanloop release.")
 		}
 	}
-	return check("skills", statusPass, "The packaged Workflow entrypoint matches the release manifest.", "")
+	return check("skills", statusPass, "The packaged public Skills match the release manifest.", "")
 }
 
 func workflowCheck(root string) *idl.DoctorCheck {
@@ -141,23 +141,25 @@ func workflowCheck(root string) *idl.DoctorCheck {
 }
 
 func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifest) *idl.DoctorCheck {
-	skill, _ := manifest.Skill(release.ExposedSkillName)
-	for _, root := range roots {
-		path := filepath.Join(root, skill.Name)
-		info, err := os.Lstat(path)
-		if err != nil || info.Mode()&os.ModeSymlink == 0 {
-			return check("skill_links", statusFail, fmt.Sprintf("Skill link %q is missing or is not managed by Fanloop.", path), "Reinstall Loop without replacing user-owned paths.")
-		}
-		actual, actualErr := os.Readlink(path)
-		if !filepath.IsAbs(actual) {
-			actual = filepath.Join(filepath.Dir(path), actual)
-		}
-		expected := filepath.Join(releaseRoot, filepath.FromSlash(skill.Path))
-		if actualErr != nil || filepath.Clean(actual) != filepath.Clean(expected) {
-			return check("skill_links", statusFail, fmt.Sprintf("Skill link %q does not point to the current release.", path), "Reinstall Loop to restore the managed Skill links.")
+	for _, exposed := range release.ExposedSkills() {
+		skill, _ := manifest.Skill(exposed.Name)
+		for _, root := range roots {
+			path := filepath.Join(root, skill.Name)
+			info, err := os.Lstat(path)
+			if err != nil || info.Mode()&os.ModeSymlink == 0 {
+				return check("skill_links", statusFail, fmt.Sprintf("Skill link %q is missing or is not managed by Fanloop.", path), "Reinstall Fanloop without replacing user-owned paths.")
+			}
+			actual, actualErr := os.Readlink(path)
+			if !filepath.IsAbs(actual) {
+				actual = filepath.Join(filepath.Dir(path), actual)
+			}
+			expected := filepath.Join(releaseRoot, filepath.FromSlash(skill.Path))
+			if actualErr != nil || filepath.Clean(actual) != filepath.Clean(expected) {
+				return check("skill_links", statusFail, fmt.Sprintf("Skill link %q does not point to the current release.", path), "Reinstall Fanloop to restore the managed Skill links.")
+			}
 		}
 	}
-	return check("skill_links", statusPass, "Codex, Agent, Trae, and Claude Workflow Skill links point to the current release.", "")
+	return check("skill_links", statusPass, "Codex, Agent, Trae, and Claude public Skill links point to the current release.", "")
 }
 
 func versionCheck(manifest release.Manifest) *idl.DoctorCheck {

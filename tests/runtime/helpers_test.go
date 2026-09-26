@@ -36,32 +36,7 @@ func buildCLI(t *testing.T) string {
 
 func seedLiveWorkflows(t *testing.T, dataRoot string) {
 	t.Helper()
-	source := filepath.Join(repositoryRoot(t), "tests", "testdata", "workflows")
 	target := filepath.Join(dataRoot, "current", "workflows")
-	if err := filepath.WalkDir(source, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		relative, err := filepath.Rel(source, path)
-		if err != nil {
-			return err
-		}
-		destination := filepath.Join(target, relative)
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() {
-			return os.MkdirAll(destination, info.Mode().Perm())
-		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(destination, content, info.Mode().Perm())
-	}); err != nil {
-		t.Fatalf("seed live Workflows: %v", err)
-	}
 	for _, id := range []string{"linear-runtime", "runtime-controls"} {
 		source := filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id)
 		if err := os.CopyFS(filepath.Join(target, id), os.DirFS(source)); err != nil {
@@ -103,12 +78,12 @@ func TestCommandForScrubsBotmuxBinding(t *testing.T) {
 	t.Setenv("BOTMUX_CHAT_ID", "oc_real_chat_must_not_escape")
 	t.Setenv("BOTMUX_SESSION_ID", "real_session_must_not_escape")
 	t.Setenv("PATH", "/tmp/real-user-bin"+string(os.PathListSeparator)+os.Getenv("PATH"))
-	command := commandFor("fanloop", "version")
+	command := commandFor("loop", "version")
 	if command.Env == nil {
 		t.Fatal("command inherits the process environment implicitly")
 	}
-	wantDataRoot := "FANLOOP_DATA_HOME=" + filepath.Join(filepath.Dir("fanloop"), ".fanloop-user")
-	wantPath := "PATH=" + filepath.Dir("fanloop")
+	wantDataRoot := "FANLOOP_DATA_HOME=" + filepath.Join(filepath.Dir("loop"), ".fanloop-user")
+	wantPath := "PATH=" + filepath.Dir("loop")
 	foundDataRoot := false
 	foundPath := false
 	for _, item := range command.Env {
@@ -122,7 +97,7 @@ func TestCommandForScrubsBotmuxBinding(t *testing.T) {
 		}
 	}
 	if !foundDataRoot {
-		t.Fatal("command inherited the real Fanloop data root")
+		t.Fatal("command inherited the real Loop data root")
 	}
 	if !foundPath {
 		t.Fatal("command did not install the isolated executable path")
@@ -185,26 +160,12 @@ func readFile(t *testing.T, path string) []byte {
 	return content
 }
 
-func writeRepositoryScope(t *testing.T, root string) {
-	t.Helper()
-	directory := filepath.Join(root, ".techdesign")
-	if err := os.MkdirAll(directory, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "repo_scope.md"), []byte("repository scope\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "requirement_source.json"), []byte("{}\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func bindTestTrace(t *testing.T, binary, root, documentURL string) {
 	t.Helper()
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", documentURL), "trace.bind")
 }
 
-func ensureTechnicalStepStarted(t *testing.T, binary, root, stepID string) {
+func ensureCurrentStepStarted(t *testing.T, binary, root, stepID string) {
 	t.Helper()
 	status := run(binary, "flow", "status", "--root", root)
 	assertSuccess(t, status, "flow.status")
@@ -233,22 +194,10 @@ func ensureTechnicalStepStarted(t *testing.T, binary, root, stepID string) {
 		return
 	}
 	started := run(binary, "flow", "report", "result", "--root", root, "--step-id", stepID,
-		"--condition-result", conditionResult("step_scope_confirmed", "enum_value", `"confirmed"`),
+		"--condition-result", conditionResult("start_confirmed", "enum_value", `"confirmed"`),
 		"--evidence", `{"source":"human","content":"confirmed"}`,
 		"--summary", "step confirmed", "--start-current-step")
 	assertSuccess(t, started, "flow.report.result")
-}
-
-func reportBootstrap(binary, root, documentURL string) result {
-	return run(binary, "flow", "report", "result",
-		"--root", root,
-		"--step-id", "bootstrap_techdesign",
-		"--condition-result", conditionResult("requirement_source_resolved", "path", `".techdesign/requirement_source.json"`),
-		"--condition-result", conditionResult("repository_workspace_prepared", "path", `".techdesign/repo_scope.md"`),
-		"--condition-result", conditionResult("trace_document_bound", "url", `"`+documentURL+`"`),
-		"--next-step-id", "clarify_requirements",
-		"--summary", "TechDesign bootstrap complete",
-	)
 }
 
 func repositoryRoot(t *testing.T) string {

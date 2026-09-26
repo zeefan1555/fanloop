@@ -2,6 +2,7 @@ const files = document.querySelector('#files');
 const editor = document.querySelector('#editor');
 const title = document.querySelector('#title');
 const status = document.querySelector('#status');
+const save = document.querySelector('#save');
 const refresh = document.querySelector('#refresh');
 const workflowSelect = document.querySelector('#workflowSelect');
 const fragmentSelect = document.querySelector('#fragmentSelect');
@@ -24,6 +25,10 @@ let activeTab = 'step';
 let selectedFragment = null;
 let selected = '';
 let observed = '';
+let saved = '';
+let stale = false;
+let saving = false;
+let editable = false;
 let stateMessage = '';
 let stateError = false;
 let loadGeneration = 0;
@@ -47,10 +52,20 @@ function updateState(message, error = false) {
     stateMessage = message;
     stateError = error;
   }
-  status.textContent = stateMessage || (selected ? 'Read-only · published configuration' : 'Ready');
+  const dirty = editable && editor.value !== saved;
+  save.disabled = !selected || !dirty || stale || saving;
+  document.querySelector('#discard').disabled = !selected || (!dirty && !stale);
+  status.textContent = stateMessage || (stale ? 'Changed on disk. Refresh before editing again.' : dirty ? 'Unsaved changes' : selected ? (editable ? 'Saved' : 'Read-only · published configuration') : 'Ready');
   status.classList.toggle('error', stateError && Boolean(stateMessage));
-  document.querySelector('#healthText').textContent = 'Published configuration';
+  document.querySelector('#healthText').textContent = stale ? 'External change detected' : (editable ? 'Candidate files ready' : 'Published configuration');
+  document.body.classList.toggle('is-stale', stale);
   updateLineNumbers();
+}
+
+function isDirty() { return editable && editor.value !== saved; }
+
+function confirmDiscard() {
+  return !isDirty() || window.confirm('Discard unsaved changes?');
 }
 
 function updateLineNumbers() {
@@ -85,7 +100,7 @@ function selectSourceRange(fragment) {
 function scheduleSourceRangeSelection(fragment) {
   const generation = loadGeneration;
   requestAnimationFrame(() => {
-    if (generation === loadGeneration) selectSourceRange(fragment);
+    if (generation === loadGeneration && !isDirty()) selectSourceRange(fragment);
   });
 }
 
@@ -93,14 +108,27 @@ async function load(path, force = false, fragment = selectedFragment) {
   const generation = ++loadGeneration;
   const next = await json(`/api/file?path=${encodeURIComponent(path)}`);
   if (generation !== loadGeneration) return;
+  const dirty = isDirty();
+  if (!force && selected === path && dirty) {
+    if (next.sha256 !== observed) {
+      stale = true;
+      updateState('');
+    } else {
+      updateState();
+    }
+    return;
+  }
   if (!force && selected === path && next.sha256 === observed) {
     updateState();
     return;
   }
   selected = path;
   observed = next.sha256;
+  saved = next.content;
+  stale = false;
   editor.value = next.content;
   editor.disabled = false;
+  editor.readOnly = !editable;
   title.textContent = path;
   document.querySelectorAll('#files button').forEach(button => button.classList.toggle('active', button.dataset.path === path));
   updateState('');
@@ -116,6 +144,7 @@ function renderFiles() {
     button.textContent = item.path.slice(selectedWorkflow.length + 1);
     button.title = item.path;
     button.addEventListener('click', () => {
+      if (!confirmDiscard()) return;
       activeTab = 'file';
       selectedFragment = null;
       renderInspector();
@@ -128,6 +157,11 @@ function renderFiles() {
 async function loadFiles() {
   const data = await json('/api/files');
   fileItems = data.files;
+  editable = data.editable;
+  save.hidden = !editable;
+  document.querySelector('#editorActions').hidden = !editable;
+  document.querySelector('#sourceKind').textContent = editable ? 'Isolated candidate' : 'Published configuration';
+  document.querySelector('#sourceRoot').textContent = editable ? 'FANLOOP_CONFIG_SOURCE/workflows' : '~/.fanloop/current/workflows';
   const workflowIDs = [...new Set(fileItems.map(item => item.path.split('/')[0]))];
   workflowSelect.replaceChildren(...workflowIDs.map(id => {
     const option = document.createElement('option');
@@ -160,7 +194,7 @@ async function loadTopology(workflowID, openSource = false, fit = false, force =
     renderSummary();
     renderGraph(fit);
     renderInspector();
-    if (!openSource) scheduleSourceRangeSelection(selectedFragment);
+    if (!openSource && !isDirty()) scheduleSourceRangeSelection(selectedFragment);
     document.querySelector('#graphMessage').hidden = true;
     world.hidden = false;
     if (openSource) await chooseDefaultFragment();
@@ -393,6 +427,7 @@ async function chooseDefaultFragment() {
 async function selectStep(stepID) {
   if (stepID === selectedStep) {
     if (activeTab === 'file') {
+      if (!confirmDiscard()) return;
       activeTab = 'step';
       selectedFragment = null;
       renderInspector();
@@ -404,6 +439,7 @@ async function selectStep(stepID) {
     return;
   }
 
+  if (!confirmDiscard()) return;
   selectedStep = stepID;
   focusedStep = stepID;
   activeTab = 'step';
@@ -416,7 +452,7 @@ async function selectStep(stepID) {
 
 async function selectTab(tab) {
   if (tab === activeTab) return;
-
+  if (!confirmDiscard()) return;
   activeTab = tab;
   selectedFragment = null;
   renderInspector();
@@ -449,15 +485,47 @@ function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 }
 
+editor.addEventListener('input', () => { ++loadGeneration; updateState(''); });
 editor.addEventListener('scroll', () => { lineNumbers.scrollTop = editor.scrollTop; });
 refresh.addEventListener('click', async () => {
-  if (!selected) return;
+  if (!selected || !confirmDiscard()) return;
   try {
     await load(selected, true, selectedFragment);
     await loadTopology(selectedWorkflow, false, false, true);
   } catch (error) { showError(error); }
 });
+save.addEventListener('click', async () => {
+  const path = selected;
+  const content = editor.value;
+  const saveGeneration = ++loadGeneration;
+  saving = true;
+  updateState('Saving...');
+  try {
+    const next = await json('/api/file', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, content, observed_sha256: observed }) });
+    if (selected === path) {
+      const contentUnchanged = editor.value === next.content;
+      observed = next.sha256;
+      saved = next.content;
+      stale = false;
+      updateState(contentUnchanged ? 'Saved' : '');
+      await loadTopology(selectedWorkflow, false, false, true);
+      const refreshed = currentFragments().find(fragment => fragment.id === selectedFragment?.id);
+      if (refreshed) selectedFragment = refreshed;
+      if (contentUnchanged && loadGeneration === saveGeneration) selectSourceRange(selectedFragment);
+    }
+  } catch (error) {
+    if (selected === path) {
+      if (error.response?.status === 409) stale = true;
+      showError(error);
+    }
+  } finally {
+    saving = false;
+    if (selected === path) updateState();
+  }
+});
+document.querySelector('#discard').addEventListener('click', () => selected && load(selected, true, selectedFragment).catch(showError));
 workflowSelect.addEventListener('change', async event => {
+  if (!confirmDiscard()) { workflowSelect.value = selectedWorkflow; return; }
   selectedWorkflow = event.target.value;
   selectedStep = '';
   focusedStep = '';
@@ -467,6 +535,7 @@ workflowSelect.addEventListener('change', async event => {
   try { await loadTopology(selectedWorkflow, true, true); } catch (error) { showError(error); }
 });
 fragmentSelect.addEventListener('change', () => {
+  if (!confirmDiscard()) { fragmentSelect.value = selectedFragment?.id || ''; return; }
   selectedFragment = currentFragments().find(fragment => fragment.id === fragmentSelect.value) || null;
   if (selectedFragment) load(selectedFragment.path, true, selectedFragment).catch(showError);
 });
@@ -512,7 +581,7 @@ viewport.addEventListener('wheel', event => {
 }, { passive: false });
 
 setInterval(async () => {
-  if (selected) {
+  if (selected && !saving) {
     try { await load(selected, false, selectedFragment); } catch (error) { showError(error); }
   }
   if (selectedWorkflow) {

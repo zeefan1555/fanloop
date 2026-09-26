@@ -2,7 +2,6 @@ package install
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +10,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/release"
 )
 
-func TestPreflightSkillLinksExposesOnlyWorkflowSkill(t *testing.T) {
+func TestPreflightSkillLinksExposesBothPublicSkills(t *testing.T) {
 	root := t.TempDir()
 	request := Request{
 		DataRoot: root,
@@ -23,19 +22,21 @@ func TestPreflightSkillLinksExposesOnlyWorkflowSkill(t *testing.T) {
 		},
 	}
 	manifest := release.Manifest{Skills: []*release.Skill{
-		{Name: "ai-test", Path: "skills/technical-solution-design/ai-test"},
-		{Name: release.ExposedSkillName, Path: release.ExposedSkillPath},
+		{Name: "test-guide", Path: "skills/linear-runtime/test-guide"},
+		{Name: release.WorkflowSkillName, Path: release.WorkflowSkillPath},
+		{Name: release.AuthoringSkillName, Path: release.AuthoringSkillPath},
 		{Name: "fanloop-dev-tdd", Path: "skills/fanloop-maintainer/fanloop-dev-tdd"},
 	}}
-	plans, external, err := preflightSkillLinks(request, manifest)
+	plans, err := preflightSkillLinks(request, manifest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plans) != 4 || len(external) != 0 {
-		t.Fatalf("plans = %#v, external = %#v", plans, external)
+	if len(plans) != 8 {
+		t.Fatalf("plans = %#v", plans)
 	}
-	for _, plan := range plans {
-		if filepath.Base(plan.path) != release.ExposedSkillName || plan.target != filepath.Join(root, "current", "entrypoints", "fanloop-workflow") {
+	for index, plan := range plans {
+		exposed := release.ExposedSkills()[index/4]
+		if filepath.Base(plan.path) != exposed.Name || plan.target != filepath.Join(root, "current", filepath.FromSlash(exposed.Path)) {
 			t.Fatalf("unexpected link plan: %#v", plan)
 		}
 	}
@@ -44,7 +45,7 @@ func TestPreflightSkillLinksExposesOnlyWorkflowSkill(t *testing.T) {
 func TestCurrentSkillsPreserveGroupedTargets(t *testing.T) {
 	root := t.TempDir()
 	manifest := release.Manifest{Skills: []*release.Skill{
-		{Name: "retired", Path: "skills/technical-solution-design/retired"},
+		{Name: "retired", Path: "skills/linear-runtime/retired"},
 		{Name: "internal", Path: "skills/fanloop-maintainer/internal"},
 	}}
 	content, err := json.Marshal(manifest)
@@ -58,36 +59,8 @@ func TestCurrentSkillsPreserveGroupedTargets(t *testing.T) {
 	}
 
 	got := currentSkills(root)
-	if len(got) != 2 || got[0].name != "retired" || got[0].path != "skills/technical-solution-design/retired" || got[1].name != "internal" || got[1].path != "skills/fanloop-maintainer/internal" {
+	if len(got) != 2 || got[0].name != "retired" || got[0].path != "skills/linear-runtime/retired" || got[1].name != "internal" || got[1].path != "skills/fanloop-maintainer/internal" {
 		t.Fatalf("currentSkills() = %#v", got)
-	}
-}
-
-func TestRollbackSkillLinkChangesRestoresExternalLink(t *testing.T) {
-	root := t.TempDir()
-	path := filepath.Join(root, "skill")
-	externalTarget := filepath.Join(root, "external")
-	marker := filepath.Join(externalTarget, "marker")
-	if err := os.Mkdir(externalTarget, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(marker, []byte("preserve me\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(filepath.Join(root, "current", "skills", "skill"), path); err != nil {
-		t.Fatal(err)
-	}
-
-	cause := errors.New("activate current")
-	err := rollbackSkillLinkChanges(cause, []string{path}, []linkPlan{{path: path, target: externalTarget}})
-	if !errors.Is(err, cause) {
-		t.Fatalf("rollback error = %v, want original cause", err)
-	}
-	if target, readErr := os.Readlink(path); readErr != nil || target != externalTarget {
-		t.Fatalf("restored Skill link -> %q (%v), want %q", target, readErr, externalTarget)
-	}
-	if content, readErr := os.ReadFile(marker); readErr != nil || string(content) != "preserve me\n" {
-		t.Fatalf("external target changed: %v\n%s", readErr, content)
 	}
 }
 

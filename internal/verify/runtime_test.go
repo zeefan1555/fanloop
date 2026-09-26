@@ -145,12 +145,12 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 	}
 	dataRoot := t.TempDir()
 	workflowRoot := filepath.Join(dataRoot, "current", "workflows")
-	if err := os.CopyFS(workflowRoot, os.DirFS(filepath.Join(repository, "tests", "testdata", "workflows"))); err != nil {
+	if err := os.CopyFS(filepath.Join(workflowRoot, "linear-runtime"), os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
 	t.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(dataRoot, "current"))
-	marker := filepath.Join(workflowRoot, "remnote-flashcards", "skills", "remnote-flashcards", "SKILL.md")
+	marker := filepath.Join(workflowRoot, "linear-runtime", "skills", "test-guide", "SKILL.md")
 	want, err := os.ReadFile(marker)
 	if err != nil {
 		t.Fatal(err)
@@ -175,7 +175,7 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 			} else if childDataRoot != frozenRoot {
 				t.Fatalf("snapshot child roots changed: %q != %q", childDataRoot, frozenRoot)
 			}
-			frozenMarker := filepath.Join(childDataRoot, "current", "workflows", "remnote-flashcards", "skills", "remnote-flashcards", "SKILL.md")
+			frozenMarker := filepath.Join(childDataRoot, "current", "workflows", "linear-runtime", "skills", "test-guide", "SKILL.md")
 			got, err := os.ReadFile(frozenMarker)
 			if err != nil || !reflect.DeepEqual(got, want) {
 				t.Fatalf("frozen configuration changed: %v", err)

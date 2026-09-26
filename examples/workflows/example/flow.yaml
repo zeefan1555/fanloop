@@ -1,0 +1,17 @@
+schema_version: 5
+
+flow:
+  analyze_materials:
+    - prompt_ref: {file: prompt.yaml, prompt_id: analyze_materials_flow}
+      when: {any_of: [[materials_analyzed, panorama_presented]]}
+      next_step_id: draft_result
+
+  draft_result:
+    - prompt_ref: {file: prompt.yaml, prompt_id: draft_result_flow}
+      when: {any_of: [[draft_written, panorama_presented]]}
+      next_step_id: confirm_result
+
+  confirm_result:
+    - prompt_ref: {file: prompt.yaml, prompt_id: confirm_result_flow}
+      when: {any_of: [[result_approved, panorama_presented]]}
+      terminal: true

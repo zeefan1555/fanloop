@@ -17,9 +17,21 @@ import (
 )
 
 const (
-	ExposedSkillName = "fanloop-workflow"
-	ExposedSkillPath = "entrypoints/fanloop-workflow"
+	WorkflowSkillName  = "fanloop-workflow"
+	WorkflowSkillPath  = "entrypoints/fanloop-workflow"
+	AuthoringSkillName = "create-fanloop-workflow"
+	AuthoringSkillPath = "entrypoints/create-fanloop-workflow"
 )
+
+type ExposedSkill struct {
+	Name string
+	Path string
+}
+
+var exposedSkills = []ExposedSkill{
+	{Name: WorkflowSkillName, Path: WorkflowSkillPath},
+	{Name: AuthoringSkillName, Path: AuthoringSkillPath},
+}
 
 var versionPattern = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z._+-]*$`)
 
@@ -79,15 +91,26 @@ func (value Manifest) Validate() error {
 		}
 		names[skill.Name] = true
 	}
-	if !names[ExposedSkillName] {
-		return fmt.Errorf("release is missing exposed Skill %q", ExposedSkillName)
+	for _, exposed := range ExposedSkills() {
+		if !names[exposed.Name] {
+			return fmt.Errorf("release is missing exposed Skill %q", exposed.Name)
+		}
 	}
 
 	return nil
 }
 
 func ValidSkillPath(path, name string) bool {
-	return name == ExposedSkillName && path == ExposedSkillPath
+	for _, exposed := range exposedSkills {
+		if name == exposed.Name && path == exposed.Path {
+			return true
+		}
+	}
+	return false
+}
+
+func ExposedSkills() []ExposedSkill {
+	return append([]ExposedSkill(nil), exposedSkills...)
 }
 
 func (value Manifest) Skill(name string) (Skill, bool) {

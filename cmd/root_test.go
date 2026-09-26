@@ -23,22 +23,24 @@ type requestValidator interface {
 	IsValid() error
 }
 
+const syntheticWorkflowID = "linear-runtime"
+
 func TestMain(main *testing.M) {
 	_ = os.Unsetenv("BOTMUX_CHAT_ID")
 	_ = os.Unsetenv("BOTMUX_SESSION_ID")
-	repository, err := filepath.Abs("..")
+	dataRoot, err := os.MkdirTemp("", "loop-cmd-test-")
 	if err != nil {
 		panic(err)
 	}
-	dataRoot, err := os.MkdirTemp("", "fanloop-cmd-tests-")
-	if err != nil {
+	if err := os.CopyFS(
+		filepath.Join(dataRoot, "current", "workflows", syntheticWorkflowID),
+		os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", syntheticWorkflowID)),
+	); err != nil {
 		panic(err)
 	}
-	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(filepath.Join(repository, "tests", "testdata", "workflows"))); err != nil {
+	if err := os.Setenv("FANLOOP_DATA_HOME", dataRoot); err != nil {
 		panic(err)
 	}
-	_ = os.Setenv("FANLOOP_DATA_HOME", dataRoot)
-	_ = os.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(repository, "tests", "testdata"))
 	code := main.Run()
 	_ = os.RemoveAll(dataRoot)
 	os.Exit(code)
@@ -82,12 +84,13 @@ func TestHiddenInstallFailureKeepsItsPrivateExitContract(t *testing.T) {
 	}
 }
 
-func TestDistributionUpdateControlsAreRetired(t *testing.T) {
+func TestConfigurationUpdateIsExplicit(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := Execute(context.Background(), []string{"update"}, strings.NewReader(""), &stdout, &stderr)
-	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), `"message": "command is not supported"`) {
+	code := Execute(context.Background(), []string{"update", "--help"}, strings.NewReader(""), &stdout, &stderr)
+	if code != 0 || !strings.Contains(stdout.String(), "Synchronize the complete published Workflow configuration") {
 		t.Fatalf("exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
+	stdout.Reset()
 	stderr.Reset()
 	code = Execute(context.Background(), []string{"--update"}, strings.NewReader(""), &stdout, &stderr)
 	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "unknown flag --update") {
@@ -97,8 +100,8 @@ func TestDistributionUpdateControlsAreRetired(t *testing.T) {
 
 func TestTypedOptionalFlagsPreserveExplicitEmptyValues(t *testing.T) {
 	cases := [][]string{
-		{"flow", "init", "--root", filepath.Join(t.TempDir(), "typed"), "--workflow", "technical-solution-design", "--title", "test", "--source-url="},
-		{"flow", "init", "--root", filepath.Join(t.TempDir(), "json"), "--input", `{"workflow":"fanloop","requirement":{"title":"test","source_url":""}}`},
+		{"flow", "init", "--root", filepath.Join(t.TempDir(), "typed"), "--workflow", syntheticWorkflowID, "--title", "test", "--source-url="},
+		{"flow", "init", "--root", filepath.Join(t.TempDir(), "json"), "--input", `{"workflow":"loop","requirement":{"title":"test","source_url":""}}`},
 	}
 	for _, args := range cases {
 		var stdout, stderr bytes.Buffer
@@ -164,8 +167,8 @@ func TestRootCommandTreeMatchesIDLRegistry(t *testing.T) {
 	for _, spec := range idl.CommandSpecs() {
 		expected[spec.ID] = true
 	}
-	if len(actual) != 16 || len(expected) != 16 {
-		t.Fatalf("public command counts = Cobra %d, IDL %d; want 16", len(actual), len(expected))
+	if len(actual) != 17 || len(expected) != 17 {
+		t.Fatalf("public command counts = Cobra %d, IDL %d; want 17", len(actual), len(expected))
 	}
 	if command, _, err := root.Find([]string{"schema"}); err == nil && command.Name() == "schema" {
 		t.Fatal("root still exposes the retired schema command")
@@ -193,6 +196,7 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		"trace":     true,
 		"card":      true,
 		"verify":    true,
+		"update":    true,
 		"version":   true,
 		"doctor":    true,
 		"dashboard": true,
@@ -236,14 +240,14 @@ func TestAgentHelpProgressivelyDisclosesWorkflow(t *testing.T) {
 			want: []string{
 				"Agent workflow",
 				"fanloop-workflow Skill",
-				"fanloop flow status",
+				"loop flow status",
 				"current.prompt and its required Skills",
 				"target leaf command --help",
 				"Report progress or a Condition result",
 				"read flow status again",
 				"NOT_INITIALIZED",
 			},
-			forbidden: []string{"schema describe", "botmux", "Panorama", "fanloop install"},
+			forbidden: []string{"schema describe", "botmux", "Panorama", "loop install"},
 		},
 		{
 			name: "flow selects one operation",
@@ -445,7 +449,7 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"Request JSON:\n  {}",
 				"Read only",
 				"isolated public-CLI verification run",
-				"fanloop verify smoke",
+				"loop verify smoke",
 			},
 		},
 		{
@@ -627,7 +631,7 @@ func TestFlowHelpExplainsProgressConditionAndRoutes(t *testing.T) {
 					t.Fatalf("%v help does not contain %q:\n%s", test.args, value, stdout.String())
 				}
 			}
-			for _, retired := range []string{"GuardResult", "Agent-submitted Artifacts", "Automatic Loop", "Manual Loop", "flow report output", "flow report loop"} {
+			for _, retired := range []string{"GuardResult", "Agent-submitted Artifacts", "Automatic Fanloop", "Manual Fanloop", "flow report output", "flow report loop"} {
 				if strings.Contains(stdout.String(), retired) {
 					t.Fatalf("%v help contains retired %q:\n%s", test.args, retired, stdout.String())
 				}
@@ -642,7 +646,7 @@ func TestExecuteRoutesFlowWithoutPython(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := Execute(
 		context.Background(),
-		[]string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"},
+		[]string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Native"},
 		strings.NewReader(""), &stdout, &stderr,
 	)
 	if code != 0 {
@@ -658,7 +662,7 @@ func TestExecuteRoutesFlowWithoutPython(t *testing.T) {
 
 func TestExecuteAppendsRequirementExecutionLog(t *testing.T) {
 	root := t.TempDir()
-	args := []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "complete transcript"}
+	args := []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "complete transcript"}
 	var stdout, stderr bytes.Buffer
 	code := Execute(
 		context.Background(),
@@ -696,11 +700,11 @@ func TestExecuteLogsDryRunReadFailureAndPartialResults(t *testing.T) {
 		stdout    string
 		stderr    string
 	}{
-		{args: []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Dry", "--dry-run"}, exitCode: 0, commandID: "flow.init", dryRun: true},
-		{args: []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Real"}, exitCode: 0, commandID: "flow.init"},
+		{args: []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Dry", "--dry-run"}, exitCode: 0, commandID: "flow.init", dryRun: true},
+		{args: []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Real"}, exitCode: 0, commandID: "flow.init"},
 		{args: []string{"flow", "status", "--root", root, "--input", "-"}, stdin: "{}\n", exitCode: 0, commandID: "flow.status"},
 		{args: []string{"flow", "status", "--root", root}, exitCode: 0, commandID: "flow.status"},
-		{args: []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Again"}, exitCode: 1, commandID: "flow.init", errorCode: "ALREADY_INITIALIZED"},
+		{args: []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Again"}, exitCode: 1, commandID: "flow.init", errorCode: "ALREADY_INITIALIZED"},
 		{args: []string{"flow", "status", "--root", root, "--unknown"}, exitCode: 2, commandID: "flow.status", errorCode: "INVALID_ARGUMENT"},
 	}
 	for index := range commands {
@@ -754,7 +758,7 @@ func TestExecuteLogsDryRunReadFailureAndPartialResults(t *testing.T) {
 
 func TestExecuteLogsInputFilePathButNotFileContentsAsStdin(t *testing.T) {
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "File input"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "File input"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	inputPath := filepath.Join(t.TempDir(), "request.json")
@@ -827,7 +831,7 @@ func TestExecuteUsesParsedLoggingControls(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		code := Execute(
 			context.Background(),
-			[]string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "--dry-run"},
+			[]string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "--dry-run"},
 			strings.NewReader(""), &stdout, &stderr,
 		)
 		if code != 0 {
@@ -889,7 +893,7 @@ func readExecutionLog(t *testing.T, root string) []storageidl.CLIExecutionLogEnt
 	return entries
 }
 
-func TestExecuteRejectsRemovedLoopCommand(t *testing.T) {
+func TestExecuteRejectsRemovedFanloopCommand(t *testing.T) {
 	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
 	var stdout, stderr bytes.Buffer
@@ -906,7 +910,7 @@ func TestExecuteRejectsRemovedLoopCommand(t *testing.T) {
 func TestExecuteRoutesTraceWithoutPython(t *testing.T) {
 	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	var stdout, stderr bytes.Buffer
@@ -922,7 +926,7 @@ func TestExecuteRoutesTraceWithoutPython(t *testing.T) {
 func TestExecuteRoutesCardWithoutPython(t *testing.T) {
 	t.Setenv("FANLOOP_PYTHON", filepath.Join(t.TempDir(), "missing-python"))
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Native"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	var stdout, stderr bytes.Buffer
@@ -937,7 +941,7 @@ func TestExecuteRoutesCardWithoutPython(t *testing.T) {
 
 func TestExecuteRejectsRetiredPublicOperations(t *testing.T) {
 	root := t.TempDir()
-	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Final"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
+	if code := Execute(context.Background(), []string{"flow", "init", "--root", root, "--workflow", syntheticWorkflowID, "--title", "Final"}, strings.NewReader(""), io.Discard, io.Discard); code != 0 {
 		t.Fatalf("initialize exit = %d", code)
 	}
 	for _, args := range [][]string{

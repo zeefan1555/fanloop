@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
 )
 
@@ -85,6 +86,79 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	}
 }
 
+func TestLocalInstallerBootstrapsEmptyCurrentWithoutConfigurationSource(t *testing.T) {
+	repository := repositoryRoot(t)
+	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture.ConfigSource = ""
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+
+	result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot)
+	if result.err != nil {
+		t.Fatalf("fresh offline install: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.3"))
+	workflowRoot := filepath.Join(dataRoot, "current", "workflows")
+	info, err := os.Lstat(workflowRoot)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("bootstrap Workflow root is not a real directory: %#v, %v", info, err)
+	}
+	entries, err := os.ReadDir(workflowRoot)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("bootstrap Workflow root entries = %#v, %v; want empty", entries, err)
+	}
+	version := runCurrent(dataRoot, codexRoot, agentsRoot, "version")
+	if version.err != nil || !strings.Contains(version.stdout, `"release_version": "1.2.3"`) {
+		t.Fatalf("bootstrap version: %v\nstdout: %s\nstderr: %s", version.err, version.stdout, version.stderr)
+	}
+	repeated := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot)
+	if repeated.err != nil {
+		t.Fatalf("repeat bootstrap install: %v\nstdout: %s\nstderr: %s", repeated.err, repeated.stdout, repeated.stderr)
+	}
+	entries, err = os.ReadDir(workflowRoot)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("repeat install changed bootstrap Workflow root: %#v, %v", entries, err)
+	}
+}
+
+func TestFreshInstallerRejectsExplicitMissingConfigurationSource(t *testing.T) {
+	repository := repositoryRoot(t)
+	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture.ConfigSource = filepath.Join(t.TempDir(), "missing-configuration-source")
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+
+	result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot)
+	if result.err == nil || !strings.Contains(result.stderr, "source") {
+		t.Fatalf("explicit missing configuration source accepted: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+	if _, err := os.Lstat(filepath.Join(dataRoot, "current")); !os.IsNotExist(err) {
+		t.Fatalf("failed explicit-source install activated current: %v", err)
+	}
+}
+
+func TestLocalInstallerMigratesLegacyCurrentWithoutLosingWorkflows(t *testing.T) {
+	repository := repositoryRoot(t)
+	legacy := makeReleaseFixture(t, repository, "1.2.2", "1.2.2")
+	upgrade := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	upgrade.ConfigSource = ""
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+	legacyTarget := filepath.Join(dataRoot, "releases", legacy.Version)
+	copyFixtureDirectory(t, legacy.Directory, legacyTarget)
+	copyFixtureDirectory(t, filepath.Join(legacy.ConfigSource, "workflows"), filepath.Join(legacyTarget, "workflows"))
+	if err := os.Symlink(filepath.Join("releases", legacy.Version), filepath.Join(dataRoot, "current")); err != nil {
+		t.Fatal(err)
+	}
+	wantDigest := fixtureDirectoryDigest(t, filepath.Join(legacyTarget, "workflows"))
+
+	result := runInstaller(t, upgrade, dataRoot, codexRoot, agentsRoot)
+	if result.err != nil {
+		t.Fatalf("legacy current migration: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+	}
+	assertCurrent(t, dataRoot, filepath.Join("..", "releases", upgrade.Version))
+	if got := fixtureDirectoryDigest(t, filepath.Join(dataRoot, "current", "workflows")); got != wantDigest {
+		t.Fatalf("legacy Workflow digest = %s, want preserved %s", got, wantDigest)
+	}
+}
+
 func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t *testing.T) {
 	repository := repositoryRoot(t)
 	home := t.TempDir()
@@ -92,6 +166,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	codexRoot := filepath.Join(home, ".codex", "skills")
 	agentsRoot := filepath.Join(home, ".agents", "skills")
 	oldRelease := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	oldRelease.ConfigSource = makeSyntheticControllerConfigSource(t, repository, "sample-custom")
 	if result := runInstaller(t, oldRelease, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install initializing release: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
@@ -100,19 +175,19 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	if err := os.MkdirAll(oldRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", oldRoot, "--workflow", "fanloop-maintainer", "--title", "Pinned controller E2E")
+	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", oldRoot, "--workflow", "sample-custom", "--title", "Pinned controller E2E")
 	if initialized.err != nil {
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(repository, "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(oldRelease.ConfigSource, "workflows", "sample-custom", "skills", "controller-tools", "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(os.Environ(), "HOME="+home)
 	if output, err := pinned.CombinedOutput(); err != nil {
 		t.Fatalf("pin initializing controller: %v\n%s", err, output)
 	}
 
-	newRelease := makeReleaseFixtureWithChangedMaintainerPrompt(t, repository, "1.2.4", "1.2.4")
+	newRelease := makeReleaseFixtureWithChangedSyntheticPrompt(t, repository, "1.2.4", "1.2.4")
 	if result := runInstaller(t, newRelease, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install candidate release: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
@@ -139,7 +214,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatal(err)
 	}
 	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", oldRoot)
-	if globalOldStatus.err != nil || strings.Contains(globalOldStatus.stdout, "candidate main") || !strings.Contains(globalOldStatus.stdout, "最新 main 基线") {
+	if globalOldStatus.err != nil || strings.Contains(globalOldStatus.stdout, "candidate prompt") || !strings.Contains(globalOldStatus.stdout, "读取用户材料") {
 		t.Fatalf("upgraded CLI did not preserve and reload the existing live Workflow: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
 	}
 	after, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
@@ -156,7 +231,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 			t.Fatalf("candidate %s failed on old Requirement: %v\nstdout: %s\nstderr: %s", name, result.err, result.stdout, result.stderr)
 		}
 	}
-	assertCandidate("progress", "flow", "report", "progress", "--root", oldRoot, "--step-id", "define_verification_contract", "--status", "in_progress", "--summary", "continued by candidate")
+	assertCandidate("progress", "flow", "report", "progress", "--root", oldRoot, "--step-id", "analyze_materials", "--status", "in_progress", "--summary", "continued by candidate")
 	assertCandidate("card", "card", "render", "--root", oldRoot, "--view", "current", "--format", "markdown")
 	assertCandidate("trace", "trace", "status", "--root", oldRoot)
 	assertCandidate("sync", "trace", "sync", "--root", oldRoot)
@@ -175,7 +250,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 
 	controllerHome := filepath.Join(oldRoot, "bound-release-home")
 	controllerStatus := runBoundController(controllerHome, "flow", "status", "--root", oldRoot)
-	if controllerStatus.err != nil || strings.Contains(controllerStatus.stdout, "candidate main") {
+	if controllerStatus.err != nil || strings.Contains(controllerStatus.stdout, "candidate prompt") {
 		t.Fatalf("pinned controller did not continue old Requirement: %v\nstdout: %s\nstderr: %s", controllerStatus.err, controllerStatus.stdout, controllerStatus.stderr)
 	}
 	controllerVersion := runBoundController(controllerHome, "version")
@@ -187,8 +262,8 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	if err := os.MkdirAll(newRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	newInitialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", newRoot, "--workflow", "fanloop-maintainer", "--title", "Candidate current E2E")
-	if newInitialized.err != nil || strings.Contains(newInitialized.stdout, "candidate main") {
+	newInitialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", newRoot, "--workflow", "sample-custom", "--title", "Candidate current E2E")
+	if newInitialized.err != nil || strings.Contains(newInitialized.stdout, "candidate prompt") {
 		t.Fatalf("candidate current did not initialize new Requirement: %v\nstdout: %s\nstderr: %s", newInitialized.err, newInitialized.stdout, newInitialized.stderr)
 	}
 	candidateVersion := runCurrent(dataRoot, codexRoot, agentsRoot, "version")
@@ -197,24 +272,27 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	}
 }
 
-func TestReleaseUpgradeRejectsMissingExplicitVerificationSource(t *testing.T) {
+func TestReleaseUpgradeDoesNotRequireConfigurationSource(t *testing.T) {
 	repository := repositoryRoot(t)
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
 	initial := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	if result := runInstaller(t, initial, dataRoot, codexRoot, agentsRoot); result.err != nil {
-		t.Fatal(result.stderr)
+		t.Fatalf("initial install: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
+
 	upgrade := makeReleaseFixture(t, repository, "1.2.4", "1.2.4")
-	upgrade.ConfigSource = filepath.Join(t.TempDir(), "missing")
-	if result := runInstaller(t, upgrade, dataRoot, codexRoot, agentsRoot); result.err == nil {
-		t.Fatal("accepted missing verification source")
+	upgrade.ConfigSource = filepath.Join(t.TempDir(), "missing-configuration-source")
+	result := runInstaller(t, upgrade, dataRoot, codexRoot, agentsRoot)
+	if result.err != nil {
+		t.Fatalf("upgrade depends on configuration source: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
-	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.3"))
+	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.4"))
 }
 
 func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	repository := copyRepositorySource(t, repositoryRoot(t))
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture.ConfigSource = makeSyntheticConfigSource(t, repository, "sample-custom")
 	dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
 
 	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
@@ -231,28 +309,6 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if result.err != nil {
 		t.Fatalf("install with atomic Skill directories: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
 	}
-	for _, skillID := range []string{
-		"technical-background-framing", "technical-goals-and-problems", "technical-business-constraints",
-		"technical-problem-approval", "technical-solution-research", "technical-overall-solution",
-		"technical-key-solutions", "technical-decision-recording", "technical-direction-approval",
-		"technical-solution-delivery", "technical-solution-benefits", "technical-retrospective-planning",
-		"technical-summary-writing", "technical-solution-writing", "technical-solution-review",
-		"technical-solution-approval",
-	} {
-		path := filepath.Join(fixture.ConfigSource, "workflows", "technical-solution-design", "skills", skillID, "SKILL.md")
-		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("configured %s Skill: %v", skillID, err)
-		}
-	}
-	for _, skillID := range []string{
-		"remnote-structure", "remnote-cli", "remnote-flashcards", "remnote-wiki", "remnote-verify", "control-remnote",
-	} {
-		path := filepath.Join(fixture.ConfigSource, "workflows", "remnote-flashcards", "skills", skillID, "SKILL.md")
-		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("configured %s Skill: %v", skillID, err)
-		}
-	}
-
 	if _, err := os.Stat(filepath.Join(dataRoot, "releases", fixture.Version, "skills")); !os.IsNotExist(err) {
 		t.Fatalf("installed release contains live Skills: %v", err)
 	}
@@ -276,32 +332,25 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 				links++
 			}
 		}
-		if links != 1 {
-			t.Fatalf("managed Skill links in %s = %d, want 1", root, links)
+		if links != len(release.ExposedSkills()) {
+			t.Fatalf("managed Skill links in %s = %d, want %d", root, links, len(release.ExposedSkills()))
 		}
 	}
 
 	requirementRoot := t.TempDir()
-	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", requirementRoot, "--workflow", "technical-solution-design", "--title", "Technical solution Skill path E2E")
+	initialized := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", requirementRoot, "--workflow", "sample-custom", "--title", "Custom Skill path E2E")
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 	liveRoot := filepath.Join(dataRoot, "current", "workflows")
 	assertFlowSkillPaths(t, initialized.stdout, liveRoot)
-	liveSkill := filepath.Join(liveRoot, "technical-solution-design", "skills", "technical-background-framing", "SKILL.md")
+	liveSkill := firstSkillPath(t, filepath.Join(liveRoot, "sample-custom", "skills"))
 	content, err := os.ReadFile(liveSkill)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(liveSkill, append(content, []byte("\nlive config marker\n")...), 0o600); err != nil {
 		t.Fatal(err)
-	}
-	started := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", requirementRoot,
-		"--step-id", "frame_requirement_background",
-		"--condition-result", `{"condition_id":"step_scope_confirmed","output":{"type":"enum_value","value":"confirmed"}}`,
-		"--evidence", `{"source":"human","content":"confirmed"}`, "--summary", "step confirmed", "--start-current-step")
-	if started.err != nil {
-		t.Fatalf("start installed technical-solution Step: %v\nstdout: %s\nstderr: %s", started.err, started.stdout, started.stderr)
 	}
 	status := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", requirementRoot)
 	if status.err != nil || !strings.Contains(status.stdout, liveSkill) {
@@ -312,12 +361,6 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		t.Fatalf("live Skill edit changed the CLI version: %v\n%s", version.err, version.stdout)
 	}
 
-	flashcardRoot := t.TempDir()
-	flashcards := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "init", "--root", flashcardRoot, "--workflow", "remnote-flashcards", "--title", "RemNote flashcards Skill path E2E")
-	if flashcards.err != nil {
-		t.Fatalf("initialize installed remnote-flashcards release: %v\nstdout: %s\nstderr: %s", flashcards.err, flashcards.stdout, flashcards.stderr)
-	}
-	assertFlowSkillPaths(t, flashcards.stdout, liveRoot)
 }
 
 func TestLocalInstallerPreservesConflictingCurrentPaths(t *testing.T) {
@@ -402,34 +445,36 @@ func TestLocalInstallerKeepsCurrentOnChecksumDoctorAndNameConflicts(t *testing.T
 	}
 }
 
-func TestLocalInstallerAdoptsExternalSkillLinksWithoutDeletingTheirTargets(t *testing.T) {
+func TestLocalInstallerRejectsUserOwnedSkillLinks(t *testing.T) {
 	repository := repositoryRoot(t)
-	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
-	dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
+	for _, exposed := range release.ExposedSkills() {
+		t.Run(exposed.Name, func(t *testing.T) {
+			fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+			dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
+			externalTarget := t.TempDir()
+			marker := filepath.Join(externalTarget, "owned-by-user")
+			if err := os.WriteFile(marker, []byte("preserve me\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			link := filepath.Join(codexRoot, exposed.Name)
+			if err := os.Symlink(externalTarget, link); err != nil {
+				t.Fatal(err)
+			}
 
-	externalTargets := []string{}
-	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
-		externalTarget := t.TempDir()
-		marker := filepath.Join(externalTarget, "owned-by-another-manager")
-		if err := os.WriteFile(marker, []byte("preserve me\n"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Symlink(externalTarget, filepath.Join(root, "fanloop-workflow")); err != nil {
-			t.Fatal(err)
-		}
-		externalTargets = append(externalTargets, marker)
-	}
-
-	result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot)
-	if result.err != nil {
-		t.Fatalf("install with external Skill links: %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
-	}
-	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture, traeRoot, claudeRoot)
-	for _, marker := range externalTargets {
-		content, err := os.ReadFile(marker)
-		if err != nil || string(content) != "preserve me\n" {
-			t.Fatalf("external Skill target changed: %v\n%s", err, content)
-		}
+			result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot, traeRoot, claudeRoot)
+			if result.err == nil || !strings.Contains(result.stderr, "refusing to replace") {
+				t.Fatalf("install with user-owned Skill link = %v\nstdout: %s\nstderr: %s", result.err, result.stdout, result.stderr)
+			}
+			if target, err := os.Readlink(link); err != nil || target != externalTarget {
+				t.Fatalf("user-owned Skill link changed to %q: %v", target, err)
+			}
+			if content, err := os.ReadFile(marker); err != nil || string(content) != "preserve me\n" {
+				t.Fatalf("user-owned Skill target changed: %v\n%s", err, content)
+			}
+			if _, err := os.Lstat(filepath.Join(dataRoot, "current")); !os.IsNotExist(err) {
+				t.Fatalf("rejected install activated current: %v", err)
+			}
+		})
 	}
 }
 
@@ -479,11 +524,12 @@ func TestDoctorChecksExposedWorkflowSkillLinks(t *testing.T) {
 func TestDoctorRejectsBrokenLiveSkillConfiguration(t *testing.T) {
 	repository := copyRepositorySource(t, repositoryRoot(t))
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture.ConfigSource = makeSyntheticConfigSource(t, repository, "sample-custom")
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
 	if result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install: %v\n%s", result.err, result.stderr)
 	}
-	path := filepath.Join(dataRoot, "current", "workflows", "technical-solution-design", "skills", "technical-background-framing", "SKILL.md")
+	path := firstSkillPath(t, filepath.Join(dataRoot, "current", "workflows", "sample-custom", "skills"))
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
 	}
@@ -561,11 +607,13 @@ func runInstaller(t *testing.T, fixture releaseFixture, dataRoot, codexRoot, age
 
 func assertSkillLink(t *testing.T, dataRoot, skillsRoot string) {
 	t.Helper()
-	want := filepath.Join(dataRoot, "current", "entrypoints", "fanloop-workflow")
-	path := filepath.Join(skillsRoot, "fanloop-workflow")
-	target, err := os.Readlink(path)
-	if err != nil || target != want {
-		t.Fatalf("skill link %s -> %q (%v), want %q", path, target, err, want)
+	for _, exposed := range release.ExposedSkills() {
+		want := filepath.Join(dataRoot, "current", filepath.FromSlash(exposed.Path))
+		path := filepath.Join(skillsRoot, exposed.Name)
+		target, err := os.Readlink(path)
+		if err != nil || target != want {
+			t.Fatalf("skill link %s -> %q (%v), want %q", path, target, err, want)
+		}
 	}
 }
 
@@ -672,7 +720,7 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 		if _, err := os.Stat(filepath.Join(dataRoot, "releases", version, filepath.FromSlash(skill.Path), "SKILL.md")); err != nil {
 			t.Fatalf("packaged Skill %s: %v", skill.Name, err)
 		}
-		if skill.Name == "fanloop-workflow" {
+		if release.ValidSkillPath(skill.Path, skill.Name) {
 			continue
 		}
 		for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
@@ -724,40 +772,101 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 	return writeReleaseFixture(t, repository, staging, binary, releaseVersion)
 }
 
-func makeReleaseFixtureWithChangedMaintainerPrompt(t *testing.T, repository, releaseVersion, compiledVersion string) releaseFixture {
+func makeSyntheticConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
-	candidateRepository := copyRepositorySource(t, repository)
-	path := filepath.Join(candidateRepository, "tests", "testdata", "workflows", "fanloop-maintainer", "prompt.yaml")
+	root := t.TempDir()
+	bundle := filepath.Join(root, "workflows", workflowID)
+	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(repository, "examples", "workflows", "example"))); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(bundle, "workflow.yaml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	changed := bytes.Replace(content, []byte("最新 main 基线"), []byte("candidate main 基线"), 1)
+	content = bytes.Replace(content, []byte("id: example"), []byte("id: "+workflowID), 1)
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func makeLinearRuntimeConfigSource(t *testing.T, repository, workflowID string) string {
+	t.Helper()
+	root := t.TempDir()
+	bundle := filepath.Join(root, "workflows", workflowID)
+	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(bundle, "workflow.yaml")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content = bytes.Replace(content, []byte("id: linear-runtime"), []byte("id: "+workflowID), 1)
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func firstSkillPath(t *testing.T, root string) string {
+	t.Helper()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return filepath.Join(root, entry.Name(), "SKILL.md")
+		}
+	}
+	t.Fatal("synthetic Workflow has no Skill")
+	return ""
+}
+
+func makeReleaseFixtureWithChangedSyntheticPrompt(t *testing.T, repository, releaseVersion, compiledVersion string) releaseFixture {
+	t.Helper()
+	fixture := makeReleaseFixture(t, repository, releaseVersion, compiledVersion)
+	fixture.ConfigSource = makeSyntheticControllerConfigSource(t, repository, "sample-custom")
+	path := filepath.Join(fixture.ConfigSource, "workflows", "sample-custom", "prompt.yaml")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := bytes.Replace(content, []byte("读取用户材料"), []byte("candidate prompt"), 1)
 	if bytes.Equal(changed, content) {
-		t.Fatal("maintainer prompt fixture replacement did not match")
+		t.Fatal("synthetic prompt fixture replacement did not match")
 	}
 	if err := os.WriteFile(path, changed, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return makeReleaseFixture(t, candidateRepository, releaseVersion, compiledVersion)
+	return fixture
+}
+
+func makeSyntheticControllerConfigSource(t *testing.T, repository, workflowID string) string {
+	t.Helper()
+	root := makeSyntheticConfigSource(t, repository, workflowID)
+	target := filepath.Join(root, "workflows", workflowID, "skills", "controller-tools", "scripts", "pin-controller-release.sh")
+	copyTreeFile(t, filepath.Join(repository, "tests", "e2e", "testdata", "pin-controller-release.sh"), target)
+	if err := os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(target)), "SKILL.md"), []byte("---\nname: controller-tools\ndescription: Synthetic controller pinning fixture.\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return root
 }
 
 func writeReleaseFixture(t *testing.T, repository, staging, binary, releaseVersion string) releaseFixture {
 	t.Helper()
 	skillItems := []map[string]any{}
-	skillSources := []string{filepath.Join(repository, "entrypoints", "fanloop-workflow", "SKILL.md")}
-	for _, skillFile := range skillSources {
-		skillSource := filepath.Dir(skillFile)
-		name := filepath.Base(skillSource)
-		relative, err := filepath.Rel(repository, skillSource)
-		if err != nil {
-			t.Fatal(err)
+	for _, exposed := range release.ExposedSkills() {
+		skillSource := filepath.Join(repository, filepath.FromSlash(exposed.Path))
+		if exposed.Name == release.AuthoringSkillName {
+			skillSource = filepath.Join(repository, ".agents", "skills", exposed.Name)
 		}
-		relative = filepath.ToSlash(relative)
-		skill := filepath.Join(staging, filepath.FromSlash(relative))
+		skill := filepath.Join(staging, filepath.FromSlash(exposed.Path))
 		copyFixtureDirectory(t, skillSource, skill)
 		skillItems = append(skillItems, map[string]any{
-			"name": name, "version": releaseVersion, "path": relative, "sha256": fixtureDirectoryDigest(t, skill),
+			"name": exposed.Name, "version": releaseVersion, "path": exposed.Path, "sha256": fixtureDirectoryDigest(t, skill),
 		})
 	}
 	manifest := map[string]any{
@@ -777,7 +886,7 @@ func writeReleaseFixture(t *testing.T, repository, staging, binary, releaseVersi
 	if err := os.WriteFile(manifestPath, append(content, '\n'), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return releaseFixture{Directory: staging, ConfigSource: filepath.Join(repository, "tests", "testdata"), Version: releaseVersion}
+	return releaseFixture{Directory: staging, ConfigSource: makeSyntheticConfigSource(t, repository, "sample-custom"), Version: releaseVersion}
 }
 
 func runBoundController(controllerHome string, args ...string) cliResult {

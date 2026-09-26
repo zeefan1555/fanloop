@@ -1,0 +1,27 @@
+schema_version: 7
+id: example
+
+stages:
+  - id: prepare
+    name: 准备
+    jobs:
+      - id: prepare
+        name: 准备
+        steps:
+          - {id: analyze_materials, name: 理解材料, executor: agent}
+
+  - id: produce
+    name: 产出
+    jobs:
+      - id: produce
+        name: 产出
+        steps:
+          - {id: draft_result, name: 形成草案, executor: agent}
+
+  - id: review
+    name: 审核
+    jobs:
+      - id: review
+        name: 审核
+        steps:
+          - {id: confirm_result, name: 人工确认, executor: human}

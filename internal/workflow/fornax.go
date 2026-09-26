@@ -68,10 +68,10 @@ func LockConfiguration(dataRoot string, exclusive bool) (func(), error) {
 	return func() { _ = file.Close() }, nil
 }
 
-// PrepareConfiguration refreshes once and retains the lock for the command's reads.
+// PrepareConfiguration retains a shared lock for local command reads.
 // FANLOOP_CONFIG_SOURCE is an explicit isolated verification source, not a fallback.
-func PrepareConfiguration(ctx context.Context, dataRoot string, selection ...string) (func(), error) {
-	unlock, err := LockConfiguration(dataRoot, true)
+func PrepareConfiguration(_ context.Context, dataRoot string) (func(), error) {
+	unlock, err := LockConfiguration(dataRoot, false)
 	if err != nil {
 		return nil, err
 	}
@@ -80,68 +80,21 @@ func PrepareConfiguration(ctx context.Context, dataRoot string, selection ...str
 			unlock()
 			return nil, err
 		}
-		return unlock, nil
-	}
-	if err := SyncFornax(ctx, dataRoot, selection...); err != nil {
-		unlock()
-		return nil, err
 	}
 	return unlock, nil
 }
 
-// SyncFornax is called while holding the configuration lock. No previously downloaded
-// tree is used to turn a failed remote read into a successful command.
-func SyncFornax(ctx context.Context, dataRoot string, selection ...string) error {
-	sourcePath := filepath.Join(dataRoot, "fornax.json")
-	info, err := os.Lstat(sourcePath)
-	if err != nil || !info.Mode().IsRegular() || info.Size() > 1<<20 {
-		return fmt.Errorf("configure a regular %s with workspace_id and workflows before starting Fanloop", sourcePath)
+// UpdateFornax is the only production operation that contacts Fornax. It
+// validates and atomically replaces the complete configured Workflow tree.
+func UpdateFornax(ctx context.Context, dataRoot string) ([]string, error) {
+	if os.Getenv("FANLOOP_CONFIG_SOURCE") != "" {
+		return nil, fmt.Errorf("FANLOOP_CONFIG_SOURCE cannot be used for a production configuration update")
 	}
-	content, err := os.ReadFile(sourcePath)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	staged, ids, err := stageFornax(ctx, dataRoot)
 	if err != nil {
-		return err
-	}
-	var source FornaxSource
-	if err := rejectDuplicateKeys(content); err != nil {
-		return err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(content))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&source); err != nil {
-		return fmt.Errorf("fornax.json: %w", err)
-	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		return fmt.Errorf("fornax.json must contain exactly one object")
-	}
-	if !numericID.MatchString(source.WorkspaceID) || len(source.Workflows) == 0 {
-		return fmt.Errorf("fornax.json requires workspace_id and at least one workflow")
-	}
-	ids, keys, skills := map[string]bool{}, map[string]bool{}, map[string]bool{}
-	for _, w := range source.Workflows {
-		if !workflowIDPattern.MatchString(w.ID) || !skillKey.MatchString(w.SkillKey) || !numericID.MatchString(w.SkillID) || ids[w.ID] || keys[w.SkillKey] || skills[w.SkillID] {
-			return fmt.Errorf("invalid or duplicate Fornax workflow selector")
-		}
-		ids[w.ID], keys[w.SkillKey], skills[w.SkillID] = true, true, true
-	}
-
-	for _, selected := range selection {
-		if selected == "" {
-			continue
-		}
-		if !ids[selected] {
-			return fmt.Errorf("Workflow %q is not selected in fornax.json", selected)
-		}
-	}
-	current := filepath.Join(dataRoot, "current")
-	if err := os.MkdirAll(current, 0700); err != nil {
-		return err
-	}
-	if err := requireRealDirectory(current); err != nil {
-		return err
-	}
-	staged, err := os.MkdirTemp(current, ".fornax-")
-	if err != nil {
-		return err
+		return nil, err
 	}
 	cleanupStaged := true
 	defer func() {
@@ -149,59 +102,138 @@ func SyncFornax(ctx context.Context, dataRoot string, selection ...string) error
 			_ = os.RemoveAll(staged)
 		}
 	}()
+	unlock, err := LockConfiguration(dataRoot, true)
+	if err != nil {
+		return nil, err
+	}
+	retainStaged, err := activateFornax(dataRoot, staged)
+	unlock()
+	if retainStaged {
+		cleanupStaged = false
+	}
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// stageFornax performs all remote reads before the short activation lock.
+// No previously downloaded tree turns a failed remote read into success.
+func stageFornax(ctx context.Context, dataRoot string) (string, []string, error) {
+	sourcePath := filepath.Join(dataRoot, "fornax.json")
+	info, err := os.Lstat(sourcePath)
+	if err != nil || !info.Mode().IsRegular() || info.Size() > 1<<20 {
+		return "", nil, fmt.Errorf("configure a regular %s with workspace_id and workflows before starting Fanloop", sourcePath)
+	}
+	content, err := os.ReadFile(sourcePath)
+	if err != nil {
+		return "", nil, err
+	}
+	var source FornaxSource
+	if err := rejectDuplicateKeys(content); err != nil {
+		return "", nil, err
+	}
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&source); err != nil {
+		return "", nil, fmt.Errorf("fornax.json: %w", err)
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return "", nil, fmt.Errorf("fornax.json must contain exactly one object")
+	}
+	if !numericID.MatchString(source.WorkspaceID) || len(source.Workflows) == 0 {
+		return "", nil, fmt.Errorf("fornax.json requires workspace_id and at least one workflow")
+	}
+	ids, keys, skills := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	for _, w := range source.Workflows {
+		if !workflowIDPattern.MatchString(w.ID) || !skillKey.MatchString(w.SkillKey) || !numericID.MatchString(w.SkillID) || ids[w.ID] || keys[w.SkillKey] || skills[w.SkillID] {
+			return "", nil, fmt.Errorf("invalid or duplicate Fornax workflow selector")
+		}
+		ids[w.ID], keys[w.SkillKey], skills[w.SkillID] = true, true, true
+	}
+
+	if err := os.MkdirAll(dataRoot, 0700); err != nil {
+		return "", nil, err
+	}
+	staged, err := os.MkdirTemp(dataRoot, ".fornax-")
+	if err != nil {
+		return "", nil, err
+	}
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.RemoveAll(staged)
+		}
+	}()
 	tree := filepath.Join(staged, "workflows")
 	if err := os.Mkdir(tree, 0700); err != nil {
-		return err
+		return "", nil, err
 	}
 	for _, w := range source.Workflows {
 		version, err := releasedVersion(ctx, staged, source.WorkspaceID, w)
 		if err != nil {
-			return fmt.Errorf("Fornax %s: %w", w.ID, err)
+			return "", nil, fmt.Errorf("Fornax %s: %w", w.ID, err)
 		}
 		archiveURL, err := publishedZIP(ctx, staged, source.WorkspaceID, w, version)
 		if err != nil {
-			return fmt.Errorf("Fornax %s: %w", w.ID, err)
+			return "", nil, fmt.Errorf("Fornax %s: %w", w.ID, err)
 		}
 		archive, err := downloadZIP(ctx, archiveURL)
 		if err != nil {
-			return fmt.Errorf("Fornax %s: %w", w.ID, err)
+			return "", nil, fmt.Errorf("Fornax %s: %w", w.ID, err)
 		}
 		extracted := filepath.Join(staged, "package-"+w.ID)
 		if err := extractPackage(archive, extracted, w.ID); err != nil {
-			return fmt.Errorf("Fornax %s: %w", w.ID, err)
+			return "", nil, fmt.Errorf("Fornax %s: %w", w.ID, err)
 		}
 		if err := os.Rename(filepath.Join(extracted, "workflows", w.ID), filepath.Join(tree, w.ID)); err != nil {
-			return err
+			return "", nil, err
 		}
 	}
-	if _, err := ListFrom(tree); err != nil {
-		return fmt.Errorf("downloaded Workflows: %w", err)
+	definitions, err := ListFrom(tree)
+	if err != nil {
+		return "", nil, fmt.Errorf("downloaded Workflows: %w", err)
 	}
+	workflowIDs := make([]string, len(definitions))
+	for index, definition := range definitions {
+		workflowIDs[index] = definition.Ref.ID
+	}
+	cleanup = false
+	return staged, workflowIDs, nil
+}
 
+func activateFornax(dataRoot, staged string) (bool, error) {
+	current := filepath.Join(dataRoot, "current")
+	if err := os.MkdirAll(current, 0700); err != nil {
+		return false, err
+	}
+	if err := requireRealDirectory(current); err != nil {
+		return false, err
+	}
+	tree := filepath.Join(staged, "workflows")
 	live := filepath.Join(current, "workflows")
 	backup := filepath.Join(staged, "previous")
 	existed := false
 	if info, err := os.Lstat(live); err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("current/workflows must be a real directory")
+			return false, fmt.Errorf("current/workflows must be a real directory")
 		}
 		if err := os.Rename(live, backup); err != nil {
-			return err
+			return false, err
 		}
 		existed = true
 	} else if !os.IsNotExist(err) {
-		return err
+		return false, err
 	}
 	if err := os.Rename(tree, live); err != nil {
 		if existed {
 			if rollback := os.Rename(backup, live); rollback != nil {
-				cleanupStaged = false
-				return fmt.Errorf("activate configuration: %v; restore previous: %w", err, rollback)
+				return true, fmt.Errorf("activate configuration: %v; restore previous retained at %s: %w", err, backup, rollback)
 			}
 		}
-		return err
+		return false, err
 	}
-	return nil
+	return false, nil
 }
 
 func fornaxJSON(ctx context.Context, temporary, workspace string, destination any, args ...string) error {
@@ -258,7 +290,8 @@ func releasedVersion(ctx context.Context, temporary, workspace string, w FornaxW
 	if err := fornaxJSON(ctx, temporary, workspace, &response, "skill", "list-releases", "--skill-id", w.SkillID, "--env", "Online", "--feature", "prod"); err != nil {
 		return "", err
 	}
-	version := ""
+	latest := int64(0)
+	versions := map[string]bool{}
 
 	for _, item := range response.Items {
 		if item.SkillID != w.SkillID || item.Env != "Online" || item.Feature != "prod" || item.Status != 1 {
@@ -268,15 +301,23 @@ func releasedVersion(ctx context.Context, temporary, workspace string, w FornaxW
 		if err != nil || timestamp <= 0 || item.Version == "" {
 			return "", fmt.Errorf("invalid release record")
 		}
-		if version != "" && version != item.Version {
-			return "", fmt.Errorf("ambiguous published versions")
+		if timestamp > latest {
+			latest = timestamp
+			versions = map[string]bool{item.Version: true}
+		} else if timestamp == latest {
+			versions[item.Version] = true
 		}
-		version = item.Version
 	}
-	if version == "" {
+	if len(versions) == 0 {
 		return "", fmt.Errorf("no successful Online/prod release")
 	}
-	return version, nil
+	if len(versions) != 1 {
+		return "", fmt.Errorf("ambiguous published versions")
+	}
+	for version := range versions {
+		return version, nil
+	}
+	panic("unreachable")
 }
 func publishedZIP(ctx context.Context, temporary, workspace string, w FornaxWorkflow, version string) (string, error) {
 	var response struct {
@@ -469,6 +510,54 @@ func ValidateIsolatedSource(dataRoot, source string) error {
 	}
 	if _, err := ListFrom(filepath.Join(source, "workflows")); err != nil {
 		return fmt.Errorf("explicit verification source: %w", err)
+	}
+	return nil
+}
+
+// ValidateDashboardCandidate accepts only an explicit, non-live configuration tree.
+func ValidateDashboardCandidate(dataRoot, source string) (string, error) {
+	if !filepath.IsAbs(source) {
+		return "", fmt.Errorf("FANLOOP_CONFIG_SOURCE must be absolute")
+	}
+	info, err := os.Lstat(source)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("Dashboard candidate source must be a real directory")
+	}
+	resolvedSource, err := filepath.EvalSymlinks(source)
+	if err != nil {
+		return "", err
+	}
+	resolvedData, err := filepath.Abs(dataRoot)
+	if err != nil {
+		return "", err
+	}
+	if value, resolveErr := filepath.EvalSymlinks(dataRoot); resolveErr == nil {
+		resolvedData = value
+	}
+	if err := rejectGlobalLiveSource(resolvedSource); err != nil {
+		return "", err
+	}
+	live := filepath.Join(resolvedData, "current")
+	if resolvedSource == live || isWithin(live, resolvedSource) || isWithin(resolvedSource, live) {
+		return "", fmt.Errorf("Dashboard candidate source must not be the live configuration root")
+	}
+	if _, err := ListFrom(filepath.Join(resolvedSource, "workflows")); err != nil {
+		return "", fmt.Errorf("Dashboard candidate source: %w", err)
+	}
+	return resolvedSource, nil
+}
+
+func rejectGlobalLiveSource(source string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	global := filepath.Join(home, ".fanloop", "current")
+	if resolved, resolveErr := filepath.EvalSymlinks(global); resolveErr == nil {
+		global = resolved
+	}
+	if source == global || isWithin(global, source) || isWithin(source, global) {
+		return fmt.Errorf("configuration source must not be the global live root")
 	}
 	return nil
 }

@@ -2,7 +2,14 @@
 printf '%s\n' "$*" >> "$FAKE_LARK_LOG"
 case "$1 $2" in
   "docs +update")
-    cat > "$FAKE_TRACE_CONTENT"
+    case " $* " in
+      *" --doc https://example.invalid/redacted "*)
+        cat > "$FAKE_TRACE_CONTENT"
+        ;;
+      *)
+        cat > /dev/null
+        ;;
+    esac
     printf '%s\n' '{"ok":true}'
     ;;
   "whoami --as")
@@ -14,8 +21,14 @@ case "$1 $2" in
   "base +record-upsert")
     printf '%s\n' '{"ok":true,"data":{"record":{"record_id":"rec_contract"}}}'
     ;;
-  "base +record-get")
-    printf '%s\n' '{"ok":true,"data":{"record":{"record_id":"rec_contract","fields":{"trace_key":"docx:TraceDocument"}}}}'
+	  "base +record-get")
+	    field_id=""
+	    previous=""
+	    for arg in "$@"; do
+	      if [ "$previous" = "--field-id" ]; then field_id="$arg"; break; fi
+	      previous="$arg"
+	    done
+	    printf '{"ok":true,"data":{"record":{"record_id":"rec_contract","fields":{"%s":"docx:TraceDocument"}}}}\n' "$field_id"
     ;;
   *)
     printf '%s\n' "unexpected command: $*" >&2

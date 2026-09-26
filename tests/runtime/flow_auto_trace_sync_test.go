@@ -1,159 +1,31 @@
 package runtime_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/traceconfig"
 )
 
-func TestMaintainerTraceUsesSelfIterationRegistry(t *testing.T) {
-	binary, root := buildCLI(t), t.TempDir()
-	fakeBin := filepath.Dir(binary)
-	logPath := filepath.Join(t.TempDir(), "lark.log")
-	writeAutoSyncLarkCLI(t, filepath.Join(fakeBin, "lark-cli"))
-	t.Setenv("FAKE_LARK_LOG", logPath)
-	t.Setenv("FAKE_TRACE_CONTENT", filepath.Join(t.TempDir(), "trace.md"))
-	t.Setenv("FAKE_CLI_LOG_CONTENT", filepath.Join(t.TempDir(), "cli-log.md"))
-	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
-	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
-
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Self Iteration"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted", "--cli-log-document-url", "https://example.invalid/redacted"), "trace.bind")
-	configBytes := readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json"))
-	var config map[string]any
-	if err := json.Unmarshal(configBytes, &config); err != nil {
-		t.Fatalf("decode Trace config: %v", err)
-	}
-	status := run(binary, "trace", "status", "--root", root)
-	assertSuccess(t, status, "trace.status")
-	for key, want := range map[string]string{
-		"registry_url":        "https://example.invalid/redacted",
-		"registry_base_token": "EXAMPLEBASEID",
-		"registry_table_id":   "tblW1KFyrKtUeNF4",
-		"registry_view_id":    "vew5zFcUtJ",
-	} {
-		if config[key] != want || !strings.Contains(status.stdout, want) {
-			t.Fatalf("maintainer Trace Registry %s = %#v, want %q:\nconfig=%s\nstatus=%s", key, config[key], want, configBytes, status.stdout)
-		}
-	}
-
-	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root, "--step-id", "define_verification_contract", "--status", "in_progress", "--summary", "started"), "flow.report.progress")
-	log := string(readFile(t, logPath))
-	for _, want := range []string{"--base-token EXAMPLEBASEID", "--table-id tblW1KFyrKtUeNF4", "--view-id vew5zFcUtJ"} {
-		if !strings.Contains(log, want) {
-			t.Fatalf("maintainer Trace sync did not use %q:\n%s", want, log)
-		}
-	}
-}
-
-func TestMaintainerTraceSyncPublishesCompleteCLILogAsThirdTarget(t *testing.T) {
-	binary, root := buildCLI(t), t.TempDir()
-	fakeBin := filepath.Dir(binary)
-	logPath := filepath.Join(t.TempDir(), "lark.log")
-	traceContentPath := filepath.Join(t.TempDir(), "trace.md")
-	cliLogContentPath := filepath.Join(t.TempDir(), "cli-log.md")
-	writeAutoSyncLarkCLI(t, filepath.Join(fakeBin, "lark-cli"))
-	t.Setenv("FAKE_LARK_LOG", logPath)
-	t.Setenv("FAKE_TRACE_CONTENT", traceContentPath)
-	t.Setenv("FAKE_CLI_LOG_CONTENT", cliLogContentPath)
-	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
-	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
-
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Complete CLI log"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root,
-		"--document-url", "https://example.invalid/redacted",
-		"--cli-log-document-url", "https://example.invalid/redacted"), "trace.bind")
-	localLogPath := filepath.Join(root, ".fanloop", "log", "cli.jsonl")
-	before := readFile(t, localLogPath)
-
-	synced := run(binary, "trace", "sync", "--root", root)
-	assertSuccess(t, synced, "trace.sync")
-	wantTargets := []string{`"target": "trace_document"`, `"target": "cli_log_document"`, `"target": "registry"`}
-	lastIndex := -1
-	for _, want := range wantTargets {
-		index := strings.Index(synced.stdout, want)
-		if index <= lastIndex {
-			t.Fatalf("Trace targets are missing or out of order at %q:\n%s", want, synced.stdout)
-		}
-		lastIndex = index
-	}
-	remote := readFile(t, cliLogContentPath)
-	if !bytes.Contains(remote, before) {
-		t.Fatalf("CLI log document omitted or changed the pre-sync bytes:\nwant bytes=%q\nremote=%q", before, remote)
-	}
-	for _, want := range []string{`"arguments"`, `"stdin"`, `"stdout"`, `"stderr"`} {
-		if !bytes.Contains(remote, []byte(want)) {
-			t.Fatalf("CLI log document is missing %s:\n%s", want, remote)
-		}
-	}
-	if got := readFile(t, localLogPath); len(got) <= len(before) {
-		t.Fatalf("trace sync invocation was not appended after the uploaded snapshot")
-	}
-}
-
-func TestMaintainerTraceSyncRecordsIndependentCLILogFailure(t *testing.T) {
-	binary, root := buildCLI(t), t.TempDir()
-	fakeBin := filepath.Dir(binary)
-	writeAutoSyncLarkCLI(t, filepath.Join(fakeBin, "lark-cli"))
-	t.Setenv("FAKE_LARK_LOG", filepath.Join(t.TempDir(), "lark.log"))
-	t.Setenv("FAKE_TRACE_CONTENT", filepath.Join(t.TempDir(), "trace.md"))
-	t.Setenv("FAKE_CLI_LOG_CONTENT", filepath.Join(t.TempDir(), "cli-log.md"))
-	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
-	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
-	t.Setenv("FAKE_FAIL_TARGET", "cli_log_document")
-
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Partial CLI log"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root,
-		"--document-url", "https://example.invalid/redacted",
-		"--cli-log-document-url", "https://example.invalid/redacted"), "trace.bind")
-
-	synced := run(binary, "trace", "sync", "--root", root)
-	if synced.exitCode != 1 || !strings.Contains(synced.stdout, `"outcome": "partial"`) {
-		t.Fatalf("trace.sync did not return partial: exit=%d\nstdout=%s\nstderr=%s", synced.exitCode, synced.stdout, synced.stderr)
-	}
-	for _, want := range []string{
-		`"target": "trace_document"`, `"target": "cli_log_document"`, `"code": "TRACE_UPDATE_FAILED"`, `"target": "registry"`,
-	} {
-		if !strings.Contains(synced.stdout, want) {
-			t.Fatalf("partial sync is missing %s:\n%s", want, synced.stdout)
-		}
-	}
-	config := string(readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json")))
-	for _, want := range []string{
-		`"schema_version": 2`,
-		`"cli_log_document_url": "https://example.invalid/redacted"`,
-		`"trace_document_last_sync_at": "`,
-		`"cli_log_document_last_sync_error": "CLI log unavailable"`,
-		`"registry_last_sync_at": "`,
-	} {
-		if !strings.Contains(config, want) {
-			t.Fatalf("Trace config is missing %q:\n%s", want, config)
-		}
-	}
-}
-
-func TestMaintainerDryRunAcceptsVerificationContractPath(t *testing.T) {
+func TestDryRunAcceptsPathOutput(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	contract := filepath.Join(root, "requirements.md")
 	if err := os.WriteFile(contract, []byte("# Contract\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "fanloop-maintainer", "--title", "Directory Output"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Path Output"), "flow.init")
 	reported := run(binary, "flow", "report", "result",
 		"--root", root,
 		"--dry-run",
-		"--step-id", "define_verification_contract",
-		"--condition-result", conditionResult("verification_contract_written", "path", `"requirements.md"`),
-		"--condition-result", conditionResult("requirements_approved", "enum_value", `"approved"`),
-		"--condition-result", conditionResult("requirements_decision_recorded", "string", `"decision-requirements"`),
-		"--condition-result", conditionResult("panorama_presented", "path", `".fanloop/card/define.md"`),
-		"--next-step-id", "build_until_verified",
-		"--summary", "Verification contract prepared",
+		"--step-id", "first",
+		"--condition-result", conditionResult("first_completed", "path", `"requirements.md"`),
+		"--next-step-id", "second",
+		"--summary", "Path output prepared",
 	)
 	assertSuccess(t, reported, "flow.report.result")
 }
@@ -173,48 +45,51 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	t.Setenv("TRACE_REGISTRY_BASE_TOKEN", "must_not_be_read")
 	t.Setenv("TRACE_REGISTRY_TABLE_ID", "must_not_be_read")
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Auto Sync"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted", "--registry", "test"), "trace.bind")
-	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
+	registry, ok := traceconfig.Resolve(traceconfig.RegistryTest, "linear-runtime")
+	if !ok {
+		t.Fatal("resolve synthetic Workflow test Registry")
+	}
 	configBytes := readFile(t, filepath.Join(root, ".fanloop", "trace", "config.json"))
 	var config map[string]any
 	if err := json.Unmarshal(configBytes, &config); err != nil {
 		t.Fatalf("decode Trace config: %v", err)
 	}
 	for key, want := range map[string]string{
-		"registry_profile":    "test",
-		"registry_url":        "https://example.invalid/redacted",
-		"registry_base_token": "EXAMPLEBASEID",
-		"registry_table_id":   "tblGrG1epTVE9tHs",
-		"registry_view_id":    "vew5zFcUtJ",
+		"registry_profile":    string(registry.Profile),
+		"registry_url":        registry.URL,
+		"registry_base_token": registry.BaseToken,
+		"registry_table_id":   registry.TableID,
+		"registry_view_id":    registry.ViewID,
 	} {
 		if config[key] != want {
 			t.Fatalf("Trace config %s = %#v, want %q:\n%s", key, config[key], want, configBytes)
 		}
 	}
-	first := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "started")
+	first := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "first", "--status", "in_progress", "--summary", "started")
 	assertSuccess(t, first, "flow.report.progress")
-	assertRegistryFields(t, registryFieldsPath, "In Progress", "业务问题 / 业务问题 / 业务背景")
+	assertRegistryFields(t, registryFieldsPath, registry.Fields, "In Progress", "Runtime / Lifecycle / First")
 
-	second := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_requirement_background", "--status", "blocked", "--summary", "waiting")
+	second := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "first", "--status", "blocked", "--summary", "waiting")
 	assertSuccess(t, second, "flow.report.progress")
-	assertRegistryFields(t, registryFieldsPath, "Blocked", "业务问题 / 业务问题 / 业务背景")
+	assertRegistryFields(t, registryFieldsPath, registry.Fields, "Blocked", "Runtime / Lifecycle / First")
 
 	third := run(binary, "flow", "report", "result", "--root", root,
-		"--step-id", "frame_requirement_background",
-		"--condition-result", conditionResult("background_defined", "path", `".technical-solution/sections/01-business-background.md"`),
-		"--next-step-id", "define_goals_and_problems", "--summary", "background defined")
+		"--step-id", "first",
+		"--condition-result", conditionResult("first_completed", "path", `"first.md"`),
+		"--next-step-id", "second", "--summary", "first complete")
 	assertSuccess(t, third, "flow.report.result")
-	assertRegistryFields(t, registryFieldsPath, "In Progress", "业务问题 / 业务问题 / 目标与问题定义")
+	assertRegistryFields(t, registryFieldsPath, registry.Fields, "In Progress", "Runtime / Lifecycle / Second")
 
 	log := string(readFile(t, logPath))
-	if got := strings.Count(log, "docs +update"); got != 4 {
+	if got := strings.Count(log, "docs +update"); got != 3 {
 		t.Fatalf("each accepted Flow update must sync the Trace document: calls=%d\n%s", got, log)
 	}
-	if got := strings.Count(log, "base +record-upsert"); got != 4 {
+	if got := strings.Count(log, "base +record-upsert"); got != 3 {
 		t.Fatalf("each accepted Flow update must sync the Registry: calls=%d\n%s", got, log)
 	}
-	for _, want := range []string{"--base-token EXAMPLEBASEID", "--table-id tblGrG1epTVE9tHs", "--view-id vew5zFcUtJ"} {
+	for _, want := range []string{"--base-token " + registry.BaseToken, "--table-id " + registry.TableID, "--view-id " + registry.ViewID} {
 		if !strings.Contains(log, want) {
 			t.Fatalf("automatic sync did not use fixed test Registry setting %q:\n%s", want, log)
 		}
@@ -226,14 +101,14 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 		t.Fatalf("automatic sync must use only the lark-cli bot identity:\n%s", log)
 	}
 	traceContent := string(readFile(t, traceContentPath))
-	for _, want := range []string{"# Workflow Trace", "业务问题/业务问题/业务背景 → 业务问题/业务问题/目标与问题定义", "background_section_path"} {
+	for _, want := range []string{"# Workflow Trace", "Runtime/Lifecycle/First → Runtime/Lifecycle/Second", "first_artifact"} {
 		if !strings.Contains(traceContent, want) {
 			t.Fatalf("auto-synced Trace content does not contain %q:\n%s", want, traceContent)
 		}
 	}
 	status := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, status, "trace.status")
-	for _, want := range []string{`"event_count": 14`, `"outcome": "succeeded"`, `"target": "trace_document"`, `"target": "registry"`} {
+	for _, want := range []string{`"event_count": 11`, `"outcome": "succeeded"`, `"target": "trace_document"`, `"target": "registry"`} {
 		if !strings.Contains(status.stdout, want) {
 			t.Fatalf("Trace status does not contain %s:\n%s", want, status.stdout)
 		}
@@ -251,10 +126,9 @@ func TestFlowReportKeepsCommittedUpdateWhenAutoSyncIsPartial(t *testing.T) {
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 	t.Setenv("FAKE_FAIL_TARGET", "registry")
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Partial Auto Sync"), "flow.init")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Partial Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted"), "trace.bind")
-	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
-	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "frame_requirement_background", "--status", "blocked", "--summary", "local fact wins")
+	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "first", "--status", "blocked", "--summary", "local fact wins")
 	assertSuccess(t, reported, "flow.report.progress")
 	if !strings.Contains(reported.stdout, `"effect": "status_updated"`) {
 		t.Fatalf("Flow update was not committed: %s", reported.stdout)
@@ -284,14 +158,13 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	t.Setenv("FAKE_REGISTRY_FIELDS", filepath.Join(t.TempDir(), "registry-fields.json"))
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 
-	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "No Auto Sync"), "flow.init")
-	ensureTechnicalStepStarted(t, binary, root, "frame_requirement_background")
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "No Auto Sync"), "flow.init")
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted"), "trace.bind")
-	rejected := run(binary, "flow", "report", "result", "--root", root, "--step-id", "write_technical_solution", "--condition-result", conditionResult("technical_solution_written", "path", `"technical-solution.md"`), "--condition-result", conditionResult("architecture_diagram_written", "path", `".technical-solution/architecture.mmd"`), "--next-step-id", "review_technical_solution", "--summary", "stale report")
+	rejected := run(binary, "flow", "report", "result", "--root", root, "--step-id", "second", "--condition-result", conditionResult("second_completed", "path", `"second.md"`), "--condition-result", conditionResult("second_evidence", "path", `"evidence.md"`), "--next-step-id", "third", "--summary", "stale report")
 	if rejected.exitCode == 0 || !strings.Contains(rejected.stderr, `"code": "STEP_NOT_CURRENT"`) {
 		t.Fatalf("expected a rejected report:\nstdout=%s\nstderr=%s", rejected.stdout, rejected.stderr)
 	}
-	dryRun := run(binary, "flow", "report", "progress", "--root", root, "--dry-run", "--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "dry run")
+	dryRun := run(binary, "flow", "report", "progress", "--root", root, "--dry-run", "--step-id", "first", "--status", "in_progress", "--summary", "dry run")
 	assertSuccess(t, dryRun, "flow.report.progress")
 
 	if log, err := os.ReadFile(logPath); err == nil && len(log) > 0 {
@@ -301,33 +174,33 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	}
 	traceStatus := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, traceStatus, "trace.status")
-	if !strings.Contains(traceStatus.stdout, `"event_count": 3`) || strings.Contains(traceStatus.stdout, `"last_sync"`) {
+	if !strings.Contains(traceStatus.stdout, `"event_count": 2`) || strings.Contains(traceStatus.stdout, `"last_sync"`) {
 		t.Fatalf("non-committed reports changed Trace sync history: %s", traceStatus.stdout)
 	}
 }
 
-func assertRegistryFields(t *testing.T, path, wantStatus, wantStageStep string) {
+func assertRegistryFields(t *testing.T, path string, mapping traceconfig.RegistryFields, wantStatus, wantStageStep string) {
 	t.Helper()
 	var fields map[string]any
 	if err := json.Unmarshal(readFile(t, path), &fields); err != nil {
 		t.Fatalf("decode Registry fields: %v", err)
 	}
-	if got := fields["状态"]; got != wantStatus {
+	if got := fields[mapping.Status]; got != wantStatus {
 		t.Fatalf("Registry status = %#v, want %q; fields=%#v", got, wantStatus, fields)
 	}
-	if got := fields["trace_key"]; got != "docx:AutoSyncTrace" {
-		t.Fatalf("Registry trace_key = %#v", got)
+	if got := fields[mapping.TraceKey]; got != "docx:AutoSyncTrace" {
+		t.Fatalf("Registry key = %#v", got)
 	}
-	if _, ok := fields["负责人"]; ok {
-		t.Fatalf("bot-backed Registry sync must not invent a human owner: %#v", fields["负责人"])
+	if _, ok := fields[mapping.Owner]; ok {
+		t.Fatalf("bot-backed Registry sync must not invent a human owner: %#v", fields[mapping.Owner])
 	}
-	stageAndAudit, _ := fields["阶段 / 子状态"].(string)
+	stageAndAudit, _ := fields[mapping.Location].(string)
 	if stageAndAudit != wantStageStep && !strings.HasPrefix(stageAndAudit, wantStageStep+"\n") {
-		t.Fatalf("Registry 阶段 / 子状态 = %#v, want prefix %q", stageAndAudit, wantStageStep)
+		t.Fatalf("Registry location = %#v, want prefix %q", stageAndAudit, wantStageStep)
 	}
-	updated, _ := fields["更新时间"].(string)
+	updated, _ := fields[mapping.UpdatedAt].(string)
 	if !regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`).MatchString(updated) {
-		t.Fatalf("Registry 更新时间 must use the Base datetime format, got %q", updated)
+		t.Fatalf("Registry updated time must use the Base datetime format, got %q", updated)
 	}
 }
 
@@ -360,11 +233,17 @@ case "$1 $2" in
 	  "whoami --as")
 	    printf '%s\n' '{"identity":"bot","available":true,"tokenStatus":"ready"}'
     ;;
-  "base +record-list")
-    if [ -f "$FAKE_RECORD_EXISTS" ]; then
-      printf '%s\n' '{"ok":true,"data":{"data":[["docx:AutoSyncTrace"]],"fields":["trace_key"],"record_id_list":["rec_runtime"]}}'
-    else
-      printf '%s\n' '{"ok":true,"data":{"data":[],"fields":["trace_key"],"record_id_list":[]}}'
+	  "base +record-list")
+	    field_id=""
+	    previous=""
+	    for arg in "$@"; do
+	      if [ "$previous" = "--field-id" ]; then field_id="$arg"; break; fi
+	      previous="$arg"
+	    done
+	    if [ -f "$FAKE_RECORD_EXISTS" ]; then
+	      printf '{"ok":true,"data":{"data":[["docx:AutoSyncTrace"]],"fields":["%s"],"record_id_list":["rec_runtime"]}}\n' "$field_id"
+	    else
+	      printf '{"ok":true,"data":{"data":[],"fields":["%s"],"record_id_list":[]}}\n' "$field_id"
     fi
     ;;
   "base +record-upsert")
@@ -395,15 +274,21 @@ case "$1 $2" in
       printf '%s\n' 'existing Trace row must be updated by record ID' >&2
       exit 9
     fi
-    : > "$FAKE_RECORD_EXISTS"
-    if [ "$existing" = true ]; then
-      printf '%s\n' '{"ok":true,"data":{"record":{"update":{"trace_key":"docx:AutoSyncTrace"}},"updated":true}}'
-    else
-      printf '%s\n' '{"ok":true,"data":{"record":{"create":{"trace_key":"docx:AutoSyncTrace"}},"created":true}}'
-    fi
-    ;;
-  "base +record-get")
-    printf '%s\n' '{"ok":true,"data":{"data":[["docx:AutoSyncTrace"]],"fields":["trace_key"],"record_id_list":["rec_runtime"]}}'
+	    : > "$FAKE_RECORD_EXISTS"
+	    if [ "$existing" = true ]; then
+	      printf '%s\n' '{"ok":true,"data":{"record":{"update":{}},"updated":true}}'
+	    else
+	      printf '%s\n' '{"ok":true,"data":{"record":{"create":{}},"created":true}}'
+	    fi
+	    ;;
+	  "base +record-get")
+	    field_id=""
+	    previous=""
+	    for arg in "$@"; do
+	      if [ "$previous" = "--field-id" ]; then field_id="$arg"; break; fi
+	      previous="$arg"
+	    done
+	    printf '{"ok":true,"data":{"data":[["docx:AutoSyncTrace"]],"fields":["%s"],"record_id_list":["rec_runtime"]}}\n' "$field_id"
     ;;
   *)
     printf '%s\n' "unexpected command: $*" >&2

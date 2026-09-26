@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "id": "final-ops-update-input-validation",
+  "commands": [
+    {"args": ["update", "--input", "{\"unexpected\":true}"]}
+  ]
+}

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var adrReferencePattern = regexp.MustCompile(`^ADR-[0-9]{4}$`)
+var adrReferencePattern = regexp.MustCompile(`^ADR-[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type CapabilityMatrix struct {
 	SchemaVersion   int          `json:"schema_version"`
@@ -102,7 +102,7 @@ func ValidateCapabilityMatrix(matrix CapabilityMatrix, actualTests []string) err
 		case "retired":
 			if !adrReferencePattern.MatchString(capability.ADR) {
 				return fmt.Errorf(
-					"retired capability %q must reference ADR-xxxx",
+					"retired capability %q must reference ADR-xxxx-full-name",
 					capability.ID,
 				)
 			}
@@ -177,10 +177,10 @@ func ValidateCapabilityReferences(matrix CapabilityMatrix, repository string) er
 				}
 			}
 		case "retired":
-			number := strings.TrimPrefix(capability.ADR, "ADR-")
-			matches, err := filepath.Glob(filepath.Join(repository, "docs", "adr", number+"-*.md"))
-			if err != nil || len(matches) != 1 {
-				return fmt.Errorf("capability %q ADR %q does not resolve to one file", capability.ID, capability.ADR)
+			name := strings.TrimPrefix(capability.ADR, "ADR-") + ".md"
+			path := filepath.Join(repository, "docs", "adr", name)
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("capability %q ADR %q: %w", capability.ID, capability.ADR, err)
 			}
 		}
 	}

@@ -12,6 +12,7 @@
     <div class="top-actions">
       <span class="health"><i></i><span id="healthText">Live files ready</span></span>
       <button class="icon-button" id="refresh" type="button" title="Refresh live files" aria-label="Refresh live files">↻</button>
+      <button class="primary-button" id="save" type="button" hidden disabled>Save file</button>
     </div>
   </header>
 
@@ -36,7 +37,7 @@
         <div class="file-heading"><span class="field-label">Files</span><span>Direct edit</span></div>
         <nav id="files" aria-label="Workflow files"></nav>
       </section>
-      <footer class="sidebar-footer"><span>Live root</span><code>~/.fanloop/current/workflows</code></footer>
+      <footer class="sidebar-footer"><span id="sourceKind">Published configuration</span><code id="sourceRoot">~/.fanloop/current/workflows</code></footer>
     </aside>
 
     <section class="canvas-panel">
@@ -90,8 +91,9 @@
       </div>
       <div class="editor-shell">
         <pre id="lineNumbers" aria-hidden="true"></pre>
-        <textarea id="editor" spellcheck="false" readonly disabled aria-label="Workflow source viewer"></textarea>
+        <textarea id="editor" spellcheck="false" readonly disabled aria-label="Workflow source editor"></textarea>
       </div>
+      <div class="inspector-footer" id="editorActions" hidden><span id="selection">No source selected</span><button id="discard" type="button" disabled>Discard</button></div>
     </aside>
   </main>
   <script src="/app.js"></script>

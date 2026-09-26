@@ -26,11 +26,16 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 		t.Fatalf("build fanloop: %v\n%s", err, output)
 	}
 
+	configSource := makeSyntheticConfigSource(t, repository, "sample-custom")
+	dataRoot := t.TempDir()
+	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(filepath.Join(configSource, "workflows"))); err != nil {
+		t.Fatal(err)
+	}
 	root := t.TempDir()
 	run := func(args ...string) string {
 		t.Helper()
 		command := exec.Command(binary, args...)
-		command.Env = append(withoutBotmuxBinding(os.Environ()), "FANLOOP_PYTHON="+filepath.Join(root, "missing-python"))
+		command.Env = append(withoutBotmuxBinding(os.Environ()), "FANLOOP_PYTHON="+filepath.Join(root, "missing-python"), "FANLOOP_DATA_HOME="+dataRoot)
 		var stdout, stderr bytes.Buffer
 		command.Stdout, command.Stderr = &stdout, &stderr
 		if err := command.Run(); err != nil {
@@ -39,16 +44,13 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 		return stdout.String()
 	}
 
-	if output := run("flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "E2E"); !strings.Contains(output, `"command": "flow.init"`) {
+	if output := run("flow", "init", "--root", root, "--workflow", "sample-custom", "--title", "E2E"); !strings.Contains(output, `"command": "flow.init"`) {
 		t.Fatalf("flow output = %s", output)
 	}
-	run("flow", "report", "result", "--root", root, "--step-id", "frame_requirement_background",
-		"--condition-result", `{"condition_id":"step_scope_confirmed","output":{"type":"enum_value","value":"confirmed"}}`,
-		"--evidence", `{"source":"human","content":"confirmed"}`, "--summary", "step confirmed", "--start-current-step")
-	if output := run("flow", "report", "progress", "--step-id", "frame_requirement_background", "--status", "in_progress", "--summary", "working", "--root", root); !strings.Contains(output, `"effect": "status_updated"`) {
+	if output := run("flow", "report", "progress", "--step-id", "analyze_materials", "--status", "in_progress", "--summary", "working", "--root", root); !strings.Contains(output, `"effect": "status_updated"`) {
 		t.Fatalf("flow progress result = %s", output)
 	}
-	if output := run("trace", "render", "--root", root); !strings.Contains(output, `"event_count": 3`) {
+	if output := run("trace", "render", "--root", root); !strings.Contains(output, `"event_count": 2`) {
 		t.Fatalf("trace output = %s", output)
 	}
 	if output := run("card", "render", "--root", root, "--view", "current", "--format", "markdown"); !strings.Contains(output, `"format": "markdown"`) {

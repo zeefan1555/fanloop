@@ -28,7 +28,7 @@
         "test_action_driver.ActionDriverTest.test_valid_feishu_doc_url_accepts_docs_rejects_report_base"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "flow.aime-cr-classification",
@@ -45,7 +45,7 @@
         "test_aime_cr_collector.AimeCrCollectorTest.test_summary_uses_mr_description_json_and_no_comments"
       ],
       "disposition": "retired",
-      "adr": "ADR-0028"
+      "adr": "ADR-0028-retire-python-skill-internals"
     },
     {
       "id": "card.check-exemption-rendering",
@@ -56,7 +56,7 @@
         "test_card.CardExemptionRenderTest.test_card_shows_rule_notice_without_matched_checks"
       ],
       "disposition": "retired",
-      "adr": "ADR-0020"
+      "adr": "ADR-0020-distribute-output-guard-checks-to-owning-boundaries"
     },
     {
       "id": "flow.state-machine-and-loop",
@@ -93,7 +93,7 @@
         "test_driver.DriverTest.test_update_rejects_backward_transition_and_points_to_loop"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "cross-cutting.trace-card-cli",
@@ -126,7 +126,7 @@
         "test_driver_v2.TraceAndCardTest.test_unified_cli_rejects_relative_or_missing_requirement_root"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "cross-cutting.agent-code-review-lifecycle",
@@ -138,7 +138,7 @@
         "test_end_to_end_validation.EndToEndValidationTest.test_blocking_aime_cr_auto_loops_to_coding_and_keeps_style"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "flow.route-contract",
@@ -156,7 +156,7 @@
         "test_flow_routes.FlowRouteContractTest.test_test_execution_transition_requires_explicit_approval"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "flow.check-exemptions",
@@ -171,7 +171,7 @@
         "test_gate_exemptions.GateExemptionsTest.test_unknown_node_returns_empty_lists_without_raising"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "cross-cutting.condition-output-invariants",
@@ -194,7 +194,7 @@
         "test_output_guard.OutputGuardTest.test_help_and_driver_remain_separate"
       ],
       "disposition": "retired",
-      "adr": "ADR-0077"
+      "adr": "ADR-0077-bootstrap-fanloop-with-promotion-design"
     },
     {
       "id": "trace.registry-projection",
@@ -228,7 +228,7 @@
         "test_trace_registry_migration.TraceRegistryMigrationTest.test_parse_revision_recovers_native_table_rows"
       ],
       "disposition": "retired",
-      "adr": "ADR-0028"
+      "adr": "ADR-0028-retire-python-skill-internals"
     },
     {
       "id": "workflow.skill-contract",
@@ -248,7 +248,7 @@
         "test_workflow_contract.WorkflowContractTest.test_thrift_idl_codegen_is_scoped_and_uses_overpass"
       ],
       "disposition": "retired",
-      "adr": "ADR-0028"
+      "adr": "ADR-0028-retire-python-skill-internals"
     }
   ]
 }

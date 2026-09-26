@@ -6,7 +6,6 @@ on:
     branches: [master]
 
 env:
-  FANLOOP_CONFIG_SOURCE: ${{ github.workspace }}/tests/testdata
   CANDIDATE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
@@ -63,6 +62,10 @@ jobs:
           export FANLOOP_AGENT_SKILLS_ROOT="$verify_root/skills/agents"
           export FANLOOP_TRAE_SKILLS_ROOT="$verify_root/skills/trae"
           export FANLOOP_CLAUDE_SKILLS_ROOT="$verify_root/skills/claude"
+          export FANLOOP_CONFIG_SOURCE="$verify_root/config"
+          mkdir -p "$FANLOOP_CONFIG_SOURCE/workflows"
+          cp -R internal/workflow/testdata/linear-runtime "$FANLOOP_CONFIG_SOURCE/workflows/"
+          cp -R internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/workflows/"
           unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
           ./scripts/install-local.sh
           "$FANLOOP_DATA_HOME/current/bin/fanloop" version | tee "$verify_root/version.json"

@@ -17,6 +17,7 @@ import (
 func TestDashboardServesReadOnlyInstalledWorkflows(t *testing.T) {
 	repository := repositoryRoot(t)
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture.ConfigSource = makeSyntheticConfigSource(t, repository, "sample-custom")
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
 	if result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install release: %v\n%s", result.err, result.stderr)
@@ -75,7 +76,7 @@ func TestDashboardServesReadOnlyInstalledWorkflows(t *testing.T) {
 	if page := string(get("/")); !strings.Contains(page, "Fanloop Workflow Dashboard") || !strings.Contains(page, "id=\"editor\"") {
 		t.Fatalf("dashboard page is incomplete:\n%s", page)
 	}
-	if list := string(get("/api/files")); !strings.Contains(list, `"path":"fanloop-maintainer/prompt.yaml"`) || !strings.Contains(list, `"path":"fanloop-maintainer/skills/fanloop-dev-tdd/SKILL.md"`) {
+	if list := string(get("/api/files")); !strings.Contains(list, `"path":"sample-custom/prompt.yaml"`) || !strings.Contains(list, `"path":"sample-custom/skills/example-analyze-materials/SKILL.md"`) || !strings.Contains(list, `"editable":false`) {
 		t.Fatalf("dashboard file list is incomplete:\n%s", list)
 	}
 	var topology struct {
@@ -95,10 +96,10 @@ func TestDashboardServesReadOnlyInstalledWorkflows(t *testing.T) {
 			EndLine   int    `json:"end_line"`
 		} `json:"fragments"`
 	}
-	if err := json.Unmarshal(get("/api/topology?workflow=fanloop-maintainer"), &topology); err != nil {
+	if err := json.Unmarshal(get("/api/topology?workflow=sample-custom"), &topology); err != nil {
 		t.Fatal(err)
 	}
-	if len(topology.Workflow.Stages) != 4 || len(topology.Fragments["define_verification_contract"]["step"]) != 1 {
+	if len(topology.Workflow.Stages) != 3 || len(topology.Fragments["analyze_materials"]["step"]) != 1 {
 		t.Fatalf("live topology is incomplete: %#v", topology)
 	}
 
@@ -120,7 +121,7 @@ func TestDashboardServesReadOnlyInstalledWorkflows(t *testing.T) {
 		return response.StatusCode, responseBody
 	}
 
-	workflowRelative := "fanloop-maintainer/workflow.yaml"
+	workflowRelative := "sample-custom/workflow.yaml"
 	var workflowFile struct {
 		Content string `json:"content"`
 		SHA256  string `json:"sha256"`

@@ -39,6 +39,12 @@ func (p *VersionResponse) IsValid() error {
 	}
 	return nil
 }
+func (p *ConfigurationUpdateRequest) IsValid() error {
+	return nil
+}
+func (p *ConfigurationUpdateResponse) IsValid() error {
+	return nil
+}
 func (p *DoctorRequest) IsValid() error {
 	return nil
 }

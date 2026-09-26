@@ -46,9 +46,11 @@ print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
 PY
 
 mkdir -p "$run_root/data/current"
-cp -R "$repo_root/tests/testdata/workflows" "$run_root/data/current/workflows"
+mkdir -p "$run_root/data/current/workflows"
+cp -R "$repo_root/internal/workflow/testdata/linear-runtime" "$run_root/data/current/workflows/"
+cp -R "$repo_root/internal/workflow/testdata/runtime-controls" "$run_root/data/current/workflows/"
 export FANLOOP_DATA_HOME="$run_root/data"
-export FANLOOP_CONFIG_SOURCE="$repo_root/tests/testdata"
+unset FANLOOP_CONFIG_SOURCE
 export PATH="$fake_bin:$PATH"
 export FANLOOP_E2E_BINARY="$binary"
 export FANLOOP_E2E_SOURCE_COMMIT="$source_commit"
@@ -111,7 +113,7 @@ while IFS= read -r workflow_id; do
     "$process_logs/route-matrix-$workflow_id.log" \
     "$run_root/route-matrix/$workflow_id/E2E_REPORT.md" \
     run_route_matrix "$workflow_id" "$process_logs/route-matrix-$workflow_id.log"
-done < <(find tests/testdata/workflows -mindepth 2 -maxdepth 2 -name workflow.yaml -print | sed -E 's#^tests/testdata/workflows/([^/]+)/workflow.yaml$#\1#' | sort)
+done < <(find internal/workflow/testdata -mindepth 2 -maxdepth 2 -name workflow.yaml -print | sed -E 's#^internal/workflow/testdata/([^/]+)/workflow.yaml$#\1#' | sort)
 
 exit_code=0
 for ((index = 0; index < ${#shard_pids[@]}; index++)); do

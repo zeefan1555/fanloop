@@ -42,7 +42,8 @@ def main():
     for kind in ('CODEX', 'AGENT', 'TRAE', 'CLAUDE'):
         skill_root = output / 'skill-roots' / kind.lower()
         skill_root.mkdir(parents=True)
-        (skill_root / 'fanloop-workflow').symlink_to(binary.parent.parent / 'entrypoints/fanloop-workflow')
+        for skill in ('fanloop-workflow', 'create-fanloop-workflow'):
+            (skill_root / skill).symlink_to(binary.parent.parent / 'entrypoints' / skill)
         env[f'FANLOOP_{kind}_SKILLS_ROOT'] = str(skill_root)
     outcomes = []
     for directory in sorted((source / 'workflows').iterdir()):

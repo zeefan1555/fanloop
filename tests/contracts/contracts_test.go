@@ -234,20 +234,6 @@ func TestPrivateLeakDetectionChecksEachSnapshot(t *testing.T) {
 	}
 }
 
-func TestRemnoteContractUsesIDsWithoutLocalContentCopies(t *testing.T) {
-	value := loadCase(t, filepath.Join(repositoryRoot(t), "tests", "contracts", "testdata", "final-flow", "remnote-flashcards-recovery", "case.json"))
-	if len(value.PrivateFiles) != 0 {
-		t.Fatal("RemNote content must not be copied into local fixtures")
-	}
-	for _, command := range value.Commands {
-		for _, arg := range command.Args {
-			if strings.Contains(arg, "Decks/") || strings.Contains(arg, "artifacts/cards.md") {
-				t.Fatal("retired persistence artifact in RemNote contract")
-			}
-		}
-	}
-}
-
 func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 	t.Setenv("BOTMUX_CHAT_ID", "oc_real_chat_must_not_escape")
 	t.Setenv("BOTMUX_SESSION_ID", "real_session_must_not_escape")
@@ -266,7 +252,10 @@ func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 func runCase(t *testing.T, binary, casePath string, value contractCase) contractResult {
 	t.Helper()
 	root := t.TempDir()
-	copyTree(t, filepath.Join(repositoryRoot(t), "tests", "testdata", "workflows"), filepath.Join(root, ".fanloop-user", "current", "workflows"))
+	workflowRoot := filepath.Join(root, ".fanloop-user", "current", "workflows")
+	for _, id := range []string{"linear-runtime", "runtime-controls"} {
+		copyTree(t, filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id), filepath.Join(workflowRoot, id))
+	}
 	before := filepath.Join(filepath.Dir(casePath), "before")
 	if _, err := os.Stat(before); err == nil {
 		copyTree(t, before, root)

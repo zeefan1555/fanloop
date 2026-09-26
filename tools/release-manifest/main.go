@@ -46,13 +46,13 @@ func build(version, source, dist string) (release.Manifest, error) {
 		},
 		Skills: []*release.Skill{},
 	}
-	entrypoint, err := discoverEntrypoint(source, version)
+	entrypoints, err := discoverEntrypoints(source, version)
 	if err != nil {
 		return manifest, err
 	}
-	manifest.Skills = []*release.Skill{entrypoint}
+	manifest.Skills = entrypoints
 
-	if err := validateSelectorRoutes(filepath.Join(source, "entrypoints", release.ExposedSkillName, "routes.yaml")); err != nil {
+	if err := validateSelectorRoutes(filepath.Join(source, release.WorkflowSkillPath, "routes.yaml")); err != nil {
 		return manifest, err
 	}
 
@@ -102,21 +102,29 @@ func validateSelectorRoutes(path string) error {
 	return nil
 }
 
-func discoverEntrypoint(source, version string) (*release.Skill, error) {
-	entrypoint := filepath.Join(source, release.ExposedSkillPath, "SKILL.md")
-	info, err := os.Stat(entrypoint)
-	if err != nil {
-		return nil, fmt.Errorf("find exposed Skill: %w", err)
+func discoverEntrypoints(source, version string) ([]*release.Skill, error) {
+	result := make([]*release.Skill, 0, len(release.ExposedSkills()))
+	for _, exposed := range release.ExposedSkills() {
+		sourcePath := exposed.Path
+		if exposed.Name == release.AuthoringSkillName {
+			sourcePath = ".agents/skills/" + exposed.Name
+		}
+		root := filepath.Join(source, filepath.FromSlash(sourcePath))
+		entrypoint := filepath.Join(root, "SKILL.md")
+		info, err := os.Stat(entrypoint)
+		if err != nil {
+			return nil, fmt.Errorf("find exposed Skill %q: %w", exposed.Name, err)
+		}
+		if !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("exposed Skill is not a regular file: %s", entrypoint)
+		}
+		digest, err := release.DirectoryDigest(root)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, &release.Skill{Name: exposed.Name, Version: version, Path: exposed.Path, Sha256: digest})
 	}
-	if !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("exposed Skill is not a regular file: %s", entrypoint)
-	}
-	root := filepath.Dir(entrypoint)
-	digest, err := release.DirectoryDigest(root)
-	if err != nil {
-		return nil, err
-	}
-	return &release.Skill{Name: release.ExposedSkillName, Version: version, Path: release.ExposedSkillPath, Sha256: digest}, nil
+	return result, nil
 }
 
 // Verify the copied build against the source manifest before writing release.json.

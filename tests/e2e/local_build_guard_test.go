@@ -122,6 +122,64 @@ func TestLocalBuildGuardRejectsInvalidVersion(t *testing.T) {
 	}
 }
 
+func TestLocalInstallPreservesCallerToolchainAcrossOfflineReinstalls(t *testing.T) {
+	repository, environment := localBuildGuardRepository(t)
+	logPath := filepath.Join(t.TempDir(), "go-environment.log")
+	environment = append(environment,
+		"GOTOOLCHAIN=auto",
+		"GOROOT=/caller/go",
+		"GOPROXY=off",
+		"GOSUMDB=off",
+		"FANLOOP_GO_ENV_LOG="+logPath,
+	)
+
+	for attempt := 1; attempt <= 3; attempt++ {
+		command := exec.Command(
+			filepath.Join(repository, "scripts", "install-local.sh"),
+			filepath.Join(t.TempDir(), "install"),
+		)
+		command.Env = environment
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("offline reinstall %d: %v\n%s", attempt, err, output)
+		}
+	}
+
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
+	if len(lines) < 9 {
+		t.Fatalf("Go environment records = %d, want at least 9: %q", len(lines), content)
+	}
+	for _, line := range lines {
+		if line != "auto\t/caller/go" {
+			t.Fatalf("Go environment = %q, want caller values", line)
+		}
+	}
+}
+
+func TestLocalBuildDefaultsToAutomaticToolchainSelection(t *testing.T) {
+	repository, environment := localBuildGuardRepository(t)
+	logPath := filepath.Join(t.TempDir(), "go-environment.log")
+	environment = append(withoutEnvironmentKeys(environment, "GOTOOLCHAIN", "GOROOT"), "FANLOOP_GO_ENV_LOG="+logPath)
+	command := exec.Command(filepath.Join(repository, "scripts", "build-local.sh"), filepath.Join(t.TempDir(), "build"))
+	command.Env = environment
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("default local build: %v\n%s", err, output)
+	}
+
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(strings.TrimSuffix(string(content), "\n"), "\n") {
+		if line != "auto\t" {
+			t.Fatalf("Go environment = %q, want automatic toolchain with no synthetic GOROOT", line)
+		}
+	}
+}
+
 // Only Go is replaced: the guard runs the real script and Git against a tiny repo.
 func localBuildGuardRepository(t *testing.T) (string, []string) {
 	t.Helper()
@@ -133,13 +191,19 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	installScript, err := os.ReadFile(filepath.Join(repositoryRoot(t), "scripts", "install-local.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for name, content := range map[string][]byte{
-		"scripts/build-local.sh": script,
-		"VERSION":                []byte("1.2.3\n"),
-		".gitignore":             []byte("/dist/\n"), "tracked.go": []byte("initial\n"),
-		"entrypoints/example/SKILL.md":              []byte("entry\n"),
-		"workflows/example/workflow.yaml":           []byte("example\n"),
-		"workflows/example/skills/example/SKILL.md": []byte("example\n"),
+		"scripts/build-local.sh":   script,
+		"scripts/install-local.sh": installScript,
+		"VERSION":                  []byte("1.2.3\n"),
+		".gitignore":               []byte("/dist/\n"), "tracked.go": []byte("initial\n"),
+		"entrypoints/example/SKILL.md":                    []byte("entry\n"),
+		".agents/skills/create-fanloop-workflow/SKILL.md": []byte("authoring\n"),
+		"workflows/example/workflow.yaml":                 []byte("example\n"),
+		"workflows/example/skills/example/SKILL.md":       []byte("example\n"),
 	} {
 		path := filepath.Join(repository, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -158,13 +222,23 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 	bin := t.TempDir()
 	fakeGo := `#!/usr/bin/env bash
 set -euo pipefail
+if [[ -n "${FANLOOP_GO_ENV_LOG:-}" ]]; then
+  printf '%s\t%s\n' "${GOTOOLCHAIN:-}" "${GOROOT:-}" >> "$FANLOOP_GO_ENV_LOG"
+fi
 case "$1" in
   env)
     case "$2" in GOHOSTOS) echo linux;; GOHOSTARCH) echo amd64;; *) exit 1;; esac
     ;;
   build)
     while [[ $# -gt 0 ]]; do
-      if [[ "$1" == "-o" ]]; then printf 'binary\n' > "$2"; chmod +x "$2"; break; fi
+	  if [[ "$1" == "-o" ]]; then
+	    cat > "$2" <<'EOF'
+#!/usr/bin/env bash
+printf '{"ok":true}\n'
+EOF
+	    chmod +x "$2"
+	    break
+	  fi
       shift
     done
     if [[ -n "${FANLOOP_GUARD_MUTATE:-}" ]]; then printf 'changed after compilation\n' >> "$FANLOOP_GUARD_MUTATE"; fi
@@ -193,4 +267,19 @@ func localBuildGuardGit(t *testing.T, repository string, args ...string) string 
 		t.Fatalf("git %v: %v\n%s", args, err, output)
 	}
 	return string(output)
+}
+
+func withoutEnvironmentKeys(environment []string, keys ...string) []string {
+	blocked := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		blocked[key] = struct{}{}
+	}
+	filtered := make([]string, 0, len(environment))
+	for _, entry := range environment {
+		key, _, _ := strings.Cut(entry, "=")
+		if _, exists := blocked[key]; !exists {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered
 }

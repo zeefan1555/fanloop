@@ -129,7 +129,7 @@ def mock_value(
         if maximum is not None and count > maximum:
             raise AssertionError(f"{condition_id} url_list has incompatible item bounds")
         return [
-            f"https://example.invalid/redacted + index}"
+            f"https://github.com/zeefan1555/fanloop/pull/{7000 + index}"
             for index in range(count)
         ]
     if output_type == "object":
@@ -222,7 +222,7 @@ class Recorder:
             prefix.with_suffix(".stdin").write_text(input_text, encoding="utf-8")
         if show:
             block = [
-                "$ " + shlex.join(argv),
+                "$ " + " ".join(shlex.quote(argument) for argument in argv),
                 "",
                 "[CLI -> Agent 原始响应]",
                 result.stdout.rstrip(),
@@ -781,7 +781,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--binary", required=True, help="source-built fanloop binary")
     parser.add_argument("--output-root", required=True, help="new directory for all audit files")
     parser.add_argument("--source-root", default=".", help="Git worktree used to build the binary")
-    parser.add_argument("--workflow", default="technical-solution-design", help="Workflow id passed to flow init")
+    parser.add_argument("--workflow", required=True, help="Workflow id passed to flow init")
     return parser.parse_args()
 
 
@@ -815,15 +815,22 @@ def main() -> int:
     )
     workflow_id = init["data"]["workflow"]["id"]
     trace_bind = ["trace", "bind", "--root", str(baseline), "--document-url", TRACE_DOCUMENT_URL]
-    if args.workflow == "fanloop-maintainer":
-        trace_bind.extend(["--cli-log-document-url", CLI_LOG_DOCUMENT_URL])
-    success(
-        recorder.run(
-            "setup", "trace-bind", baseline,
-            trace_bind,
-        ),
-        "trace bind",
-    )
+    trace_result = recorder.run("setup", "trace-bind", baseline, trace_bind)
+    if trace_result.returncode != 0:
+        try:
+            error = json.loads(trace_result.stderr).get("error", {})
+        except json.JSONDecodeError:
+            error = {}
+        detail = " ".join([error.get("message", ""), error.get("hint", "")])
+        if error.get("code") != "INVALID_ARGUMENT" or not any(
+            token in detail for token in ("--cli-log-document-url", "cli_log_document_url")
+        ):
+            success(trace_result, "trace bind")
+        trace_result = recorder.run(
+            "setup", "trace-bind-with-cli-log", baseline,
+            trace_bind + ["--cli-log-document-url", CLI_LOG_DOCUMENT_URL],
+        )
+    success(trace_result, "trace bind")
     results: list[dict[str, Any]] = []
     checks: list[dict[str, Any]] = []
     visited: list[str] = []

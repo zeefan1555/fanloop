@@ -476,6 +476,102 @@ var fieldIDToName_VersionResponse = map[int16]string{
 	4: "skills",
 }
 
+type ConfigurationUpdateRequest struct {
+}
+
+func NewConfigurationUpdateRequest() *ConfigurationUpdateRequest {
+	return &ConfigurationUpdateRequest{}
+}
+
+func (p *ConfigurationUpdateRequest) InitDefault() {
+}
+
+func (p *ConfigurationUpdateRequest) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ConfigurationUpdateRequest(%+v)", *p)
+}
+
+func (p *ConfigurationUpdateRequest) DeepEqual(ano *ConfigurationUpdateRequest) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_ConfigurationUpdateRequest = map[int16]string{}
+
+type ConfigurationUpdateResponse struct {
+	WorkflowIds  []string `thrift:"workflow_ids,1,required,list<string>" json:"workflow_ids"`
+	WorkflowRoot string   `thrift:"workflow_root,2,required" json:"workflow_root"`
+}
+
+func NewConfigurationUpdateResponse() *ConfigurationUpdateResponse {
+	return &ConfigurationUpdateResponse{}
+}
+
+func (p *ConfigurationUpdateResponse) InitDefault() {
+}
+
+func (p *ConfigurationUpdateResponse) GetWorkflowIds() (v []string) {
+	return p.WorkflowIds
+}
+
+func (p *ConfigurationUpdateResponse) GetWorkflowRoot() (v string) {
+	return p.WorkflowRoot
+}
+
+func (p *ConfigurationUpdateResponse) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ConfigurationUpdateResponse(%+v)", *p)
+}
+
+func (p *ConfigurationUpdateResponse) DeepEqual(ano *ConfigurationUpdateResponse) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.WorkflowIds) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.WorkflowRoot) {
+		return false
+	}
+	return true
+}
+
+func (p *ConfigurationUpdateResponse) Field1DeepEqual(src []string) bool {
+
+	if len(p.WorkflowIds) != len(src) {
+		return false
+	}
+	for i, v := range p.WorkflowIds {
+		_src := src[i]
+		if strings.Compare(v, _src) != 0 {
+			return false
+		}
+	}
+	return true
+}
+func (p *ConfigurationUpdateResponse) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.WorkflowRoot, src) != 0 {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_ConfigurationUpdateResponse = map[int16]string{
+	1: "workflow_ids",
+	2: "workflow_root",
+}
+
 type DoctorRequest struct {
 }
 
@@ -699,6 +795,8 @@ var fieldIDToName_DoctorResponse = map[int16]string{
 type OpsService interface {
 	Version(ctx context.Context, request *VersionRequest) (r *VersionResponse, err error)
 
+	Update(ctx context.Context, request *ConfigurationUpdateRequest) (r *ConfigurationUpdateResponse, err error)
+
 	Doctor(ctx context.Context, requirementRoot string, request *DoctorRequest) (r *DoctorResponse, err error)
 }
 
@@ -833,6 +931,141 @@ func (p *OpsServiceVersionResult) Field1DeepEqual(src *erroridl.PublicError) boo
 }
 
 var fieldIDToName_OpsServiceVersionResult = map[int16]string{
+	0: "success",
+	1: "error",
+}
+
+type OpsServiceUpdateArgs struct {
+	Request *ConfigurationUpdateRequest `thrift:"request,1,required" json:"request"`
+}
+
+func NewOpsServiceUpdateArgs() *OpsServiceUpdateArgs {
+	return &OpsServiceUpdateArgs{}
+}
+
+func (p *OpsServiceUpdateArgs) InitDefault() {
+}
+
+var OpsServiceUpdateArgs_Request_DEFAULT *ConfigurationUpdateRequest
+
+func (p *OpsServiceUpdateArgs) GetRequest() (v *ConfigurationUpdateRequest) {
+	if !p.IsSetRequest() {
+		return OpsServiceUpdateArgs_Request_DEFAULT
+	}
+	return p.Request
+}
+
+func (p *OpsServiceUpdateArgs) IsSetRequest() bool {
+	return p.Request != nil
+}
+
+func (p *OpsServiceUpdateArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OpsServiceUpdateArgs(%+v)", *p)
+}
+
+func (p *OpsServiceUpdateArgs) DeepEqual(ano *OpsServiceUpdateArgs) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Request) {
+		return false
+	}
+	return true
+}
+
+func (p *OpsServiceUpdateArgs) Field1DeepEqual(src *ConfigurationUpdateRequest) bool {
+
+	if !p.Request.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_OpsServiceUpdateArgs = map[int16]string{
+	1: "request",
+}
+
+type OpsServiceUpdateResult struct {
+	Success *ConfigurationUpdateResponse `thrift:"success,0,optional" json:"success,omitempty"`
+	Error   *erroridl.PublicError        `thrift:"error,1,optional" json:"error,omitempty"`
+}
+
+func NewOpsServiceUpdateResult() *OpsServiceUpdateResult {
+	return &OpsServiceUpdateResult{}
+}
+
+func (p *OpsServiceUpdateResult) InitDefault() {
+}
+
+var OpsServiceUpdateResult_Success_DEFAULT *ConfigurationUpdateResponse
+
+func (p *OpsServiceUpdateResult) GetSuccess() (v *ConfigurationUpdateResponse) {
+	if !p.IsSetSuccess() {
+		return OpsServiceUpdateResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var OpsServiceUpdateResult_Error_DEFAULT *erroridl.PublicError
+
+func (p *OpsServiceUpdateResult) GetError() (v *erroridl.PublicError) {
+	if !p.IsSetError() {
+		return OpsServiceUpdateResult_Error_DEFAULT
+	}
+	return p.Error
+}
+
+func (p *OpsServiceUpdateResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *OpsServiceUpdateResult) IsSetError() bool {
+	return p.Error != nil
+}
+
+func (p *OpsServiceUpdateResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OpsServiceUpdateResult(%+v)", *p)
+}
+
+func (p *OpsServiceUpdateResult) DeepEqual(ano *OpsServiceUpdateResult) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field0DeepEqual(ano.Success) {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Error) {
+		return false
+	}
+	return true
+}
+
+func (p *OpsServiceUpdateResult) Field0DeepEqual(src *ConfigurationUpdateResponse) bool {
+
+	if !p.Success.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *OpsServiceUpdateResult) Field1DeepEqual(src *erroridl.PublicError) bool {
+
+	if !p.Error.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_OpsServiceUpdateResult = map[int16]string{
 	0: "success",
 	1: "error",
 }

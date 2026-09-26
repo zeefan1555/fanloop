@@ -71,7 +71,7 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 			t.Errorf("AGENTS.md does not require %s", command)
 		}
 	}
-	for _, contract := range []string{"执行子 Agent 创建并持有 Requirement Root", "直接修改受管代码", "只向主 Agent回报", "不得自行批准", "自动 squash 合并唯一 PR", "只更新本 Requirement 的源码 worktree", "公开 npm 包"} {
+	for _, contract := range []string{"执行子 Agent 创建并持有 Requirement Root", "直接修改受管代码", "只向主 Agent回报", "不得自行批准", "自动 squash 合并唯一 PR", "只更新本 Requirement 的源码 worktree", "本地安装"} {
 		if !strings.Contains(string(agents), contract) {
 			t.Errorf("AGENTS.md does not define maintainer contract %q", contract)
 		}
@@ -81,7 +81,7 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 	}
 }
 
-func TestNpmDistributionRetainsLocalBuildEntrypoints(t *testing.T) {
+func TestDistributionIsLocalOnly(t *testing.T) {
 	repo := repositoryRoot(t)
 	data, err := os.ReadFile(filepath.Join(repo, "package.json"))
 	if err != nil {
@@ -89,33 +89,59 @@ func TestNpmDistributionRetainsLocalBuildEntrypoints(t *testing.T) {
 	}
 	var pkg struct {
 		Private bool              `json:"private"`
-		Name    string            `json:"name"`
-		Bin     map[string]string `json:"bin"`
 		Scripts map[string]string `json:"scripts"`
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
 	if err := decoder.Decode(&pkg); err != nil {
 		t.Fatal(err)
 	}
-	if pkg.Private || pkg.Name != "@zeefan1555/fanloop-cli" || pkg.Bin["fanloop"] != "scripts/run.js" ||
-		pkg.Scripts["build"] != "./scripts/build-local.sh" ||
-		pkg.Scripts["install:local"] != "./scripts/install-local.sh" ||
-		pkg.Scripts["build:release"] != "./scripts/build-npm-release.sh" {
-		t.Fatal("npm distribution must retain local build scripts and expose the official launcher")
+	if !pkg.Private || len(pkg.Scripts) != 2 || pkg.Scripts["build"] != "./scripts/build-local.sh" || pkg.Scripts["install:local"] != "./scripts/install-local.sh" {
+		t.Fatal("package.json must expose only the local build and install shortcuts")
 	}
-	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh", "scripts/build-npm-release.sh"} {
+	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh"} {
 		info, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative)))
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
 			t.Fatalf("local entrypoint %s is not executable: %v", relative, err)
 		}
 	}
 	for _, relative := range []string{
-		".goreleaser.yml",
-		"scripts/build-release.sh", "scripts/prepare-release.sh", "scripts/package-release.sh",
-		"scripts/verify-published-package.sh",
+		".goreleaser.yml", ".github/workflows/release.yml",
+		"scripts/build-release.sh", "scripts/prepare-release.sh", "scripts/build-npm-release.sh",
+		"scripts/install.js", "scripts/package-release.js", "scripts/publish-npm-package.js",
+		"scripts/resolve-release-version.js", "scripts/run.js", "scripts/verify-published-package.js",
 	} {
 		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative))); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("retired distribution entrypoint remains: %s (%v)", relative, err)
+		}
+	}
+}
+
+func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
+	repo := repositoryRoot(t)
+	for _, relative := range []string{
+		".agents/skills/create-fanloop-workflow/SKILL.md",
+		"examples/workflows/example/workflow.yaml",
+		"examples/workflows/example/condition.yaml",
+		"examples/workflows/example/flow.yaml",
+		"examples/workflows/example/loop.yaml",
+		"examples/workflows/example/prompt.yaml",
+	} {
+		if info, err := os.Stat(filepath.Join(repo, relative)); err != nil || !info.Mode().IsRegular() {
+			t.Fatalf("authoring asset %s: %v", relative, err)
+		}
+	}
+	skill, err := os.ReadFile(filepath.Join(repo, ".agents/skills/create-fanloop-workflow/SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"<candidate-root>/workflows/<workflow-id>/", "Fornax", "fanloop update"} {
+		if !strings.Contains(string(skill), required) {
+			t.Errorf("Workflow authoring Skill is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{"待人工审核的仓库草案", "git diff --check"} {
+		if strings.Contains(string(skill), forbidden) {
+			t.Errorf("Workflow authoring Skill retains repository-delivery instruction %q", forbidden)
 		}
 	}
 }
@@ -129,6 +155,16 @@ func TestProductionConfigurationIsNotARepositoryDefault(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(repo, name)); err != nil {
 			t.Fatal(err)
 		}
+	}
+	technicalDesign, err := os.ReadFile(filepath.Join(repo, "docs", "technical-design.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(technicalDesign), "[ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)") {
+		t.Fatal("technical design still treats the retired technical-solution ADR as current routing authority")
+	}
+	if !strings.Contains(string(technicalDesign), "[ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)") {
+		t.Fatal("technical design is missing the current Fornax production inventory authority")
 	}
 }
 
@@ -258,5 +294,30 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 	}
 	if strings.Contains(readme, "fanloop verify snapshot --root") {
 		t.Error("README.md still lists a second verify command recipe")
+	}
+}
+
+func TestVerificationDocsDoNotTreatSnapshotAsOutcomeManifest(t *testing.T) {
+	repo := repositoryRoot(t)
+	for _, relative := range []string{
+		".cursor/skills/verify-fanloop/SKILL.md",
+		".cursor/skills/verify-fanloop/features/progress-and-result.md",
+	} {
+		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(relative)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(content)
+		if !strings.Contains(text, "fanloop verify smoke") || !strings.Contains(text, "fanloop verify snapshot") {
+			t.Fatalf("%s must distinguish smoke and snapshot", relative)
+		}
+		for _, stale := range []string{
+			"fanloop verify smoke` or `fanloop verify snapshot",
+			"fanloop verify smoke` 或 `fanloop verify snapshot",
+		} {
+			if strings.Contains(text, stale) {
+				t.Fatalf("%s still treats snapshot as an outcome-manifest producer", relative)
+			}
+		}
 	}
 }

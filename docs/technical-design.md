@@ -18,15 +18,15 @@ Fornax 托管三套生产配置：
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 - `pstack-native`：六步剧本型交付（选择剧本、定义验收、方案设计、增量实现、行为验证、合并发布），绑定 `workflows/pstack-native/skills/` 下原生 pstack skills。
 
-Fornax包内目录为 `workflows/<workflow-id>/{五份 YAML,skills/<skill-id>/SKILL.md}`。统一入口位于
-`entrypoints/fanloop-workflow/`；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
+Fornax包内目录为 `workflows/<workflow-id>/{五份 YAML,skills/<skill-id>/SKILL.md}`。本地 Release 暴露
+`fanloop-workflow` 与 `create-fanloop-workflow` 两个公共 Skill；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
 额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `fanloop-maintenance` 对应
 `fanloop-maintainer`，`remnote-flashcards` 对应 `remnote-flashcards`，`pstack-native`
-对应 `pstack-native`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。完整决策见
-[ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)。
+对应 `pstack-native`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产清单及
+`technical-solution-design` 退役决策见 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
 可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 endpoint、远端字段名、
@@ -84,25 +84,23 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 
 ## 本地构建与验证
 
-`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、统一入口和
+`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、两个公共 Skill 和
 Manifest 的本地 Release；标准输出是构建目录的绝对路径。`workflows/` 与 `exemplars/` 不进入 Release，
 也不参与 CLI 的 dirty 版本摘要。显式输出目录必须尚不存在，默认在 `dist/` 下新建唯一
 `local-*` 目录。
 
 Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、Storage Schema 支持与
-统一入口 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
-复用目录安装：从 `fornax.json` 明确选择的 Fornax 已发布配置准备完整 staging，用候选Doctor验证后协调切换
-配置与CLI。配置查询使用 `fornax-cli`，标准库HTTPS/ZIP只负责托管资源下载与安全解压；没有平台HTTP客户端。
-每个配置消费命令重新同步所需Workflow；共享文件锁防止读取半套配置。草稿、失败或身份不匹配不触发旧配置fallback。
+两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
+复用目录安装，只切换 CLI Release 并保留已有配置，不访问 Fornax。
 
-`fanloop dashboard` 提供loopback-only只读文件与拓扑，保持原源码锚点、缩放/聚焦/选择与轮询。POST写接口已删除。
+`fanloop update` 是唯一配置同步入口：它读取 `fornax.json` 的完整选择集，通过 `fornax-cli` 查询 Online/prod 精确版本，以标准库 HTTPS/ZIP 安全下载到同文件系统私有 staging，校验归档和完整 Workflow 树后原子替换 `current/workflows`。任一步失败都保留原树。普通 CLI 与 Dashboard 只读本地配置，共享文件锁防止读取半套替换。
+
+`fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认 live 根只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启隔离候选保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；不能指向 live 根，也不调用 Fornax。
 五YAML仍是通用加载器的唯一执行图，Fornax内容版本不进入Requirement或CLI Release。
 配置选择及运行副本、测试fixture、完整单包边界见 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
-GitHub 托管源码与检查。`master` 更新触发 GitHub Actions 构建 darwin/linux、amd64/arm64 制品，
-公开发布 `@zeefan1555/fanloop-cli`，再验证 candidate、latest、匿名安装、Doctor 与 smoke。npm 包只携带
-CLI 和统一入口；生产 Workflow 继续从 Fornax 同步。完整决定见
-[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0121](./adr/0121-publish-public-npm-releases.md)。
+GitHub 只托管源码、PR 和 CI；不构建或发布 npm、跨平台归档或其他分发制品。合并后从精确 merge commit 本地构建、安装并回读版本、Doctor 与 smoke。生产 Workflow 独立在 Fornax 发布，并由显式 `fanloop update` 同步。完整决定见
+[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0122](./adr/0122-use-explicit-fornax-update-and-local-source-distribution.md)。
 
 新增生产Workflow在Fornax发布完整包并更新用户fornax.json选择。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 

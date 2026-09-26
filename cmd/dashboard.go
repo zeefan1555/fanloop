@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	clierrs "github.com/zeefan1555/fanloop/errs"
@@ -22,7 +24,8 @@ func newDashboardCommand(ioStreams streams) *cobra.Command {
   Start the local Workflow configuration dashboard.
 
 Effect:
-  Local write. The foreground server listens only on 127.0.0.1 with an OS-selected port and displays synchronized Fornax configuration under current/workflows as read-only.
+  Local write. The foreground server listens only on 127.0.0.1. Published configuration is read-only;
+  an explicit FANLOOP_CONFIG_SOURCE opens an isolated candidate configuration for whole-file editing.
 
 Request JSON:
   {}
@@ -32,6 +35,7 @@ Typed flags:
 
 Constraints:
   The business Request is empty. The command does not create, delete, or rename Workflows or Skills.
+  FANLOOP_CONFIG_SOURCE must be an absolute isolated root containing workflows and cannot resolve to the live data root.
 
 Controls:
   --input accepts {}, @file, or - for stdin and is not part of Request JSON.
@@ -53,21 +57,20 @@ Next step:
 			_ = writeFailure(ioStreams.err, failure, output.Meta{Command: "dashboard"})
 			return &clierrs.ExitError{Code: clierrs.ExitCode(failure), ErrorCode: failure.Code.String()}
 		}
-		root, err := workflow.DefaultRoot()
-		if err != nil {
-			return dashboardFailure(ioStreams, err)
-		}
-
 		dataRoot, err := release.DefaultDataRoot()
 		if err != nil {
 			return dashboardFailure(ioStreams, err)
 		}
-		unlock, err := workflow.PrepareConfiguration(command.Context(), dataRoot)
-		if err != nil {
-			return dashboardFailure(ioStreams, err)
+		root := filepath.Join(dataRoot, "current", "workflows")
+		editable, lockRoot := false, dataRoot
+		if source := os.Getenv("FANLOOP_CONFIG_SOURCE"); source != "" {
+			resolved, err := workflow.ValidateDashboardCandidate(dataRoot, source)
+			if err != nil {
+				return dashboardFailure(ioStreams, err)
+			}
+			root, editable, lockRoot = filepath.Join(resolved, "workflows"), true, ""
 		}
-		handler, err := dashboard.NewHandler(root)
-		unlock()
+		handler, err := newDashboardHandler(root, editable, lockRoot)
 		if err != nil {
 			return dashboardFailure(ioStreams, err)
 		}
@@ -95,6 +98,18 @@ Next step:
 	}
 	addOperationControls(command, &controls)
 	return command
+}
+
+func newDashboardHandler(root string, editable bool, lockRoot string) (http.Handler, error) {
+	if lockRoot == "" {
+		return dashboard.NewHandler(root, editable, lockRoot)
+	}
+	unlock, err := workflow.LockConfiguration(lockRoot, false)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+	return dashboard.NewHandler(root, editable, lockRoot)
 }
 
 func dashboardFailure(ioStreams streams, err error) error {

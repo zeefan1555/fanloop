@@ -3,11 +3,11 @@
   "id": "final-trace-sync-success",
   "environment": {
     "PATH": "{{ROOT}}/bin:{{PATH}}",
-    "FAKE_LARK_LOG": "{{ROOT}}/lark-calls.log",
+    "FAKE_LARK_LOG": "{{ROOT}}/.fanloop-user/lark-calls.log",
     "FAKE_TRACE_CONTENT": "{{ROOT}}/remote-trace.md"
   },
   "commands": [
-    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "technical-solution-design", "--title", "Trace sync success"]},
+    {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "linear-runtime", "--title", "Synthetic trace sync"]},
     {"args": ["trace", "bind", "--root", "{{ROOT}}", "--document-url", "https://example.invalid/redacted"]},
     {"args": ["trace", "render", "--root", "{{ROOT}}", "--dry-run"]},
     {"args": ["trace", "sync", "--root", "{{ROOT}}", "--dry-run"]},

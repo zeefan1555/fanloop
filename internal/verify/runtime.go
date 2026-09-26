@@ -595,11 +595,13 @@ func (runtime Runtime) isolatedEnvironment(workRoot string) ([]string, error) {
 		}
 	}
 	releaseRoot := release.RootForExecutable(runtime.Executable)
-	target := filepath.Join(releaseRoot, filepath.FromSlash(release.ExposedSkillPath))
-	if info, err := os.Stat(target); err == nil && info.IsDir() {
-		for _, root := range roots {
-			if err := os.Symlink(target, filepath.Join(root, release.ExposedSkillName)); err != nil {
-				return nil, err
+	for _, exposed := range release.ExposedSkills() {
+		target := filepath.Join(releaseRoot, filepath.FromSlash(exposed.Path))
+		if info, err := os.Stat(target); err == nil && info.IsDir() {
+			for _, root := range roots {
+				if err := os.Symlink(target, filepath.Join(root, exposed.Name)); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

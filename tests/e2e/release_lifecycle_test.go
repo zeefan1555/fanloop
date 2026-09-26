@@ -7,11 +7,12 @@ import (
 	"testing"
 )
 
-func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *testing.T) {
+func TestInstalledReleaseUsesSyntheticConditionRoutingAcrossDomains(t *testing.T) {
 	repository := repositoryRoot(t)
-	releaseFixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	fixture.ConfigSource = makeLinearRuntimeConfigSource(t, repository, "sample-runtime")
 	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
-	if result := runInstaller(t, releaseFixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
+	if result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install release: %v\n%s", result.err, result.stderr)
 	}
 
@@ -31,43 +32,21 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 		}
 		return result
 	}
-	run("flow", "init", "--root", root, "--workflow", "technical-solution-design", "--title", "Release E2E")
+	run("flow", "init", "--root", root, "--workflow", "sample-runtime", "--title", "Release E2E")
 	run("trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted")
-	start := func(step string) {
-		run("flow", "report", "result", "--root", root, "--step-id", step,
-			"--condition-result", `{"condition_id":"step_scope_confirmed","output":{"type":"enum_value","value":"confirmed"}}`,
-			"--evidence", `{"source":"human","content":"confirmed"}`, "--summary", "step confirmed", "--start-current-step")
-	}
-	start("frame_requirement_background")
-	first := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"frame_requirement_background","condition_results":[{"condition_id":"background_defined","output":{"type":"path","value":".technical-solution/sections/01-business-background.md"}}],"route":{"next_step_id":"define_goals_and_problems"},"summary":"background defined","evidence":[]}`)
-	if !strings.Contains(first.stdout, `"effect": "advanced"`) {
-		t.Fatalf("matching Condition result did not advance: %s", first.stdout)
-	}
-	start("define_goals_and_problems")
-	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"define_goals_and_problems","condition_results":[{"condition_id":"goals_and_problems_defined","output":{"type":"path","value":".technical-solution/sections/02-goals-and-problems.md"}}],"route":{"next_step_id":"define_business_constraints"},"summary":"goals and problems defined","evidence":[]}`)
-	start("define_business_constraints")
-	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"define_business_constraints","condition_results":[{"condition_id":"business_constraints_defined","output":{"type":"path","value":".technical-solution/sections/03-business-constraints.md"}}],"route":{"next_step_id":"confirm_technical_problem"},"summary":"business constraints defined","evidence":[]}`)
-	start("confirm_technical_problem")
-	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"approval without panorama receipt cannot advance","evidence":[]}`)
+
+	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"first","condition_results":[{"condition_id":"first_completed","output":{"type":"path","value":"first.md"}}],"route":{"next_step_id":"second"},"summary":"first complete","evidence":[]}`)
+	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"second","condition_results":[{"condition_id":"second_completed","output":{"type":"path","value":"second.md"}}],"route":{"next_step_id":"third"},"summary":"missing evidence","evidence":[]}`)
 	if incomplete.err == nil || !strings.Contains(incomplete.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
-		t.Fatalf("approval without Panorama receipt bypassed review gate:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
+		t.Fatalf("incomplete Condition set advanced:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
 	}
-	waitingForReview := run("flow", "status", "--root", root)
-	if !strings.Contains(waitingForReview.stdout, `"step_id": "confirm_technical_problem"`) {
-		t.Fatalf("rejected document-only result changed current Step: %s", waitingForReview.stdout)
+	advanced := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"second","condition_results":[{"condition_id":"second_completed","output":{"type":"path","value":"second.md"}},{"condition_id":"second_evidence","output":{"type":"path","value":"evidence.md"}}],"route":{"next_step_id":"third"},"summary":"second complete","evidence":[]}`)
+	if !strings.Contains(advanced.stdout, `"effect": "advanced"`) || !strings.Contains(advanced.stdout, `"step_id": "third"`) {
+		t.Fatalf("matching Conditions did not advance: %s", advanced.stdout)
 	}
-	approved := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"confirm_technical_problem","condition_results":[{"condition_id":"problem_document_published","output":{"type":"url","value":"https://example.com/problem-definition"}},{"condition_id":"panorama_card_published","output":{"type":"path","value":".fanloop/card/release-e2e.json"}},{"condition_id":"technical_problem_approved","output":{"type":"enum_value","value":"approved"}}],"route":{"next_step_id":"research_solution_options"},"summary":"technical problem approved","evidence":[{"source":"human","content":"approved problem","ref":"requirement-e2e"}]}`)
-	if !strings.Contains(approved.stdout, `"step_id": "research_solution_options"`) {
-		t.Fatalf("approved requirements did not enter solution design: %s", approved.stdout)
-	}
-	start("research_solution_options")
-	looped := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"research_solution_options","condition_results":[{"condition_id":"goals_and_problems_changed","output":{"type":"enum_value","value":"goals_and_problems"}}],"route":{"back_step_id":"define_goals_and_problems"},"summary":"goals and problems changed","evidence":[]}`)
-	if !strings.Contains(looped.stdout, `"effect": "looped"`) {
-		t.Fatalf("matching Loop Condition did not return: %s", looped.stdout)
-	}
-	status := run("flow", "status", "--root", root)
-	if !strings.Contains(status.stdout, `"status": "running"`) || !strings.Contains(status.stdout, `"step_id": "define_goals_and_problems"`) || !strings.Contains(status.stdout, `"status": "fixing"`) {
-		t.Fatalf("requirement did not preserve its returned Step: %s", status.stdout)
+	looped := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"third","condition_results":[{"condition_id":"third_rework","output":{"type":"enum_value","value":"rework"}}],"route":{"back_step_id":"second"},"summary":"third needs rework","evidence":[]}`)
+	if !strings.Contains(looped.stdout, `"effect": "looped"`) || !strings.Contains(looped.stdout, `"step_id": "second"`) {
+		t.Fatalf("matching Loop Conditions did not return: %s", looped.stdout)
 	}
 
 	run("trace", "render", "--root", root)
@@ -75,12 +54,7 @@ func TestInstalledReleaseUsesConditionRoutingAcrossFlowTraceCardAndDoctor(t *tes
 	if strings.Count(synced.stdout, `"status": "succeeded"`) != 2 {
 		t.Fatalf("trace did not sync both targets: %s", synced.stdout)
 	}
-	if content, err := os.ReadFile(traceContent); err != nil ||
-		!strings.Contains(string(content), "# Workflow Trace") ||
-		!strings.Contains(string(content), "| 时间 | 事件 | Skill | 状态变化 | 结果 | 用户对话 | 判断依据 | 证据 |") ||
-		!strings.Contains(string(content), "condition=goals_and_problems_changed:goals_and_problems") ||
-		!strings.Contains(string(content), "looped") ||
-		strings.Contains(string(content), "loop.feedback") {
+	if content, err := os.ReadFile(traceContent); err != nil || !strings.Contains(string(content), "# Workflow Trace") || !strings.Contains(string(content), "condition=third_rework:rework") || !strings.Contains(string(content), "looped") {
 		t.Fatalf("trace projection does not keep the Driver audit layout: %v\n%s", err, content)
 	}
 	run("card", "render", "--root", root, "--view", "panorama", "--format", "lark-json")

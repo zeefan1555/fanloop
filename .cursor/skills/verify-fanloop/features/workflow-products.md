@@ -5,6 +5,7 @@
 - `remnote-flashcards` HOME classification, native RemNote flashcards, Wiki links and final readback.
 - `fanloop-maintainer` four-step Define, Build, Certify and Deliver loop.
 - `pstack-native` six-step playbook-shaped delivery over the native pstack skill catalog in the workflow bundle.
+- Installed `create-fanloop-workflow` plus `examples/workflows/example/` as non-production authoring aids.
 
 ## How to get to it (user POV)
 
@@ -39,3 +40,5 @@ recertification. Workflow-specific behavior stays in YAML and Skills, not generi
 Only selected Fornax keys determine the synchronized production inventory. The retained products are fanloop-maintainer,
 pstack-native and remnote-flashcards; technical-solution-design is retired. A full synchronization removes deselected
 Workflow directories; none is loaded from source or old packages as fallback. Never infer deployment from CLI version alone.
+The example Bundle validates as an authoring candidate but is never selected, installed or loaded as production inventory.
+The authoring Skill itself is part of the local Release and must be discoverable from every configured Skill root.

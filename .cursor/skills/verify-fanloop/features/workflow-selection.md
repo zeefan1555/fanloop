@@ -14,7 +14,8 @@ from `current/workflows`.
 
 ## Driving it with fanloop
 
-Read `flow init --help`. Prove missing Workflow selection and an unknown ID fail with structured errors. Run init dry-run
+Read `flow init --help`. Prove missing Workflow selection fails with `INVALID_ARGUMENT` and an unknown ID fails with
+`WORKFLOW_NOT_FOUND` at exit 1 without exposing filesystem errors. Run init dry-run
 with a real Workflow and confirm no State exists; perform the real init and read Status to confirm the selected Workflow ID
 is bound and its Prompt/Skill paths come from the live root.
 

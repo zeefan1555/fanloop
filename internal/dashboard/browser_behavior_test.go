@@ -20,11 +20,8 @@ func TestEmbeddedStudioBrowserPollingRaces(t *testing.T) {
 	if python == "" {
 		t.Skip("no Python interpreter with Playwright")
 	}
-	root := copyWorkflowTree(t)
-	if err := os.RemoveAll(filepath.Join(root, "pstack-native")); err != nil {
-		t.Fatal(err)
-	}
-	base, err := NewHandler(root)
+	root := copyRuntimeControls(t)
+	base, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +100,7 @@ func TestEmbeddedStudioBrowserPollingRaces(t *testing.T) {
 			return
 		}
 		if request.URL.Path == "/test/insert" {
-			path := filepath.Join(root, "fanloop-maintainer", "workflow.yaml")
+			path := filepath.Join(root, "runtime-controls", "workflow.yaml")
 			content, err := os.ReadFile(path)
 			if err != nil {
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -118,7 +115,7 @@ func TestEmbeddedStudioBrowserPollingRaces(t *testing.T) {
 			return
 		}
 		if request.URL.Path == "/test/corrupt" {
-			path := filepath.Join(root, "fanloop-maintainer", "workflow.yaml")
+			path := filepath.Join(root, "runtime-controls", "workflow.yaml")
 			if err := os.WriteFile(path, []byte("invalid: true\n"), 0o600); err != nil {
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 				return
@@ -236,8 +233,8 @@ with sync_playwright() as playwright:
     assert page.locator("#status").get_attribute("aria-live") == "polite"
     page.wait_for_function("parseInt(document.querySelector('#zoomValue').textContent, 10) >= 65", timeout=3000)
     assert page.locator(".step-node").first.bounding_box()["width"] >= 110
-    page.select_option("#workflowSelect", "remnote-flashcards")
-    page.wait_for_function("selectedWorkflow === 'remnote-flashcards' && document.querySelectorAll('.step-node').length === 4", timeout=5000)
+    page.select_option("#workflowSelect", "runtime-controls")
+    page.wait_for_function("selectedWorkflow === 'runtime-controls' && document.querySelectorAll('.step-node').length === 3", timeout=5000)
     page.locator("#fit").click()
     page.wait_for_function("parseInt(document.querySelector('#zoomValue').textContent, 10) >= 80", timeout=3000)
     assert page.locator(".step-node").first.bounding_box()["width"] >= 137
@@ -255,8 +252,8 @@ with sync_playwright() as playwright:
     done = page.locator("#terminalNode").bounding_box()
     assert last_stage["x"] + last_stage["width"] <= viewport_right + 1
     assert done["x"] + done["width"] <= viewport_right + 1
-    page.select_option("#workflowSelect", "fanloop-maintainer")
-    page.wait_for_function("selectedWorkflow === 'fanloop-maintainer' && document.querySelectorAll('.step-node').length === 4", timeout=5000)
+    page.select_option("#workflowSelect", "runtime-controls")
+    page.wait_for_function("selectedWorkflow === 'runtime-controls' && document.querySelectorAll('.step-node').length === 3", timeout=5000)
     page.locator("#files button").filter(has_text="condition.yaml").click()
     page.wait_for_function("activeTab === 'file'")
     page.locator(".step-node.active").click()
@@ -267,9 +264,9 @@ with sync_playwright() as playwright:
       document.querySelector('#title').textContent.endsWith('/workflow.yaml')
     """)
     editor = page.locator("#editor")
-    page.wait_for_function("document.querySelector('#editor').value.includes('{id: define_verification_contract')", timeout=5000)
+    page.wait_for_function("document.querySelector('#editor').value.includes('{id: first')", timeout=5000)
     original = editor.input_value()
-    renamed = re.sub(r"(\{id: define_verification_contract, name: )[^,]+", r"\1Dashboard 保存刷新", original, count=1)
+    renamed = re.sub(r"(\{id: first, name: )[^,]+", r"\1Dashboard 保存刷新", original, count=1)
     assert renamed != original
     page.wait_for_function("topologyRequest === null", timeout=5000)
     page.evaluate("async () => { await fetch('/test/hold-next-topology', {method: 'POST'}); void loadTopology(selectedWorkflow, false) }")
@@ -284,8 +281,8 @@ with sync_playwright() as playwright:
     finally:
         page.request.post(page.url + "test/release-topology")
     if not refreshed_before_release:
-        live = page.evaluate("async () => await (await fetch('/api/file?path=fanloop-maintainer%2Fworkflow.yaml')).json()")
-        projected = page.evaluate("async () => await (await fetch('/api/topology?workflow=fanloop-maintainer')).json()")
+        live = page.evaluate("async () => await (await fetch('/api/file?path=runtime-controls%2Fworkflow.yaml')).json()")
+        projected = page.evaluate("async () => await (await fetch('/api/topology?workflow=runtime-controls')).json()")
         print("save-refresh", page.locator("#status").inner_text(), page.locator(".step-node.active strong").inner_text(), "disk", "Dashboard 保存刷新" in live["content"], "api", projected["workflow"]["stages"][0]["jobs"][0]["steps"][0]["name"], flush=True)
     assert refreshed_before_release
     page.wait_for_timeout(300)
@@ -329,15 +326,16 @@ with sync_playwright() as playwright:
     mobile = browser.new_page(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
     mobile.goto(sys.argv[1], wait_until="domcontentloaded")
     mobile.wait_for_selector(".step-node", timeout=8000)
-    mobile.select_option("#workflowSelect", "remnote-flashcards")
-    mobile.wait_for_function("selectedWorkflow === 'remnote-flashcards' && document.querySelectorAll('.step-node').length === 4", timeout=5000)
+    mobile.wait_for_function("selectedWorkflow === 'runtime-controls' && document.querySelectorAll('.step-node').length === 3", timeout=5000)
     assert mobile.locator("#viewport").evaluate("node => getComputedStyle(node).touchAction") == "none"
     before = mobile.locator("#world").evaluate("node => node.style.transform")
     box = mobile.locator("#viewport").bounding_box()
     cdp = mobile.context.new_cdp_session(mobile)
-    start = {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2}
+    start = {"x": box["x"] + 12, "y": box["y"] + 24}
+    assert mobile.evaluate("point => !document.elementFromPoint(point.x, point.y).closest('.step-node')", start)
     cancel_start = {"x": box["x"] + 12, "y": box["y"] + 24}
     cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [start]})
+    mobile.wait_for_function("document.querySelector('#viewport').classList.contains('dragging')", timeout=3000)
     cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": start["x"] + 55, "y": start["y"] + 35}]})
     cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
     mobile.wait_for_function("before => document.querySelector('#world').style.transform !== before", arg=before, timeout=3000)

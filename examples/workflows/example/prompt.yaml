@@ -1,0 +1,54 @@
+schema_version: 2
+
+prompts:
+  panorama_condition:
+    prompt: 进入当前 Step 后展示最新 Panorama；成功后只返回本次精确快照路径，失败时保持 blocked。
+    skills:
+      - {id: example-panorama, prompt: 按当前宿主展示一次完整 Panorama 并返回快照路径。, optional: false}
+
+  analyze_materials_flow:
+    prompt: 读取用户材料，区分已确认事实与开放问题，形成可供后续产出的材料摘要。
+    skills:
+      - {id: example-analyze-materials, prompt: 分析材料并写出最小、可追溯的摘要。, optional: false}
+  draft_result_flow:
+    prompt: 只依据已确认材料形成结果草案；材料变化则回到理解材料，局部问题留在本 Step 修订。
+    skills:
+      - {id: example-draft-result, prompt: 从材料摘要生成可审核草案。, optional: false}
+  confirm_result_flow:
+    prompt: 展示草案并等待人明确批准或提出修改；不得代替人批准。
+    skills: []
+
+  materials_analyzed_condition:
+    prompt: 摘要已覆盖目标、输入、约束、预期输出和开放问题时返回摘要路径。
+    skills: []
+  materials_incomplete_condition:
+    prompt: 缺少阻塞性材料时返回具体缺口，不补造事实。
+    skills: []
+  draft_written_condition:
+    prompt: 草案已落盘且只使用已确认材料时返回草案路径。
+    skills: []
+  materials_changed_condition:
+    prompt: 新信息改变材料理解时返回原因并回到理解材料。
+    skills: []
+  draft_needs_revision_condition:
+    prompt: 材料未变但草案仍需修订时返回具体原因。
+    skills: []
+  result_approved_condition:
+    prompt: 只接受人的全新明确批准。
+    skills: []
+  result_changes_requested_condition:
+    prompt: 人要求修改时原样保留可执行反馈。
+    skills: []
+
+  retry_materials:
+    prompt: 补齐缺失材料后重新分析。
+    skills: []
+  reanalyze_materials:
+    prompt: 材料发生变化，回到最早受影响的理解步骤。
+    skills: []
+  revise_draft:
+    prompt: 材料未变，留在当前步骤修订草案。
+    skills: []
+  revise_after_review:
+    prompt: 按人工反馈返回草案步骤修订。
+    skills: []

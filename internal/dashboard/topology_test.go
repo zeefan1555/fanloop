@@ -14,14 +14,14 @@ import (
 )
 
 func TestTopologyProjectsLiveWorkflowAndExactSourceAnchors(t *testing.T) {
-	root := copyWorkflowTree(t)
-	handler, err := NewHandler(root)
+	root := copyRuntimeControls(t)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/topology?workflow="+url.QueryEscape("fanloop-maintainer"), nil))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/topology?workflow="+url.QueryEscape("runtime-controls"), nil))
 	if response.Code != http.StatusOK {
 		t.Fatalf("topology status=%d body=%s", response.Code, response.Body.String())
 	}
@@ -33,32 +33,32 @@ func TestTopologyProjectsLiveWorkflowAndExactSourceAnchors(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &value); err != nil {
 		t.Fatal(err)
 	}
-	if value.Workflow.ID != "fanloop-maintainer" || len(value.Workflow.Stages) != 4 {
+	if value.Workflow.ID != "runtime-controls" || len(value.Workflow.Stages) != 1 {
 		t.Fatalf("workflow=%#v", value.Workflow)
 	}
 	steps := flattenTopologySteps(value.Workflow)
-	if len(steps) != 4 || steps[0].ID != "define_verification_contract" || steps[len(steps)-1].ID != "merge_and_update_local" {
+	if len(steps) != 3 || steps[0].ID != "first" || steps[len(steps)-1].ID != "third" {
 		t.Fatalf("steps=%#v", steps)
 	}
-	assertRoute(t, value.Routes, "forward", "define_verification_contract", "build_until_verified")
-	assertRoute(t, value.Routes, "terminal", "merge_and_update_local", terminalStepID)
-	assertRoute(t, value.Routes, "return", "define_verification_contract", "define_verification_contract")
+	assertRoute(t, value.Routes, "forward", "first", "second")
+	assertRoute(t, value.Routes, "terminal", "third", terminalStepID)
+	assertRoute(t, value.Routes, "return", "second", "first")
 
-	fragments, ok := value.Fragments["certify_candidate"]
+	fragments, ok := value.Fragments["second"]
 	if !ok {
-		t.Fatal("certify_candidate fragments are missing")
+		t.Fatal("second fragments are missing")
 	}
 	checks := []struct {
 		name      string
 		fragments []sourceFragment
 		contains  string
 	}{
-		{"step", fragments.Step, "certify_candidate"},
-		{"prompt", fragments.Prompt, "certify_candidate_flow"},
-		{"forward", fragments.Forward, "next_step_id: merge_and_update_local"},
-		{"return", fragments.Return, "back_step_id: build_until_verified"},
-		{"conditions", fragments.Conditions, "independent_review_passed"},
-		{"skills", fragments.Skills, "fanloop-dev-code-review"},
+		{"step", fragments.Step, "id: second"},
+		{"prompt", fragments.Prompt, "advance:"},
+		{"forward", fragments.Forward, "next_step_id: third"},
+		{"return", fragments.Return, "back_step_id: first"},
+		{"conditions", fragments.Conditions, "second_completed"},
+		{"skills", fragments.Skills, "common-control-guide"},
 	}
 	for _, check := range checks {
 		t.Run(check.name, func(t *testing.T) {
@@ -85,19 +85,19 @@ func TestTopologyProjectsLiveWorkflowAndExactSourceAnchors(t *testing.T) {
 			}
 		})
 	}
-	assertFragmentLabel(t, fragments.Prompt, "panorama_delivery_condition")
-	assertFragmentLabel(t, fragments.Skills, "fanloop-dev-panorama")
+	assertFragmentLabel(t, fragments.Prompt, "advance")
+	assertFragmentLabel(t, fragments.Skills, "common-control-guide")
 }
 
 func TestTopologyProjectsCommonControlsForEveryStep(t *testing.T) {
-	root := copyWorkflowTree(t)
-	handler, err := NewHandler(root)
+	root := copyRuntimeControls(t)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/topology?workflow=technical-solution-design", nil))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/topology?workflow=runtime-controls", nil))
 	if response.Code != http.StatusOK {
 		t.Fatalf("topology status=%d body=%s", response.Code, response.Body.String())
 	}
@@ -110,12 +110,10 @@ func TestTopologyProjectsCommonControlsForEveryStep(t *testing.T) {
 		for _, promptID := range []string{"step_start_control", "human_step_jump_control"} {
 			assertFragmentLabel(t, fragments.Prompt, promptID)
 		}
-		for _, conditionID := range []string{"step_scope_confirmed", "human_step_jump_requested"} {
+		for _, conditionID := range []string{"start_confirmed", "jump_requested"} {
 			assertFragmentLabel(t, fragments.Conditions, conditionID)
 		}
-		for _, skillID := range []string{"grill-with-docs", "human-step-jump"} {
-			assertFragmentLabel(t, fragments.Skills, skillID)
-		}
+		assertFragmentLabel(t, fragments.Skills, "common-control-guide")
 	}
 	for _, route := range value.Routes {
 		if route.Kind != "forward" && route.Kind != "terminal" && route.Kind != "return" {
@@ -124,9 +122,9 @@ func TestTopologyProjectsCommonControlsForEveryStep(t *testing.T) {
 	}
 }
 
-func TestTopologySupportsEveryProductionWorkflow(t *testing.T) {
-	root := copyWorkflowTree(t)
-	handler, err := NewHandler(root)
+func TestTopologySupportsEveryLoadedWorkflow(t *testing.T) {
+	root := copyRuntimeControls(t)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,8 +187,8 @@ func TestYAMLAnchorsExcludeSiblingSeparatorsAndComments(t *testing.T) {
 }
 
 func TestTopologyRejectsUnknownWorkflow(t *testing.T) {
-	root := copyWorkflowTree(t)
-	handler, err := NewHandler(root)
+	root := copyRuntimeControls(t)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,12 +200,12 @@ func TestTopologyRejectsUnknownWorkflow(t *testing.T) {
 }
 
 func TestTopologyRejectsAFileReplacedBySymlinkAfterStartup(t *testing.T) {
-	root := copyWorkflowTree(t)
-	handler, err := NewHandler(root)
+	root := copyRuntimeControls(t)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(root, "fanloop-maintainer", "workflow.yaml")
+	target := filepath.Join(root, "runtime-controls", "workflow.yaml")
 	content, err := os.ReadFile(target)
 	if err != nil {
 		t.Fatal(err)
@@ -224,13 +222,23 @@ func TestTopologyRejectsAFileReplacedBySymlinkAfterStartup(t *testing.T) {
 	}
 
 	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/topology?workflow=fanloop-maintainer", nil))
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/topology?workflow=runtime-controls", nil))
 	if response.Code != http.StatusUnprocessableEntity || !strings.Contains(response.Body.String(), `"code":"invalid_workflow"`) {
 		t.Fatalf("symlinked topology status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 
-func TestEmbeddedStudioUsesPublishedTopologyAndSourceAnchors(t *testing.T) {
+func copyRuntimeControls(t *testing.T) string {
+	t.Helper()
+	root := filepath.Join(t.TempDir(), "workflows")
+	source := filepath.Join("..", "workflow", "testdata", "runtime-controls")
+	if err := os.CopyFS(filepath.Join(root, "runtime-controls"), os.DirFS(source)); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func TestEmbeddedStudioUsesLiveTopologyAndWholeFileSaves(t *testing.T) {
 	page, err := assets.ReadFile("static/index.html")
 	if err != nil {
 		t.Fatal(err)
@@ -263,6 +271,8 @@ func TestEmbeddedStudioUsesPublishedTopologyAndSourceAnchors(t *testing.T) {
 		"/api/topology?workflow=",
 		"/api/file?path=",
 		"setSelectionRange",
+		"confirmDiscard()",
+		"method: 'POST'",
 		"selectedFragment",
 		"loadTopology",
 		"renderGraph",
@@ -276,8 +286,8 @@ func TestEmbeddedStudioUsesPublishedTopologyAndSourceAnchors(t *testing.T) {
 			t.Fatalf("studio script contains prototype-only behavior %q", forbidden)
 		}
 	}
-	if strings.Contains(value, "method: 'POST'") {
-		t.Fatal("read-only dashboard includes a write request")
+	if strings.Count(value, "method: 'POST'") != 1 || !strings.Contains(value, "json('/api/file', { method: 'POST'") {
+		t.Fatal("POST /api/file must remain the sole browser write path")
 	}
 
 	styles, err := assets.ReadFile("static/style.css")

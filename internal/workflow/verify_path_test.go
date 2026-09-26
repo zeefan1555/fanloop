@@ -56,11 +56,9 @@ func TestRuntimeFixtureVerifyClaimsUseEvidenceOutcome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	found := map[string]bool{}
 	for _, bundle := range loaded {
 		for id, condition := range productionConditions(bundle.Workflow) {
 			if verifyOutcomeAllowlist[id] {
-				found[id] = true
 				if condition.Output.Source == OutputSourceVerifyEvidenceOutcome {
 					t.Errorf("%s/%s is allowlisted and must not use %s", bundle.Ref.ID, id, OutputSourceVerifyEvidenceOutcome)
 				}
@@ -72,11 +70,6 @@ func TestRuntimeFixtureVerifyClaimsUseEvidenceOutcome(t *testing.T) {
 			if condition.Output.Source != OutputSourceVerifyEvidenceOutcome {
 				t.Errorf("%s/%s claims a verify outcome without %s", bundle.Ref.ID, id, OutputSourceVerifyEvidenceOutcome)
 			}
-		}
-	}
-	for id := range verifyOutcomeAllowlist {
-		if !found[id] {
-			t.Errorf("allowlist condition %s is not in a production workflow", id)
 		}
 	}
 }

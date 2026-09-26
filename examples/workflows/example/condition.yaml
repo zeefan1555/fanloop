@@ -1,0 +1,37 @@
+schema_version: 3
+
+conditions:
+  panorama_presented:
+    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}
+    output: {key: panorama_snapshot_path, type: path}
+
+  materials_analyzed:
+    prompt_ref: {file: prompt.yaml, prompt_id: materials_analyzed_condition}
+    output: {key: material_summary_path, type: path}
+    exclusive_group: analyze_outcome
+  materials_incomplete:
+    prompt_ref: {file: prompt.yaml, prompt_id: materials_incomplete_condition}
+    output: {key: material_issue, type: string}
+    exclusive_group: analyze_outcome
+
+  draft_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: draft_written_condition}
+    output: {key: draft_result_path, type: path}
+    exclusive_group: draft_outcome
+  materials_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: materials_changed_condition}
+    output: {key: material_change_reason, type: string}
+    exclusive_group: draft_outcome
+  draft_needs_revision:
+    prompt_ref: {file: prompt.yaml, prompt_id: draft_needs_revision_condition}
+    output: {key: draft_revision_reason, type: string}
+    exclusive_group: draft_outcome
+
+  result_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_approved_condition}
+    output: {key: review_decision, type: enum_value, values: [approved]}
+    exclusive_group: review_outcome
+  result_changes_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: result_changes_requested_condition}
+    output: {key: review_feedback, type: string}
+    exclusive_group: review_outcome

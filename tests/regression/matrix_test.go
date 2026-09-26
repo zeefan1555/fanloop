@@ -3,6 +3,7 @@ package regression
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -57,8 +58,30 @@ func TestRetiredCapabilityRequiresADRReference(t *testing.T) {
 	}
 
 	err := ValidateCapabilityMatrix(matrix, []string{"test_flow.FlowTest.test_old_alias"})
-	if err == nil || !strings.Contains(err.Error(), "ADR-xxxx") {
+	if err == nil || !strings.Contains(err.Error(), "ADR-xxxx-full-name") {
 		t.Fatalf("error = %v, want explicit ADR reference failure", err)
+	}
+}
+
+func TestCapabilityReferencesAllowSameNumberADRsWithExactFilename(t *testing.T) {
+	root := t.TempDir()
+	adrDir := filepath.Join(root, "docs", "adr")
+	if err := os.MkdirAll(adrDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"0077-first-decision.md", "0077-second-decision.md"} {
+		if err := os.WriteFile(filepath.Join(adrDir, name), []byte("# ADR\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	matrix := CapabilityMatrix{Capabilities: []Capability{{
+		ID:          "flow.retired",
+		Disposition: "retired",
+		ADR:         "ADR-0077-first-decision",
+	}}}
+	if err := ValidateCapabilityReferences(matrix, root); err != nil {
+		t.Fatalf("ValidateCapabilityReferences() error = %v", err)
 	}
 }
 
@@ -102,7 +125,7 @@ func TestCurrentWorkflowPreservesCapabilityOwnership(t *testing.T) {
 	}
 	sort.Strings(entries)
 	digest := sha256.Sum256([]byte(strings.Join(entries, "\n") + "\n"))
-	if got, want := hex.EncodeToString(digest[:]), "de1fd723fb7944ef36a2916d3c46bdc76e7cd33511fff71773223ec6bd4ea90d"; got != want {
+	if got, want := hex.EncodeToString(digest[:]), "042f889d19d4efbb43d2b7a6cccfb2cfdf51f4101078aad880c2c10daacbb67b"; got != want {
 		t.Fatalf("capability ownership changed: sha256=%s, want %s", got, want)
 	}
 }

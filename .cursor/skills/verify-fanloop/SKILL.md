@@ -9,7 +9,7 @@ This is the single code-owned verification procedure. `features/README.md` index
 
 ## Launch
 
-From the repository root, record the clean candidate HEAD and install it into an isolated data home. Do not point `FANLOOP_DATA_HOME` at `~/.fanloop`. Supply `FANLOOP_CONFIG_SOURCE` as an absolute frozen, reviewed configuration publication directory containing `workflows/` (or `tests/testdata` for generic runtime proof). This explicit source is verification-only and rejected for the global data home. Preserve its package versions and complete file manifest. For a real Fornax sync integration test, leave that variable unset and copy reviewed connection settings to the isolated `fornax.json`; credential use must be explicitly authorized.
+From the repository root, record the clean candidate HEAD and install it into an isolated data home. Do not point `FANLOOP_DATA_HOME` at `~/.fanloop`. Supply `FANLOOP_CONFIG_SOURCE` as an absolute frozen, reviewed configuration publication directory containing `workflows/`. For generic runtime proof, create that directory and copy the tracked `internal/workflow/testdata/{linear-runtime,runtime-controls}` fixtures beneath its `workflows/` child. This explicit source is verification-only and rejected for the global data home. Preserve its package versions and complete file manifest. For a fresh-bootstrap or real Fornax sync integration test, leave the variable unset; the latter copies reviewed connection settings to the isolated `fornax.json`, and credential use must be explicitly authorized.
 
 ```bash
 export FANLOOP_DATA_HOME="$(mktemp -d)"
@@ -18,10 +18,15 @@ export FANLOOP_AGENT_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/agent"
 export FANLOOP_TRAE_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/trae"
 export FANLOOP_CLAUDE_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/claude"
 mkdir -p "$FANLOOP_CODEX_SKILLS_ROOT" "$FANLOOP_AGENT_SKILLS_ROOT" "$FANLOOP_TRAE_SKILLS_ROOT" "$FANLOOP_CLAUDE_SKILLS_ROOT"
+export FANLOOP_CONFIG_SOURCE="$(mktemp -d)"
+mkdir -p "$FANLOOP_CONFIG_SOURCE/workflows"
+cp -R internal/workflow/testdata/linear-runtime internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/workflows/"
 unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
 ./scripts/install-local.sh
 export PATH="$FANLOOP_DATA_HOME/current/bin:$PATH"
 ```
+
+For the fresh-bootstrap variant, omit the three `FANLOOP_CONFIG_SOURCE` setup lines and prove the installer creates an empty real `current/workflows`; configure and run explicit `fanloop update` before Doctor.
 
 Ready when `fanloop version` reports `commit_sha` equal to `git rev-parse HEAD` and the previous global `~/.fanloop/current` target is unchanged.
 
@@ -89,10 +94,10 @@ There is no helper script. The harness is the isolated `fanloop` binary.
 
 ## Failure modes
 
-`delivery_verified`, `blackbox_verification_passed`, `blackbox_verification_failed`, `post_merge_smoke_passed`, and `post_merge_smoke_failed` accept a result only when file evidence points at one absolute regular `manifest.json` written by `fanloop verify smoke` or `fanloop verify snapshot`. The file is schema 1. Its `outcome` equals the submitted enum.
+`delivery_verified`, `blackbox_verification_passed`, `blackbox_verification_failed`, `post_merge_smoke_passed`, and `post_merge_smoke_failed` accept a result only when file evidence points at one absolute regular `manifest.json` written by `fanloop verify smoke`. The file is schema 1. Its `outcome` equals the submitted enum. `fanloop verify snapshot` captures public projections and durable files but does not write an outcome manifest. If a broader Acceptance Set fails while smoke passes, preserve the snapshot and original receipt, then use the Workflow's explicit changes-requested route instead of claiming a failed manifest.
 
 `OUTPUT_INVALID` with source `verify.evidence.outcome` means that match failed. The path was missing or unreadable, was not an absolute regular `manifest.json`, was not schema 1, or its `outcome` differed. Two `manifest.json` evidence items fail the same way.
 
-Re-run `fanloop verify smoke` or `fanloop verify snapshot`. Read `outcome` from the new manifest. Submit that enum with that absolute path. `blocked` matches neither a passed nor a failed condition. Report progress blocked and attach the same file. Do not edit the JSON.
+Re-run `fanloop verify smoke` and read `outcome` from its new manifest. Submit that enum with that absolute path. Use `fanloop verify snapshot` only for supplementary inventory and public projections. `blocked` matches neither a passed nor a failed condition. Report progress blocked and attach the smoke manifest. Do not edit the JSON.
 
 Do not submit `passed` without that verify run. Do not hand-write `manifest.json`.

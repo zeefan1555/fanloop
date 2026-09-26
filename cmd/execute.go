@@ -106,30 +106,25 @@ func runOperation[T any](
 			return fail(failure)
 		}
 	}
-	if id != "version" && !strings.HasPrefix(id, "verify.") {
+	if id != "version" && id != "update" && !strings.HasPrefix(id, "verify.") {
 		dataRoot, err := release.DefaultDataRoot()
 		if err != nil {
 			return fail(normalizePublicError(err))
 		}
 
-		selection := ""
 		needsConfiguration := true
-		if init, ok := any(request).(*flowidl.FlowInitRequest); ok {
-			selection = init.Workflow
-		} else if root != "" && spec.RequirementScope == commonidl.RequirementScope_existing {
+		if _, ok := any(request).(*flowidl.FlowInitRequest); !ok && root != "" && spec.RequirementScope == commonidl.RequirementScope_existing {
 			local, failure := store.New(root)
 			if failure != nil {
 				return fail(failure)
 			}
-			current, failure := local.Load()
+			_, failure = local.Load()
 			if failure != nil {
 				needsConfiguration = false
-			} else {
-				selection = current.Release.Workflow.ID
 			}
 		}
 		if needsConfiguration {
-			unlock, err := workflow.PrepareConfiguration(ctx, dataRoot, selection)
+			unlock, err := workflow.PrepareConfiguration(ctx, dataRoot)
 			if err != nil {
 				return fail(normalizePublicError(err))
 			}
