@@ -52,7 +52,7 @@ func TestVerifyOutcomeClaimRule(t *testing.T) {
 }
 
 func TestRuntimeFixtureVerifyClaimsUseEvidenceOutcome(t *testing.T) {
-	loaded, err := List()
+	loaded, err := ListFrom("testdata")
 	if err != nil {
 		t.Fatal(err)
 	}

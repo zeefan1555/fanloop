@@ -57,7 +57,7 @@ function updateState(message, error = false) {
   document.querySelector('#discard').disabled = !selected || (!dirty && !stale);
   status.textContent = stateMessage || (stale ? 'Changed on disk. Refresh before editing again.' : dirty ? 'Unsaved changes' : selected ? (editable ? 'Saved' : 'Read-only · published configuration') : 'Ready');
   status.classList.toggle('error', stateError && Boolean(stateMessage));
-  document.querySelector('#healthText').textContent = stale ? 'External change detected' : (editable ? 'Candidate files ready' : 'Published configuration');
+  document.querySelector('#healthText').textContent = stale ? 'External change detected' : (editable ? 'Local files ready' : 'Local source');
   document.body.classList.toggle('is-stale', stale);
   updateLineNumbers();
 }
@@ -160,8 +160,8 @@ async function loadFiles() {
   editable = data.editable;
   save.hidden = !editable;
   document.querySelector('#editorActions').hidden = !editable;
-  document.querySelector('#sourceKind').textContent = editable ? 'Isolated candidate' : 'Published configuration';
-  document.querySelector('#sourceRoot').textContent = editable ? 'FANLOOP_CONFIG_SOURCE/workflows' : '~/.fanloop/current/workflows';
+  document.querySelector('#sourceKind').textContent = editable ? 'Editable local source' : 'Local source';
+  document.querySelector('#sourceRoot').textContent = editable ? 'FANLOOP_CONFIG_SOURCE/skills' : 'config/current -> repository/skills';
   const workflowIDs = [...new Set(fileItems.map(item => item.path.split('/')[0]))];
   workflowSelect.replaceChildren(...workflowIDs.map(id => {
     const option = document.createElement('option');

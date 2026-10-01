@@ -15,7 +15,7 @@ import (
 
 func TestTopologyProjectsLiveWorkflowAndExactSourceAnchors(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false, "")
+	handler, err := NewHandler(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestTopologyProjectsLiveWorkflowAndExactSourceAnchors(t *testing.T) {
 
 func TestTopologyProjectsCommonControlsForEveryStep(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false, "")
+	handler, err := NewHandler(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestTopologyProjectsCommonControlsForEveryStep(t *testing.T) {
 
 func TestTopologySupportsEveryLoadedWorkflow(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false, "")
+	handler, err := NewHandler(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestYAMLAnchorsExcludeSiblingSeparatorsAndComments(t *testing.T) {
 
 func TestTopologyRejectsUnknownWorkflow(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false, "")
+	handler, err := NewHandler(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestTopologyRejectsUnknownWorkflow(t *testing.T) {
 
 func TestTopologyRejectsAFileReplacedBySymlinkAfterStartup(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false, "")
+	handler, err := NewHandler(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}

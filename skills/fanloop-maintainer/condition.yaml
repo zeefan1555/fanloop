@@ -1,0 +1,153 @@
+schema_version: 3
+
+conditions:
+  configuration_change:
+    prompt_ref: {file: prompt.yaml, prompt_id: maintenance_kind_condition}
+    output: {key: maintenance_kind, type: enum_value, values: [configuration]}
+    exclusive_group: maintenance_kind
+  code_change:
+    prompt_ref: {file: prompt.yaml, prompt_id: maintenance_kind_condition}
+    output: {key: maintenance_kind, type: enum_value, values: [code]}
+    exclusive_group: maintenance_kind
+  configuration_scope_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_scope_recorded_condition}
+    output: {key: configuration_scope, type: object}
+  configuration_changes_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_changes_written_condition}
+    output: {key: configuration_changes, type: object}
+  configuration_checked:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_checked_condition}
+    output: {key: configuration_check, type: object}
+  live_configuration_synced:
+    prompt_ref: {file: prompt.yaml, prompt_id: live_configuration_synced_condition}
+    output: {key: live_configuration_receipt, type: object}
+  configuration_needs_fix:
+    prompt_ref: {file: prompt.yaml, prompt_id: configuration_fact_condition}
+    output: {key: configuration_issue, type: string}
+
+  panorama_presented:
+    prompt_ref: {file: prompt.yaml, prompt_id: panorama_delivery_condition}
+    output: {key: panorama_snapshot_path, type: path}
+
+  define_report_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: define_report_condition}
+    output: {key: define_report_url, type: url, description: Define 报告}
+  build_report_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: build_report_condition}
+    output: {key: build_report_url, type: url, description: Build 报告}
+  certification_report_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: certification_report_document_condition}
+    output: {key: certification_report_url, type: url, description: Certify 报告}
+
+  verification_contract_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: verification_contract_condition}
+    output: {key: verification_contract_path, type: path}
+  requirements_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_decision_condition}
+    output: {key: requirements_decision, type: enum_value, values: [approved]}
+    exclusive_group: requirements_review_outcome
+  requirements_rejected:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_decision_condition}
+    output: {key: requirements_decision, type: enum_value, values: [rejected]}
+    exclusive_group: requirements_review_outcome
+  requirements_decision_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_decision_record_condition}
+    output: {key: requirements_decision_receipt_id, type: string}
+  requirements_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: requirements_changed_condition}
+    output: {key: requirements_status, type: enum_value, values: [changed]}
+    exclusive_group: maintainer_decision_outcome
+
+  self_validation_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: self_validation_condition}
+    output: {key: self_validation_result, type: enum_value, values: [passed]}
+    exclusive_group: build_outcome
+  verification_report_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: verification_report_condition}
+    output: {key: verification_report_path, type: path}
+  candidate_identity_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_identity_condition}
+    output: {key: candidate_identity, type: object}
+  candidate_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_change_condition}
+    output: {key: candidate_status, type: enum_value, values: [changed]}
+    exclusive_group: maintainer_decision_outcome
+
+  independent_review_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: independent_review_condition}
+    output: {key: independent_review_result, type: enum_value, values: [passed]}
+    exclusive_group: independent_review_outcome
+  independent_review_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: independent_review_condition}
+    output: {key: independent_review_result, type: enum_value, values: [failed]}
+    exclusive_group: independent_review_outcome
+  blackbox_verification_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: blackbox_verification_condition}
+    output: {key: blackbox_verification_result, type: enum_value, values: [passed], source: verify.evidence.outcome}
+    exclusive_group: blackbox_verification_outcome
+  blackbox_verification_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: blackbox_verification_condition}
+    output: {key: blackbox_verification_result, type: enum_value, values: [failed], source: verify.evidence.outcome}
+    exclusive_group: blackbox_verification_outcome
+  main_agent_acceptance_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_condition}
+    output: {key: main_agent_acceptance_result, type: enum_value, values: [passed]}
+    exclusive_group: main_agent_acceptance_outcome
+  main_agent_changes_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_condition}
+    output: {key: main_agent_acceptance_result, type: enum_value, values: [changes_requested]}
+    exclusive_group: main_agent_acceptance_outcome
+  main_agent_acceptance_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: main_agent_acceptance_record_condition}
+    output: {key: main_agent_acceptance_receipt_id, type: string}
+  certification_report_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: certification_report_condition}
+    output: {key: certification_report_path, type: path}
+  certification_identity_frozen:
+    prompt_ref: {file: prompt.yaml, prompt_id: certification_identity_condition}
+    output: {key: certification_identity, type: object}
+
+  delivery_main_unchanged:
+    prompt_ref: {file: prompt.yaml, prompt_id: delivery_main_condition}
+    output: {key: delivery_main_status, type: enum_value, values: [unchanged]}
+    exclusive_group: delivery_main_outcome
+  delivery_main_integrated:
+    prompt_ref: {file: prompt.yaml, prompt_id: delivery_main_condition}
+    output: {key: delivery_integration, type: object}
+    exclusive_group: delivery_main_outcome
+  delivery_pr_already_merged:
+    prompt_ref: {file: prompt.yaml, prompt_id: delivery_pr_status_condition}
+    output: {key: delivery_pr_status, type: enum_value, values: [merged]}
+    exclusive_group: delivery_main_outcome
+  merge_request_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: merge_request_condition}
+    output: {key: merge_request_urls, type: url_list, min_items: 1, description: PR}
+  remote_checks_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: remote_checks_condition}
+    output: {key: remote_checks_result, type: enum_value, values: [passed]}
+    exclusive_group: remote_checks_outcome
+  remote_product_checks_failed:
+    prompt_ref: {file: prompt.yaml, prompt_id: remote_checks_condition}
+    output: {key: remote_checks_result, type: enum_value, values: [product_failed]}
+    exclusive_group: remote_checks_outcome
+  review_comment_synced:
+    prompt_ref: {file: prompt.yaml, prompt_id: review_comment_condition}
+    output: {key: review_comment_receipt_id, type: string}
+  code_merged:
+    prompt_ref: {file: prompt.yaml, prompt_id: code_merged_condition}
+    output: {key: merge_commit, type: string}
+  merge_tree_verified:
+    prompt_ref: {file: prompt.yaml, prompt_id: merge_tree_condition}
+    output: {key: merge_tree_verification, type: enum_value, values: [passed]}
+  source_repository_updated:
+    prompt_ref: {file: prompt.yaml, prompt_id: source_repository_updated_condition}
+    output: {key: source_repository_commit, type: string}
+  local_cli_updated:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_cli_updated_condition}
+    output: {key: local_cli_commit, type: string}
+  post_merge_smoke_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: post_merge_smoke_condition}
+    output: {key: post_merge_smoke_result, type: enum_value, values: [passed], source: verify.evidence.outcome}
+  delivery_record_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: delivery_record_condition}
+    output: {key: delivery_record_path, type: path}

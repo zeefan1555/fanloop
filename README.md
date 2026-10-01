@@ -10,14 +10,13 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-Fornax 托管三套生产 Workflow，不设置默认 Workflow：
+仓库 `skills/` 托管三套生产 Workflow，不设置默认 Workflow：
 
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。
-- `pstack-native`：六步剧本型交付，编排 `workflows/pstack-native/skills/` 下原生 pstack skills。
+- `pstack-native`：六步剧本型交付，编排 `skills/pstack-native/skills/` 下原生 pstack skills。
 
-每套业务配置托管在 Fornax，下载到 `current/workflows/<workflow-id>/`，五份 YAML 与 `skills/<skill-id>/` 共享同一个
-live 根目录。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；本次外置的是五份Workflow YAML、绑定Skill及资源，未增加动态场景发现。
+每套 Workflow 是仓库 `skills/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
 
 新增一套流程可先使用仓库内 `.agents/skills/create-fanloop-workflow/` 与
 `examples/workflows/example/` 生成并审核完整五 YAML 候选，再增加场景映射；不注册 Go 代码。Trace Registry
@@ -56,23 +55,16 @@ fanloop_build_dir="$(./scripts/build-local.sh)"
 export PATH="$HOME/.fanloop/current/bin:$PATH"
 ```
 
-本地安装不访问 Fornax，并保留已有 `current/workflows`。全新安装会先创建真实的空
-`current/workflows`，此时 `version` 可用；需要首次获取或更新生产配置时，先登录 `fornax-cli`，创建 `~/.fanloop/fornax.json` 明确选择空间和配置包，再显式执行 `fanloop update`：
-
-```json
-{"workspace_id":"<workspace-id>","workflows":[{"id":"<workflow-id>","skill_key":"<skill-key>","skill_id":"<skill-id>"}]}
-```
+安装通过 `~/.fanloop/config/current` 绑定安装脚本所在仓库的绝对路径，不复制 Workflow 运行副本。显式绝对 `FANLOOP_CONFIG_SOURCE` 可选择另一源仓库；未设置时从持久绑定读取，和当前工作目录无关。
 
 ```bash
-fanloop update
 fanloop doctor
+FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop doctor
 ```
 
-只有 `fanloop update` 通过 Fornax CLI 查询 Online/prod 已发布版本，再安全下载并原子替换完整配置树；草稿不生效，联网或校验失败时保留旧树。`flow`、`trace`、`card`、`doctor`、`dashboard`、`version` 和本地安装均只读本地字节，不隐式访问 Fornax。
-`current/release` 选择不可变CLI；`current/workflows` 是同步运行副本。每套Workflow的五YAML、全部Skill与资源在同一个Fornax Skill包中，配置与代码分别发布。
+`current/release` 选择不可变 CLI；`config/current` 选择源仓库。每次调用读取仓库 `skills/` 的最新完整包，配置编辑无需重建或重新安装 CLI。坏显式源或丢失绑定源立即失败，不搜索其他仓库，也不读取旧副本。远端配置集成、选择文件和 `fanloop update` 命令已移除。
 
-`FANLOOP_CONFIG_SOURCE` 只用于隔离候选编辑或验收中的明确绝对配置目录，不能指向全局 live 根，也不能作为网络失败 fallback。
-代码测试只用 `internal/workflow/testdata/{linear-runtime,runtime-controls}`，并在隔离临时根下组装 `workflows/`；生产发布验证入口为 `scripts/validate-configuration.py --help`。
+代码测试使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}`，在隔离源的 `skills/` 下组装完整包。生产包验证入口为 `scripts/validate-configuration.py --help`。
 
 ## 使用
 
@@ -104,26 +96,26 @@ flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow
 
 流程状态只由 `.fanloop/flow/state.json` 管理。
 
-查看已发布 Workflow：
+查看本地 Workflow：
 
 ```bash
 fanloop dashboard
 ```
 
-命令在 `127.0.0.1` 的随机空闲端口前台启动并打印 URL。默认页面只读
-`~/.fanloop/current/workflows` 中已有的五份 YAML 和 `SKILL.md`。要编辑隔离候选，显式指定绝对目录：
+命令在 `127.0.0.1` 的随机空闲端口前台启动并打印 URL。默认只读绑定仓库中的完整包。要编辑本地源，显式指定绝对仓库目录：
 
 ```bash
-FANLOOP_CONFIG_SOURCE=/absolute/path/to/candidate fanloop dashboard
+FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop dashboard
 ```
 
-候选模式只允许保存已列出的完整文件，并校验观察摘要、符号链接、完整 Bundle 和原子替换；页面明确标注候选非生产。保存不会调用 Fornax，生产发布仍需独立 commit/release、`fanloop update` 和字节回读。
+显式编辑模式只保存已列出的完整文件，包括根 `SKILL.md`，校验观察摘要、符号链接与完整 Bundle 后原子写回同一仓库。可以显式编辑当前绑定源；CLI 和 Dashboard 共享同源目录锁。
 
 ## 新增 Workflow
 
 ```text
-~/.fanloop/current/workflows/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
-~/.fanloop/current/workflows/<workflow-id>/skills/<skill-id>/SKILL.md
+skills/<workflow-id>/SKILL.md
+skills/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
+skills/<workflow-id>/skills/<skill-id>/**
 entrypoints/fanloop-workflow/routes.yaml
 ```
 
@@ -153,7 +145,7 @@ fanloop flow init \
 代码 CI 的 `requirement-e2e` 运行独立fixture的完整 Requirement lifecycle 与 Route Matrix；生产发布用 `scripts/validate-configuration.py` 对明确版本的完整配置集运行矩阵。
 本地用户路径只走 [`.cursor/skills/verify-fanloop/SKILL.md`](./.cursor/skills/verify-fanloop/SKILL.md)。
 驱动步骤与Feature Map统一在 [verify-fanloop](./.cursor/skills/verify-fanloop/SKILL.md)。
-`.cursor/skills/verify-fanloop/features` 是该目录 `references/features/` 的符号链接。
+`.cursor/skills/verify-fanloop/features` 是代码拥有的真实目录。
 `fanloop-dev-maintain-verification` 按 source 与 live 维护这张地图。产品行为失败作为产品问题报告。
 
 Contract Golden 只在人工确认契约变化后更新：
@@ -167,11 +159,10 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 源码边界
 
-源码位于 GitHub 仓库 `zeefan1555/fanloop`。GitHub 负责代码托管、PR 与 CI，不发布 npm、平台归档或其他安装制品。合并后从精确 merge commit 执行本地构建和安装；Workflow 仍由 Fornax 独立发布并通过显式 `fanloop update` 同步。
+源码位于 GitHub 仓库 `zeefan1555/fanloop`。GitHub 负责代码托管、PR 与 CI，不发布 npm、平台归档或其他安装制品。合并后从精确 merge commit 执行本地构建和安装；Workflow 完整包随同一仓库维护，配置更新不要求重建 CLI。
 
-构建与安装边界见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，live Workflow 与 Dashboard 边界见
-[ADR-0120](./docs/adr/0120-host-production-workflows-in-fornax.md)，本地分发和显式更新见
-[ADR-0122](./docs/adr/0122-use-explicit-fornax-update-and-local-source-distribution.md)。代码授权仍为 `UNLICENSED`。
+构建与安装边界见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，本地 Workflow Skill 包、源绑定与 Dashboard 边界见
+[ADR-0124](./docs/adr/0124-load-local-workflow-skill-packages.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

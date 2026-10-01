@@ -21,7 +21,7 @@ func TestEmbeddedStudioBrowserPollingRaces(t *testing.T) {
 		t.Skip("no Python interpreter with Playwright")
 	}
 	root := copyRuntimeControls(t)
-	base, err := NewHandler(root, true, "")
+	base, err := NewHandler(root, true)
 	if err != nil {
 		t.Fatal(err)
 	}

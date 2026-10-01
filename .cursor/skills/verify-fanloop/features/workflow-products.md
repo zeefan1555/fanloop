@@ -37,8 +37,10 @@ Workflow Steps, Conditions and Routes evolve independently. Read the current fiv
 historical counts. Deliver must not modify a candidate when main advances; it returns to Build for a new candidate and full
 recertification. Workflow-specific behavior stays in YAML and Skills, not generic verify Runtime code.
 
-Only selected Fornax keys determine the synchronized production inventory. The retained products are fanloop-maintainer,
-pstack-native and remnote-flashcards; technical-solution-design is retired. A full synchronization removes deselected
-Workflow directories; none is loaded from source or old packages as fallback. Never infer deployment from CLI version alone.
+Complete packages under the selected local repository's `skills/` directory determine the Workflow inventory. The retained
+products are fanloop-maintainer, pstack-native and remnote-flashcards; technical-solution-design is retired. Each invocation
+reads that source directly, so valid package edits are visible without synchronization, rebuilding or reinstalling the CLI.
+An invalid explicit source or missing bound source fails without searching other repositories or loading old copies.
+Never infer the active configuration from CLI version alone; read back the selected source and exact Status Skill paths.
 The example Bundle validates as an authoring candidate but is never selected, installed or loaded as production inventory.
 The authoring Skill itself is part of the local Release and must be discoverable from every configured Skill root.

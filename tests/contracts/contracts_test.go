@@ -252,7 +252,7 @@ func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 func runCase(t *testing.T, binary, casePath string, value contractCase) contractResult {
 	t.Helper()
 	root := t.TempDir()
-	workflowRoot := filepath.Join(root, ".fanloop-user", "current", "workflows")
+	workflowRoot := filepath.Join(root, ".fanloop-user", "source", "skills")
 	for _, id := range []string{"linear-runtime", "runtime-controls"} {
 		copyTree(t, filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id), filepath.Join(workflowRoot, id))
 	}
@@ -474,6 +474,7 @@ func mergeEnvironment(root string, groups ...map[string]string) []string {
 	delete(values, "BOTMUX_CHAT_ID")
 	delete(values, "BOTMUX_SESSION_ID")
 	values["FANLOOP_DATA_HOME"] = filepath.Join(root, ".fanloop-user")
+	values["FANLOOP_CONFIG_SOURCE"] = filepath.Join(root, ".fanloop-user", "source")
 	values["FANLOOP_PYTHON"] = filepath.Join(root, "missing-python")
 	for _, group := range groups {
 		for key, value := range group {

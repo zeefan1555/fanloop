@@ -73,11 +73,12 @@ func TestWorkflowSelectorRejectsVersionedID(t *testing.T) {
 
 func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 	dataRoot := t.TempDir()
-	liveRoot := filepath.Join(dataRoot, "current", "workflows")
+	liveRoot := filepath.Join(dataRoot, "skills")
 	workflowID := "reloadable-loop"
 	targetRoot := filepath.Join(liveRoot, workflowID)
 	writeValidWorkflow(t, liveRoot, workflowID)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	t.Setenv("FANLOOP_CONFIG_SOURCE", dataRoot)
 
 	before, err := Load(workflowID)
 	if err != nil {
@@ -120,6 +121,7 @@ func writeValidWorkflow(t *testing.T, root, id string) {
 	workflowYAML, flowYAML, conditionYAML, loopYAML, promptYAML := validBundle()
 	workflowYAML = bytes.Replace(workflowYAML, []byte("id: sample"), []byte("id: "+id), 1)
 	for name, content := range map[string][]byte{
+		"SKILL.md":      []byte("# Workflow Skill\n"),
 		"workflow.yaml": workflowYAML, "flow.yaml": flowYAML, "condition.yaml": conditionYAML,
 		"loop.yaml": loopYAML, "prompt.yaml": promptYAML,
 	} {
@@ -265,6 +267,7 @@ func TestLoadDirectoryRequiresTheFixedFiveFiles(t *testing.T) {
 	root := t.TempDir()
 	workflowYAML, flowYAML, _, loopYAML, promptYAML := validBundle()
 	for name, content := range map[string][]byte{
+		"SKILL.md":      []byte("# Test Workflow\n"),
 		"workflow.yaml": workflowYAML, "flow.yaml": flowYAML,
 		"loop.yaml": loopYAML, "prompt.yaml": promptYAML,
 	} {

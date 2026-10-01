@@ -12,12 +12,11 @@ cleanup() {
   rm -rf -- "$test_data_root" "$generated_root"
 }
 trap cleanup EXIT
-mkdir -p "$test_data_root/current"
-mkdir -p "$test_data_root/current/workflows"
-cp -R "$repo_root/internal/workflow/testdata/linear-runtime" "$test_data_root/current/workflows/"
-cp -R "$repo_root/internal/workflow/testdata/runtime-controls" "$test_data_root/current/workflows/"
+mkdir -p "$test_data_root/skills"
+cp -R "$repo_root/internal/workflow/testdata/linear-runtime" "$test_data_root/skills/"
+cp -R "$repo_root/internal/workflow/testdata/runtime-controls" "$test_data_root/skills/"
 export FANLOOP_DATA_HOME="$test_data_root"
-unset FANLOOP_CONFIG_SOURCE
+export FANLOOP_CONFIG_SOURCE="$test_data_root"
 
 unformatted="$({
   while IFS= read -r -d '' file; do

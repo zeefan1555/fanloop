@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -61,6 +62,17 @@ func loadFromRef(root string, ref Ref) (Loaded, error) {
 	bundleRoot := filepath.Join(root, ref.ID)
 	if err := requireRealDirectory(bundleRoot); err != nil {
 		return Loaded{}, fmt.Errorf("Workflow %q: %w", ref.ID, err)
+	}
+	if err := filepath.WalkDir(bundleRoot, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() && !entry.Type().IsRegular() {
+			return fmt.Errorf("package entry %s is not a regular file or directory", path)
+		}
+		return nil
+	}); err != nil {
+		return Loaded{}, err
 	}
 	loaded, err := loadBundle(os.DirFS(root), ref.ID)
 	if err != nil {
@@ -139,8 +151,8 @@ func requireRealWorkflowRoot(root string) error {
 	if err != nil {
 		return err
 	}
-	// The data root itself may be a managed symlink, but current and its
-	// workflows child must remain real directories.
+	// The managed source binding is resolved before this check; package roots
+	// and their parent source must be real directories.
 	for _, path := range []string{filepath.Dir(absolute), absolute} {
 		if err := requireRealDirectory(path); err != nil {
 			return fmt.Errorf("Workflow root must use real directories: %w", err)
@@ -235,7 +247,7 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 	if err != nil {
 		return err
 	}
-	missing := map[string]bool{}
+	missing := map[string]bool{"SKILL.md": true}
 	for _, name := range BundleFileNames() {
 		missing[name] = true
 	}
@@ -253,12 +265,19 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 		if !info.Mode().IsRegular() {
 			return fmt.Errorf("Workflow Bundle entry %s is not a regular file", entry.Name())
 		}
+		if entry.Name() == "SKILL.md" {
+			content, err := fs.ReadFile(files, path.Join(root, "SKILL.md"))
+			if err != nil || len(bytes.TrimSpace(content)) == 0 {
+				return invalidConfiguration(fmt.Errorf("package SKILL.md must not be empty"))
+			}
+		}
 		delete(missing, entry.Name())
 	}
-	for _, name := range BundleFileNames() {
-		if missing[name] {
-			return invalidConfiguration(fmt.Errorf("missing Workflow Bundle file %s: %w", name, fs.ErrNotExist))
+	for _, name := range append([]string{"SKILL.md"}, BundleFileNames()...) {
+		if !missing[name] {
+			continue
 		}
+		return invalidConfiguration(fmt.Errorf("missing Workflow Bundle file %s: %w", name, fs.ErrNotExist))
 	}
 	return nil
 }

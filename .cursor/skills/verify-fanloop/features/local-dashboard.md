@@ -2,23 +2,35 @@
 
 ## Sub-features
 
-- `dashboard` loopback launch, read-only live viewer and explicitly selected candidate editor.
+- `dashboard` loopback launch, read-only bound-source viewer and explicitly selected local-source editor.
 - Live Stage/Job/Step topology with forward, terminal, self, and back Route projection.
 - Exact Step, Prompt, Route, Condition, and Skill source navigation into complete files, including common controls on every governed Step.
 - Allowlisted Workflow YAML and `SKILL.md` list, read, and refresh.
-- Startup and request-level locking during concurrent configuration replacement or candidate save.
+- Startup and request-level locking during concurrent local source reads or saves.
 
 ## How to get to it (user POV)
 
 Run `fanloop dashboard`, open the printed `http://127.0.0.1:<port>` URL, choose a Workflow, inspect its graph, then
-select a Step and one of its six source tabs or open a file directly. The viewer loads complete real files. Default live mode is read-only. Set an absolute isolated `FANLOOP_CONFIG_SOURCE` before launch to edit a candidate; saving never publishes it.
+select a Step and one of its six source tabs or open a file directly. The viewer loads complete real files. Default mode reads the bound repository and is read-only. Set an absolute FANLOOP_CONFIG_SOURCE to edit that repository, including the current binding; saves directly update its files.
 
 ## Driving it with fanloop
 
 Launch `dashboard` against an isolated installation and verify `/api/topology` Stage/Step counts, Route kinds and
 endpoints against the isolated live YAML. In a fresh browser session select a known Step, visit all six tabs, and prove
-each fragment opens the complete allowlisted file with matching exact source lines selected. In live mode verify POST `/api/file` is rejected and hashes do not change. In candidate mode save one allowlisted complete file with its observed SHA-256; verify stale, traversal, symlink, the active isolated live root, the real global `~/.fanloop/current`, and invalid-Bundle writes fail without partial changes.
-Run a parallel CLI refresh and prove requests never observe a partially installed tree.
+each fragment opens the complete allowlisted file with matching exact source lines selected. In default read-only mode,
+verify POST `/api/file` is rejected and hashes do not change. For explicit edit mode, use a separate verifier-owned writable
+source copy, never the frozen candidate or read-only verification inputs. Save one allowlisted complete file, including
+the package root SKILL.md. Read its `sha256` with GET `/api/file?path=<URL-encoded-path>` and send the full replacement
+with `Content-Type: application/json` to POST `/api/file`:
+
+```json
+{"path":"<path returned by GET /api/files>","content":"<complete replacement file>","observed_sha256":"<sha256 returned by GET /api/file>"}
+```
+
+Read the saved file back. Prove stale, traversal, symlink and invalid-Bundle writes fail without partial changes. To test
+editing the current binding, first bind the isolated installation to that writable copy, then explicitly select the same
+copy with `FANLOOP_CONFIG_SOURCE`; do not select the frozen inputs. Run two Dashboard instances and a CLI on the same
+writable source with separate data homes to verify shared source locking. Confirm frozen input hashes remain unchanged.
 
 For a Workflow with common controls, verify every Step exposes both control Prompts, Common Conditions, and Common Skills
 without adding synthetic graph edges. During a clean external edit that inserts lines before the selected fragment,
@@ -28,4 +40,4 @@ the Step inspector and default source fragment are restored.
 
 ## Gotchas
 
-The server stays in the foreground and binds only to loopback. It cannot create, delete, rename or publish configuration. Candidate edits are whole-file replacements only. HTTP polling reads local files and never contacts Fornax.
+The server stays in the foreground and binds only to loopback. It cannot create, delete, rename or publish configuration. Local edits are whole-file replacements only. HTTP polling reads local files without any remote configuration service.

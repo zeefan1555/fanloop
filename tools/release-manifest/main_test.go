@@ -162,14 +162,14 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 	}
 }
 
-func TestValidateSelectorAllowsFornaxManagedWorkflow(t *testing.T) {
+func TestValidateSelectorDoesNotRequireWorkflowInCLIRelease(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "routes.yaml")
 	content := []byte("schema_version: 2\nscenarios:\n  missing:\n    workflow: missing\n    description: missing\n")
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := validateSelectorRoutes(path); err != nil {
-		t.Fatalf("Fornax-managed selector rejected: %v", err)
+		t.Fatalf("source-independent selector rejected: %v", err)
 	}
 }
 

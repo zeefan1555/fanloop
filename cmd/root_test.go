@@ -33,12 +33,15 @@ func TestMain(main *testing.M) {
 		panic(err)
 	}
 	if err := os.CopyFS(
-		filepath.Join(dataRoot, "current", "workflows", syntheticWorkflowID),
+		filepath.Join(dataRoot, "skills", syntheticWorkflowID),
 		os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", syntheticWorkflowID)),
 	); err != nil {
 		panic(err)
 	}
 	if err := os.Setenv("FANLOOP_DATA_HOME", dataRoot); err != nil {
+		panic(err)
+	}
+	if err := os.Setenv("FANLOOP_CONFIG_SOURCE", dataRoot); err != nil {
 		panic(err)
 	}
 	code := main.Run()
@@ -84,10 +87,10 @@ func TestHiddenInstallFailureKeepsItsPrivateExitContract(t *testing.T) {
 	}
 }
 
-func TestConfigurationUpdateIsExplicit(t *testing.T) {
+func TestConfigurationUpdateIsRemoved(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := Execute(context.Background(), []string{"update", "--help"}, strings.NewReader(""), &stdout, &stderr)
-	if code != 0 || !strings.Contains(stdout.String(), "Synchronize the complete published Workflow configuration") {
+	code := Execute(context.Background(), []string{"update"}, strings.NewReader(""), &stdout, &stderr)
+	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "command is not supported") {
 		t.Fatalf("exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
 	stdout.Reset()
@@ -167,8 +170,8 @@ func TestRootCommandTreeMatchesIDLRegistry(t *testing.T) {
 	for _, spec := range idl.CommandSpecs() {
 		expected[spec.ID] = true
 	}
-	if len(actual) != 17 || len(expected) != 17 {
-		t.Fatalf("public command counts = Cobra %d, IDL %d; want 17", len(actual), len(expected))
+	if len(actual) != 16 || len(expected) != 16 {
+		t.Fatalf("public command counts = Cobra %d, IDL %d; want 16", len(actual), len(expected))
 	}
 	if command, _, err := root.Find([]string{"schema"}); err == nil && command.Name() == "schema" {
 		t.Fatal("root still exposes the retired schema command")
@@ -196,7 +199,6 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		"trace":     true,
 		"card":      true,
 		"verify":    true,
-		"update":    true,
 		"version":   true,
 		"doctor":    true,
 		"dashboard": true,

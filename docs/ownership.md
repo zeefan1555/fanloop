@@ -5,11 +5,11 @@ orchestration directory.
 
 | Boundary | Paths | Owns |
 | --- | --- | --- |
-| Live Workflow configuration | Fornax published packages, installed `current/workflows/` | Five-file Workflow definitions, bound Agent instructions, complete resources and publication validation |
+| Live Workflow configuration | `skills/<workflow-id>/` complete local packages | Five-file Workflow definitions, bound Agent instructions, complete resources and local source validation |
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
-| Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback live/candidate viewer |
+| Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback read-only viewer and explicit source editor |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
-| Configuration refresh | `cmd/update.go`, `internal/workflow/fornax.go` | Explicit Fornax discovery/download, full-tree validation, locking and atomic `current/workflows` replacement |
+| Configuration source | `internal/workflow/{sources,configuration}.go` | Absolute repository binding, explicit override, full-package validation and canonical source locking |
 | Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh`, `package.json` | Immutable local CLI builds, offline installation, diagnosis and nested Release switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
@@ -26,7 +26,7 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Three production Workflow IDs are hosted in Fornax and synchronized under `current/workflows/<id>/`:
+Three production Workflow IDs are tracked as complete packages under `skills/<id>/`:
 `fanloop-maintainer`, `remnote-flashcards`, and
 `pstack-native`. Ownership of those directories remains the Live Workflow
 configuration boundary above; this note only records the live suite list.

@@ -397,10 +397,11 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 func loadRuntimeControls(t *testing.T) (workflow.Loaded, error) {
 	t.Helper()
 	dataRoot := t.TempDir()
-	workflowsRoot := filepath.Join(dataRoot, "current", "workflows")
+	workflowsRoot := filepath.Join(dataRoot, "source", "skills")
 	if err := os.CopyFS(filepath.Join(workflowsRoot, "linear-runtime"), os.DirFS(filepath.Join("..", "workflow", "testdata", "linear-runtime"))); err != nil {
 		return workflow.Loaded{}, err
 	}
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	t.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(dataRoot, "source"))
 	return workflow.Load("linear-runtime")
 }

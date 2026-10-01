@@ -2,6 +2,7 @@ package install
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -148,5 +149,47 @@ func TestAtomicSymlinkPreservesNonLinkPath(t *testing.T) {
 	}
 	if content, err := os.ReadFile(path); err != nil || string(content) != "owned by user\n" {
 		t.Fatalf("atomicSymlink changed user path: %v %q", err, content)
+	}
+}
+
+func TestActivateInstallationRollsBackBindingWhenCurrentConflicts(t *testing.T) {
+	for _, existing := range []bool{false, true} {
+		t.Run(fmt.Sprint(existing), func(t *testing.T) {
+			root := t.TempDir()
+			binding := filepath.Join(root, "config", "current")
+			previous := t.TempDir()
+			if existing {
+				if err := atomicSymlink(binding, previous); err != nil {
+					t.Fatal(err)
+				}
+			}
+			current := filepath.Join(root, "current")
+			if err := os.WriteFile(current, []byte("user owned"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err := activateInstallation(root, t.TempDir(), "../releases/new"); err == nil {
+				t.Fatal("conflicting current was accepted")
+			}
+			got, err := os.Readlink(binding)
+			if existing && (err != nil || got != previous) || !existing && !os.IsNotExist(err) {
+				t.Fatalf("binding after failed activation = %q, %v", got, err)
+			}
+			if content, err := os.ReadFile(current); err != nil || string(content) != "user owned" {
+				t.Fatalf("current changed: %q, %v", content, err)
+			}
+		})
+	}
+}
+
+func TestActivateInstallationBindsSourceWithoutCopyingPackages(t *testing.T) {
+	root, source := t.TempDir(), t.TempDir()
+	if err := activateInstallation(root, source, "../releases/new"); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.Readlink(filepath.Join(root, "config", "current")); err != nil || got != source {
+		t.Fatalf("binding = %q, %v", got, err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "current", "workflows")); !os.IsNotExist(err) {
+		t.Fatalf("unexpected copied configuration: %v", err)
 	}
 }

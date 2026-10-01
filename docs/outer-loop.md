@@ -36,6 +36,6 @@ Sentry 或 Slack 叫醒之后，仍然从本页的取得证据开始。
 
 ## 维护验证地图
 
-定时维护使用已有 Skill 当前 Fornax maintainer 包内 `skills/fanloop-dev-maintain-verification/SKILL.md` 的 Scheduled maintenance。
+定时维护使用已有 Skill 仓库 `skills/fanloop-maintainer/` 包内 `skills/fanloop-dev-maintain-verification/SKILL.md` 的 Scheduled maintenance。
 
 `TestCursorVerifyEntryIsTheOnlyFeatureMap` 与 `TestAgentNavigationPointsAtThePavedVerifyPath` 已经挡住第二条 Cursor 入口和丢失的指针。

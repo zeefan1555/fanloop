@@ -225,22 +225,29 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"<candidate-root>/workflows/<workflow-id>/", "Fornax", "fanloop update"} {
+	for _, required := range []string{"<repo>/skills/<workflow-id>/", "SKILL.md", "FANLOOP_CONFIG_SOURCE"} {
 		if !strings.Contains(string(skill), required) {
 			t.Errorf("Workflow authoring Skill is missing %q", required)
 		}
 	}
-	for _, forbidden := range []string{"待人工审核的仓库草案", "git diff --check"} {
+	for _, forbidden := range []string{"Fornax", "fanloop update"} {
 		if strings.Contains(string(skill), forbidden) {
 			t.Errorf("Workflow authoring Skill retains repository-delivery instruction %q", forbidden)
 		}
 	}
 }
 
-func TestProductionConfigurationIsNotARepositoryDefault(t *testing.T) {
+func TestProductionConfigurationUsesCompleteLocalPackages(t *testing.T) {
 	repo := repositoryRoot(t)
 	if _, err := os.Stat(filepath.Join(repo, "workflows")); !os.IsNotExist(err) {
-		t.Fatal("production workflows must live in Fornax")
+		t.Fatal("Workflow packages must not have an extra workflows wrapper")
+	}
+	for _, id := range []string{"fanloop-maintainer", "remnote-flashcards", "pstack-native"} {
+		for _, name := range []string{"SKILL.md", "workflow.yaml", "condition.yaml", "flow.yaml", "loop.yaml", "prompt.yaml", "skills"} {
+			if _, err := os.Stat(filepath.Join(repo, "skills", id, name)); err != nil {
+				t.Fatalf("incomplete package %s/%s: %v", id, name, err)
+			}
+		}
 	}
 	for _, name := range []string{"entrypoints/fanloop-workflow/SKILL.md", ".cursor/skills/verify-fanloop/SKILL.md", "scripts/pin-controller-release.sh"} {
 		if _, err := os.Stat(filepath.Join(repo, name)); err != nil {
@@ -254,8 +261,8 @@ func TestProductionConfigurationIsNotARepositoryDefault(t *testing.T) {
 	if strings.Contains(string(technicalDesign), "[ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)") {
 		t.Fatal("technical design still treats the retired technical-solution ADR as current routing authority")
 	}
-	if !strings.Contains(string(technicalDesign), "[ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)") {
-		t.Fatal("technical design is missing the current Fornax production inventory authority")
+	if !strings.Contains(string(technicalDesign), "[ADR-0124](./adr/0124-load-local-workflow-skill-packages.md)") {
+		t.Fatal("technical design is missing the local package source authority")
 	}
 }
 

@@ -14,11 +14,12 @@ import (
 
 func TestRuntimeStartAndJumpControls(t *testing.T) {
 	dataRoot := t.TempDir()
-	workflowsRoot := filepath.Join(dataRoot, "current", "workflows")
+	workflowsRoot := filepath.Join(dataRoot, "source", "skills")
 	if err := os.CopyFS(filepath.Join(workflowsRoot, "runtime-controls"), os.DirFS(filepath.Join("..", "workflow", "testdata", "runtime-controls"))); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	t.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(dataRoot, "source"))
 	root := t.TempDir()
 	nextID := 0
 	runtime := Runtime{

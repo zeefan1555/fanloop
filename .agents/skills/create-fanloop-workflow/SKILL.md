@@ -1,12 +1,11 @@
 ---
 name: create-fanloop-workflow
-description: 将复杂 Skill、SOP 或原始材料拆成可审核、可发布到 Fornax 的 Fanloop Workflow 五份 YAML 与同目录原子 Skills；用于新增或重构 Workflow，不用于修改 Runtime、IDL 或直接编辑 live 配置。
+description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓库维护的完整 Fanloop Workflow Skill 包；用于新增或重构 Workflow，不用于修改 Runtime、IDL 或修改通用安装机制。
 ---
 
 # Create Fanloop Workflow
 
-把输入材料转换为隔离 `<candidate-root>/workflows/<workflow-id>/` 下的五份 YAML 和
-`skills/<skill-id>/SKILL.md`。产物是待人工审核的 Fornax 候选，不写入仓库生产 `workflows/`，也不代表已获准发布或同步到 live。
+把输入材料转换为仓库 `<repo>/skills/<workflow-id>/` 下的完整 Skill 包：根 SKILL.md、五份 YAML 和子 skills/<skill-id>/**。产物随仓库维护，包根不再添加 workflows/<id>/ 包装层；写入不代表已通过检查或业务审批。
 
 ## 1. 先确认需要 Workflow
 
@@ -52,7 +51,8 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 `executor` 变化。取得针对该具体草案的明确批准后，才把临时草案写入：
 
 ```text
-<candidate-root>/workflows/<workflow-id>/
+<repo>/skills/<workflow-id>/
+|-- SKILL.md
 |-- workflow.yaml
 |-- condition.yaml
 |-- flow.yaml
@@ -61,8 +61,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 `-- skills/<skill-id>/SKILL.md
 ```
 
-范围扩大、Schema 变化或 Step 表变化时重新审核。候选根不得是 `$FANLOOP_DATA_HOME/current`、
-`$HOME/.fanloop/current` 或其符号链接/路径别名；仓库中不得创建生产 `workflows/` 副本。
+范围扩大或 Schema 变化时重新对齐。Step 变化作为配置契约事实记录并自动校验，不另设 YAML 人工门禁。源根必须是绝对仓库路径，拒绝符号链接和不完整包；子 Skills 与资源保持在同一包内。
 
 ## 4. 校验并发布候选
 
@@ -70,7 +69,4 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 一条成功 Route 和一条回流 Route；不另写校验器或为配置改动构建新 binary。
 
 逐项核对五份 YAML 引用闭合、所有 SkillBinding 都指向同目录已有 Skill、Route 可达且不含绕过 Human Gate
-或 Panorama 的组合。记录候选完整文件清单与 SHA-256，并按当前维护 Workflow 的配置通道交付：使用
-`fornax-cli` 当前叶子 `--help` 确认参数后 commit 完整 Skill 包、release 到 Online/prod，保存版本与原始回执；
-随后显式执行 `fanloop update`，从 live 根逐字节回读并确认与批准候选一致。不得创建代码 PR、把仓库 diff
-当作配置发布，或用候选保存冒充 Fornax commit/release/read-back。
+或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按当前维护 Workflow 的配置通道交付：运行 scripts/validate-configuration.py，提交本地完整包，并用显式 FANLOOP_CONFIG_SOURCE 指向该仓库执行 Doctor 与公开 CLI 回读。默认安装绑定源的下一次调用会直接读取修改，无下载、同步或 CLI 重建。不得把未发生的远端合并或安装写成完成事实。

@@ -10,7 +10,7 @@
 
 触发条件：需求经过 `/grill-with-docs`、飞书评审或对话澄清。
 
-1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约发布到 Fornax，并记录已审核版本与摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
+1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约随仓库 skills/<workflow-id>/ 完整包提交，并记录 Git 基线与文件摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
 2. 只沉淀用户明确确认的结论。开放问题继续保留为开放问题，不把推荐项自动写成决策。
 3. 让代码契约真值与实现处于同一分支，并在实现提交之前或同一提交中纳入 Git；外部文档、聊天记录和未跟踪文件不能作为唯一事实源。
 
@@ -22,11 +22,11 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 1. 纯配置变更包括五份 Workflow YAML、绑定 Skill 的指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置只做受影响 Bundle 的加载与 Schema 校验、引用和必需 Skill 检查、路由完整性检查；需要运行验证时使用已有兼容 CLI 和隔离配置，按需检查受影响路径。执行行为变化在 Certify 由全新、不继承修改上下文的 Sub Agent 实际试用受影响场景，回读原始产物后判定；纯错别字/排版可记录理由免测。配置内容与试用证据不要求新 binary 或代码验证 manifest。
-3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及 Fornax commit/release、本地同步闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及本地仓库提交、公开 CLI 回读闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
-5. 配置交付固定 Fornax 空间、key、版本与完整资源摘要；验证并回读用户指定的发布目标和本地运行副本，不为配置发布重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 与 IDL 门禁按各自适用范围保留。
+5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 与 IDL 门禁按各自适用范围保留。
 
-完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、Fornax发布及实际本地同步回读。
+完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、本地配置提交及公开 CLI 回读。
 
 ## 主 Agent 监督自迭代
 
@@ -49,20 +49,20 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 2. Build 按可独立验证的小批纵向切片推进。每批只关闭一个风险或验收缺口并立即跑最小聚焦检查；失败归类为 `product`、`test/harness`、`environment` 或 `contract drift`，没有新证据时不得重复同一尝试。
 3. 最后一次完整 `./tests/run-unit` 与公开 CLI 验证通过、提交并确认工作树 clean 后执行 **Pre-Certify**：复核完整 diff、ADR/契约、生成物、Feature Map、manifest、外部依赖和唯一 candidate identity；涉及生产配置时 identity 必须包含 `configuration_manifest_sha256`。任一项失败留在 Build。
 4. 只有 Pre-Certify 通过，才可启动外层 Agent。独立 Code Review 与黑盒验证可并行认证，但必须读取同一冻结 candidate identity，使用互不共享的可写目录，并等待两者全部结束；黑盒使用的验证 Skill/Feature Map 必须从该提交复制到隔离只读目录并核对摘要。任一候选文件变化使两者全部失效。
-5. 认证通过后才进行一次性交付：生产配置只发布一个已验证版本，代码只维护一个 PR；合并使用显式 squash subject/body，最终 trailer block 中 `Co-Authored-By: Aiden` 恰好一次。
+5. 认证通过后才进行一次性交付：生产配置只交付一个已验证的 Git 候选，代码只维护一个 PR；合并使用显式 squash subject/body，最终 trailer block 中 `Co-Authored-By: Aiden` 恰好一次。
 6. `delivery-record.md` 记录 lead time、Build/Certify 次数、返工来源和对应改进。只把重复出现、可执行且能被验证的原因沉淀为新规则，避免为单次事件增加流程。
 
 完成标准：一个冻结候选对应一组本地证据、两份独立认证回执和一次交付；任何返工都回到最早责任阶段，而不是在 Review、CI 或发布时继续补丁。
 
-## Fornax Workflow 与绑定 Skill 真值
+## 本地 Workflow Skill 包真值
 
 触发条件：读取、修改、安装或执行 Workflow/Skill，或查看 Dashboard。
 
-1. Fornax 已发布的完整Workflow Skill包是生产五份 YAML、绑定 Skill 及资源的唯一配置真值。`fornax.json` 只选择空间与Workflow/Skill，不保存凭证或另一份YAML。
-2. 只有显式 `fanloop update` 通过 `fornax-cli` 查询明确的已发布版本，安全下载、校验并原子替换 `$FANLOOP_DATA_HOME/current/workflows`。同步失败保留旧树，不从源码或其他Skill根回退；普通 CLI 与本地安装不得隐式联网。
-3. 本地目录是运行副本；Dashboard 默认只读。只有显式设置绝对路径 `FANLOOP_CONFIG_SOURCE` 时，Dashboard 才能编辑隔离候选，并必须拒绝 live 根、符号链接、陈旧摘要和不完整 Bundle。配置修改经隔离候选、自动校验/必要的独立行为试用、Fornax commit/release、显式 `fanloop update` 与公开CLI回读交付，不以本地保存冒充发布。
-4. 配置发布使用 `scripts/validate-configuration.py` 对固定下载集执行全部Workflow Route Matrix并记录版本/文件摘要。代码CI使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}` 的独立运行时fixture，并在临时根下组装 `workflows/`，不绑定个人凭据、生产正文或远端latest。
-5. Agent每次读取最新Status返回的精确Skill路径。Fornax内容版本不写入Requirement State或CLI Release；五份 YAML 在加载时自动校验，Thrift继续保留人审门禁。
+1. 仓库 skills/<workflow-id>/ 是 Workflow 配置唯一真值；包根包含 SKILL.md 与五份 YAML，子 Skill 和完整资源位于同包 skills/ 下。不存在 workflows/<id>/ 包装层。
+2. 本地安装通过 $FANLOOP_DATA_HOME/config/current 绑定绝对源仓库，默认绑定安装脚本所在仓库；显式绝对 FANLOOP_CONFIG_SOURCE 优先。每次调用读取源包，源失效立即失败，不搜索 cwd、旧副本或其他仓库。没有远端配置同步命令。
+3. Dashboard 默认只读绑定源；只有显式绝对 FANLOOP_CONFIG_SOURCE 时可编辑该仓库，包括当前绑定仓库。必须拒绝符号链接、陈旧摘要和不完整包，所有数据目录共享同一规范源目录锁。配置经自动校验、必要独立行为试用、本地提交与公开 CLI 回读交付。
+4. scripts/validate-configuration.py 对固定本地源执行全部 Workflow Route Matrix 并生成完整文件摘要。代码 CI 使用 internal/workflow/testdata/{linear-runtime,runtime-controls} 独立 fixture，在临时源根 skills/ 下组装，不绑定个人凭据或生产正文。
+5. Agent每次读取最新Status返回的精确Skill路径。配置内容不写入 Requirement State 或 CLI Release；五份 YAML 在加载时自动校验，Thrift继续保留人审门禁。
 
 ## YAML 架构真值与自动校验
 
@@ -112,8 +112,8 @@ Define 按改动内容确定类别并记录；后续节点依类别绑定独立�
 
 1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、bnpm、Luban 或手工 `npm publish` 入口。
 2. `npm run build` 与 `npm run install:local` 只是本地 Shell 入口的快捷方式，不生成或发布 npm 包。
-3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装不访问 Fornax，也不改变已有 `current/workflows`。
-4. 生产配置只由显式 `fanloop update` 联网刷新。普通 CLI 与本地安装必须保持离线可用。
+3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装离线绑定源仓库，不创建 Workflow 运行副本。
+4. 生产配置直接编辑仓库完整包，下一次 CLI 调用生效；不需要网络、CLI 重建或重新安装。
 
 ## ADR 一致性
 

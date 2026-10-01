@@ -5,11 +5,11 @@ description: Drive Fanloop with the public CLI and the Feature Map, then leave a
 
 # Verify Fanloop
 
-This is the single code-owned verification procedure. `features/README.md` indexes its Feature Map. Published Fornax Skills point here; they do not carry another copy.
+This is the single code-owned verification procedure. `features/README.md` indexes its Feature Map. Workflow package Skills point here; they do not carry another copy.
 
 ## Launch
 
-From the repository root, record the clean candidate HEAD and install it into an isolated data home. Do not point `FANLOOP_DATA_HOME` at `~/.fanloop`. Supply `FANLOOP_CONFIG_SOURCE` as an absolute frozen, reviewed configuration publication directory containing `workflows/`. For generic runtime proof, create that directory and copy the tracked `internal/workflow/testdata/{linear-runtime,runtime-controls}` fixtures beneath its `workflows/` child. This explicit source is verification-only and rejected for the global data home. Preserve its package versions and complete file manifest. For a fresh-bootstrap or real Fornax sync integration test, leave the variable unset; the latter copies reviewed connection settings to the isolated `fornax.json`, and credential use must be explicitly authorized.
+From the repository root, record the clean candidate HEAD and install into an isolated data home. Never point FANLOOP_DATA_HOME at ~/.fanloop. Use an absolute FANLOOP_CONFIG_SOURCE containing complete packages under skills/. For production-package acceptance use a frozen checkout of the candidate; for generic runtime proof use the tracked synthetic fixtures. Record the complete file manifest. Installation binds this source, while an explicit override chooses it directly; unset the override when proving persistent binding. No remote helper or credentials are required.
 
 ```bash
 export FANLOOP_DATA_HOME="$(mktemp -d)"
@@ -19,14 +19,14 @@ export FANLOOP_TRAE_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/trae"
 export FANLOOP_CLAUDE_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/claude"
 mkdir -p "$FANLOOP_CODEX_SKILLS_ROOT" "$FANLOOP_AGENT_SKILLS_ROOT" "$FANLOOP_TRAE_SKILLS_ROOT" "$FANLOOP_CLAUDE_SKILLS_ROOT"
 export FANLOOP_CONFIG_SOURCE="$(mktemp -d)"
-mkdir -p "$FANLOOP_CONFIG_SOURCE/workflows"
-cp -R internal/workflow/testdata/linear-runtime internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/workflows/"
+mkdir -p "$FANLOOP_CONFIG_SOURCE/skills"
+cp -R internal/workflow/testdata/linear-runtime internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/skills/"
 unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
 ./scripts/install-local.sh
 export PATH="$FANLOOP_DATA_HOME/current/bin:$PATH"
 ```
 
-For the fresh-bootstrap variant, omit the three `FANLOOP_CONFIG_SOURCE` setup lines and prove the installer creates an empty real `current/workflows`; configure and run explicit `fanloop update` before Doctor.
+For the default installation variant, unset FANLOOP_CONFIG_SOURCE and verify config/current binds the install script's repository. Prove no current/workflows copy is created. A missing or invalid source must fail instead of bootstrapping an empty tree.
 
 Ready when `fanloop version` reports `commit_sha` equal to `git rev-parse HEAD` and the previous global `~/.fanloop/current` target is unchanged.
 
@@ -69,7 +69,7 @@ fanloop flow report result --root "$ROOT" --step-id verify_behavior \
   --next-step-id merge_and_release --summary "verification manifest passed"
 ```
 
-Read each leaf `--help`, create an empty absolute Requirement directory (`INVALID_ARGUMENT` if it does not exist), and read fresh `flow status` before Workflow actions. Run a write's `--dry-run`, verify that State/Output/Event/Trace/Card business files did not change, then invoke and read back the real action. Dry-run may append `.fanloop/log/cli.jsonl`; it also synchronizes configuration. Never equate dry-run with zero filesystem activity. Use synthetic data. External Trace/Lark writes require explicit authorization of identity, target and timing.
+Read each leaf `--help`, create an empty absolute Requirement directory (`INVALID_ARGUMENT` if it does not exist), and read fresh `flow status` before Workflow actions. Run a write's `--dry-run`, verify that State/Output/Event/Trace/Card business files did not change, then invoke and read back the real action. Dry-run may append `.fanloop/log/cli.jsonl`; it does not synchronize configuration. Never equate dry-run with zero filesystem activity. Use synthetic data. External Trace/Lark writes require explicit authorization of identity, target and timing.
 
 ## Evidence
 

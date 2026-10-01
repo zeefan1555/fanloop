@@ -2,7 +2,6 @@ package ops
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/zeefan1555/fanloop/errs"
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
@@ -30,27 +29,18 @@ func (Runtime) Version(_ context.Context, request *opsidl.VersionRequest) (*opsi
 	return &result, nil
 }
 
-func (Runtime) Update(ctx context.Context, request *opsidl.ConfigurationUpdateRequest) (*opsidl.ConfigurationUpdateResponse, error) {
+func (Runtime) Doctor(_ context.Context, root string, request *opsidl.DoctorRequest) (*opsidl.DoctorResponse, error) {
 	if request == nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "request is required", nil)
 	}
 	dataRoot, err := release.DefaultDataRoot()
 	if err != nil {
-		return nil, errs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
+		return nil, err
 	}
-	workflowIDs, err := workflow.UpdateFornax(ctx, dataRoot)
+	unlock, err := workflow.LockConfiguration(dataRoot, false)
 	if err != nil {
-		return nil, errs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
+		return nil, err
 	}
-	return &opsidl.ConfigurationUpdateResponse{
-		WorkflowIds:  workflowIDs,
-		WorkflowRoot: filepath.Join(dataRoot, "current", "workflows"),
-	}, nil
-}
-
-func (Runtime) Doctor(_ context.Context, root string, request *opsidl.DoctorRequest) (*opsidl.DoctorResponse, error) {
-	if request == nil {
-		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "request is required", nil)
-	}
+	defer unlock()
 	return doctor.DefaultRuntime().Run(root), nil
 }

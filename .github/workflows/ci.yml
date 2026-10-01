@@ -63,11 +63,11 @@ jobs:
           export FANLOOP_TRAE_SKILLS_ROOT="$verify_root/skills/trae"
           export FANLOOP_CLAUDE_SKILLS_ROOT="$verify_root/skills/claude"
           export FANLOOP_CONFIG_SOURCE="$verify_root/config"
-          mkdir -p "$FANLOOP_CONFIG_SOURCE/workflows"
-          cp -R internal/workflow/testdata/linear-runtime "$FANLOOP_CONFIG_SOURCE/workflows/"
-          cp -R internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/workflows/"
+          mkdir -p "$FANLOOP_CONFIG_SOURCE/skills"
+          cp -R internal/workflow/testdata/linear-runtime "$FANLOOP_CONFIG_SOURCE/skills/"
+          cp -R internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/skills/"
           unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
-          ./scripts/install-local.sh
+          ./scripts/install-local.sh "$verify_root/build"
           "$FANLOOP_DATA_HOME/current/bin/fanloop" version | tee "$verify_root/version.json"
           grep -q "\"commit_sha\": \"$CANDIDATE_HEAD\"" "$verify_root/version.json"
           "$FANLOOP_DATA_HOME/current/bin/fanloop" doctor | tee "$verify_root/doctor.json"

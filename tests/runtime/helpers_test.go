@@ -36,7 +36,7 @@ func buildCLI(t *testing.T) string {
 
 func seedLiveWorkflows(t *testing.T, dataRoot string) {
 	t.Helper()
-	target := filepath.Join(dataRoot, "current", "workflows")
+	target := filepath.Join(dataRoot, "source", "skills")
 	for _, id := range []string{"linear-runtime", "runtime-controls"} {
 		source := filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id)
 		if err := os.CopyFS(filepath.Join(target, id), os.DirFS(source)); err != nil {
@@ -51,9 +51,10 @@ func run(binary string, args ...string) result {
 
 func commandFor(binary string, args ...string) *exec.Cmd {
 	command := exec.Command(binary, args...)
-	command.Env = withoutEnvironment(os.Environ(), "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "FANLOOP_DATA_HOME", "PATH")
+	command.Env = withoutEnvironment(os.Environ(), "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "FANLOOP_DATA_HOME", "FANLOOP_CONFIG_SOURCE", "PATH")
 	command.Env = append(command.Env,
 		"FANLOOP_DATA_HOME="+filepath.Join(filepath.Dir(binary), ".fanloop-user"),
+		"FANLOOP_CONFIG_SOURCE="+filepath.Join(filepath.Dir(binary), ".fanloop-user", "source"),
 		"PATH="+filepath.Dir(binary),
 	)
 	return command

@@ -56,7 +56,6 @@ type apiError struct {
 type handler struct {
 	root      string
 	rootInfo  os.FileInfo
-	lockRoot  string
 	editable  bool
 	ui        http.Handler
 	saveMu    sync.Mutex
@@ -64,12 +63,9 @@ type handler struct {
 	allowed   []string
 }
 
-func NewHandler(root string, editable bool, lockRoot string) (http.Handler, error) {
+func NewHandler(root string, editable bool) (http.Handler, error) {
 	if !filepath.IsAbs(root) {
 		return nil, fmt.Errorf("Workflow root must be absolute")
-	}
-	if editable && lockRoot != "" {
-		return nil, fmt.Errorf("editable candidate must not use the live configuration lock")
 	}
 	info, err := os.Lstat(root)
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
@@ -79,19 +75,26 @@ func NewHandler(root string, editable bool, lockRoot string) (http.Handler, erro
 	if err != nil {
 		return nil, err
 	}
+	if len(definitions) == 0 {
+		return nil, fmt.Errorf("local source contains no Workflow packages")
+	}
 	static, err := fs.Sub(assets, "static")
 	if err != nil {
 		return nil, err
 	}
 	return &handler{
-		root: filepath.Clean(root), rootInfo: info, lockRoot: lockRoot, editable: editable,
+		root: filepath.Clean(root), rootInfo: info, editable: editable,
 		ui: http.FileServer(http.FS(static)), allowed: allowedPathsFrom(definitions),
 	}, nil
 }
 
 func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	if strings.HasPrefix(request.URL.Path, "/api/") && h.lockRoot != "" {
-		unlock, err := workflow.LockConfiguration(h.lockRoot, false)
+	if strings.HasPrefix(request.URL.Path, "/api/") {
+		if err := h.validateRoot(); err != nil {
+			h.writeError(writer, http.StatusBadRequest, "invalid_path", err.Error(), "")
+			return
+		}
+		unlock, err := workflow.LockSource(h.root, request.Method == http.MethodPost)
 		if err != nil {
 			h.writeError(writer, http.StatusInternalServerError, "configuration_locked", err.Error(), "")
 			return
@@ -112,7 +115,7 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			h.read(writer, request.URL.Query().Get("path"))
 		case http.MethodPost:
 			if !h.editable {
-				h.writeError(writer, http.StatusMethodNotAllowed, "read_only", "Published configuration is read-only.", "")
+				h.writeError(writer, http.StatusMethodNotAllowed, "read_only", "The bound local source is read-only.", "")
 				return
 			}
 			h.save(writer, request.Body)
@@ -176,11 +179,7 @@ func (h *handler) list(writer http.ResponseWriter) {
 	for index, path := range paths {
 		items[index] = fileItem{Path: path}
 	}
-	sourceKind := "live"
-	if h.editable {
-		sourceKind = "candidate"
-	}
-	h.writeJSON(writer, http.StatusOK, fileListResponse{Files: items, Editable: h.editable, SourceKind: sourceKind})
+	h.writeJSON(writer, http.StatusOK, fileListResponse{Files: items, Editable: h.editable, SourceKind: "local"})
 }
 
 func (h *handler) read(writer http.ResponseWriter, relative string) {
@@ -288,6 +287,7 @@ func (h *handler) rememberAllowed(allowed []string) {
 func allowedPathsFrom(definitions []workflow.Loaded) []string {
 	paths := make([]string, 0)
 	for _, definition := range definitions {
+		paths = append(paths, definition.Ref.ID+"/SKILL.md")
 		for _, name := range workflow.BundleFileNames() {
 			paths = append(paths, definition.Ref.ID+"/"+name)
 		}

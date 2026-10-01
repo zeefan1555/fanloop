@@ -144,12 +144,12 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 		t.Fatal(err)
 	}
 	dataRoot := t.TempDir()
-	workflowRoot := filepath.Join(dataRoot, "current", "workflows")
+	workflowRoot := filepath.Join(dataRoot, "source", "skills")
 	if err := os.CopyFS(filepath.Join(workflowRoot, "linear-runtime"), os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
-	t.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(dataRoot, "current"))
+	t.Setenv("FANLOOP_CONFIG_SOURCE", filepath.Join(dataRoot, "source"))
 	marker := filepath.Join(workflowRoot, "linear-runtime", "skills", "test-guide", "SKILL.md")
 	want, err := os.ReadFile(marker)
 	if err != nil {
@@ -159,7 +159,7 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 	calls := 0
 	runtime := Runtime{
 		DataRoot:     dataRoot,
-		WorkflowRoot: workflowRoot,
+		WorkflowRoot: t.TempDir(), // The binding may change after Runtime construction.
 		NewRunID:     func() string { return "0123456789abcdef0123456789abcdef" },
 		Run: func(_ context.Context, executable string, env []string, args []string) (commandResult, error) {
 			calls++
@@ -175,12 +175,12 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 			} else if childDataRoot != frozenRoot {
 				t.Fatalf("snapshot child roots changed: %q != %q", childDataRoot, frozenRoot)
 			}
-			frozenMarker := filepath.Join(childDataRoot, "current", "workflows", "linear-runtime", "skills", "test-guide", "SKILL.md")
+			frozenMarker := filepath.Join(childDataRoot, "source", "skills", "linear-runtime", "skills", "test-guide", "SKILL.md")
 			got, err := os.ReadFile(frozenMarker)
 			if err != nil || !reflect.DeepEqual(got, want) {
 				t.Fatalf("frozen configuration changed: %v", err)
 			}
-			if environmentValue(env, "FANLOOP_CONFIG_SOURCE") != filepath.Join(childDataRoot, "current") {
+			if environmentValue(env, "FANLOOP_CONFIG_SOURCE") != filepath.Join(childDataRoot, "source") {
 				t.Fatal("snapshot child did not use its frozen configuration source")
 			}
 			return commandResult{Argv: append([]string{executable}, args...), StartedAt: time.Now(), Stdout: []byte("{}\n")}, nil
@@ -196,6 +196,28 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 	}
 	if _, err := os.Stat(frozenRoot); !os.IsNotExist(err) {
 		t.Fatalf("frozen configuration root remains: %v", err)
+	}
+}
+
+func TestSmokeEnvironmentUsesCurrentBindingInsteadOfCachedRoot(t *testing.T) {
+	data, source, work := t.TempDir(), t.TempDir(), t.TempDir()
+	writeTestFile(t, filepath.Join(source, "skills", "marker"), "current binding")
+	if err := os.Mkdir(filepath.Join(data, "config"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(source, filepath.Join(data, "config", "current")); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FANLOOP_CONFIG_SOURCE", "")
+	if err := os.Unsetenv("FANLOOP_CONFIG_SOURCE"); err != nil {
+		t.Fatal(err)
+	}
+	runtime := Runtime{DataRoot: data, WorkflowRoot: t.TempDir()}
+	if _, err := runtime.isolatedEnvironment(work); err != nil {
+		t.Fatal(err)
+	}
+	if content, err := os.ReadFile(filepath.Join(work, "data", "source", "skills", "marker")); err != nil || string(content) != "current binding" {
+		t.Fatalf("snapshot did not use the current binding: %q, %v", content, err)
 	}
 }
 

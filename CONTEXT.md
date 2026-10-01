@@ -6,9 +6,7 @@
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
 **Live Workflow**
-Fornax 已发布的五份 YAML 和绑定 `skills/**` 资源。每套Workflow对应一个Fornax Skill包，包含完整资源。显式 `fanloop update` 下载并完整校验整个选择集，再原子替换 `$FANLOOP_DATA_HOME/current/workflows`；本地是
-运行副本，不能编辑为独立真值。五 YAML 继续分别定义层级、正常Route、Condition、Loop和Prompt。
-Fornax版本独立于CLI Release，不进入State或YAML Schema；没有旧配置fallback。
+本地仓库 skills/<workflow-id>/ 完整包：根 SKILL.md、五份 YAML 与子 skills/** 资源。安装以 $FANLOOP_DATA_HOME/config/current 绑定绝对仓库，显式 FANLOOP_CONFIG_SOURCE 优先；不按 cwd 搜索，不复制运行副本。每次调用读取最新本地字节，源失效立即失败。五 YAML 继续定义层级、正常 Route、Condition、Loop 和 Prompt，内容独立于 CLI Release。
 
 **Requirement Workflow Resolution**
 Requirement 只持久化 Workflow ID 与创建它的 CLI Release version。每次 CLI 调用都按该 ID 从同一个
@@ -75,7 +73,7 @@ Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Regi
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。
 
 **Workflow Dashboard**
-`fanloop dashboard` 在随机loopback端口提供拓扑与完整源码导航，不隐式同步 Fornax。默认读取 live 根且只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 打开隔离候选模式。HTTP读取与候选保存使用同一锁，保存要求 allowlist、观察 SHA-256、无符号链接、完整 Bundle 校验和原子替换。候选保存不发布生产配置。
+`fanloop dashboard` 在随机 loopback 端口提供拓扑与完整源码导航。默认只读绑定源；显式绝对 FANLOOP_CONFIG_SOURCE 开启该仓库的编辑。HTTP 与 CLI 共享规范源目录锁，保存要求 allowlist、观察 SHA-256、无符号链接、完整包校验和原子替换。保存直接写回本地源，不进行远端发布。
 
 **Source Anchor**
 Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based inclusive 行范围，只用于在完整文件中
@@ -96,7 +94,7 @@ main 前进时只记录新 base 并回 Build，不能修改候选；重新认证
 squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交本地安装和回读。
 
 **Local Source Distribution**
-GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装不访问 Fornax 并保留现有配置；配置只由 `fanloop update` 显式同步。
+GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装离线绑定源仓库；配置从本地完整包直接读取，无下载或同步。
 
 **Maintainer Reports**
 固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和
@@ -106,7 +104,7 @@ GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是�
 ## 公开契约
 
 **CommandSpec**
-公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地源码更新执行 `./scripts/install-local.sh`；`fanloop update` 是唯一访问 Fornax 的生产命令。
+公开叶子命令的生成目录。公开方法、Request/Response、枚举和错误目录以根级模块化 `idl/*.thrift` 为真值；结构化落盘文件以 `idl/storage.thrift` 为真值；`release.json` 以 `idl/release.thrift` 为字段真值；Workflow 推进语义以 live 五份 YAML 为真值。本地源码更新执行 `./scripts/install-local.sh`；配置从绑定或显式指定的本地仓库读取。
 
 **统一结果信封**
 成功写 stdout，使用 `ok/data/meta/_notice`；错误写 stderr，包含稳定 type、code、message、hint 和 retryable。

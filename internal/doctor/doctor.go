@@ -128,16 +128,21 @@ func skillCheck(root string, manifest release.Manifest) *idl.DoctorCheck {
 
 func workflowCheck(root string) *idl.DoctorCheck {
 	if root == "" {
-		return skipped("workflows", "Live Workflow configuration root is unavailable.")
+		return check("workflows", statusFail, "Local Workflow source is unavailable.", "Install from a valid repository or set an absolute FANLOOP_CONFIG_SOURCE.")
 	}
+	unlock, err := workflow.LockSource(root, false)
+	if err != nil {
+		return check("workflows", statusFail, "Local Workflow source is unavailable: "+err.Error(), "Repair the selected source repository.")
+	}
+	defer unlock()
 	definitions, err := workflow.ListFrom(root)
 	if err != nil {
-		return check("workflows", statusFail, "Live Workflow configuration is invalid: "+err.Error(), "Restore current/workflows.")
+		return check("workflows", statusFail, "Local Workflow source is invalid: "+err.Error(), "Repair the bound repository or set FANLOOP_CONFIG_SOURCE.")
 	}
 	if len(definitions) == 0 {
-		return check("workflows", statusFail, "Live Workflow configuration is empty.", "Restore current/workflows.")
+		return check("workflows", statusFail, "Local Workflow source is empty.", "Add complete Workflow packages under the source repository's skills/ directory.")
 	}
-	return check("workflows", statusPass, "Live Workflows and bound Skills are valid.", "")
+	return check("workflows", statusPass, "Local Workflow packages are valid: "+root, "")
 }
 
 func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifest) *idl.DoctorCheck {

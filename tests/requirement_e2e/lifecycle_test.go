@@ -50,7 +50,7 @@ func TestRequirementWorkflowE2E(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repo := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
-	bundleRoot := filepath.Join(dataHome, "current", "workflows", "linear-runtime")
+	bundleRoot := filepath.Join(dataHome, "source", "skills", "linear-runtime")
 	if err := os.MkdirAll(bundleRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -121,13 +121,14 @@ func TestRequirementWorkflowE2E(t *testing.T) {
 func lifecycleEnvironment(dataHome string) []string {
 	environment := make([]string, 0, len(os.Environ())+5)
 	for _, item := range os.Environ() {
-		if strings.HasPrefix(item, "FANLOOP_DATA_HOME=") || strings.HasPrefix(item, "FANLOOP_CODEX_SKILLS_ROOT=") || strings.HasPrefix(item, "FANLOOP_AGENT_SKILLS_ROOT=") || strings.HasPrefix(item, "FANLOOP_TRAE_SKILLS_ROOT=") || strings.HasPrefix(item, "FANLOOP_CLAUDE_SKILLS_ROOT=") || strings.HasPrefix(item, "BOTMUX_CHAT_ID=") || strings.HasPrefix(item, "BOTMUX_SESSION_ID=") {
+		if strings.HasPrefix(item, "FANLOOP_CONFIG_SOURCE=") || strings.HasPrefix(item, "FANLOOP_DATA_HOME=") || strings.HasPrefix(item, "FANLOOP_CODEX_SKILLS_ROOT=") || strings.HasPrefix(item, "FANLOOP_AGENT_SKILLS_ROOT=") || strings.HasPrefix(item, "FANLOOP_TRAE_SKILLS_ROOT=") || strings.HasPrefix(item, "FANLOOP_CLAUDE_SKILLS_ROOT=") || strings.HasPrefix(item, "BOTMUX_CHAT_ID=") || strings.HasPrefix(item, "BOTMUX_SESSION_ID=") {
 			continue
 		}
 		environment = append(environment, item)
 	}
 	environment = append(environment,
 		"FANLOOP_DATA_HOME="+dataHome,
+		"FANLOOP_CONFIG_SOURCE="+filepath.Join(dataHome, "source"),
 		"FANLOOP_CODEX_SKILLS_ROOT="+filepath.Join(dataHome, "skill-roots", "codex"),
 		"FANLOOP_AGENT_SKILLS_ROOT="+filepath.Join(dataHome, "skill-roots", "agent"),
 		"FANLOOP_TRAE_SKILLS_ROOT="+filepath.Join(dataHome, "skill-roots", "trae"),

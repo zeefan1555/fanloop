@@ -11,18 +11,18 @@ import (
 
 func TestDashboardInitialReadUsesConfigurationLock(t *testing.T) {
 	dataRoot := t.TempDir()
-	workflowRoot := filepath.Join(dataRoot, "current", "workflows")
+	workflowRoot := filepath.Join(dataRoot, "skills")
 	if err := os.CopyFS(filepath.Join(workflowRoot, "runtime-controls"), os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", "runtime-controls"))); err != nil {
 		t.Fatal(err)
 	}
-	unlockExclusive, err := workflow.LockConfiguration(dataRoot, true)
+	unlockExclusive, err := workflow.LockSource(workflowRoot, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := newDashboardHandler(workflowRoot, false, dataRoot)
+		_, err := newDashboardHandler(workflowRoot, false)
 		done <- err
 	}()
 	select {

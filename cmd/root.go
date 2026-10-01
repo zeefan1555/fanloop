@@ -169,7 +169,6 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		newTraceCommand(ioStreams, &requirementRoot),
 		newCardCommand(ioStreams, &requirementRoot),
 		newVerifyCommand(ioStreams, &requirementRoot),
-		newUpdateCommand(ioStreams),
 		newVersionCommand(ioStreams),
 		newDoctorCommand(ioStreams, &requirementRoot),
 		newDashboardCommand(ioStreams),

@@ -28,14 +28,11 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 
 	configSource := makeSyntheticConfigSource(t, repository, "sample-custom")
 	dataRoot := t.TempDir()
-	if err := os.CopyFS(filepath.Join(dataRoot, "current", "workflows"), os.DirFS(filepath.Join(configSource, "workflows"))); err != nil {
-		t.Fatal(err)
-	}
 	root := t.TempDir()
 	run := func(args ...string) string {
 		t.Helper()
 		command := exec.Command(binary, args...)
-		command.Env = append(withoutBotmuxBinding(os.Environ()), "FANLOOP_PYTHON="+filepath.Join(root, "missing-python"), "FANLOOP_DATA_HOME="+dataRoot)
+		command.Env = append(withoutBotmuxBinding(os.Environ()), "FANLOOP_PYTHON="+filepath.Join(root, "missing-python"), "FANLOOP_DATA_HOME="+dataRoot, "FANLOOP_CONFIG_SOURCE="+configSource)
 		var stdout, stderr bytes.Buffer
 		command.Stdout, command.Stderr = &stdout, &stderr
 		if err := command.Run(); err != nil {
@@ -82,7 +79,7 @@ func withoutBotmuxBinding(environment []string) []string {
 	filtered := make([]string, 0, len(environment))
 	for _, item := range environment {
 		key, _, _ := strings.Cut(item, "=")
-		if key != "BOTMUX_CHAT_ID" && key != "BOTMUX_SESSION_ID" {
+		if key != "BOTMUX_CHAT_ID" && key != "BOTMUX_SESSION_ID" && key != "FANLOOP_CONFIG_SOURCE" {
 			filtered = append(filtered, item)
 		}
 	}

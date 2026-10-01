@@ -12,7 +12,7 @@ func TestFlowInitRejectsUnknownWorkflowWithStablePublicError(t *testing.T) {
 	root := t.TempDir()
 
 	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "definitely-unknown", "--title", "Unknown Workflow")
-	command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+filepath.Join(filepath.Dir(binary), ".fanloop-user", "current"))
+	command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+filepath.Join(filepath.Dir(binary), ".fanloop-user", "source"))
 	result := collect(command)
 
 	assertError(t, result, 1, "WORKFLOW_NOT_FOUND")
@@ -90,8 +90,8 @@ func TestFlowInitMapsLiveWorkflowSelectionErrors(t *testing.T) {
 				t.Fatal(err)
 			}
 			seedLiveWorkflows(t, dataRoot)
-			configSource := filepath.Join(dataRoot, "current")
-			test.link(t, filepath.Join(configSource, "workflows"))
+			configSource := filepath.Join(dataRoot, "source")
+			test.link(t, filepath.Join(configSource, "skills"))
 			command := commandFor(binary, "flow", "init", "--root", t.TempDir(), "--workflow", "linear-runtime", "--title", "Unsafe Source")
 			command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+configSource)
 			result := collect(command)
@@ -99,7 +99,7 @@ func TestFlowInitMapsLiveWorkflowSelectionErrors(t *testing.T) {
 		})
 	}
 
-	configRoot := filepath.Join(filepath.Dir(binary), ".fanloop-user", "current", "workflows")
+	configRoot := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills")
 	for _, test := range []struct {
 		name    string
 		file    string

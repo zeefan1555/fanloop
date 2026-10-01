@@ -32,7 +32,7 @@ if [[ $# -eq 1 ]]; then
 else
   build_root="$(mktemp -d "$build_root")"
 fi
-source_paths=(. ':(exclude)exemplars' ':(exclude)exemplars/**' ':(exclude)workflows' ':(exclude)workflows/**')
+source_paths=(. ':(exclude)exemplars' ':(exclude)exemplars/**' ':(exclude)skills' ':(exclude)skills/**')
 case "$build_root/" in
   "$repo_root/"*) source_paths+=(":(exclude,literal)${build_root#"$repo_root/"}") ;;
 esac

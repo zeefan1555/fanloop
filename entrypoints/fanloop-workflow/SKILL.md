@@ -16,8 +16,9 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 解析出绝对 Requirement Root 后、第一次执行 `flow status` 前，检查
 `<ABSOLUTE_REQUIREMENT_ROOT>/bound-release-home/current/bin/fanloop`。该路径存在时就是该 Requirement
 的固定控制器。它后续的 `flow`、`trace`、`card` 和 `doctor`
-命令都必须同时设置对应 `bound-release-home` 下的 `FANLOOP_DATA_HOME`，以及显式隔离来源 `FANLOOP_CONFIG_SOURCE=<controller-home>/current` 和
-`skill-roots/{codex,agent,trae,claude}` 四个 Skill Root；不得再调用全局 `fanloop`。先用该控制器执行
+命令都必须设置对应 `bound-release-home` 下的 `FANLOOP_DATA_HOME` 和
+`skill-roots/{codex,agent,trae,claude}` 四个 Skill Root，并用 `env -u FANLOOP_CONFIG_SOURCE`
+清除外部来源覆盖，由固定控制器按其自身绑定解析配置；不得硬编码新旧配置布局，也不得再调用全局 `fanloop`。先用该控制器执行
 `flow status`，失败即原样阻塞，不得回退到全局 current、扫描其他 Release、改写 State 或猜测版本。
 
 未找到固定控制器时才使用全局 `fanloop`。新 Requirement 的 `flow init` 始终使用全局 current；固定
@@ -30,11 +31,9 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
 维护 Fanloop 的代码或生产配置时使用 `fanloop-maintainer`，Define按实际范围选择代码或配置通道。
-生产配置在Fornax发布；CLI按 `fornax.json` 选择已发布Workflow与完整Skill资源，同步到
-`$FANLOOP_DATA_HOME/current/workflows/**` 后返回当前Skill路径。Dashboard只读，本地运行副本不是编辑入口。
-同步/认证失败保持blocked，不回退旧配置。代码交付保持原验证、PR合码和CLI更新流程。
+生产配置直接来自本地仓库 `skills/<workflow-id>/` 完整 Skill 包。安装绑定绝对仓库路径；显式 `FANLOOP_CONFIG_SOURCE` 可覆盖来源。每次 CLI 调用读取同一包的最新 YAML、Skill 与资源；源失效立即失败，不回退其他副本。Dashboard 默认只读，显式源可编辑对应仓库。代码交付保持原验证、PR 合码和 CLI 更新流程。
 
-1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。此前单独执行的 update 失败不阻止已有 Requirement 继续。
+1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。
 2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
 
 Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码分析、文档生成或研发交付。

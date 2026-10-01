@@ -50,7 +50,7 @@ func TestLocalBuildGuardAllowsRepositoryOutputWithLiteralPath(t *testing.T) {
 func TestLocalBuildGuardDoesNotVersionLiveSkillChanges(t *testing.T) {
 	repository, environment := localBuildGuardRepository(t)
 	commit := strings.TrimSpace(localBuildGuardGit(t, repository, "rev-parse", "HEAD"))
-	skill := filepath.Join(repository, "workflows", "example", "skills", "example", "SKILL.md")
+	skill := filepath.Join(repository, "skills", "example", "skills", "example", "SKILL.md")
 	if err := os.WriteFile(skill, []byte("changed live configuration\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestLocalBuildGuardUsesDistinctStableVersionsForCleanCommits(t *testing.T) 
 	}
 
 	first := buildVersion(filepath.Join(t.TempDir(), "first"))
-	localBuildGuardGit(t, repository, "-c", "user.name=Guard Test", "-c", "user.email=guard@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "--allow-empty", "-qm", "second")
+	localBuildGuardGit(t, repository, "-c", "user.name=Guard Test", "-c", "user.email=guard@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "--allow-empty", "-qm", "second\n\nCo-Authored-By: Aiden")
 	second := buildVersion(filepath.Join(t.TempDir(), "second"))
 	repeated := buildVersion(filepath.Join(t.TempDir(), "repeated"))
 	if first == second || second != repeated {
@@ -87,11 +87,11 @@ func TestLocalBuildGuardUsesDistinctStableVersionsForCleanCommits(t *testing.T) 
 }
 
 func TestLocalBuildGuardRejectsOutputInsideCopiedOrGitTrees(t *testing.T) {
-	for _, parent := range []string{"entrypoints", "workflows", ".git", "workflows-link"} {
+	for _, parent := range []string{"entrypoints", "skills", ".git", "skills-link"} {
 		t.Run(parent, func(t *testing.T) {
 			repository, environment := localBuildGuardRepository(t)
-			if parent == "workflows-link" {
-				if err := os.Symlink(filepath.Join(repository, "workflows"), filepath.Join(repository, parent)); err != nil {
+			if parent == "skills-link" {
+				if err := os.Symlink(filepath.Join(repository, "skills"), filepath.Join(repository, parent)); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -202,8 +202,8 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 		".gitignore":               []byte("/dist/\n"), "tracked.go": []byte("initial\n"),
 		"entrypoints/example/SKILL.md":                    []byte("entry\n"),
 		".agents/skills/create-fanloop-workflow/SKILL.md": []byte("authoring\n"),
-		"workflows/example/workflow.yaml":                 []byte("example\n"),
-		"workflows/example/skills/example/SKILL.md":       []byte("example\n"),
+		"skills/example/workflow.yaml":                    []byte("example\n"),
+		"skills/example/skills/example/SKILL.md":          []byte("example\n"),
 	} {
 		path := filepath.Join(repository, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -218,7 +218,7 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 	localBuildGuardGit(t, repository, "config", "maintenance.auto", "false")
 	localBuildGuardGit(t, repository, "config", "gc.auto", "0")
 	localBuildGuardGit(t, repository, "add", ".")
-	localBuildGuardGit(t, repository, "-c", "user.name=Guard Test", "-c", "user.email=guard@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture")
+	localBuildGuardGit(t, repository, "-c", "user.name=Guard Test", "-c", "user.email=guard@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture\n\nCo-Authored-By: Aiden")
 	bin := t.TempDir()
 	fakeGo := `#!/usr/bin/env bash
 set -euo pipefail
