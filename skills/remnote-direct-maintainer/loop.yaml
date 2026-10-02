@@ -1,0 +1,36 @@
+schema_version: 4
+loop:
+  define_change:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[scope_needs_fix, panorama_presented]]}
+      back_step_id: define_change
+  build_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[scope_needs_fix, panorama_presented]]}
+      back_step_id: define_change
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[build_needs_fix, panorama_presented]]}
+      back_step_id: build_candidate
+  verify_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[scope_needs_fix, panorama_presented]]}
+      back_step_id: define_change
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[build_needs_fix, panorama_presented]]}
+      back_step_id: build_candidate
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[acceptance_needs_fix, panorama_presented]]}
+      back_step_id: verify_candidate
+  deliver_change:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[scope_needs_fix, panorama_presented]]}
+      back_step_id: define_change
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[build_needs_fix, panorama_presented]]}
+      back_step_id: build_candidate
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[acceptance_needs_fix, panorama_presented]]}
+      back_step_id: verify_candidate
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[delivery_needs_fix, panorama_presented]]}
+      back_step_id: deliver_change

@@ -1,0 +1,51 @@
+schema_version: 2
+prompts:
+  panorama_condition:
+    prompt: |
+      每次进入 Step 或回流重入先执行绑定 Skill，原样展示本次 Panorama。
+      实际展示成功后保留精确 snapshot_path；失败或未知则 blocked，不上报成功。
+    skills:
+      - {id: workflow-panorama, prompt: 原样展示当前 Panorama 并返回精确快照路径。, optional: false}
+  define_flow:
+    prompt: |
+      先执行 panorama_presented，再执行 remnote-direct-define。只使用已确认需求，不重新访谈。
+      change_defined 输出 repository_root、record_path、baseline、impact、acceptance_cases、delivery_policy 和允许副作用。
+      路径、Git 目标和 KB 来自本次仓库/环境，不来自样例；缺少真实依赖时 blocked。
+    skills:
+      - {id: remnote-direct-define, prompt: 确定仓库边界、实际影响、验证场景与交付目标。, optional: false}
+  build_flow:
+    prompt: |
+      先执行 panorama_presented，再按 change_scope 执行 remnote-direct-build。
+      candidate_built 输出 candidate_head、source_digest、artifact_digests、checks、record_path 和实际 impact。
+      全部适用本地检查通过并冻结候选后才能前进；范围改变回 Define，不能擅自扩大权限或改类。
+    skills:
+      - {id: remnote-direct-build, prompt: 最小修改、适用检查、隔离构建与候选冻结。, optional: false}
+  verify_flow:
+    prompt: |
+      先执行 panorama_presented，再执行 remnote-direct-verify，不把固定两卡测试当成全部验收。
+      candidate_verified 输出 candidate_head、artifact_digests、case_results、not_applicable、record_path。
+      每项适用场景必须有真实原始证据；不可用不是不适用，模拟不是原生持久化。
+      需改候选回 Build，验收方法自身错误回本步，范围变化回 Define，环境或未知写入保持 blocked。
+    skills:
+      - {id: remnote-direct-verify, prompt: 按实际影响核验候选与受支持原生行为，记录未覆盖能力。, optional: false}
+  deliver_flow:
+    prompt: |
+      先执行 panorama_presented，再执行 remnote-direct-deliver。核对仍是已验收候选后推送并读回。
+      change_delivered 输出 candidate_head、remote_head、ci、installed_artifacts、smoke、record_path。
+      只有适用的远端检查与本地接管回读完成才可终止；无运行时改动必须给出不适用理由。
+      已推送但 CI 或本地验收失败仍未完成；保留精确结果与恢复记录，不改口称成功。
+    skills:
+      - {id: remnote-direct-deliver, prompt: 按仓库规则推送、核验同 SHA CI、接管并回读真实入口。, optional: false}
+  record_condition:
+    prompt: |
+      只上报本步已核对的真实事实；object 字段按当前 Step 约定，enum 使用声明值。
+      原始日志保存在本地记录引用处；Flow 只记录 ID、哈希、计数和结论，不记录凭据或知识正文。
+      业务事实由 Agent 回读核验，Runtime 只校验类型与路由；缺证据、权限或结果不明一律 blocked。
+    skills: []
+  repair_loop:
+    prompt: |
+      先记录失败分类、原始证据和已发生副作用，再返回最早责任步骤。
+      目标、授权、影响或验收范围变化回 Define；候选文件变化回 Build 并使原候选验收失效。
+      测试方法问题回 Verify；同候选推送/安装问题回 Deliver。环境不可达不盲目循环。
+      回流使下游 Output 失效，从记录找回旧 ID 与部署基线再核验，未知知识库写入不能自动重试或清理。
+    skills: []

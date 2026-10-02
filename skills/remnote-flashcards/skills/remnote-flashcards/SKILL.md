@@ -127,7 +127,7 @@ S 区分现状中的问题与必须遵守的约束，T 描述要达到的目标�
     - 有依据的效果、验证或边界；预期或推演明确标注，无内容则省略本段。
 ```
 
-示例中的标题、正文和段间空 Rem 都是卡片正面的直接子 Rem；实际数量随内容及是否保留 R 而变化，不固定为某个数量。段间空 Rem 含一个 `U+200B` 零宽空格；真正的空 bullet 会被当前 MCP 忽略。传输语法中的一级缩进用于把答案归属于卡片，正文不再缩进到小标题下。
+示例中的标题、正文和段间空 Rem 都是卡片正面的直接子 Rem；实际数量随内容及是否保留 R 而变化，不固定为某个数量。段间空 Rem 含一个 `U+200B` 零宽空格；Markdown 导入会忽略真正的空 bullet。传输语法中的一级缩进用于把答案归属于卡片，正文不再缩进到小标题下。
 
 其他已有语法见[格式参考](references/remnote-import-format.md)。
 
@@ -178,15 +178,15 @@ S 区分现状中的问题与必须遵守的约束，T 描述要达到的目标�
 1. 选普通或原文模式；只读评审和普通笔记/文章不属于本 Workflow 入口。写前运行 `remnote-cli status`，核对连接、兼容版本和写入权限。
 2. 按增量学习查重。重复跳过、实质补充原位更新、新记忆目标创建；保留实际 cardId、位置和复习记录。允许 0 张新卡，仍记录复用 ID 并前进。
 3. 普通卡完成费曼与 SuperMemo 自检。可读取已有 Wiki 帮助理解，保留已有有效引用；新建/更新 Wiki 与新增引用统一留给 update_wiki_links，记录待关联概念及卡片 ID，不写占位链接。卡片先独立可懂。
-4. 用 SDK `date get-todays-doc` 获取并核验今日笔记。单卡 `insert-children <DAILY_REM_ID> --position last --content-file <FILE>` 写入正面和答案。同一学习链路 2–7 张卡先创建普通 text 主题，再一次写入子卡；按[卡片集群](references/card-clusters.md)添加内置 Card Cluster，超过 7 张先拆组。原文模式保留指定标题、正文与顺序。
-5. 仅给单卡或主题添加已选 HOME Tag。写后立即按真实 ID 回读父级、类型、答案、卡片集合和集群；部分成功先将 ID/动作/检查状态写入 progress Evidence，重试先回读并补缺，不整批重建。
+4. 用 SDK `date get-todays-doc` 获取并核验本次新卡的今日笔记；已有批次恢复使用原回执日期。按[remnote-cli](../remnote-cli/SKILL.md)组成有界 `flashcards apply` 计划，先预览再显式写入。单卡、2–7 张同链路卡、原答案补充和复用都使用各自实际 ID；更多卡按学习链路拆组，各组有稳定且不同的键。没有新建、补充或复用对象时不调用空计划。
+5. 普通卡的标题与每行答案原样进入计划，任务入口负责 Tag、普通 text 主题及 Card Cluster，不再重复逐项创建。原文模式先核对计划能表达完整正文、顺序和层级；超过限制不能截短或改写，应选完整支持该结构的现有入口，否则报告能力缺口。写后使用回执 ID 集中核对父级、类型、最终答案和原生卡片集合；部分成功按 remnote-cli 的未知写入规则保存并核对，不整批重建。
 6. 报告当前 Step 的 flashcards_written 回执后进入 Wiki Step；第三步完成后，由 verify_result 调用 [remnote-verify](../remnote-verify/SKILL.md) 统一完成下列最终核验。这里只做写入自检，不宣称整个 Workflow 已完成。
 
 ## 修改与核验
 
 新卡片写入今日笔记并挂 HOME Tag，普通笔记和文章可写入今日笔记；补充已有卡片、文章或 Wiki 页面时更新原 Rem，保留原位置和 ID，不因日期变化创建副本。只维护本次相关内容；日常写入不顺带整理全库、重命名无关分类或清理 Portal。
 
-只修改正文时，先读取 `remnote-cli sdk rem object-set-text --help`，按精确答案子 Rem ID 原位更新文本；需要修改背面字段时使用公开 `object-set-back-text`。也可按 `update --help` 用 `update --title` 修改对应单个答案 Rem 的文本。不得把卡片正面 ID 当作答案子 Rem ID。多行字符串不等于多个 Rem。修改结构时按原卡及答案子 Rem 的精确 ID，使用公开 SDK 原位调整父子关系、顺序与正文，保留卡片 Rem ID、cardId 和复习记录；公开能力不足或效果无法确认时报告 blocked，不创建替代卡或删除重建旧卡。
+只修改答案正文时，优先使用任务计划的 `answerPatches`，提供精确卡片/答案 ID 与刚读取的 `expectedTextHash`。计划不支持的原位结构操作先核对公开 SDK 能力及授权；需要背面字段时查 `object-set-back-text`，不可把卡片正面 ID 当作答案子 Rem ID。多行字符串不等于多个 Rem。必须保留卡片 Rem ID、cardId、位置和复习记录；能力不足或结果不明就 blocked，不用已拒绝的原子 update 命令、替代卡或删除重建绕过。
 
 回读折叠内容时若有 `IsCollapsed`，按具体 Rem ID 继续读取，不能把省略当丢失。
 

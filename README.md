@@ -10,16 +10,18 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-仓库 `skills/` 托管三套生产 Workflow，不设置默认 Workflow：
+仓库 `skills/` 托管四套生产 Workflow，不设置默认 Workflow：
 
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。
+- `remnote-direct-maintainer`：按实际影响维护独立的 CLI/SDK 插件仓库，完成候选验证、推送与适用的本地接管。
 - `pstack-native`：六步剧本型交付，编排 `skills/pstack-native/skills/` 下原生 pstack skills。
 
 每套 Workflow 是仓库 `skills/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
 
 新增一套流程可先使用仓库内 `.agents/skills/create-fanloop-workflow/` 与
-`examples/workflows/example/` 生成并审核完整五 YAML 候选，再增加场景映射；不注册 Go 代码。Trace Registry
+`examples/workflows/example/` 生成并校验完整五 YAML 候选；明确的包入口可直接使用 Workflow ID。
+公共场景别名属于独立入口 Skill 的安装范围，不为新增配置隐式重建 CLI 或更新已安装场景表。不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
 
 ## 本地构建与安装
@@ -75,6 +77,8 @@ FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop doctor
 - `pstack-native` → `pstack-native`
 
 `entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
+RemNote Direct 的仓库维护入口明确选择 `remnote-direct-maintainer`，
+按其 [包入口](skills/remnote-direct-maintainer/SKILL.md) 使用同一公开 CLI 初始化，不依赖新增公共场景别名。
 选择维护场景后执行：
 
 ```bash

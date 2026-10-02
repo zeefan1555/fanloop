@@ -1,0 +1,18 @@
+schema_version: 5
+flow:
+  define_change:
+    - prompt_ref: {file: prompt.yaml, prompt_id: define_flow}
+      when: {any_of: [[change_defined, panorama_presented]]}
+      next_step_id: build_candidate
+  build_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: build_flow}
+      when: {any_of: [[candidate_built, panorama_presented]]}
+      next_step_id: verify_candidate
+  verify_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: verify_flow}
+      when: {any_of: [[candidate_verified, panorama_presented]]}
+      next_step_id: deliver_change
+  deliver_change:
+    - prompt_ref: {file: prompt.yaml, prompt_id: deliver_flow}
+      when: {any_of: [[change_delivered, panorama_presented]]}
+      terminal: true

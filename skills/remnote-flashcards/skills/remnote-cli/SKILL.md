@@ -1,83 +1,73 @@
 ---
 name: remnote-cli
-description: 在本项目中使用本地 remnote-cli 查询、写入、排障或调用 RemNote Plugin SDK。TODO、Wiki、制卡和界面操作仍由对应专项技能负责。
+description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任务写入、能力发现和回读；内容规则由同包专项 Skill 管理。
 ---
 
 # RemNote CLI
 
-这是本项目自维护的 `remnote-cli` 操作手册。以本机已安装命令的 `--help` 和真实返回为准，不加载或转交给工具链仓库中的其他 Skill。
+日常操作直接使用已安装的 `remnote-cli`。链路是 CLI、本机 WebSocket、SDK 插件和官方 SDK；
+没有 MCP Server。以当前命令帮助、运行时协议及能力发现为准，不要求 CLI 与插件版本号相同。
 
-## 开始前
+## 身份与授权
 
-1. 写操作前运行 `remnote-cli status`，确认 Bridge、Server、CLI 版本兼容、连接正常且写入已开启。
-2. 首次使用某个命令时先运行对应 `--help`，不要凭记忆猜参数。
-3. 导航和多步处理默认使用 JSON，保留 Rem ID；只做单次人类阅读时才用 `--text`。
+- 每批写入前运行 `remnote-cli status`，核对实际插件身份、协议、SDK、精确 KB 绑定、权限和写入开关。
+  KB 名称只用于展示；不从示例、旧回执或另一知识库推断当前目标。
+- 本次运行首次使用一个命令或输入形状时读取对应 `--help`；命令版本变化或参数错误时刷新。
+  已确认的同版本语法无需逐对象重查。Workflow 必需 Skill 仍按最新 Status 的精确路径读取。
+- 明确的创建、修改或迁移请求授权其具体范围，不额外索取固定口令。只读分析不写入。
+  删除、替换、移动和批量迁移先核对目标 ID、引用及影响；能力或授权不足立即停止。
+- 每次 shell 执行只运行一个 `remnote-cli` 命令；本机命令串行，不争用同一监听端口。
+  每条任务命令内部复用连接，退出关闭，不新增常驻服务。
 
-用户当前请求已经明确表达创建、修改、移动、删除或迁移意图时，可以直接执行对应写操作，不要求用户再输入固定确认口令。请求只是查询、分析、审阅或方案讨论时保持只读。删除、整体替换和批量迁移必须先核对目标 Rem ID、影响范围和引用关系；语义不明确时再向用户确认具体动作。
+## 读取与任务接口
 
-## 命令选择
+先限定知识范围，再集中读取。名称只用于搜索，后续操作使用实际返回的 ID：
 
-- 优先使用稳定的任务命令：`status`、`search`、`read`、`search-by-tag`、`review-stats`、`outline`、`todo`、`create`、`update`、`insert-children`、`replace-children`、`update-tags`、`set-document-status` 和 `journal`。
-- 一级命令没有覆盖时，查看 `remnote-cli sdk --help`、命名空间帮助和具体方法帮助，再调用公开 SDK 能力。
-- 不调用私有 `_call`、任意对象路径或 JavaScript 求值；只使用 `sdk capabilities` 中公开且受支持的方法。
-- 每次 shell 执行只运行一个 `remnote-cli` 命令，避免命令链让写入边界和错误来源变得不清楚。
+- `search` / `search-by-tag` 定位候选；`context --request <FILE|->` 批量读取已知 ID、
+  祖先、标签和子树。需要正文的 ID 放入 `remIds`；其他选择器只返回结构元数据，不能当正文。
+- 单点 `read` 从浅层开始，按返回的截断、游标和缺失证据补读；不要把整个 KB 正文装入上下文。
+- 卡片复习证据来自搜索结果的原生 `cards` 或 `review-stats`，不可用就标为 unavailable。
+- `flashcards apply --plan <FILE|-> --idempotency-key <KEY>` 处理一组新卡、原答案补充和复用卡。
+- `wiki apply --plan <FILE|-> --idempotency-key <KEY>` 处理同一分区的页面、aliases、
+  索引、批次日志和答案原生引用。不同分区或超出计划预算时按依赖拆成有序批次。
+- `verify scope --expect <FILE|->` 用新鲜证据集中检查显式结构预期；完整范围或任何预期未通过均失败。
 
-## 渐进式读取
+任务命令默认预览；审阅计划及预览后才加 `--apply`。每个计划使用稳定键，批次之间键不冲突；
+已有批次不能因重试、跨日或接续会话换键。遵守当前帮助的 JSON、对象数、正文长度和回执上限，
+不以分批绕过授权上限，不并行处理有依赖的批次。没有工作时跳过命令并记录原因，不构造空写入。
 
-- 先用 `search` 定位，再按精确 Rem ID `read`。
-- 树形内容从 `--depth 1 --child-limit 50 --content-mode structured` 开始；只有相关内容缺失或返回明确截断时才增加深度。
-- 在已知根节点下查询时使用 `--parent-id <REM_ID>`，不要为了找一个概念深读整个知识库。
-- 需要继续导航时保留 `remId`、`parentRemId`、aliases、引用和分页游标；不要只保存渲染后的 Markdown。
+若任务接口不能保真表达原文的层级、格式或全部必要动作，先判断现有公开命令是否完整覆盖，
+不得压平正文、截短答案、改变模式或在写后才发现表达缺口。能力不足就记录精确缺口并阻塞，
+由独立维护任务补齐。普通单点操作使用 `create`、`insert-children`、`outline` 等现有命令；
+任务命令已完成的标签、集群、折叠、索引或日志不再逐对象重复写入。
 
-## 常用读取
+一级命令未覆盖时先查 `sdk capabilities` 和具体方法帮助，只调用公开、受支持的 SDK 方法。
+不调用私有路径、任意 JavaScript 或持久对象句柄。原生事务是否可用以运行时及仓库契约为准；
+不可用时不尝试事务或承诺回滚，不把逐条成功包装成原子成功。
 
-```bash
-remnote-cli status
-remnote-cli search "<query>" --view full --ancestor-depth 3 --depth 1
-remnote-cli search "<query>" --parent-id <ROOT_ID> --view full --depth 1
-remnote-cli read <REM_ID> --content-mode structured --view full --depth 1 --child-limit 50
-remnote-cli search-by-tag --tag-id <TAG_ID> --result-mode tagged --view full
-remnote-cli review-stats <REM_ID>
-remnote-cli review-stats --today
-remnote-cli sdk capabilities --status supported --text
-```
+## 回执与恢复
 
-## 常用写入
+任务回执的 `ids` 将语义键映射到真实 Rem ID；`facts` 包含正文哈希、原生卡片 ID 和复习哈希。
+不要猜创建顺序，不重新搜索刚创建的对象。更新答案使用精确答案 ID 和 `expectedTextHash`，
+保留卡片 ID、父级和复习记录。原生引用使用计划的 `{remId: ID}` 或 Markdown `[[id:ID]]`。
 
-- 新建：`create`；需要正文时优先使用 `--content-file`。
-- 修改标题或 aliases：`update`。
-- 追加子 Rem：`insert-children`。
-- 整体替换直接子 Rem：`replace-children`。只在用户明确要求替换，且 `status` 显示 `acceptReplaceOperation=true` 时使用。
-- 设置 Document：先运行 `set-document-status` 预览，再使用 `--apply`；尽量传 `--expected-old-rem-type`。
-- 标签增删：`update-tags`，只传精确 Tag Rem ID。
-- 移动、删除或其他一级命令未覆盖的操作：先查看对应 `sdk` 方法帮助，再按精确目标 ID 调用。
-- 支持 dry-run 的命令先预览；写入后立即按原 Rem ID 回读，不能只看命令返回成功。
-- `create`、`insert-children`、`replace-children` 和 `journal` 创建的非叶子 Rem 会由 Bridge 在最近的 Document、每日笔记或 Portal 上下文中自动折叠；`outline collapse` 只用于既有内容修复或显式批量调整。
+- 写后以真实回执和精确 ID 回读确认；最终正文仍须语义评审，哈希不能替代它。
+- 同一 KB、同一计划和对象范围内，完整且未被后续变更影响的检查可以复用。
+  任一相关写入、外部编辑、重连、跨会话或不完整读取后，重新核对受影响范围及前置哈希。
+- 预览不授予无限期写权限；每次实际写入仍由 CLI 检查活跃写入期限和精确 KB。
+- `partial`、`unknown`、超时或断连后停止写入，保留原计划、键、已知 ID 和私有恢复日志。
+  先只读核对，不能自动重放未知操作、换键、删除重建或把空搜索当作未写入。
+- 只有结果已查明且现有恢复能力明确允许时，才继续确认缺失的动作；否则报告剩余不确定范围。
+- 临时传输文件成功后清理；未知结果时保留必要的受限恢复材料。配对配置和日志遵守私有权限，
+  不进入 Git、截图或 Workflow 正文证据。输出只记录 ID、哈希、计数、来源引用和结论。
+- 不直接访问 RemNote 应用数据目录。修改正文、移位或删除都以官方 SDK 的真实读写为准。
 
-Markdown 写入中的精确原生引用使用 `[[id:<REM_ID>]]`。多行内容使用临时 UTF-8 文件和 `--content-file`，避免 shell 转义破坏结构。
+## 故障与分工
 
-## 写入不变量
+区分 CLI 端口占用、插件未连接、认证、错误 KB、权限、协议/能力不兼容和写入关闭。
+连接故障可按同包 `control-remnote` 观察桌面状态；不得盲目重启或重装。
+需要改代码、安装或权限时保存当前任务位置，进入单独的 RemNote Direct 维护任务；
+维护完成后先核对原 ID 再恢复，不在日常制卡中夹带发布、重放压力测试或原生事务探测。
 
-- 更新已有内容时优先保留原 Rem ID、位置、aliases、引用和卡片复习历史。
-- 重试写入前先回读，确认上一次是否已经部分成功，避免重复创建。
-- 移动页面前记录原父级；移动后回读新父级和外部引用。
-- 删除前检查引用方和替代目标。需要保留历史上下文时优先归档，不直接删除。
-- 不直接读取或修改 RemNote 应用数据目录 数据目录。
-
-## 专项路由
-
-- TODO：使用 `remnote-todo`。
-- Folder、HOME 分类 Tag 与层级：使用 `remnote-structure`。
-- Wiki：使用项目 `remnote-wiki`。
-- 笔记与闪卡：使用 `remnote-flashcards`；其中可复用概念由它调用 `remnote-wiki`。
-- CLI 无法完成的原生界面状态：使用 `control-remnote`。
-
-专项 Skill 决定内容结构和业务步骤；本 Skill 只规定 CLI 的发现、调用、写入边界和回读方式。
-
-## 故障处理
-
-1. 先运行 `remnote-cli status`，区分 Server 不可达、Bridge 未连接、版本不兼容和写入开关关闭。
-2. Bridge、Server、CLI 应处于相同 `0.x` minor，优先使用完全一致版本。
-3. Bridge 未连接时，确认 RemNote 已打开并等待自动重连；仍失败时再按 `control-remnote` 检查插件面板。
-4. SDK 调用失败时，重新查看 `sdk capabilities` 和具体方法 `--help`，报告真实错误，不伪造降级结果。
-5. 只有连接和版本恢复后才重试原操作；重试前先回读目标，防止重复写入。
+HOME/类型由 `remnote-structure` 管理；制卡、Wiki 和最终校验分别由同包对应 Skill 管理。
+本 Skill 只负责调用边界、任务计划及回执，不重复定义内容模板。
