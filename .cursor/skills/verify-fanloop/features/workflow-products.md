@@ -20,6 +20,33 @@ and the nearest governance boundary. For `fanloop-maintainer`, prove the exact c
 that retired nine-step IDs and human jump routes are absent. Do not fabricate the Main Agent decisions needed to pass Define
 or Certify. Production Bundle contract tests verify Route/Condition semantics.
 
+For ordinary configuration, actually edit a Skill in a disposable source, self-check
+the requested result, commit locally and read back the loaded source. All four Steps
+and their displayed Panorama remain, but config routes require no stage-report URL
+or extra Agent. One delivery-record.md links original evidence. Same-goal associated
+docs do not return to Define. Routing/binding/security/approval/external-write changes
+still require an independent trial; failures and candidate drift cannot reuse passes.
+Compare typography, template and associated-doc tasks against direct edits with the
+same model, baseline, checks and local commit/readback endpoint. Include Agent reading,
+orchestration and presentation in wall time; report external waiting separately.
+An explicitly deferred performance gate in the approved Acceptance Set remains
+deferred, never passed; preserve failed measurements without repeating them for
+delivery. Functional verification still uses the final candidate. Actually drive
+risk expansion back to Define, failed checks back to Build and candidate mutation
+through fresh checks before delivery; instruction inspection is not journey proof.
+
+CI's lightweight `changes` job classifies complete Git diff paths and modes, not the
+Agent's category claim. Pure configuration skips engine jobs; scripts, validation
+assets and mixed changes run all jobs. Missing baselines never exempt code. Use real
+temporary Git histories to exercise PR merge-base versus push before/head, renames
+in both directions, executable-to-regular mode changes, symlinks and rejected local
+materials. The classification script is `.github/scripts/classify-changes.py`;
+`scripts/test_maintenance_checks.py` is also run by the existing unit entrypoint.
+Only successful explicit `code=false` skips engine jobs. Failed/cancelled classification
+and missing/invalid output must fail existing jobs before their engine steps; cover
+the real first-step shell gate in `TestCIClassificationFailsClosed`. Delivery must
+read same-head `changes` success and actual output even if it is not remotely required.
+
 For `remnote-flashcards`, verify exactly four agent Steps in order: `resolve_home_tag`, `write_flashcards`,
 `update_wiki_links`, `verify_result`. Status resolves six Skills from that same live bundle: `remnote-structure`,
 `remnote-cli`, `remnote-flashcards`, `remnote-wiki`, `remnote-verify`, and optional `control-remnote`.

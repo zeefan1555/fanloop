@@ -13,3 +13,8 @@ Use the public `fanloop-workflow` entry and select `fanloop-maintenance`. Initia
 with `fanloop flow init --workflow fanloop-maintainer`, then follow the current
 Status and its exact required Skill paths. Do not run this package's steps outside
 the Workflow or expose its child Skills globally.
+
+Ordinary configuration stays with the current Agent: one local delivery-record.md,
+targeted self-checks and authorized Git delivery/readback, without Lark stage reports
+or engine CI. Risk-sensitive configuration retains independent trials; code and mixed
+changes retain full certification. Each Step still requires its real Panorama.

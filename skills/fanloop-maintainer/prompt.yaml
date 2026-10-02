@@ -9,7 +9,7 @@ prompts:
       - {id: fanloop-dev-workflow, prompt: Define 分类并记录，后续只按已记录类别加载当前 Step 的独立业务 Skill。, optional: false}
 
   configuration_scope_recorded_condition:
-    prompt: 执行配置 Define Skill，记录范围及 trial_plan（行为变化、最小场景、成功标准、允许副作用和停止位置）后返回 configuration_scope_recorded。
+    prompt: 执行配置 Define Skill，在唯一 delivery-record.md 简记已明确目标、范围和检查方式（self_check、independent 或 not_applicable）；记录最小场景、成功标准、副作用和停止位置后返回 configuration_scope_recorded。
     skills:
       - {id: fanloop-config-define, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
@@ -19,9 +19,9 @@ prompts:
       - {id: fanloop-config-edit, prompt: 只执行当前配置 Step 的职责并保留真实回执。, optional: false}
 
   configuration_checked_condition:
-    prompt: 执行配置检查 Skill；行为变化必须由全新 Sub Agent 实际试用并回读原始证据，纯文字修正可记录具体免测理由。只有基础检查通过且 trial 为 passed 或有据的 not_applicable 才返回 configuration_checked；行为失败回 Build，环境阻塞保持 blocked。
+    prompt: 执行配置检查 Skill；普通模板及 Prompt 由当前 Agent 实际自检，路由、绑定、权限、安全、审批或外部写入规则变化必须独立试用，纯排版可记录具体免测理由。核对实际验证方式与原始证据；基础检查通过且 trial 为 passed 或有据的 not_applicable 才返回 configuration_checked；行为失败回 Build，环境阻塞保持 blocked。
     skills:
-      - {id: fanloop-config-check, prompt: 完成基础检查及适用的全新 Sub Agent 行为试用，核验原始产物与候选身份。, optional: false}
+      - {id: fanloop-config-check, prompt: 按影响完成自检或独立试用，核验原始产物与候选身份，不重复已完成检查。, optional: false}
 
   live_configuration_synced_condition:
     prompt: 执行绑定的配置专用 Skill，真实完成后返回 live_configuration_synced；失败或结果不明保持 blocked。
@@ -35,7 +35,7 @@ prompts:
     prompt: 只记录当前配置 Step 已发生的事实与真实证据。按当前 Prompt 填写对象；错误记录具体原因，未完成或结果不明保持 blocked。
     skills: []
   configuration_back_to_define:
-    prompt: 目标、范围或变更类别变化时重新记录范围；涉及代码后执行原代码分支，不复用配置检查作为代码验收。
+    prompt: 目标、验收、权限、副作用或变更类别扩大时回 Define；同一目标关联说明同步只更新实际文件清单，不机械回流。涉及代码后执行原代码分支，不复用配置检查作为代码验收。
     skills: []
   configuration_back_to_build:
     prompt: 仅修复配置问题或基于最新仓库基线重新准备完整 Skill 包，再重新做相关配置检查。本地交付后回读失败保持原 Step blocked，修复同一源的读取问题后重试。
@@ -105,7 +105,7 @@ prompts:
     prompt: |
       从 certification-report.md 覆盖的 certification_base、certification_head、Git tree、候选 patch identity、binary SHA-256 和验证资产摘要开始。先跨 open/merged 状态回读当前分支到 main 的唯一 PR；若已 MERGED，固定其唯一 merge commit 并直接恢复合并后本地步骤，不再处理 base drift。PR 尚未合并时 fetch origin；origin/main 未变化则把 certification_base/head 作为有效交付 base/head 并上报 delivery_main_unchanged。origin/main 已前进时，在 Deliver 用普通 merge 把该精确提交集成到当前分支，解决冲突并记录冲突文件；禁止 rebase、force push 或夹带需求外修改。对集成后的 diff 执行 git diff --check、受影响聚焦检查和 ./tests/run-unit。若无法保持已批准的需求、Workflow Step 身份、IDL、Schema 或公开语义，上报 requirements_changed 回 Define；其他非集成修改或身份漂移上报 candidate_changed 回 Build。集成验证通过后固定 delivery_base、delivery_head 和 delivery_tree，只上报 delivery_main_integrated、panorama_presented 与 code_change 回 Build；旧 Review、黑盒、主 Agent批准、PR checks 和交付证据全部失效，必须以实际 delivery_head 重新完成 Build 与 Certify。
 
-      只有当前候选已经对实际 HEAD 完成新一轮 Build、独立 Review、黑盒验收与主 Agent批准，且 origin/main 等于本轮 certification_base，才幂等创建或更新当前分支到 main 的唯一 PR。从 active main Ruleset 动态读取 required checks 的精确名称集合，等待这些检查在有效交付 head 全部成功，并同步本轮独立 Review 结论。产品类检查失败上报 remote_product_checks_failed 回 Build；基础设施失败保持 blocked。全部通过后再次 fetch；若 main 又前进则重复受控集成并回 Build 重新认证，否则核对 PR source commit 等于有效交付 head，并执行 `gh pr merge <PR_URL> --repo zeefan1555/fanloop --auto --squash --match-head-commit <EFFECTIVE_DELIVERY_HEAD>`。禁止 `--admin`、直接 push main 或第二个 PR。
+      只有当前候选已经对实际 HEAD 完成新一轮 Build、独立 Review、黑盒验收与主 Agent批准，且 origin/main 等于本轮 certification_base，才幂等创建或更新当前分支到 main 的唯一 PR。从 active main Ruleset 动态读取 required checks 的精确名称集合；无论集合是否包含 changes，均须回读有效交付 head 的 changes 成功结论及真实 code 输出，代码或混合变更必须为 true。不得用本地分流、检查名称或 skipped 推断输出；缺失、失败、取消或无效输出均阻止交付。等待全部适用 required checks 成功，并同步本轮独立 Review 结论。产品类检查失败上报 remote_product_checks_failed 回 Build；基础设施失败保持 blocked。全部通过后再次 fetch；若 main 又前进则重复受控集成并回 Build 重新认证，否则核对 PR source commit 等于有效交付 head，并执行 `gh pr merge <PR_URL> --repo zeefan1555/fanloop --auto --squash --match-head-commit <EFFECTIVE_DELIVERY_HEAD>`。禁止 `--admin`、直接 push main 或第二个 PR。
 
       回读 MERGED 和唯一 merge commit，要求其可达 origin/main，且 parent 形态只能是有效交付 base 的单父提交，或依次为有效交付 base、有效交付 head 的双父 GitHub merge；其他形态 blocked。比较 merge commit tree 与有效交付 head tree，必须相同。固定当前 Requirement 控制器，只把本 Requirement 的 clean 源码 worktree切到 detached merge commit；从该提交更新全局 current，回读 version 和 Doctor，再运行 post-merge verify smoke。全部通过后写入 delivery-record.md，只上报本次实际的 delivery_main_unchanged 或 delivery_pr_already_merged，以及 merge_request_published、remote_checks_passed、review_comment_synced、code_merged、merge_tree_verified、source_repository_updated、local_cli_updated、post_merge_smoke_passed、delivery_record_written 与 panorama_presented 后 terminal。已合并后的本地失败只重试同一 merge commit。
     skills:
@@ -131,7 +131,7 @@ prompts:
   delivery_main_condition: {prompt: origin/main 等于 certification_base 时上报 delivery_main_unchanged；前进时在 Deliver 完成受控集成和检查后上报 delivery_main_integrated，对象至少包含 previous_base、latest_base、previous_head、delivery_head、delivery_tree、conflict_files 和 validation_commands。, skills: []}
   delivery_pr_status_condition: {prompt: 唯一 PR 已在当前或先前调用中合并并固定到同一 merge commit 时，上报 delivery_pr_already_merged=merged；该恢复路径不要求 delivery_main_unchanged。, skills: []}
   merge_request_condition: {prompt: merge_request_published 输出当前分支到 main 的唯一 GitHub PR URL。, skills: []}
-  remote_checks_condition: {prompt: 有效交付 head 的 required checks 全部成功时上报 remote_checks_passed；该 head 是未漂移时的 certification_head 或受控集成后的 delivery_head。确定产品失败时上报 remote_product_checks_failed；基础设施失败不提交 Result。, skills: []}
+  remote_checks_condition: {prompt: 有效交付 head 的 changes 成功且已回读真实 code 输出符合变更类别、适用 required checks 全部成功时上报 remote_checks_passed；分流不因未列入 required checks 而免查，不得从本地分流或 skipped 推断输出。该 head 是未漂移时的 certification_head 或受控集成后的 delivery_head。确定产品失败时上报 remote_product_checks_failed；基础设施失败不提交 Result。, skills: []}
   review_comment_condition: {prompt: review_comment_synced 输出本轮 actual delivery head 的独立 Review、黑盒验收、主 Agent批准结论及适用的 Deliver 集成回执同步到 PR 评论后的回读 receipt；不得复用或描述旧 certification head 的认证。, skills: []}
   code_merged_condition: {prompt: code_merged 输出回读 MERGED、符合已批准的有效交付 base 单父或有效交付 base/head 双父形态且可达目标默认分支的完整 merge commit SHA。, skills: []}
   merge_tree_condition: {prompt: merge commit tree 与有效交付 head tree完全相同时上报 merge_tree_verified。, skills: []}

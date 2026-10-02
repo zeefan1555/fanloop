@@ -25,16 +25,30 @@ def snapshot(root):
     return files
 
 
+def select_workflows(source, requested):
+    directories = sorted((source / 'skills').iterdir())
+    if any(not item.is_dir() or item.is_symlink() for item in directories):
+        raise ValueError('invalid Workflow package root')
+    available = {item.name for item in directories}
+    selected = sorted(set(requested)) if requested else sorted(available)
+    unknown = set(selected) - available
+    if unknown:
+        raise ValueError('unknown Workflow: ' + ', '.join(sorted(unknown)))
+    return selected
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config-source', required=True, type=Path)
     parser.add_argument('--binary', required=True, type=Path)
     parser.add_argument('--output-root', required=True, type=Path)
+    parser.add_argument('--workflow', action='append', help='Workflow matrix to run; repeatable, default all')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parent.parent
     if not args.config_source.is_absolute():
         raise ValueError('configuration source must be absolute')
     source = args.config_source
+    workflows = select_workflows(source, args.workflow)
     binary = args.binary.resolve(strict=True)
     output = args.output_root.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -52,10 +66,7 @@ def main():
             (skill_root / skill).symlink_to(binary.parent.parent / 'entrypoints' / skill)
         env[f'FANLOOP_{kind}_SKILLS_ROOT'] = str(skill_root)
     outcomes = []
-    for directory in sorted((source / 'skills').iterdir()):
-        if not directory.is_dir() or directory.is_symlink():
-            raise ValueError('invalid Workflow package root')
-        workflow = directory.name
+    for workflow in workflows:
         env.update(FAKE_LARK_LOG=str(output / f'{workflow}-lark.log'), FAKE_TRACE_CONTENT=str(output / f'{workflow}-trace.md'), FAKE_TRACE_KEY='docx:FanloopConfigurationMatrix')
         argv = [sys.executable, str(repo / 'tests/requirement_e2e/route_matrix.py'), '--source-root', str(repo), '--binary', str(binary), '--workflow', workflow, '--output-root', str(output / workflow)]
         with (output / f'{workflow}.stdout').open('wb') as stdout, (output / f'{workflow}.stderr').open('wb') as stderr:

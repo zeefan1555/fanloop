@@ -9,12 +9,37 @@ env:
   CANDIDATE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+          fetch-depth: 0
+      - name: Verify candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
+      - name: Classify complete diff and reject local-only materials
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_HEAD: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 .github/scripts/classify-changes.py --event "$EVENT_NAME" --base "$BASE_HEAD" --head "$CANDIDATE_HEAD"
+
   test:
+    needs: changes
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code != 'false')
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Require successful code classification
+        env:
+          CLASSIFICATION_RESULT: ${{ needs.changes.result }}
+          CODE_CHANGED: ${{ needs.changes.outputs.code }}
+        run: test "$CLASSIFICATION_RESULT" = success && test "$CODE_CHANGED" = true
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_HEAD }}
@@ -30,8 +55,15 @@ jobs:
       - run: ./tests/run-unit
 
   requirement-e2e:
+    needs: changes
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code != 'false')
     runs-on: ubuntu-latest
     steps:
+      - name: Require successful code classification
+        env:
+          CLASSIFICATION_RESULT: ${{ needs.changes.result }}
+          CODE_CHANGED: ${{ needs.changes.outputs.code }}
+        run: test "$CLASSIFICATION_RESULT" = success && test "$CODE_CHANGED" = true
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_HEAD }}
@@ -44,8 +76,15 @@ jobs:
         run: ./.github/scripts/run-requirement-validation
 
   install-doctor:
+    needs: changes
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code != 'false')
     runs-on: ubuntu-latest
     steps:
+      - name: Require successful code classification
+        env:
+          CLASSIFICATION_RESULT: ${{ needs.changes.result }}
+          CODE_CHANGED: ${{ needs.changes.outputs.code }}
+        run: test "$CLASSIFICATION_RESULT" = success && test "$CODE_CHANGED" = true
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_HEAD }}
@@ -74,8 +113,15 @@ jobs:
           grep -q '"status": "healthy"' "$verify_root/doctor.json"
 
   governance:
+    needs: changes
+    if: always() && (needs.changes.result != 'success' || needs.changes.outputs.code != 'false')
     runs-on: ubuntu-latest
     steps:
+      - name: Require successful code classification
+        env:
+          CLASSIFICATION_RESULT: ${{ needs.changes.result }}
+          CODE_CHANGED: ${{ needs.changes.outputs.code }}
+        run: test "$CLASSIFICATION_RESULT" = success && test "$CODE_CHANGED" = true
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_HEAD }}
@@ -84,7 +130,5 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Reject local-only materials
-        run: test -z "$(git ls-files .scratch docs/research docs/specs)"
       - name: Verify Botmux identity isolation
         run: go test ./tests/contracts ./tests/e2e -run 'Test(MergeEnvironmentScrubsBotmuxBindingByDefault|E2ECommandsScrubBotmuxBindingByDefault)$' -count=1

@@ -82,7 +82,7 @@ Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based 
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 是 Define / Build / Certify / Deliver 四阶段四步单线闭环。用户先与主 Agent 对齐目录、目标、
+`fanloop-maintainer` 是 Define / Build / Certify / Deliver 四阶段四步单线闭环。配置由当前 Agent 连续执行，普通配置自检，风险配置独立试用；代码或混合变更采用以下监督方式。用户先与主 Agent 对齐目录、目标、
 范围和验收标准；执行子 Agent持有 Requirement Root、最新 Status、Route 与受管实现。Define 冻结 Acceptance
 Set 与 Feature Impact Set；Build 持续实现、运行、诊断和修复；Certify 冻结 HEAD/tree/binary 并完成独立
 Review、黑盒验证和主 Agent最终决定。
@@ -97,8 +97,8 @@ squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的�
 GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装离线绑定源仓库；配置从本地完整包直接读取，无下载或同步。
 
 **Maintainer Reports**
-固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和
-`delivery-record.md`。飞书文档只是可选阅读投影；Panorama 在每个 Step 进入时展示一次。源码、测试或
+代码通道固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和
+`delivery-record.md`，按代码 Route 发布阶段飞书报告。配置通道只使用本地 `delivery-record.md` 阅读文档及原始工具证据，不发阶段飞书报告；Panorama 在每个 Step 进入时展示一次。源码、测试或
 验证资产变化都会使下游认证与交付事实失效。
 
 ## 公开契约

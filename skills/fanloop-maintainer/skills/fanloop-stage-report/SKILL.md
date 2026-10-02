@@ -9,15 +9,17 @@ description: 将 fanloop-maintainer 的 Define、Build 或 Certify 最终事实�
 `certification_report_published` Condition 要求时执行。它不代替阶段业务 Skill，不修改候选，
 也不把飞书文档当作本地原始证据。
 
+这些门禁仅属于代码通道；配置通道不加载本 Skill，使用本地 delivery-record.md 链接。
+
 ## 输入
 
 先读取最新 `flow status`，按当前 Step 选择唯一报告：
 
 | Step | 标题后缀 | 内容来源 | Condition / Output |
 |-|-|-|-|
-| Define | Define 报告 | `configuration_scope`，或已回读的 `requirements.md`、需求决定与 receipt | `define_report_published` / `define_report_url` |
-| Build | Build 报告 | `configuration_changes`，或已回读的 `verification-report.md` 与候选身份 | `build_report_published` / `build_report_url` |
-| Certify | Certify 报告 | `configuration_check`，或已回读的 `certification-report.md`、独立回执与最终候选身份 | `certification_report_published` / `certification_report_url` |
+| Define | Define 报告 | 已回读的 `requirements.md`、需求决定与 receipt | `define_report_published` / `define_report_url` |
+| Build | Build 报告 | 已回读的 `verification-report.md` 与候选身份 | `build_report_published` / `build_report_url` |
+| Certify | Certify 报告 | 已回读的 `certification-report.md`、独立回执与最终候选身份 | `certification_report_published` / `certification_report_url` |
 
 来源缺失、与当前有效 Output 不一致或仍在变化时保持 blocked，不发布草稿或推测内容。
 

@@ -1,26 +1,29 @@
 ---
 name: fanloop-config-check
-description: 检查配置有效性，并对行为变更派发全新 Sub Agent 实际试用、核验原始证据；仅在 Maintainer Certify 的配置 Route 使用，不执行代码验收。
+description: 按实际语义检查配置，普通模板自检，风险变更独立试用；仅在 Maintainer Certify 配置 Route 使用。
 ---
 
 # 检查配置
 
-逐项对照 `configuration_scope` 与实际 diff，检查目标是否满足、引用和命令是否正确、代码或未授权文件是否混入。发现范围变化回 Define；配置缺陷用 `configuration_needs_fix` 回 Build。
+对照 `configuration_scope`、实际 diff 和 delivery-record.md 的原始证据。核验已完成检查，不重复未失效的工作；代码混入或目标/验收/权限/副作用扩大回 Define，配置缺陷用 `configuration_needs_fix` 回 Build。同目标关联说明补齐清单即可。
 
-Markdown/指令改动只检查相关引用、命令帮助和 diff。YAML 或绑定改动不等待专属人工审批：用已有兼容 CLI 在隔离配置副本上加载/Doctor，并用仓库 scripts/validate-configuration.py 运行该固定配置集的完整 Route Matrix。加载检查必须稳定覆盖语法、结构、Step、Condition、Prompt、Route 与 Skill 引用错误，并记录错误码、退出码和无业务副作用。不为修改指引而创建真实业务数据。
+## 选择检查范围
 
-涉及路由或绑定时，检查 Define 分类可被后续步骤读取，配置 Route 只绑定配置业务 Skills，代码 Route 的原业务 Skills 与条件保持有效；两类互斥，全部 Route 保留所需全景图 Condition。
+- 错字、排版：检查 diff 和受影响引用，行为不变可有据免测。
+- 模板、生成要求及 Prompt 文案：检查相关引用、必要命令帮助；用现有兼容 CLI 在隔离完整源加载受影响包，检查实际代表性结果。仅改 YAML 文案不跑路由矩阵。
+- Step、Condition、Route、绑定：严格加载和引用校验，运行 `python3 scripts/validate-configuration.py --config-source <绝对源> --binary <已有兼容CLI> --output-root <新证据目录> --workflow <受影响ID>`；多个 ID 重复传参。不跑无关 Workflow，不手工重造解析器错误用例；加载器回归仍由代码测试负责。
 
-## 独立试用
+路由/绑定变化还需确认两类互斥、代码原业务门禁有效、所有正常/终止/回流 Route 保留 Panorama。完整包及完整源摘要、候选未变化检查始终保留。禁止为验证指引创建未授权真实业务数据。
 
-1. 复核 Define 的 `trial_plan` 与最终 diff 一致。执行规则、命令、路由、绑定、判断或完成标准有变化时必须试用；计划漏项先补齐用例。纯错别字/排版且行为未变才可免测，记录 `trial.outcome=not_applicable`、原因及对应 diff，不冒充 passed。
-2. 基础检查通过后固定待测文件及摘要，准备已有兼容 CLI、隔离配置/临时仓库、专用数据与全新 Requirement Root。无需构建或安装候选 binary。目标环境不可达、授权不足或缺少可安全使用的数据时保持 blocked，不以文本审查代替试用。
-3. 派发一名不继承本轮对话或修改上下文的全新 Sub Agent（支持时使用 `fork_turns=none`）。只给自然语言任务、验收标准、候选 Workflow/Skill 的实际读取入口、必要工具/测试数据，以及允许操作与停止边界。允许读取待使用的 Skill/配置；不提供实现 diff、修改说明、旧报告或引导它选择正确路线的答案。
-4. 子 Agent 必须真正执行场景，保存所用 Skill 路径、命令 argv/stdout/stderr/退出码、实际文件变化及关键状态回读；不能只审阅文字或复述计划。可修改测试副本，不能改待测候选、真实笔记或全局 live，不能提交真实仓库、push 或创建/合并真实 PR。自迭代流程的试用按场景约定停止，避免递归启动无界的验收；到达尚未授权的后续步骤应报告停止位置，不伪造完成。
-5. 回读原始产物逐项判断成功标准，不能仅接受子 Agent 的“通过”结论；确认候选摘要未变化，且没有越过允许副作用。全部目标满足才记 `trial.outcome=passed`。行为错误用 `configuration_needs_fix` 回 Build，修复后重新派发全新试用；环境/权限阻塞保持 Certify blocked。不得复用候选变更前的回执。
+## 核验实际行为
+
+1. 按最终 diff 复核 `trial_plan.method`。`self_check` 由当前 Agent 实际执行最小代表性样例及必要失败边界，回读原始结果，不能只复述改动。`not_applicable` 写行为未变的理由，outcome 也为 not_applicable，不伪装 passed。
+2. 路由、绑定、权限、安全、审批或外部写入规则变化使用 `independent`：固定摘要后派发一名不继承实现上下文的全新 Agent，只给自然任务、验收点、Skill 实际入口、工具/数据、允许副作用与停止位置，不给 diff、实现答案或旧结论。已有兼容 CLI 即可，无需构建安装；环境或授权不足保持 blocked。
+3. 独立 Agent 真正使用隔离副本，记录 Skill 路径、argv/stdout/stderr/退出码、文件变化及状态；不得改冻结候选、真实笔记、全局配置或发布真实 PR。试用按授权停止，避免递归启动无界验收。当前 Agent 回读原始产物逐项核验，不只接受子 Agent 结论。
+4. 确认被检查文件摘要未变、没有越权后才记 passed。行为失败回 Build；环境或权限不足保持 blocked。候选变化使相关旧检查失效，重查受影响部分；独立试用覆盖的候选变更后须重新独立试用。
 
 ## 完成
 
-基础检查和适用的独立试用都满足后冻结候选包及文件摘要。`configuration_checked` 记录 仓库绝对路径、Workflow ID、候选 Git 基线、配置文件摘要、检查命令与结果、目标仓库基线，以及 `trial` 的 outcome、理由、场景覆盖、Sub Agent 标识和原始回执/证据路径。免测时不填写虚构 Agent 或回执；failed/blocked 不能提交成功 Condition。
+同一 delivery-record.md 记录仓库、Workflow、Git 基线、完整包摘要、检查命令/结果和原始证据引用。`configuration_checked` 返回上述身份和 `trial`：method、outcome、理由、场景覆盖、证据路径；只有独立试用填写真实 Agent 标识。failed/blocked 不能上报成功。
 
-不执行 Go 全量测试、Golden 更新、代码 CR/黑盒、构建、CLI Release 或代码验证 manifest。配置行为试用只覆盖本次变化；证据保留在 Requirement Root 或仓库外，临时测试对象按授权范围清理后仍保留回执。
+不执行 Go 全量、Golden 更新、代码 CR/黑盒、构建、安装或代码 manifest；不生成第二份阅读报告。证据保留在 Requirement Root 或仓库外，清理授权临时对象后仍保留真实证据。

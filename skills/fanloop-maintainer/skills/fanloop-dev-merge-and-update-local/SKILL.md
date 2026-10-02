@@ -26,11 +26,13 @@ SHA-256 和验证资产摘要开始。Deliver 内受控集成目标分支后，�
 4. 仅当当前 HEAD、tree、patch、binary 与本轮 certification-report.md 的新 certification identity 完全一致，且
    `origin/main` 等于该 certification base 时，才不使用 force push 地推送有效交付 head；零 PR 时创建，唯一 open PR 幂等更新。PR 描述包含背景、问题、解法、影响、验证、ADR impact、主 Agent结论和交付边界。
 5. 通过 GitHub API 读取作用于 `main` 的 active Ruleset，从 require-status-checks 规则动态提取 required checks
-   的精确名称集合；不得假定、补写或硬编码检查名。逐项回读这些检查在有效交付 head 的结论，并同步、回读
+   的精确名称集合；不得假定、补写或硬编码检查名。无论该集合是否包含 `changes`，均须回读有效交付 head 的
+   `changes` 成功结论及其真实 `code=true|false` 输出；代码或混合变更必须为 `true`。不得用本地分流、检查名称
+   或 skipped 推断输出，缺失、失败、取消或无效输出均阻止交付。逐项回读适用 required checks 的结论，并同步、回读
    独立 Review 结论及适用的集成回执。产品失败回 Build；基础设施失败 blocked。已合并恢复也必须对原有效
    交付 head 重做这项核验。
 6. 合码前再次 fetch；main 再次前进时重复第 3 步并回 Build 重新认证。否则先回读 PR source
-   commit，必须等于有效交付 head。全部 required checks 已通过且 Review 已同步后，不再请求额外的人或主 Agent
+   commit，必须等于有效交付 head。同 HEAD 的分流已成功、输出符合类别、全部适用 required checks 已通过且 Review 已同步后，不再请求额外的人或主 Agent
    合码确认；立即执行 `gh pr merge <PR_URL> --repo zeefan1555/fanloop --auto --squash
    --match-head-commit <EFFECTIVE_DELIVERY_HEAD>`。禁止 `--admin`、直接 push main 或第二个 PR。
 7. 回读 PR 为 MERGED、merge commit 非空且可达 origin/main。parent 形态只能是有效交付 base 的单父提交，

@@ -11,7 +11,66 @@ import (
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/idl"
+	"go.yaml.in/yaml/v3"
 )
+
+func TestCIClassificationFailsClosed(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join(repositoryRoot(t), ".github", "workflows", "ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var workflow struct {
+		Jobs map[string]struct {
+			Needs string `yaml:"needs"`
+			If    string `yaml:"if"`
+			Steps []struct {
+				Env map[string]string `yaml:"env"`
+				Run string            `yaml:"run"`
+			} `yaml:"steps"`
+		} `yaml:"jobs"`
+	}
+	if err := yaml.Unmarshal(content, &workflow); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"test", "requirement-e2e", "install-doctor", "governance"} {
+		t.Run(name, func(t *testing.T) {
+			job, ok := workflow.Jobs[name]
+			if !ok || job.Needs != "changes" {
+				t.Fatal("existing CI job must depend on classification")
+			}
+			if job.If != "always() && (needs.changes.result != 'success' || needs.changes.outputs.code != 'false')" {
+				t.Fatal("only successful explicit configuration classification may skip an existing check")
+			}
+			if len(job.Steps) == 0 {
+				t.Fatal("missing failure-propagation gate")
+			}
+			gate := job.Steps[0]
+			if gate.Env["CLASSIFICATION_RESULT"] != "${{ needs.changes.result }}" || gate.Env["CODE_CHANGED"] != "${{ needs.changes.outputs.code }}" || gate.Run == "" {
+				t.Fatal("first step must gate engine work on the actual classification result and output")
+			}
+			for _, test := range []struct {
+				result, code string
+				pass         bool
+			}{
+				{"success", "true", true},
+				{"success", "false", false},
+				{"failure", "false", false},
+				{"failure", "true", false},
+				{"cancelled", "", false},
+				{"skipped", "", false},
+				{"success", "", false},
+				{"success", "invalid", false},
+			} {
+				command := exec.Command("bash", "-c", gate.Run)
+				command.Env = append(os.Environ(), "CLASSIFICATION_RESULT="+test.result, "CODE_CHANGED="+test.code)
+				output, err := command.CombinedOutput()
+				if (err == nil) != test.pass {
+					t.Errorf("gate(%q, %q) pass=%v, want %v: %s", test.result, test.code, err == nil, test.pass, output)
+				}
+			}
+		})
+	}
+}
 
 func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 	repo := repositoryRoot(t)

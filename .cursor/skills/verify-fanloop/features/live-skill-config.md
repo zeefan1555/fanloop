@@ -28,7 +28,11 @@ Skills may appear in global Skill roots. `fanloop update` must be an unknown ope
 Run with no remote helper or network credentials.
 
 Use `scripts/validate-configuration.py` for the fixed source's Route Matrix and complete
-configuration manifest; it does not execute business Skill actions.
+configuration manifest; it does not execute business Skill actions. Repeat `--workflow ID`
+to run only affected matrices; no selection means all, duplicate IDs run once and an
+unknown ID fails before any matrix. Verify the manifest still lists all source files
+and reports unchanged source. Prompt prose alone needs strict loading and a relevant
+example, not matrices or manually rebuilt parser-negative suites.
 
 In an isolated HOME/cache and source copy, run both pstack poteto-mode tools
 (`scripts/orch/orch.ts --help` and `scripts/watch-pr/watch-pr --help`) concurrently
