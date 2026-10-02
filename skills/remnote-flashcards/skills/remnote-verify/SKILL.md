@@ -9,7 +9,7 @@ description: 检查 RemNote 闪卡内容质量，以及闪卡和 Wiki 创建、�
 
 ## 闪卡
 
-检查闪卡时先读取 [SuperMemo 20 条知识表述原则](../remnote-flashcards/references/supermemo-20-rules.md)，按最终回读内容逐卡检查理解、独立、原子、可判分、低干扰、可追溯和记忆价值。普通卡执行全部适用规则；原文导入／摘录保持 `remnote-flashcards` 的模式约定，不强制费曼改写或 Why／What／How 排版。每张卡给出 `PASS` 或 `FAIL + 违反规则编号 + 原因`；失败项修复后重新回读评审，内容质量通过与下面的结构验证同时满足才算完成。
+检查闪卡时先读取 [SuperMemo 20 条知识表述原则](../remnote-flashcards/references/supermemo-20-rules.md)，按最终回读内容逐卡检查理解、独立、原子、可判分、低干扰、可追溯和记忆价值。普通卡同时按[制卡 Skill 的 STAR 通用解释结构](../remnote-flashcards/SKILL.md#star-通用解释结构)检查内容与排版：S/T 区分背景问题与目标，A 直接作答并说明原理和适用的取舍，R 若保留须区分实际结果与预期或推演；合理省略 R 不判失败，不要求固定答案 Rem 数量，不接受空标题、套话或无依据的结果。原文导入／摘录保持 `remnote-flashcards` 的模式约定，不强制费曼改写或 STAR 排版。每张卡给出 `PASS` 或 `FAIL + 违反规则编号 + 原因`；失败项修复后重新回读评审，内容质量通过与下面的结构验证同时满足才算完成。
 
 1. **日期与实体位置。** 用 `sdk date get-todays-doc` 获取今日笔记 ID，再 `read <ID> --view full` 确认是当天的 `dailyDocument`。新单卡的 `parentRemId` 必须等于该 ID；多卡的父级必须是同一个普通 `text` 主题，主题父级等于该 ID。原卡更新保留原日期；错放修复使用本次确定的目标日期。跨午夜新写入重新解析日期；已写卡按回执记录的实际创建日期与每日笔记 ID 核验，不因校验日期改变而重建。引用、Portal、标题中的日期均不能替代真实父子关系。
 2. **分类身份。** `read <TAG_ID> --view full --ancestor-depth 8`，必要时继续读祖先，证明它是 HOME 子树下最具体的 Concept，且不是 Folder／Document。同名不等于同一标签。

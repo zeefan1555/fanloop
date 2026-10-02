@@ -29,7 +29,7 @@ prompts:
       先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
       使用已确定的 HOME Tag 和前面对话的学习成果，调用 remnote-flashcards 完成查重、制卡、自检与真实写入。
       按独立记忆目标查询已有卡片及原生复习证据：重复跳过，实质补充编辑原卡答案，新目标才创建；复习数据不可用时明确记为 unavailable，不推断掌握程度。
-      普通卡按现有 Skill 执行费曼法、SuperMemo、原子拆卡和 Why/What/How；原文导入或摘录沿用对应模式，不改写指定原文。
+      普通卡按 remnote-flashcards Skill 的 STAR 通用解释结构完成费曼法、SuperMemo 与原子拆卡；细项按需展开，R 可合理省略，不编造结果。原文导入或摘录沿用对应模式，不改写指定原文。
       新单卡直接属于今日笔记并挂选定 Tag；同一学习链路 2–7 张卡属于普通 text 主题，只给主题打 Tag，并添加内置 Card Cluster；更多卡按学习链路拆组。
       先用 SDK 获取并核验今日笔记。更新原卡保留原位置、Rem ID、cardId 和复习记录；回流时先恢复 progress Evidence 中的 ID，只补缺项或原位修复。
       本步先把卡片写完整、保证独立可懂；保留已有有效 Wiki 引用，记录待关联概念，Wiki 创建/更新及新增引用统一留到 update_wiki_links，不写虚构引用或占位链接。
