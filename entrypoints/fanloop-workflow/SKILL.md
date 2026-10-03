@@ -30,7 +30,7 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
-维护 Fanloop 的代码或生产配置时使用 `fanloop-maintainer`，Define按实际范围选择代码或配置通道。
+纯 Workflow 配置或 Skill 内容维护直接读取目标仓库 `.agents/skills/edit-fanloop-skills/SKILL.md`，不初始化维护 Requirement。维护 Fanloop 代码或混合实现时使用 `fanloop-maintainer`，Define按实际范围选择通道。
 生产配置直接来自本地仓库 `skills/<workflow-id>/` 完整 Skill 包。安装绑定绝对仓库路径；显式 `FANLOOP_CONFIG_SOURCE` 可覆盖来源。每次 CLI 调用读取同一包的最新 YAML、Skill 与资源；源失效立即失败，不回退其他副本。Dashboard 默认只读，显式源可编辑对应仓库。代码交付保持原验证、PR 合码和 CLI 更新流程。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。

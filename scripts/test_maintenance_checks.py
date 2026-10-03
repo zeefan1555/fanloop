@@ -37,7 +37,7 @@ class MaintenanceChecks(unittest.TestCase):
 
     def commit(self):
         self.git('add', '-A')
-        self.git('commit', '-qm', 'fixture')
+        self.git('commit', '-qm', 'fixture\n\nCo-Authored-By: Aiden')
         return self.git('rev-parse', 'HEAD')
 
     def classify(self, expected, event='push', base=None):
@@ -51,7 +51,9 @@ class MaintenanceChecks(unittest.TestCase):
     def test_configuration_and_unknown_paths(self):
         for name in ('AGENTS.md', 'docs/adr/example.md', 'docs/testing-guide.md',
                      'skills/example/SKILL.md', 'skills/example/prompt.yaml',
-                     'skills/example/skills/write/references/example.md'):
+                     'skills/example/skills/write/references/example.md',
+                     '.agents/skills/edit-example/SKILL.md',
+                     '.agents/skills/edit-example/references/example.md'):
             self.write(name)
         self.commit()
         self.classify('configuration')
@@ -62,7 +64,15 @@ class MaintenanceChecks(unittest.TestCase):
     def test_mode_symlink_and_verification_assets(self):
         for name, mode in [('skills/x/SKILL.md', 0o755), ('docs/tests/input.md', 0o644),
                            ('skills/x/skills/verify-x/SKILL.md', 0o644),
-                           ('.cursor/skills/verify-fanloop/features/example.md', 0o644)]:
+                           ('.cursor/skills/verify-fanloop/features/example.md', 0o644),
+                           ('.agents/skills/x/SKILL.md', 0o755),
+                           ('.agents/skills/x/scripts/example.md', 0o644),
+                           ('.agents/skills/verify-x/SKILL.md', 0o644),
+                           ('.agents/skills/x/fixtures/example.md', 0o644),
+                           ('.agents/skills/x/run.py', 0o644),
+                           ('.agents/skills/x/workflow.yaml', 0o644),
+                           ('.agents/skills/SKILL.md', 0o644),
+                           ('.agents/other/x/SKILL.md', 0o644)]:
             with self.subTest(name=name):
                 self.write(name).chmod(mode)
                 self.commit()
@@ -73,6 +83,24 @@ class MaintenanceChecks(unittest.TestCase):
         self.classify('code')
         self.base = self.git('rev-parse', 'HEAD')
         (self.root / 'docs/link.md').symlink_to('../README.md')
+        self.commit()
+        self.classify('code')
+        self.base = self.git('rev-parse', 'HEAD')
+        (self.root / '.agents/skills/x/link.md').symlink_to('../../../README.md')
+        self.commit()
+        self.classify('code')
+
+    def test_repository_skill_renames_and_mixed_diff(self):
+        self.write('.agents/skills/x/run.py')
+        self.base = self.commit()
+        self.git('mv', '.agents/skills/x/run.py', '.agents/skills/x/SKILL.md')
+        self.commit()
+        self.classify('code')
+        self.base = self.git('rev-parse', 'HEAD')
+        self.git('mv', '.agents/skills/x/SKILL.md', '.agents/skills/x/renamed.md')
+        self.commit()
+        self.classify('configuration')
+        self.write('engine.go')
         self.commit()
         self.classify('code')
 

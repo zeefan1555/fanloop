@@ -6,6 +6,41 @@ amends: ADR-0109, ADR-0119, ADR-0123, ADR-0124
 
 # Ordinary Skill Maintenance Has No Separate Delivery Ceremony
 
+## Direct Repository Skill Maintenance (2026-10-03)
+
+The user approved a standalone `.agents/skills/edit-fanloop-skills/SKILL.md`:
+edit, validate the affected content, commit/push, create or update one PR, merge
+after applicable exact-head checks, and read back the actual local source.
+Pure configuration does not initialize Maintainer, create a Requirement, advance
+four Steps, present maintenance Panoramas or produce stage reports. This replaces
+the pure-configuration orchestration requirements below and in ADR-0109/0119/0124;
+business Workflow Human Gates, Panorama Conditions and risk-sensitive independent
+trials are unchanged. Code and mixed implementation still use Maintainer.
+
+The Skill covers Workflow YAML, non-executable Skill Markdown in `skills/` and
+`.agents/skills/`, and associated documentation. It reuses the existing validator
+and public CLI, with verification proportional to changed semantics. No new
+Workflow, script framework, runtime, dependency or CLI installation is introduced.
+Read `FANLOOP_CONFIG_SOURCE` and the configured data home's `config/current` to
+identify the actual source; fast-forward that repository after merging and verify
+its loaded paths and file identities. Do not overwrite local edits, silently
+rebind the source or confuse `config/current` with the CLI's `current` directory.
+
+The CI allowlist additionally accepts ordinary, non-executable Markdown below
+`.agents/skills/<skill>/`. Existing mode, asset-directory, rename, mixed-diff and
+fail-closed checks remain. The user explicitly included this narrow selector
+policy change and its focused regression checks in the direct delivery; changes
+to the selector itself and validation assets still run applicable code CI. This
+does not make `.github/`, executable scripts or unknown paths configuration-only.
+
+Acceptance: a fresh Agent can use the standalone Skill without starting a
+maintenance Workflow; ordinary repository Skill text classifies as configuration,
+while scripts, executable Markdown, symlinks, verification assets and mixed or
+renamed code changes do not. Delivery ends at a merged PR and verified local source,
+unless the user explicitly selects an earlier stopping point.
+
+## Earlier Four-Step Optimization (2026-10-02)
+
 The user approved keeping the existing configuration/code channels and four Steps,
 while making ordinary Skill maintenance cost approximately the same as direct
 editing with the same checks and delivery endpoint. No new Workflow or runtime is

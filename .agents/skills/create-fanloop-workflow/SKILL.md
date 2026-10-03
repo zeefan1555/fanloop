@@ -69,4 +69,4 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 一条成功 Route 和一条回流 Route；不另写校验器或为配置改动构建新 binary。
 
 逐项核对五份 YAML 引用闭合、所有 SkillBinding 都指向同目录已有 Skill、Route 可达且不含绕过 Human Gate
-或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按当前维护 Workflow 的配置通道交付：运行 scripts/validate-configuration.py，提交本地完整包，并用显式 FANLOOP_CONFIG_SOURCE 指向该仓库执行 Doctor 与公开 CLI 回读。默认安装绑定源的下一次调用会直接读取修改，无下载、同步或 CLI 重建。不得把未发生的远端合并或安装写成完成事实。
+或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按仓库 `.agents/skills/edit-fanloop-skills/SKILL.md` 直接校验、提交、PR 合并和本地交付，不再启动维护 Workflow。`FANLOOP_CONFIG_SOURCE` 可用于候选检查，但最终必须回读用户默认环境实际绑定的源。配置下一次调用生效，无下载、复制或 CLI 重建；未发生的合并或本地更新不能写成完成事实。

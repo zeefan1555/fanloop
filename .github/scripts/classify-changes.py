@@ -28,6 +28,8 @@ def ordinary(path, mode):
         return True
     if len(parts) >= 3 and parts[0] == 'skills':
         return path.endswith('.md') or (len(parts) == 3 and parts[2] in YAML)
+    if len(parts) >= 4 and parts[:2] == ('.agents', 'skills'):
+        return path.endswith('.md')
     return len(parts) >= 2 and parts[0] == 'docs' and path.endswith('.md')
 
 

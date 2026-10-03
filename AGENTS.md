@@ -18,15 +18,15 @@
 
 ## 代码与配置分离
 
-Define 按改动内容确定类别并记录；后续节点依类别绑定独立的配置或代码 Skill。公共入口只负责路由，不混写两类操作。配置改变业务流程，不等于修改执行引擎。
+先按实际改动区分配置与代码：纯配置读取 `.agents/skills/edit-fanloop-skills/SKILL.md` 直接维护；代码和混合实现进入 `fanloop-maintainer`。配置改变业务流程，不等于修改执行引擎。
 
-1. 纯配置变更包括五份 Workflow YAML、绑定 Skill 的指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
+1. 纯配置变更包括五份 Workflow YAML、`skills/` 与 `.agents/skills/` 下非可执行 Skill 指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置按语义验证：错字/排版检查 diff 和引用并有据免测；普通模板、说明和 Prompt 由当前 Agent 实际自检，加载受影响完整包并检查代表性结果；Step、Condition、Route、绑定变化才跑受影响 Workflow 矩阵。路由、绑定、权限、安全、审批或外部写入规则变化仍需全新独立 Agent 实际试用并回读原始产物。解析器错误回归留在代码测试，不为文案重跑全产品或手造错误集。证据标明 self_check、independent 或 not_applicable，不要求新 binary 或代码 manifest。
-3. 纯配置变更走 `fanloop-maintainer` 的配置通道，保留 Define、Build、Certify、Deliver 四步及本地仓库提交、公开 CLI 回读闭环，不启动代码交付通道，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 纯配置变更由 `edit-fanloop-skills` 完成修改、相应校验、提交推送、唯一 PR 合并和实际配置源回读；用户指定停止位置时服从该边界。不初始化维护 Workflow 或 Requirement，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
 5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 与 IDL 门禁按各自适用范围保留。
-6. 普通配置由同一 Agent 连续完成四步，只维护一份本地 delivery-record.md 并展示文件链接，不发阶段飞书报告，不额外派发实施/验收 Agent、不重复未失效检查。保留原始工具日志和每步一次 Panorama。已明确要求不重复访谈；同目标关联说明更新实际文件清单与修改前摘要，不机械回 Define，目标/验收/权限/副作用/类别扩大才回流。目标是相同检查及本地提交/生效回读终点下额外 wall time 不超过 30 秒，实测包括 Agent 阅读、编排、展示和等待，未达标如实报告。
-7. CI 用完整 Git diff 的轻量 changes 任务分流，纯配置可跳过引擎任务；仅普通非可执行 Skill Markdown、包根五 YAML、普通 docs Markdown、根 AGENTS.md/README.md 可豁免。脚本、验证资产、可执行位、符号链接、未知或混合改动走完整代码 CI；重命名检查前后路径和 mode，基线缺失不能判配置，分流失败阻止交付。本地材料禁入库检查始终保留。授权 PR 合并须核对同 HEAD 分流结果和适用 required checks，不能绕过保护；代码通道门禁不变。
+6. 普通配置由同一 Agent 连续完成，不增加维护阶段、Panorama、飞书报告、实现子 Agent或重复检查。保留原始工具结果，在 PR 和最终回复中给出校验、提交、合并与本地回读证据；不额外要求阶段文档。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
+7. CI 用完整 Git diff 的轻量 changes 任务分流，纯配置可跳过引擎任务；仅 `skills/`、`.agents/skills/<skill>/` 下普通非可执行 Skill Markdown、包根五 YAML、普通 docs Markdown、根 AGENTS.md/README.md 可豁免。脚本、验证资产、可执行位、符号链接、未知或混合改动走完整代码 CI；重命名检查前后路径和 mode，基线缺失不能判配置，分流失败阻止交付。本地材料禁入库检查始终保留。授权 PR 合并须核对同 HEAD 分流结果和适用 required checks，不能绕过保护；代码通道门禁不变。
 
 完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、本地配置提交及公开 CLI 回读。
 
