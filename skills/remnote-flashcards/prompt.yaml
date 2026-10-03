@@ -79,6 +79,13 @@ prompts:
       - {id: remnote-verify, prompt: 对最终卡片和 Wiki 执行所有适用质量与结构检查。, optional: false}
       - {id: remnote-cli, prompt: 按精确 ID 回读真实状态，不把超时或截断当通过。, optional: false}
 
+  terms_referenced_condition:
+    prompt: |
+      识别本批次卡片答案和受影响 Wiki 正文中的术语，按当前步骤绑定的 remnote-wiki 解析规范页面与 aliases，在正文术语处补原生 Rem 引用；已有有效引用直接复用。
+      回读确认全部适用术语均已正确引用，复用 wiki_links_updated 的 reference_pairs 和不适用项原因作为证据；漏链、错链、字面伪链接、目标歧义或结果不明不得上报 passed。
+      原文模式或没有适用术语时按既有 Skill 记录不适用原因；不为凑引用建页，未消歧目标不是不适用项，缺陷沿现有 Route 回流或报告 blocked。
+    skills: []
+
   record_condition:
     prompt: |
       仅提交当前 Step 已真实完成的原子事实。object 字段按该 Step Prompt 填写；enum 使用声明值。

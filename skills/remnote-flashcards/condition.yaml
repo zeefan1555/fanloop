@@ -15,6 +15,9 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
     output: {key: wiki_link_receipt, type: object}
     exclusive_group: step_outcome
+  terms_referenced:
+    prompt_ref: {file: prompt.yaml, prompt_id: terms_referenced_condition}
+    output: {key: term_reference_result, type: enum_value, values: [passed]}
   result_verified:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
     output: {key: verification_result, type: enum_value, values: [passed]}
