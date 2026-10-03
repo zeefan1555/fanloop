@@ -13,7 +13,7 @@ description: 构建、查询、摄取和审计 RemNote 中持续演进的互联 
 
 ## 当前 Workflow 分工
 
-本 Skill 在 update_wiki_links 执行页面更新与补引用；write_flashcards 只可查询既有页面以理解概念。取得真实页面 ID 后，将必要原生引用补入本批次已写卡片的答案 Rem，保留正面、父级、Tag、cardId 和复习记录；引用不替代独立答案。原文导入/摘录及没有可复用概念时记录不适用原因。写后回读后进入 verify_result，由该 Step 完成最终跨卡片/Wiki校验。
+本 Skill 由 prepare_cards_and_wiki 的 Wiki 助手执行，仅写 Wiki，不改卡片。复用共享来源及术语清单，一次集中查重、解析 aliases，返回真实页面 ID、受影响对象、批次回执及 mutated。主 Agent 同时起草并交独立助手审卡，两个分支完成后才在 persist_and_verify 注入引用并写卡。CLI 命令仍串行，不争用连接。原文模式和无适用术语记录不适用原因；失败或未知写入不得宣告 wiki_ready。
 
 ## 何时启用
 
@@ -97,7 +97,7 @@ RemNote 的稳定 Rem ID、aliases、父子层级、原生引用、`createdAt`�
 
 1. **只读根目录：** `read <WIKI_ID> --depth 1 --child-limit 50 --content-mode structured --view full`，只取得固定目录及其 Rem ID。
 2. **轻量定向：** `SCHEMA.md` 从 `depth 1` 开始；`index.md` 先读类型标题和相关分区；`log.md` 只读最近 20 至 30 条。只有出现截断或相关内容位于更深层时才增加深度。
-3. **从材料提取查询词：** 对闪卡材料先提取规范名、缩写、别名和 1 至 3 个相邻概念，不为每个普通词查询 Wiki。
+3. **从材料提取查询词：** 复用准备阶段清单，归一规范名、缩写及 aliases，合并同义查询。默认只处理学习目标必要术语；用户要求全文术语时覆盖全文适用项。普通词、临时数值不查不建，必要相邻概念才扩展。
 4. **限定根搜索：** 使用 `search "<query>" --parent-id <WIKI_ID> --depth 1 --ancestor-depth 3 --child-limit 20 --view full`。先看标题、aliases、父分区和一层摘要，不读取所有命中页全文。
 5. **逐页加深：** 对最相关候选先 `read <PAGE_ID> --depth 1`；只有答案、来源或引用仍缺失时才升到 `depth 2`，再按具体子 Rem ID 继续读取。普通制卡不默认超过 `depth 2`。
 6. **有限扩展：** 只跟进与当前记忆目标直接相关的前置概念、易混概念和下游概念；首轮最多展开 3 个相邻页面。
@@ -143,7 +143,7 @@ RemNote 的稳定 Rem ID、aliases、父子层级、原生引用、`createdAt`�
 
 **实体页面：** 人物、组织、产品、模型或工具。包含概览、关键事实与日期、同其他实体的关系、来源。
 
-**概念页面：** 概念或主题。包含定义／解释、当前知识状态、开放问题或争议、相关概念。
+**概念页面：** 制卡中新建默认简明术语页：清楚的定义、必要例子、来源及相关原生引用。不默认扩写背景、当前知识综述、开放问题或争议；真实冲突仍按更新策略保留。已有页面不因简明模板删减内容，只补有依据的增量。
 
 **对比页面：** 并列分析。包含比较对象与目的、比较维度、结论或综合、来源；适合时使用表格。
 
@@ -170,9 +170,9 @@ RemNote 的稳定 Rem ID、aliases、父子层级、原生引用、`createdAt`�
 
 ### 有界计划
 
-制卡的第三步先统一完成本批次规范名、aliases 和索引查重，再按
+制卡的并行准备阶段先集中读取相关索引与候选页，统一完成规范名、aliases 和来源查重，再按
 [remnote-cli](../remnote-cli/SKILL.md) 的任务协议执行。相同页面分区的改动优先组成一个
-`wiki apply` 计划；用 `pageKey` 表达同计划页面引用，答案补引用用精确答案 ID 和前置哈希。
+`wiki apply` 计划；同计划引用用已有 `pageKey`，跨批引用用已回读的真实 ID。Wiki 助手不提交答案补丁；真实 ID 交给主 Agent 注入卡片计划。独立的答案补链接任务用精确答案 ID 和前置哈希。
 不同分区、原始来源或计划不支持的结构按实际依赖分批，各批键和 ID 单独记录；不能强行把来源页
 放进概念分区，也不能为少一次调用丢失元数据。只需补引用时不凑页面条目，无增量则跳过写入。
 
@@ -182,7 +182,7 @@ RemNote 的稳定 Rem ID、aliases、父子层级、原生引用、`createdAt`�
 
 `wiki apply` 会维护计划页面的索引与一条批次日志。来源、元文档日期/计数等未由计划覆盖的动作
 先列清，再以现有精确 ID 接口按依赖完成并回读；同批不重复追加相同日志。保留来源不可变、
-页面门槛和冲突规则。所有适用写入完成后按 remnote-verify 统一检查最终范围，不能把中途回执当最终通过。
+页面门槛和冲突规则。批次回执 verificationScope=affected_objects 仅证明本批页面子树、aliases、索引和引用，不证明整个 Wiki。所有相关写入结束后，由 persist_and_verify 按 remnote-verify 统一完整核验一次；后续 Wiki 变更使该证明失效。无知识增量只复用，不重复补写来源、索引或日志。
 
 ### 1. 摄取
 
@@ -194,7 +194,7 @@ RemNote 的稳定 Rem ID、aliases、父子层级、原生引用、`createdAt`�
 4. **创建或更新页面。** 新实体／概念达到页面门槛才在对应分区创建；已有页面原位补充，保留 Rem ID、aliases、位置和引用。冲突按更新策略处理。
 5. **交叉引用。** 新建或更新页面使用原生引用连接相关页面，并检查必要的反向引用。确有相关页面时至少连接两个；没有真实关系时不伪造链接。
 6. **更新导航。** 将新页面的原生引用和一句话摘要加入 `index.md` 的对应分区；更新页面数和日期；向 `log.md` 追加本次动作、来源及全部受影响页面。
-7. **回读并报告。** 使用任务回执 ID 和 `context` 集中回读所有新建或更新的来源、页面、aliases、引用、`index.md` 和 `log.md`。本批次最后一次相关写入后，按 remnote-verify 证明 WIKI 根 Disable Cards、完整子树零卡片且无残留卡片结构，再列出新增、更新、跳过和冲突；有效完整的任务检查不逐页重复。
+7. **回读并报告。** 使用回执 ID 和 context 集中核对本批来源、页面、aliases、引用及索引日志。制卡 Wiki 分支只报受影响范围，最终完整检查交给 persist_and_verify；独立 Wiki 任务则在全部批次最后一次相关写入后运行 verify scope，证明根 Disable Cards、完整子树零卡片且无残留卡片结构。有效局部检查不逐页重做，不能把批次 verified 当整项任务完成。
 
 单个来源触发多个相关页面的原位更新是正常结果；这正是 Wiki 持续积累的价值。
 
@@ -230,7 +230,7 @@ Lint 默认只读。合并、删除或批量更新前列出受影响页面和引
 
 用户明确要求修复 WIKI 卡片时，保留原页面及 Rem ID：先给 WIKI 根添加 Disable Cards，再对 `review-stats` 命中的具体 Rem 使用 `object-set-practice-direction --args-json '["none"]'` 清除卡片方向，最后重新检查整个 WIKI 子树为 0 张卡。不要删除或重建 Wiki 页面来解决复习队列问题。
 
-本步写后回读页面与引用；完成本步后由 verify_result 调用同 Workflow 的 [remnote-verify](../remnote-verify/SKILL.md) 完成最终 Wiki 检查。批次检查失败则回对应 Step 修复，不能仅以 Disable Cards 已开启判断通过。
+写后回读受影响页面与引用；制卡由 persist_and_verify 调用同 Workflow 的 [remnote-verify](../remnote-verify/SKILL.md) 完成最终 Wiki 检查。批次失败只修失败对象，不能仅以 Disable Cards 已开启或局部 verified 判断整个 Wiki 通过。
 
 ## 使用 Wiki
 

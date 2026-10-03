@@ -5,19 +5,30 @@ description: 检查 RemNote 闪卡内容质量，以及闪卡和 Wiki 创建、�
 
 # RemNote 写后验证
 
+## 草稿立即审
+
+prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查，不等待 Wiki 分支。
+共用来源、模式和学习目标；审查普通卡的来源一致、单一记忆目标、独立理解、术语解释及下述内容规则。
+原文模式逐段比对指定原文，不改写；全部重复时仍检查复用决定与实际答案补充。
+回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys 及每张 PASS/FAIL 和原因。
+助手不写卡、不写 Wiki、不代替作者改稿。作者只修失败项，助手只复审改变的卡；新增术语返回 Wiki 清单。
+未覆盖、未结束、旧稿证据或失败项非空不满足 draft_quality_passed。
+
 使用 `remnote-cli` 读取真实状态。输入本批次内容 Rem ID、预期卡片 ID、HOME Tag ID、Wiki 页面 ID，以及新增／更新／迁移动作；缺少 ID 时先定向查找。仅请求检查时保持只读；创建或修复任务中的失败项在已授权范围内修复并重新验证。操作前遵循 `remnote-cli` 的 status 和命令帮助规则。
 
 ## 集中验证
 
 从任务回执的 `ids` 和本批次操作记录确定检查集合；用 `context` 集中读取最终卡片、答案和受影响
 Wiki 内容，需要正文的每个 ID 显式列入 `remIds`。用 `verify scope` 合并父级、日期对应的日记 ID、
-类型、Tag 反查、集群、引用及实际卡片集合预期。原文模式逐段核对源文，普通卡逐卡语义评审，
+类型、Tag 反查、集群、引用及实际卡片集合预期。原文模式逐段核对源文，普通卡逐项对应已审草稿，
 0 张新卡时仍检查实际更新或复用的对象；没有动作的检查记录不适用理由。
 
 下面各项是必须证明的事实，不是要求把每条示例命令逐一重复执行。已有任务或范围回执完整覆盖
 事实且符合 remnote-cli 的新鲜度规则时直接引用；后续补引用、元数据更新、修复或外部变更影响的
 部分重新读取和检查。不完整、截断、错误 KB 或已失效回执一律不算通过；不降低必需范围换取成功。
 回执哈希和数量不能代替正文质量、顺序和原文保真的判断。
+最终正文未变且覆盖证据新鲜时复用独立草稿审查；正文改变必须将对应卡交独立助手重审。
+引用注入保留可见文本时仍检查实际目标；可见正文改变不能只因哈希更新就放行。
 
 ## 闪卡
 
@@ -32,14 +43,22 @@ Wiki 内容，需要正文的每个 ID 显式列入 `remIds`。用 `verify scope
 ## Wiki
 
 1. 回读本批次页面、aliases、原生引用、相关 `index.md` 条目与 `log.md` 记录。页面在正确 WIKI 分区、保持普通 `text`，无 HOME 或 `wiki-*` 分类 Tag；索引中每个受影响页面恰好出现一次，目标引用可解析。根和目录为 Folder，元文档为 Document，非叶节点按 `remnote-wiki` 折叠。
-2. 根有 Disable Cards，且本批次最后一次相关写入后的完整 WIKI 子树没有卡片。优先用完整任务回执或 `verify scope` 的 `powerup: u`、`zeroCards`（包含残留结构检查）证明；必要时补充 `review-stats --root-id <WIKI_ID>` 和精确 ID 读取。根与全部后代都必须被覆盖；只检查根、抽样或只看到禁用开关均不算通过。
+2. 存在 Wiki 修改时，在最后一次相关修改后调用现有 `verify scope`，显式覆盖 WIKI 根及全部后代，以 `powerup: u`、`zeroCards` 和残留卡片结构检查证明。Wiki 批次的 `verificationScope: affected_objects` 不满足此门禁；只检查根、抽样或只看到禁用开关也不算。没有后续相关变更时完整扫描一次即可，后续 Wiki 修改使证明失效并重查；重连/跨会话按 remnote-cli 新鲜度规则处理。
 3. 检查本批次页面及正文是否残留实际卡片结构；用户报告 WIKI 混卡时扩大到整个 WIKI。折叠的 `read` 不代表完整子树，使用 `sdk rem object-get-descendants` 枚举精确后代，再读取可疑节点。普通 Rem 的 SDK `getPracticeDirection` 也可能返回默认 `forward`，不能单凭它判定生成了卡片；结合 `backText`、卡片类型／语法、CLI `cardDirection` 和实际 `cards` 判断。Disable Cards 下实际卡片结构仍属于失败项。
 4. 知识页面误开卡片时保留页面、正文、aliases 和引用，给实际卡片 Rem 设置 `object-set-practice-direction --args-json '["none"]'` 并回读；真正错放的学习卡按闪卡流程原位移至每日笔记并挂 HOME Tag。不能将知识页面整批搬走或删除重建。完成修复后重新运行整个 WIKI 的零卡片检查。
 
 ### 验证范围
 
+完整 Wiki 检查使用实际根 ID 替换下列占位值，传给 `verify scope --expect <FILE|-> --summary`：
+
+```json
+{"schemaVersion":1,"inspect":{"schemaVersion":1,"subtreeRootIds":["<WIKI_ID>"]},"expectations":[{"kind":"zeroCards","remId":"<WIKI_ID>","noCardStructure":true},{"kind":"powerup","remId":"<WIKI_ID>","code":"u","value":true}]}
+```
+
+必须完整返回且所有预期通过；实际集合截断、超预算、失败或残留卡片结构均不算零卡片证明。
+
 用户不从 WIKI 进入复习。WIKI 零卡片门禁以 CLI 对完整实体子树的实际卡片与残留卡片结构证明为准，
-可使用上述完整任务/`verify scope` 回执，或完整 `review-stats` 加必要结构回读。
+使用最后一次相关修改后的完整 `verify scope` 回执，不以局部任务回执代替。
 不要求界面计数为零，也不默认打开目录或复习队列。没有新建或修改 Wiki 时只检查受影响页面与引用，
 不把日常复用扩大为全库审计；接口预算不足时报告未覆盖范围，不能抽样放行。
 

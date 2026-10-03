@@ -10,93 +10,103 @@ prompts:
 
   resolve_home_tag_flow:
     prompt: |
-      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
-      直接使用前面对话中已讨论的概念、结论和来源；第一步就是定位 HOME 分类，不重新启动概念访谈。
-      本 Workflow 用于已授权的制卡任务；只读查询不启动本流程。材料无法恢复或范围不清时报告 blocked，说明实际缺口。
-      按 remnote-structure 定位唯一 HOME，在相关分类及祖先路径内搜索最具体的 Concept Tag，按真实 ID 消歧。
-      已有合适 Tag 就复用；没有则先运行 remnote-cli status，确认连接、版本和写入权限，再在正确父级新建必要分类。
-      回读确认 Tag 是 HOME 子树中的 Concept，纯分组节点按 Folder 处理，不按固定深度判型。
-      home_tag_ready 的 object 包含 home_id、tag_id、ancestor_ids、created_tag_ids 和 source_refs；所有 ID 必须来自真实返回。
-      本步完成条件是取得可用的真实 Tag ID，不能用待创建计划代替。
-      全流程写前遵循 remnote-cli，写后立即回读。每次部分成功就在 progress Evidence 中保留对象 ID、动作和检查状态，供重试及回流恢复。
-      运行输入记录内容模式、授权 KB 和当前材料范围；名称用于定位，ID 从当前连接取得，不写入样例知识库或固定分类 ID。
-      已知对象按 remnote-cli 的 context 集中读取，只补缺失范围；权限、协议或工具故障记录 blocked，维护另开任务，不在制卡中改代码或重装插件。
-      Output、Evidence 与 Summary 只保留 ID、来源引用、计数和检查结论；不保存 RemNote 内容的本地副本，临时传输文件用后清理。
+      先执行 panorama_presented 的 Prompt/Skill，展示成功后再执行业务。复用对话中的理解和材料，不重新访谈。
+      只处理已授权制卡；恢复来源、内容模式、精确 KB、学习目标、已有卡片及术语清单，集中读取后交给各分支共享。
+      按 remnote-flashcards 的增量规则查重和读取原生复习证据；不可用标 unavailable，不推断掌握程度。
+      术语默认限于本次学习目标所需；用户要求全文术语时覆盖全文适用术语，普通词和临时数值不自动建页。
+      按 remnote-structure 定位唯一 HOME 及最具体 Concept Tag；复用已有分类，必要新建先核对 status 与写权限，再回读类型和真实父级。
+      home_tag_ready 包含 home_id、tag_id、ancestor_ids、created_tag_ids、source_refs、material_digest、mode、goal_keys、existing_card_ids、term_keys、term_scope。
+      ID 来自当前连接，材料摘要绑定本次来源及范围；模式、学习目标和术语清单交接使用临时材料，Output 不存知识正文。
+      后续临时草稿丢失时从来源和真实 Rem 恢复，重审发生变化的内容，不把旧摘要当正文。
+      全程按 remnote-cli 使用 context 集中读取已知 ID。每次部分成功将 ID、动作、哈希、计数和检查结论记入 progress Evidence。
+      缺来源、权限、范围歧义或工具故障则 blocked；维护另开任务，不在制卡中升级工具。草稿与传输材料用后清理。
     skills:
-      - {id: remnote-structure, prompt: 查找或创建 HOME 分类并回读真实类型与父级。, optional: false}
-      - {id: remnote-cli, prompt: 写前 status、命令帮助、精确 ID 操作和回读。, optional: false}
+      - {id: remnote-structure, prompt: 定位 HOME 分类并回读真实类型和父级。, optional: false}
+      - {id: remnote-flashcards, prompt: 复用材料并按学习目标查重，保持内容模式。, optional: false}
+      - {id: remnote-cli, prompt: 核对身份权限并集中读取，保留真实 ID。, optional: false}
 
-  write_flashcards_flow:
+  prepare_cards_and_wiki_flow:
     prompt: |
-      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
-      使用已确定的 HOME Tag 和前面对话的学习成果，调用 remnote-flashcards 完成查重、制卡、自检与真实写入。
-      按独立记忆目标查询已有卡片及原生复习证据：重复跳过，实质补充编辑原卡答案，新目标才创建；复习数据不可用时明确记为 unavailable，不推断掌握程度。
-      普通卡按 remnote-flashcards Skill 的 STAR 通用解释结构完成费曼法、SuperMemo 与原子拆卡；细项按需展开，R 可合理省略，不编造结果。原文导入或摘录沿用对应模式，不改写指定原文。
-      新单卡直接属于今日笔记并挂选定 Tag；同一学习链路 2–7 张卡属于普通 text 主题，只给主题打 Tag，并添加内置 Card Cluster；更多卡按学习链路拆组。
-      先用 SDK 获取并核验今日笔记。更新原卡保留原位置、Rem ID、cardId 和复习记录；回流时先恢复 progress Evidence 中的 ID，只补缺项或原位修复。
-      本步先把卡片写完整、保证独立可懂；保留已有有效 Wiki 引用，记录待关联概念，Wiki 创建/更新及新增引用统一留到 update_wiki_links，不写虚构引用或占位链接。
-      按 remnote-cli 的有界任务协议使用 flashcards apply 完成计划、预览、写入及回执；未能保真表达的原文或结构不得强行套用。
-      任务已完成的 Tag、Card Cluster 和结构检查不再逐卡重复调用；集群仍必须有 cc=true 的真实回读，主题类型、标题、父级和卡片集合符合预期。
-      flashcards_written 的 object 包含 created_rem_ids、updated_rem_ids、reused_rem_ids、card_ids、topic_ids、daily_rem_ids、tag_id、source_refs、skipped_count 和待关联的卡片 ID。
-      全部重复时允许 created/updated 为空，保留复用 ID 与跳过原因，仍进入 Wiki 更新及最终校验；不要为凑数量创建卡片。
-      内容与结构已回读、批次 ID 已记录才能前进；分类错误回 resolve_home_tag，卡片缺陷或可恢复的部分写入回本步。缺少授权或结果不明则 blocked。
+      先执行 panorama_presented。主 Agent 按 remnote-flashcards 写草稿，同时派一个 Wiki 助手按 remnote-wiki 统一查重、复用已有页、写缺页和必要增量。
+      共用准备阶段的来源、学习目标、模式和术语清单，不让助手重新收集全套材料。本步主 Agent 不写卡。
+      主 Agent 每完成一个草稿批次立即交给独立只读审卡助手；按 remnote-verify 审查来源一致、单一目标、独立可懂和术语解释。按批审，不为每张卡派助手。
+      审卡助手只能读材料与草稿、返回覆盖卡号及失败原因，不能修改卡或 Wiki。Wiki 助手仅写 Wiki；CLI 命令串行，作者与审卡助手利用其写入等待时间做内容工作。
+      草稿失败只修失败卡，再由审卡助手复审改动部分；新增术语交 Wiki 助手补入本次清单，再汇合。不等待 Wiki 完成才启动审卡。
+      Wiki 助手返回真实术语到页面 ID 映射、创建/更新/复用页、来源与索引日志 ID、引用对、批次及受影响范围回执；歧义和未知写入不能算完成。
+      两个分支全部结束后记录 preparation_recorded：material_digest、draft_digest、card_keys、reviewer_receipt（覆盖、失败、来源和摘要）、wiki_receipt（真实 ID 映射、mutated、范围、批次）、term_keys、skipped_count、not_applicable。
+      记录只含来源、ID、键、哈希、计数和结果，不保存草稿正文副本。正文留在本次临时交接；哈希绑定证据而不代替语义检查。
+      必须同时满足 draft_quality_passed=passed 与 wiki_ready=passed，且证据对应当前材料、最新草稿及全部术语，才能进入写入。
+      全部重复允许零新卡，仍审查实际补充或复用决定；没有术语及原文模式在 Wiki 回执写明不适用原因和空映射，不调用空写入。
+      分类错误回第一步；草稿或 Wiki 分支可恢复失败仅修失败部分。同问题连续三轮失败或结果不明 blocked，不编造通过回执。
     skills:
-      - {id: remnote-flashcards, prompt: 执行增量查重、制卡、自检、写入与集群；Wiki 更新和补引用留给下一步。, optional: false}
-      - {id: remnote-cli, prompt: 写前 status，写入后逐项回读并记录真实 ID。, optional: false}
+      - {id: remnote-flashcards, prompt: 仅准备草稿并交接独立审卡，本步不写卡。, optional: false}
+      - {id: remnote-verify, prompt: 独立只读评审当前草稿批次，输出覆盖和失败项。, optional: false}
+      - {id: remnote-wiki, prompt: Wiki 助手统一解析术语并仅写 Wiki，返回真实页面 ID。, optional: false}
+      - {id: remnote-cli, prompt: 有界批次与串行连接，未知写入先核对。, optional: false}
 
-  update_wiki_links_flow:
+  persist_and_verify_flow:
     prompt: |
-      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
-      闪卡写入后，调用 remnote-wiki 定向查找本次概念的规范名和 aliases，复用唯一 Wiki 页面。
-      对已有页面补充本次有依据的新知识；缺页且达到页面门槛时创建。没有知识增量则复用，不重复建页或追加相同内容。
-      Wiki 页面保持正确 WIKI 分区下的普通 text；仅本批次写入页面时同步相关 index/log，保留真实来源和已有引用。
-      同分区页面和答案引用优先组成一个 wiki apply 计划，按预算和跨批依赖拆分；无增量只复用，不凑页面数或重复追加日志。
-      分组索引使用已核验的实际目标父 ID，不猜分组名称或层级；当前 CLI 无法表达必要操作时保持 blocked，不先部分写入再修补。
-      获得真实 Wiki 页面 ID 后，在相关闪卡答案 Rem 中增加原生概念引用，并补齐必要的 Wiki 页面间引用；已有有效引用直接复用。
-      引用不能替代卡片独立作答所需的定义、条件和结论；编辑必要答案 Rem，保留卡片正面、父级、Tag、ID 和复习记录，不重复追加链接。
-      原文导入/摘录或没有可复用概念时，按现有 Skill 跳过不适用的 Wiki 写入和补引用，记录明确原因后继续最终校验。
-      wiki_links_updated 的 object 包含 wiki_root_id（涉及 Wiki 时）、created_page_ids、updated_page_ids、reused_page_ids、linked_card_ids、reference_pairs 和不适用项原因。
-      完成条件是所有适用的 Wiki 内容和引用均已真实更新或确认复用，并已逐项回读；不能用待写清单代替完成。
-      分类问题回 resolve_home_tag，卡片内容问题回 write_flashcards，Wiki 或引用问题回本步。部分成功先记录真实 ID，再补缺项。
+      先执行 panorama_presented。核对当前有效 preparation_receipt、两个 passed 值、材料及草稿摘要和助手完成状态；缺任何前提或证据过期不得写卡，回准备步骤修复。
+      将真实 Wiki ID 注入已审草稿对应的卡片计划；保留可见正文，不使用虚构引用、pageKey 或占位链接。注入改变正文时重新审查变更卡。
+      主 Agent 等 Wiki 助手结束后，按 remnote-cli 使用现有只读预览；格式、计划预算、身份权限和前置哈希通过才显式写入。
+      每批最多 7 张新卡、10 个 Wiki 页且计划最多 100 KiB；按学习链路、分区和引用依赖分批，不截断原文或扩大上限。
+      新卡按真实创建日期置于每日笔记并挂 HOME Tag；多卡普通 text 主题使用 Card Cluster。更新保留原位置、Rem ID、cardId 和复习记录。
+      集中回读实际正文、父级、Tag、集群、引用及复习身份，与已审草稿逐项比对；正文改变必须独立重审，不以哈希代替语义判断。
+      按 remnote-verify 复用未失效检查，仅重查受影响项；批次 verified 及 affected_objects 回执不是整个任务完成。
+      本次涉及 Wiki 修改时，在最后一次相关修改后用现有 verify scope 完整检查 WIKI 根及全部后代零卡片；后续 Wiki 修改使证明失效。纯复用只查受影响页和引用。
+      flashcards_written 包含 created_rem_ids、updated_rem_ids、reused_rem_ids、card_ids、topic_ids、daily_rem_ids、tag_id、source_refs、skipped_count、reference_pairs、batch_ids、review_receipt、verification_receipts、wiki_mutated 及不适用原因。
+      所有适用内容、结构、引用与 Wiki 检查通过才报 terms_referenced=passed、result_verified=passed。零新卡仍核对复用对象、分类和 Wiki 变化。
+      批内缺陷原位修复并只重查改动部分；改变已审正文回准备步骤独立复审。临时读失败本步重试，分类错误回定位。
+      写后回流先恢复 progress Evidence 的真实 ID，查明未知结果才继续缺失动作；不换键重放、不整批重建。
     skills:
-      - {id: remnote-wiki, prompt: 定向查重、创建或更新概念页面并维护引用；原文模式按约定跳过。, optional: false}
-      - {id: remnote-cli, prompt: 按真实 ID 写入 Wiki 和卡片答案中的引用，保留原对象并回读。, optional: false}
+      - {id: remnote-flashcards, prompt: 注入真实引用、预览后写入，保留对象与复习身份。, optional: false}
+      - {id: remnote-verify, prompt: 比对已审草稿及实际正文，核验最终结构与完整 Wiki 范围。, optional: false}
+      - {id: remnote-cli, prompt: 区分批次回执和最终证明，集中读取并安全恢复。, optional: false}
 
-  verify_result_flow:
+  retrospect_run_flow:
     prompt: |
-      先执行 panorama_presented 的 Prompt/Skill；展示成功后再执行本步业务，并将展示回执与业务结果一起上报。
-      调用 remnote-verify 对本批次最终真实内容完成质量与结构校验，包含第三步补引用后的卡片。
-      检查卡片独立、原子、可判分、低干扰和可追溯；核对父级、日期、HOME Concept Tag 及反查、实际卡片 ID 集合、答案结构、Card Cluster 和引用可解析。
-      新卡按实际创建日期核验，原卡更新保留原日期与 ID；本批次曾部分成功或回流时，不因日期变化重建已写卡片。
-      本批次新增或修改 Wiki 时核对页面、aliases、来源、index/log，并完整确认 WIKI 子树零卡片；仅复用页面时检查受影响页面与引用，不扩大为全库审计。
-      使用 context 和 verify scope 集中读取最终内容与检查结构，按 remnote-cli 的新鲜度规则复用未失效回执；Wiki 完整零卡片检查不能缩成抽样。
-      普通卡按最终回读内容评审；原文模式逐段核对指定标题、内容和顺序。仅在现有 Skill 的明确条件触发时独立评审，不常设额外 Step。
-      失败时先把精确 Rem ID、失败项和修复范围记录到 progress Evidence，再选择最早受影响层：分类回第一步、卡片回第二步、Wiki/引用回第三步；临时读取失败则本步重试。
-      全部适用项通过才上报 result_verified=passed 并 terminal；交付日期、新建/更新/跳过数量、HOME 分类、卡片/Wiki ID 与校验结论。
-      从已有工具记录统计内容整理、连接/读取、写入、Wiki、最终校验和环境等待；标明材料模式及规模，不将固定卡数或统一分钟数作为成功条件。
-      无新增卡片也要检查本批次创建的分类、实质更新的 Wiki 和受影响引用，不能用空卡片列表代替验证。
+      先执行 panorama_presented。确认 result_verified=passed 及最终回执仍有效，不进行新的知识写入。
+      只读取已有运行记录，统计内容准备、独立审卡、工具读写、完整扫描、返工和等待；保留总 wall time，重叠时间不相加，无法区分明确为 unknown。
+      允许零发现，最多选一个有证据、可复用的通用问题，固定记录：证据、重复机制、建议改动、验证方法。
+      retrospective_recorded 包含 timing、full_scan_count、rework_count、findings（0..1）、maintenance_ref。摘要追加到当前 progress Evidence/运行记录；有发现时按来源与机制去重汇总到现有共享维护清单。
+      共享维护清单位置从当前环境既有记录取得，不新建平台；不可用时写明未同步及原因，保留本次建议引用，不为复盘阻塞已通过的业务交付。
+      复盘仅建议，不现场修改 Workflow、验收条件或升级 CLI；不额外写 Wiki 日志导致最终证明失效。后续独立维护验证后才供下一任务使用。
+      交付真实日期、创建/更新/复用/跳过数量、分类、卡片/Wiki ID、验证范围和未实测项；不用固定分钟数承诺提速。
+      若发现实际内容证据已失效则回对应步骤处理，不能用复盘终止 Route 绕过失败。
     skills:
-      - {id: remnote-verify, prompt: 对最终卡片和 Wiki 执行所有适用质量与结构检查。, optional: false}
-      - {id: remnote-cli, prompt: 按精确 ID 回读真实状态，不把超时或截断当通过。, optional: false}
+      - {id: remnote-cli, prompt: 读取已有回执及范围，不额外修改知识对象。, optional: false}
+
+  draft_quality_condition:
+    prompt: |
+      核对独立只读审卡助手的覆盖集合等于当前草稿批次，失败项为空；来源、mode、material_digest 和 draft_digest 与 preparation_receipt 一致。
+      普通卡通过来源一致、单一记忆目标、独立理解、术语解释及 STAR 适用规则；原文模式逐段保真，不强制改写。零新卡仍覆盖实际更新及复用决定。
+      未审、旧稿回执、作者自证、覆盖缺失或失败不得报 passed；只复审改变的卡，保留未失效的已审部分。
+    skills: []
+
+  wiki_ready_condition:
+    prompt: |
+      核对 Wiki 助手已完成，本次全部适用术语唯一解析到真实页面 ID，缺页/必要增量及页面间引用真实写入并回读。
+      wiki_receipt 与当前材料及最新 term_keys 一致，记录受影响范围和 mutated；歧义、部分成功或未知写入不得报 passed。
+      原文模式或没有适用术语允许带明确原因的空映射；不是对尚未完成分支的豁免。此 passed 不代表整库零卡片验收。
+    skills: []
 
   terms_referenced_condition:
     prompt: |
-      识别本批次卡片答案和受影响 Wiki 正文中的术语，按当前步骤绑定的 remnote-wiki 解析规范页面与 aliases，在正文术语处补原生 Rem 引用；已有有效引用直接复用。
-      回读确认全部适用术语均已正确引用，复用 wiki_links_updated 的 reference_pairs 和不适用项原因作为证据；漏链、错链、字面伪链接、目标歧义或结果不明不得上报 passed。
-      原文模式或没有适用术语时按既有 Skill 记录不适用原因；不为凑引用建页，未消歧目标不是不适用项，缺陷沿现有 Route 回流或报告 blocked。
+      按 preparation_receipt 的术语映射回读卡片和受影响 Wiki 正文，确认全部适用术语引用真实、唯一且可解析；复用 flashcard_receipt 的 reference_pairs 和不适用原因。
+      引用不能替代独立作答所需解释。原文模式或无适用术语记录明确原因；漏链、错链、字面伪链接、歧义或结果不明不得报 passed。
     skills: []
 
   record_condition:
     prompt: |
-      仅提交当前 Step 已真实完成的原子事实。object 字段按该 Step Prompt 填写；enum 使用声明值。
-      所有回执引用真实 Rem ID。Runtime 仅检查输出类型与路由，业务事实由 Agent 按 Skill 回读核验。
-      连接失败、权限不足、目标歧义、缺少授权或读取不完整时报告 blocked，不提交成功 Condition。
+      仅提交当前 Step 已真实完成的事实；object 字段按当前 Prompt 填写，enum 使用声明值。
+      Runtime 只检查类型和路由，业务事实、证据覆盖和新鲜度由 Agent 按 Skill 验证。不得用哈希或合成回执冒充真实质量检查。
+      连接失败、权限不足、目标歧义、未授权或读取不完整报告 blocked，不提交成功 Condition。
     skills: []
 
   repair_loop:
     prompt: |
-      选择最早失败的一层，先记录精确 ID 和失败项再回流；后续步骤重新执行适用检查。
-      回流会使下游 Output 失效，恢复时从先前 progress Evidence 取得 ID 并核验真实对象，不能仅依赖已失效回执。
-      只修复本批次原对象，查重后复用已创建的 Tag、主题、卡片和 Wiki 页面；保留 ID、位置和复习记录，不整批重建或自动删除。
-      结果无法确认或同一问题连续三轮仍失败时报告 blocked，保留已写入对象并说明剩余问题。
+      记录精确 ID、失败项和范围后回最早失败层；批内可修缺陷就地处理，仅重查受影响项。
+      回流使下游 Output 失效，先从 progress Evidence 恢复并核验原对象及批次键。准备阶段不得重复写已完成卡片或 Wiki。
+      原位修复并保留 ID、日期、位置和复习记录；正文改变独立重审，术语变化补 Wiki，相关 Wiki 写入使完整零卡片证明失效。
+      不整批重建、不自动删除、未知写入不重放；同一问题连续三轮失败或结果不明则 blocked，说明已完成和剩余范围。
     skills: []

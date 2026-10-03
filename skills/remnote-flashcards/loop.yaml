@@ -4,33 +4,30 @@ loop:
     - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
       when: {any_of: [[home_tag_needs_fix, panorama_presented]]}
       back_step_id: resolve_home_tag
-  write_flashcards:
+  prepare_cards_and_wiki:
     - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
       when: {any_of: [[home_tag_needs_fix, panorama_presented]]}
       back_step_id: resolve_home_tag
     - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
-      when: {any_of: [[flashcards_need_fix, panorama_presented]]}
-      back_step_id: write_flashcards
-  update_wiki_links:
+      when: {any_of: [[flashcards_need_fix, panorama_presented], [wiki_links_need_fix, panorama_presented]]}
+      back_step_id: prepare_cards_and_wiki
+  persist_and_verify:
     - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
       when: {any_of: [[home_tag_needs_fix, panorama_presented]]}
       back_step_id: resolve_home_tag
     - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
-      when: {any_of: [[flashcards_need_fix, panorama_presented]]}
-      back_step_id: write_flashcards
-    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
-      when: {any_of: [[wiki_links_need_fix, panorama_presented]]}
-      back_step_id: update_wiki_links
-  verify_result:
-    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
-      when: {any_of: [[home_tag_needs_fix, panorama_presented]]}
-      back_step_id: resolve_home_tag
-    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
-      when: {any_of: [[flashcards_need_fix, panorama_presented]]}
-      back_step_id: write_flashcards
-    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
-      when: {any_of: [[wiki_links_need_fix, panorama_presented]]}
-      back_step_id: update_wiki_links
+      when: {any_of: [[flashcards_need_fix, panorama_presented], [wiki_links_need_fix, panorama_presented]]}
+      back_step_id: prepare_cards_and_wiki
     - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
       when: {any_of: [[verification_retry, panorama_presented]]}
-      back_step_id: verify_result
+      back_step_id: persist_and_verify
+  retrospect_run:
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[home_tag_needs_fix, panorama_presented]]}
+      back_step_id: resolve_home_tag
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[flashcards_need_fix, panorama_presented], [wiki_links_need_fix, panorama_presented]]}
+      back_step_id: prepare_cards_and_wiki
+    - prompt_ref: {file: prompt.yaml, prompt_id: repair_loop}
+      when: {any_of: [[verification_retry, panorama_presented]]}
+      back_step_id: persist_and_verify

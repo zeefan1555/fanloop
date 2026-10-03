@@ -5,9 +5,9 @@ stages:
     name: RemNote 制卡
     jobs:
       - id: flashcards
-        name: 分类、制卡、关联与校验
+        name: 准备、并行审卡、写入与复盘
         steps:
-          - {id: resolve_home_tag, name: 定位分类, executor: agent}
-          - {id: write_flashcards, name: 写入闪卡, executor: agent}
-          - {id: update_wiki_links, name: 更新 Wiki 与引用, executor: agent}
-          - {id: verify_result, name: 最终校验, executor: agent}
+          - {id: resolve_home_tag, name: 准备与定位, executor: agent}
+          - {id: prepare_cards_and_wiki, name: 并行准备与即时审卡, executor: agent}
+          - {id: persist_and_verify, name: 带链接写入与最终核验, executor: agent}
+          - {id: retrospect_run, name: 轻量复盘与交付, executor: agent}

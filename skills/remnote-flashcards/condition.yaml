@@ -10,10 +10,18 @@ conditions:
   flashcards_written:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
     output: {key: flashcard_receipt, type: object}
-    exclusive_group: step_outcome
-  wiki_links_updated:
+  preparation_recorded:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
-    output: {key: wiki_link_receipt, type: object}
+    output: {key: preparation_receipt, type: object}
+  draft_quality_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: draft_quality_condition}
+    output: {key: draft_quality, type: enum_value, values: [passed]}
+  wiki_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: wiki_ready_condition}
+    output: {key: wiki_readiness, type: enum_value, values: [passed]}
+  retrospective_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
+    output: {key: retrospective, type: object}
     exclusive_group: step_outcome
   terms_referenced:
     prompt_ref: {file: prompt.yaml, prompt_id: terms_referenced_condition}
