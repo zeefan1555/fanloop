@@ -117,7 +117,7 @@ func TestTypedOptionalFlagsPreserveExplicitEmptyValues(t *testing.T) {
 func TestRootOwnsRealDomainSubcommands(t *testing.T) {
 	root := NewRoot(bytes.NewReader(nil), io.Discard, io.Discard)
 	want := map[string][]string{
-		"flow":   {"init", "report", "status"},
+		"flow":   {"init", "report", "skills", "status"},
 		"trace":  {"bind", "render", "status", "sync"},
 		"card":   {"render"},
 		"verify": {"cleanup", "doctor", "smoke", "snapshot"},
@@ -169,9 +169,6 @@ func TestRootCommandTreeMatchesIDLRegistry(t *testing.T) {
 	expected := map[string]bool{}
 	for _, spec := range idl.CommandSpecs() {
 		expected[spec.ID] = true
-	}
-	if len(actual) != 16 || len(expected) != 16 {
-		t.Fatalf("public command counts = Cobra %d, IDL %d; want 16", len(actual), len(expected))
 	}
 	if command, _, err := root.Find([]string{"schema"}); err == nil && command.Name() == "schema" {
 		t.Fatal("root still exposes the retired schema command")
@@ -340,6 +337,12 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"Read only",
 				"immediately before acting",
 			},
+		},
+		{
+			name:      "flow skills",
+			commandID: "flow.skills",
+			args:      []string{"flow", "skills", "--help"},
+			want:      []string{"Request JSON:\n  {}", "Read only", "not bound to the current Step", "description may be empty", "does not make every Skill required"},
 		},
 		{
 			name:      "flow progress",

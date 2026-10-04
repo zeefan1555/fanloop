@@ -227,6 +227,21 @@ struct FlowStatusResponse {
   3: required FlowState          state       (vt.not_nil = "true"),
 }
 
+struct FlowSkillsRequest {}
+
+struct SkillCatalogEntry {
+  1: required string id          (vt.min_size = "1"),
+  2: required string description,
+  3: required string path        (vt.min_size = "1"),
+}
+
+struct FlowSkillsResponse {
+  1: required common.WorkflowRef workflow (vt.not_nil = "true"),
+  2: required string package_root         (vt.min_size = "1"),
+  3: required string skill_root           (vt.min_size = "1"),
+  4: required list<SkillCatalogEntry> skills,
+}
+
 enum ProgressEffect {
   unspecified    = 0,
   status_updated = 1,
@@ -304,6 +319,7 @@ struct FlowResultResponse {
 // One method maps to one public CLI command:
 // Init     -> fanloop flow init
 // Status   -> fanloop flow status
+// Skills   -> fanloop flow skills
 // Progress -> fanloop flow report progress
 // Result   -> fanloop flow report result
 service FlowService {
@@ -326,6 +342,18 @@ service FlowService {
   ) throws (1: error.PublicError error) (
     cli.id = "flow.status",
     cli.summary = "Show current Workflow state",
+    cli.risk = "read",
+    cli.requirement_scope = "existing",
+    cli.supports_dry_run = "false",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,WORKFLOW_MISMATCH,INTERNAL",
+  )
+
+  FlowSkillsResponse Skills(
+    1: required string            requirement_root,
+    2: required FlowSkillsRequest request,
+  ) throws (1: error.PublicError error) (
+    cli.id = "flow.skills",
+    cli.summary = "Locate all Skills in the current Workflow package",
     cli.risk = "read",
     cli.requirement_scope = "existing",
     cli.supports_dry_run = "false",

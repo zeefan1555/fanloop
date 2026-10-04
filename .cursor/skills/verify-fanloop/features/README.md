@@ -22,6 +22,7 @@ Fanloop 用户可见行为的验证索引。契约真值仍是叶子 `--help`、
 - [Trace](trace.md)
 - [Card and panorama](card-and-panorama.md)
 - [Live Workflow configuration](live-skill-config.md)
+- [Workflow Skill catalog](workflow-skill-catalog.md)
 - [Local dashboard](local-dashboard.md)
 - [Workflow products](workflow-products.md)
 - [Multi-surface journeys](multi-surface-journeys.md)

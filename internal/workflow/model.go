@@ -156,9 +156,10 @@ type Ref struct {
 }
 
 type Loaded struct {
-	Workflow   Workflow
-	Ref        Ref
-	SkillPaths map[string]string
+	PackageRoot string
+	Workflow    Workflow
+	Ref         Ref
+	SkillPaths  map[string]string
 }
 
 func (workflow Workflow) OrderedStepIDs() []string {

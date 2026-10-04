@@ -17,6 +17,9 @@ func (fakeService) Init(context.Context, string, *FlowInitRequest, bool) (*FlowI
 func (fakeService) Status(context.Context, string, *FlowStatusRequest) (*FlowStatusResponse, error) {
 	return nil, nil
 }
+func (fakeService) Skills(context.Context, string, *FlowSkillsRequest) (*FlowSkillsResponse, error) {
+	return nil, nil
+}
 func (fakeService) Progress(context.Context, string, *FlowProgressRequest, bool) (*FlowProgressResponse, error) {
 	return nil, nil
 }

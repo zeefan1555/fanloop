@@ -28,6 +28,7 @@ Use report progress for execution facts, and report result for Conditions and ro
 	command.AddCommand(
 		newFlowInitCommand(ioStreams, root),
 		newFlowStatusCommand(ioStreams, root),
+		newFlowSkillsCommand(ioStreams, root),
 		newFlowReportCommand(ioStreams, root),
 	)
 	return command
@@ -125,6 +126,47 @@ Next step:
 			func(ctx context.Context, request *flowidl.FlowStatusRequest, _ bool) (operationResult, *erroridl.PublicError) {
 				runtime, warnings := flowRuntime()
 				response, err := runtime.Status(ctx, *root, request)
+				return fromFlow(*root, response, warnings, err)
+			})
+	}
+	addOperationControls(command, &controls)
+	return command
+}
+
+func newFlowSkillsCommand(ioStreams streams, root *string) *cobra.Command {
+	var controls operationControls
+	command := operationCommand("flow.skills")
+	command.Long = `Purpose:
+  Locate all Skills available in the current Requirement's Workflow package.
+
+Effect:
+  Read only. Returns workflow, package_root, skill_root and all Skill entries with id, description and absolute SKILL.md path.
+  The catalog includes Skills not bound to the current Step, sorted by directory ID. Optional frontmatter description may be empty.
+
+Request JSON:
+  {}
+
+Typed flags:
+  fanloop flow skills --root <ABSOLUTE_REQUIREMENT_ROOT>
+
+Constraints:
+  The business Request is empty. The package is read from the current bound local source on every invocation.
+  Discovery does not make every Skill required; Step obligations still come from flow status.
+
+Controls:
+  --root is required and is not part of Request JSON. --input accepts {}, @file, or - for stdin.
+  JSON input rejects unknown fields, type errors, invalid enums, and trailing JSON.
+  This command does not support --dry-run because its business operation is read-only.
+
+Next step:
+  Select relevant Skills using their descriptions and paths, then read them as the task and Skill references require.`
+	command.Example = "  fanloop flow skills --root <ABSOLUTE_REQUIREMENT_ROOT>"
+	command.RunE = func(command *cobra.Command, _ []string) error {
+		return runOperation(command.Context(), command, *root, controls, ioStreams,
+			func() (*flowidl.FlowSkillsRequest, *erroridl.PublicError) { return flowidl.NewFlowSkillsRequest(), nil },
+			func(ctx context.Context, request *flowidl.FlowSkillsRequest, _ bool) (operationResult, *erroridl.PublicError) {
+				runtime, warnings := flowRuntime()
+				response, err := runtime.Skills(ctx, *root, request)
 				return fromFlow(*root, response, warnings, err)
 			})
 	}
@@ -353,6 +395,8 @@ func fromFlow(root string, data any, warnings *[]string, err error) (operationRe
 	case *flowidl.FlowInitResponse:
 		result.workflow = workflowRef(response.Workflow)
 	case *flowidl.FlowStatusResponse:
+		result.workflow = workflowRef(response.Workflow)
+	case *flowidl.FlowSkillsResponse:
 		result.workflow = workflowRef(response.Workflow)
 	default:
 		result.workflow = reportWorkflowRef(root)

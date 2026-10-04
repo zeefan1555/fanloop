@@ -301,7 +301,7 @@ func TestProductionConfigurationUsesCompleteLocalPackages(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(repo, "workflows")); !os.IsNotExist(err) {
 		t.Fatal("Workflow packages must not have an extra workflows wrapper")
 	}
-	for _, id := range []string{"fanloop-maintainer", "remnote-flashcards", "pstack-native"} {
+	for _, id := range []string{"fanloop-maintainer", "remnote-flashcards", "remnote-direct-maintainer"} {
 		for _, name := range []string{"SKILL.md", "workflow.yaml", "condition.yaml", "flow.yaml", "loop.yaml", "prompt.yaml", "skills"} {
 			if _, err := os.Stat(filepath.Join(repo, "skills", id, name)); err != nil {
 				t.Fatalf("incomplete package %s/%s: %v", id, name, err)
@@ -431,7 +431,7 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 	for _, suite := range []string{
 		"fanloop-maintainer",
 		"remnote-flashcards",
-		"pstack-native",
+		"remnote-direct-maintainer",
 	} {
 		if !strings.Contains(ownership, suite) {
 			t.Errorf("docs/ownership.md missing production suite %s", suite)

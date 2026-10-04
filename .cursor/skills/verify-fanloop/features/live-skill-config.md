@@ -34,14 +34,6 @@ unknown ID fails before any matrix. Verify the manifest still lists all source f
 and reports unchanged source. Prompt prose alone needs strict loading and a relevant
 example, not matrices or manually rebuilt parser-negative suites.
 
-In an isolated HOME/cache and source copy, run both pstack poteto-mode tools
-(`scripts/orch/orch.ts --help` and `scripts/watch-pr/watch-pr --help`) concurrently
-on first use and again on a cache hit. These help calls do not query GitHub or
-perform business work, but the first run downloads locked runtime dependencies.
-The complete source file manifest must remain unchanged; Doctor and a different
-Workflow's Status must still succeed. Failed dependency installation must not
-publish a partial cache or delete pre-existing cache content.
-
 ## Gotchas
 
 Workflow content is read from the repository on every invocation, independently of the

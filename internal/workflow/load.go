@@ -81,6 +81,7 @@ func loadFromRef(root string, ref Ref) (Loaded, error) {
 	if loaded.Ref.ID != ref.ID {
 		return Loaded{}, invalidConfiguration(fmt.Errorf("workflow path does not match its id"))
 	}
+	loaded.PackageRoot = bundleRoot
 	loaded.SkillPaths, err = loadSkillPaths(bundleRoot, loaded.Workflow)
 	if err != nil {
 		return Loaded{}, err

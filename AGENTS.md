@@ -11,7 +11,7 @@
 触发条件：需求经过 `/grill-with-docs`、飞书评审或对话澄清。
 
 1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约随仓库 skills/<workflow-id>/ 完整包提交，并记录 Git 基线与文件摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
-2. 只沉淀用户明确确认的结论。开放问题继续保留为开放问题，不把推荐项自动写成决策。
+2. 只沉淀用户明确确认的结论，或用户授权范围内经主 Agent 完整审阅并记录明确决定的结论。开放问题继续保留为开放问题，未审阅的推荐项不自动成为决策。
 3. 让代码契约真值与实现处于同一分支，并在实现提交之前或同一提交中纳入 Git；外部文档、聊天记录和未跟踪文件不能作为唯一事实源。
 
 完成标准：逐项对照澄清来源与目标分支相对 merge base 的 diff；每个已确认的行为、边界和验收条件都能定位到已跟踪文件。
@@ -24,7 +24,7 @@
 2. 配置按语义验证：错字/排版检查 diff 和引用并有据免测；普通模板、说明和 Prompt 由当前 Agent 实际自检，加载受影响完整包并检查代表性结果；Step、Condition、Route、绑定变化才跑受影响 Workflow 矩阵。路由、绑定、权限、安全、审批或外部写入规则变化仍需全新独立 Agent 实际试用并回读原始产物。解析器错误回归留在代码测试，不为文案重跑全产品或手造错误集。证据标明 self_check、independent 或 not_applicable，不要求新 binary 或代码 manifest。
 3. 纯配置变更由 `edit-fanloop-skills` 完成修改、相应校验、提交推送、唯一 PR 合并和实际配置源回读；用户指定停止位置时服从该边界。不初始化维护 Workflow 或 Requirement，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
-5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 与 IDL 门禁按各自适用范围保留。
+5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 按用户保留的具体人工门禁执行；IDL 按下方主 Agent 契约审核执行。
 6. 普通配置由同一 Agent 连续完成，不增加维护阶段、Panorama、飞书报告、实现子 Agent或重复检查。保留原始工具结果，在 PR 和最终回复中给出校验、提交、合并与本地回读证据；不额外要求阶段文档。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
 7. CI 用完整 Git diff 的轻量 changes 任务分流，纯配置可跳过引擎任务；仅 `skills/`、`.agents/skills/<skill>/` 下普通非可执行 Skill Markdown、包根五 YAML、普通 docs Markdown、根 AGENTS.md/README.md 可豁免。脚本、验证资产、可执行位、符号链接、未知或混合改动走完整代码 CI；重命名检查前后路径和 mode，基线缺失不能判配置，分流失败阻止交付。本地材料禁入库检查始终保留。授权 PR 合并须核对同 HEAD 分流结果和适用 required checks，不能绕过保护；代码通道门禁不变。
 
@@ -34,8 +34,8 @@
 
 触发条件：使用 `fanloop-maintainer` 维护 Fanloop 代码；纯配置由当前 Agent直接推进，普通配置不派发实现或验收子 Agent；风险配置的独立行为试用按上方规则派发。
 
-1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；只有用户主动改变已对齐内容时才重新询问用户。
-2. 当用户针对当前 Requirement 明确授权主 Agent 全程自行决定时，主 Agent 可在完整审阅对应材料后代行需求批准、最终候选验收和 main 集成确认，无需逐次向用户复询。该授权不转授给执行子 Agent，不适用于其他 Requirement，也不替代 IDL 人审、自动 YAML 校验、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。
+1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；询问用户的边界以第 2 条为准。
+2. 在用户授权的目标、范围、副作用和停止位置内，主 Agent 默认自主决定需求批准、契约审核（包括 Thrift IDL）、最终候选验收和集成确认；先完整审阅具体材料，再记录明确决定，无需逐次向用户请示。执行子 Agent 仍须向主 Agent申请并等待决定。只有用户明确保留的具体人工门禁、超出授权范围的决策或仅人类能提供的信息才向用户确认；自主决定不扩大外部副作用或交付授权，也不替代自动 YAML 校验、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。
 3. 执行子 Agent 创建并持有 Requirement Root，持续读取最新 `flow status`、执行当前 Prompt/Skills、选择 Route、提交 Progress/Result，并直接修改受管代码直到 PR 合码和本地更新完成。主 Agent 不创建或驱动 Requirement，也不直接修改受管代码。
 4. 执行子 Agent只向主 Agent回报，不直接联系用户。到达需求批准、最终候选验收或 main 集成确认时，必须向主 Agent申请明确决定并等待回复，不得自行批准。
 5. 执行子 Agent每次读取最新 Status 和当前 Step 的全部必需 Skills，逐项核验真实产物后上报 Progress 或 Result。主 Agent发现偏差时通过 follow-up 要求其继续修复、补证据或重跑验证。
@@ -64,7 +64,7 @@
 2. 本地安装通过 $FANLOOP_DATA_HOME/config/current 绑定绝对源仓库，默认绑定安装脚本所在仓库；显式绝对 FANLOOP_CONFIG_SOURCE 优先。每次调用读取源包，源失效立即失败，不搜索 cwd、旧副本或其他仓库。没有远端配置同步命令。
 3. Dashboard 默认只读绑定源；只有显式绝对 FANLOOP_CONFIG_SOURCE 时可编辑该仓库，包括当前绑定仓库。必须拒绝符号链接、陈旧摘要和不完整包，所有数据目录共享同一规范源目录锁。配置经自动校验、必要独立行为试用、本地提交与公开 CLI 回读交付。
 4. scripts/validate-configuration.py 对固定本地源生成完整摘要及未变检查；默认全部 Workflow Route Matrix，重复 --workflow 可选择受影响矩阵，未知 ID 报错。代码 CI 使用 internal/workflow/testdata/{linear-runtime,runtime-controls} 独立 fixture，在临时源根 skills/ 下组装，不绑定个人凭据或生产正文。
-5. Agent每次读取最新Status返回的精确Skill路径。配置内容不写入 Requirement State 或 CLI Release；五份 YAML 在加载时自动校验，Thrift继续保留人审门禁。
+5. Agent每次读取最新Status返回的精确Skill路径。配置内容不写入 Requirement State 或 CLI Release；五份 YAML 在加载时自动校验，Thrift继续保留主 Agent 契约审核门禁。
 
 ## YAML 架构真值与自动校验
 
@@ -87,16 +87,16 @@
 
 完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。必要时用已有 CLI 检查回执缺失的拒绝行为，不为此触发代码交付门禁。
 
-## Thrift IDL 契约人工审核
+## Thrift IDL 契约主 Agent 审核
 
 触发条件：计划修改 `idl/` 下任意 `.thrift` 文件。
 
 1. `idl/` 下的 Thrift 是人与 AI 共同维护的契约真值，默认只读。实现、测试和文档应先服从现有 IDL；不得为迁就实现、生成代码或测试而反向改契约，也不得直接编辑 `internal/idl/` 下的生成物来绕过 IDL。
-2. 确需改变契约时，编辑前先向人报告并等待明确审核。报告至少包括具体文件与符号、变更前后 Thrift 片段、field ID/可选性/类型/枚举/Service/Annotation/Error 的变化、对生成代码、Runtime、持久化、Workflow YAML、调用方及 Contract 的影响，以及不修改 IDL 的替代方案为何不可行。
-3. 人工确认只覆盖已报告的具体变更。范围扩大或新增契约变化时重新报告；开放问题、推荐项和笼统的实现授权不视为 IDL 修改许可。
+2. 确需改变契约时，编辑前向主 Agent 提供具体文件与符号、变更前后 Thrift 片段、field ID/可选性/类型/枚举/Service/Annotation/Error 的变化、对生成代码、Runtime、持久化、Workflow YAML、调用方及 Contract 的影响，以及不修改 IDL 的替代方案为何不可行。主 Agent 按上方自主决策边界完整审阅并记录明确审核决定；执行子 Agent 必须等待该决定。用户保留的人工契约门禁仍由用户审核。
+3. 契约审核只覆盖已审阅的具体变更。范围扩大或新增契约变化时重新提交主 Agent 审阅；开放问题、推荐项和笼统的实现授权不代替具体契约决定。超出用户授权范围时由主 Agent先向用户确认。
 4. 审核通过后，以 Thrift 为第一修改点，使用仓库现有生成链同步生成物、实现、测试和 Contract；所有相关内容进入同一分支，不手写生成文件。
 
-完成标准：每个 `.thrift` diff 都能定位到修改前的人审记录；实际 diff 与审核过的前后示例一致，生成物新鲜，所有受影响消费者与 Contract 已同步验证。
+完成标准：每个 `.thrift` diff 都能定位到修改前的明确主 Agent 契约审核记录（用户保留门禁时为用户审核记录）；实际 diff 与审核过的前后示例一致，生成物新鲜，所有受影响消费者与 Contract 已同步验证。
 
 ## 代码验证门禁
 

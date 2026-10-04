@@ -308,6 +308,33 @@ func (p *FlowStatusResponse) IsValid() error {
 	}
 	return nil
 }
+func (p *FlowSkillsRequest) IsValid() error {
+	return nil
+}
+func (p *SkillCatalogEntry) IsValid() error {
+	if len(p.Id) < int(1) {
+		return fmt.Errorf("field Id min_len rule failed, current value: %d", len(p.Id))
+	}
+	if len(p.Path) < int(1) {
+		return fmt.Errorf("field Path min_len rule failed, current value: %d", len(p.Path))
+	}
+	return nil
+}
+func (p *FlowSkillsResponse) IsValid() error {
+	if p.Workflow == nil {
+		return fmt.Errorf("field Workflow not_nil rule failed")
+	}
+	if err := p.Workflow.IsValid(); err != nil {
+		return fmt.Errorf("field Workflow not valid, %w", err)
+	}
+	if len(p.PackageRoot) < int(1) {
+		return fmt.Errorf("field PackageRoot min_len rule failed, current value: %d", len(p.PackageRoot))
+	}
+	if len(p.SkillRoot) < int(1) {
+		return fmt.Errorf("field SkillRoot min_len rule failed, current value: %d", len(p.SkillRoot))
+	}
+	return nil
+}
 func (p *FlowProgressRequest) IsValid() error {
 	if len(p.StepId) < int(1) {
 		return fmt.Errorf("field StepId min_len rule failed, current value: %d", len(p.StepId))

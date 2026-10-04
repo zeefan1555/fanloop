@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "workflow-skill-catalog",
+  "commands": [
+    {
+      "args": [
+        "flow",
+        "skills",
+        "--root",
+        "{{ROOT}}"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "init",
+        "--root",
+        "{{ROOT}}",
+        "--workflow",
+        "linear-runtime",
+        "--title",
+        "Catalog Contract"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "skills",
+        "--root",
+        "{{ROOT}}",
+        "--input",
+        "{}"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "skills",
+        "--root",
+        "{{ROOT}}",
+        "--input",
+        "{\"unknown\":true}"
+      ]
+    },
+    {
+      "args": [
+        "flow",
+        "skills",
+        "--root",
+        "{{ROOT}}",
+        "--dry-run"
+      ]
+    }
+  ]
+}

@@ -15,7 +15,6 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。
 - `remnote-direct-maintainer`：按实际影响维护独立的 CLI/SDK 插件仓库，完成候选验证、推送与适用的本地接管。
-- `pstack-native`：六步剧本型交付，编排 `skills/pstack-native/skills/` 下原生 pstack skills。
 
 每套 Workflow 是仓库 `skills/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
 
@@ -74,7 +73,6 @@ FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop doctor
 
 - `fanloop-maintenance` → `fanloop-maintainer`
 - `remnote-flashcards` → `remnote-flashcards`
-- `pstack-native` → `pstack-native`
 
 `entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
 RemNote Direct 的仓库维护入口明确选择 `remnote-direct-maintainer`，
@@ -170,3 +168,5 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。
+
+Use `fanloop flow skills --root <ABSOLUTE_REQUIREMENT_ROOT>` to locate every Skill in the current Workflow package, including unbound Skills. The catalog guides optional discovery; current Step requirements remain in `flow status`.

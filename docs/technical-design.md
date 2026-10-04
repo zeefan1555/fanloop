@@ -16,7 +16,6 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 
 - `fanloop-maintainer`：Fanloop 的 4 Stage / 4 Job / 4 Step 维护闭环；Define、Build、Certify 与 Deliver 依次完成验收契约、自主验证、独立认证和 PR/本地交付。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
-- `pstack-native`：六步剧本型交付（选择剧本、定义验收、方案设计、增量实现、行为验证、合并发布），绑定 `skills/pstack-native/skills/` 下原生 pstack skills。
 
 完整包目录为 `skills/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
 `fanloop-workflow` 与 `create-fanloop-workflow` 两个公共 Skill；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
@@ -24,8 +23,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `fanloop-maintenance` 对应
-`fanloop-maintainer`，`remnote-flashcards` 对应 `remnote-flashcards`，`pstack-native`
-对应 `pstack-native`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产清单及
+`fanloop-maintainer`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产清单及
 `technical-solution-design` 退役决策见 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
@@ -117,3 +115,5 @@ Route Matrix 由 CI 的 `requirement-e2e` 执行；固定生产发布的矩阵�
 
 `run-unit` 先完成格式与生成物检查，再并发执行互不共享可写状态的 vet、Go test 和本地 Route Matrix；
 它等待所有已启动检查并聚合失败。脚本显式使用 Go 自动工具链选择，避免宿主 `GOTOOLCHAIN=local` 让仓库门禁在运行前失败。
+
+`flow skills` exposes the complete current Workflow Skill catalog for dynamic reading; membership does not make a Skill mandatory. The active package retirement is recorded in [ADR-0128](./adr/0128-discover-workflow-skills-and-retire-pstack-native.md).

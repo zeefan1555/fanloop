@@ -70,6 +70,10 @@ Skill 使用宿主可继续执行的用户可见消息通道完整发送 `data.c
 10. Human Step 使用同一个 Result 接缝。当前 Route 要求 `panorama_presented` 或 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到展示之后的全新、明确人类决定，再把本次精确 `panorama_snapshot_path` 与决定 Condition、回执和 Evidence 一起上报。沉默、含糊回复、机器人结论或 Agent 自批均无效；CLI 不自动发送，也不认证审批人或事实真伪。
 11. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
 
+## 按需发现整套 Skill
+
+当前 Step 的必需 Skill 以最新 Status 的绑定为准。需要读取其他通用 Skill，或已读 Skill 引用了本步骤未绑定的 Skill 时，先读 `fanloop flow skills --help`，再使用同一 Requirement 控制器执行 `fanloop flow skills --root <ABSOLUTE_REQUIREMENT_ROOT>`。目录返回整包全部 Skill 的 ID、可为空的 description、绝对 SKILL.md 路径以及 package_root / skill_root；按任务和引用选择并读取，资源相对所选 Skill 目录定位。目录不是必读清单，也不要求读取凭证。每次需要刷新目录时重新查询当前绑定源；不要猜全局同名路径。
+
 ## 人类提问顺序
 
 需要人类澄清、确认或审批时：

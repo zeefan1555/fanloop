@@ -26,9 +26,8 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Four production Workflow IDs are tracked as complete packages under `skills/<id>/`:
-`fanloop-maintainer`, `remnote-flashcards`, `remnote-direct-maintainer`, and
-`pstack-native`. Ownership of those directories remains the Live Workflow
+Three production Workflow IDs are tracked as complete packages under `skills/<id>/`:
+`fanloop-maintainer`, `remnote-flashcards`, and `remnote-direct-maintainer`. Ownership of those directories remains the Live Workflow
 configuration boundary above; this note only records the live suite list.
 
 ## Verify entry

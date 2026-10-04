@@ -2689,6 +2689,221 @@ var fieldIDToName_FlowStatusResponse = map[int16]string{
 	3: "state",
 }
 
+type FlowSkillsRequest struct {
+}
+
+func NewFlowSkillsRequest() *FlowSkillsRequest {
+	return &FlowSkillsRequest{}
+}
+
+func (p *FlowSkillsRequest) InitDefault() {
+}
+
+func (p *FlowSkillsRequest) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("FlowSkillsRequest(%+v)", *p)
+}
+
+func (p *FlowSkillsRequest) DeepEqual(ano *FlowSkillsRequest) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_FlowSkillsRequest = map[int16]string{}
+
+type SkillCatalogEntry struct {
+	Id          string `thrift:"id,1,required" json:"id"`
+	Description string `thrift:"description,2,required" json:"description"`
+	Path        string `thrift:"path,3,required" json:"path"`
+}
+
+func NewSkillCatalogEntry() *SkillCatalogEntry {
+	return &SkillCatalogEntry{}
+}
+
+func (p *SkillCatalogEntry) InitDefault() {
+}
+
+func (p *SkillCatalogEntry) GetId() (v string) {
+	return p.Id
+}
+
+func (p *SkillCatalogEntry) GetDescription() (v string) {
+	return p.Description
+}
+
+func (p *SkillCatalogEntry) GetPath() (v string) {
+	return p.Path
+}
+
+func (p *SkillCatalogEntry) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("SkillCatalogEntry(%+v)", *p)
+}
+
+func (p *SkillCatalogEntry) DeepEqual(ano *SkillCatalogEntry) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Id) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.Description) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.Path) {
+		return false
+	}
+	return true
+}
+
+func (p *SkillCatalogEntry) Field1DeepEqual(src string) bool {
+
+	if strings.Compare(p.Id, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *SkillCatalogEntry) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.Description, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *SkillCatalogEntry) Field3DeepEqual(src string) bool {
+
+	if strings.Compare(p.Path, src) != 0 {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_SkillCatalogEntry = map[int16]string{
+	1: "id",
+	2: "description",
+	3: "path",
+}
+
+type FlowSkillsResponse struct {
+	Workflow    *commonidl.WorkflowRef `thrift:"workflow,1,required" json:"workflow"`
+	PackageRoot string                 `thrift:"package_root,2,required" json:"package_root"`
+	SkillRoot   string                 `thrift:"skill_root,3,required" json:"skill_root"`
+	Skills      []*SkillCatalogEntry   `thrift:"skills,4,required,list<SkillCatalogEntry>" json:"skills"`
+}
+
+func NewFlowSkillsResponse() *FlowSkillsResponse {
+	return &FlowSkillsResponse{}
+}
+
+func (p *FlowSkillsResponse) InitDefault() {
+}
+
+var FlowSkillsResponse_Workflow_DEFAULT *commonidl.WorkflowRef
+
+func (p *FlowSkillsResponse) GetWorkflow() (v *commonidl.WorkflowRef) {
+	if !p.IsSetWorkflow() {
+		return FlowSkillsResponse_Workflow_DEFAULT
+	}
+	return p.Workflow
+}
+
+func (p *FlowSkillsResponse) GetPackageRoot() (v string) {
+	return p.PackageRoot
+}
+
+func (p *FlowSkillsResponse) GetSkillRoot() (v string) {
+	return p.SkillRoot
+}
+
+func (p *FlowSkillsResponse) GetSkills() (v []*SkillCatalogEntry) {
+	return p.Skills
+}
+
+func (p *FlowSkillsResponse) IsSetWorkflow() bool {
+	return p.Workflow != nil
+}
+
+func (p *FlowSkillsResponse) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("FlowSkillsResponse(%+v)", *p)
+}
+
+func (p *FlowSkillsResponse) DeepEqual(ano *FlowSkillsResponse) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Workflow) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.PackageRoot) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.SkillRoot) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.Skills) {
+		return false
+	}
+	return true
+}
+
+func (p *FlowSkillsResponse) Field1DeepEqual(src *commonidl.WorkflowRef) bool {
+
+	if !p.Workflow.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *FlowSkillsResponse) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.PackageRoot, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *FlowSkillsResponse) Field3DeepEqual(src string) bool {
+
+	if strings.Compare(p.SkillRoot, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *FlowSkillsResponse) Field4DeepEqual(src []*SkillCatalogEntry) bool {
+
+	if len(p.Skills) != len(src) {
+		return false
+	}
+	for i, v := range p.Skills {
+		_src := src[i]
+		if !v.DeepEqual(_src) {
+			return false
+		}
+	}
+	return true
+}
+
+var fieldIDToName_FlowSkillsResponse = map[int16]string{
+	1: "workflow",
+	2: "package_root",
+	3: "skill_root",
+	4: "skills",
+}
+
 type FlowProgressRequest struct {
 	StepId   string         `thrift:"step_id,1,required" json:"step_id"`
 	Status   ProgressStatus `thrift:"status,2,required,ProgressStatus" json:"status"`
@@ -3506,12 +3721,15 @@ var fieldIDToName_RouteSelection = map[int16]string{
 // One method maps to one public CLI command:
 // Init     -> fanloop flow init
 // Status   -> fanloop flow status
+// Skills   -> fanloop flow skills
 // Progress -> fanloop flow report progress
 // Result   -> fanloop flow report result
 type FlowService interface {
 	Init(ctx context.Context, requirementRoot string, request *FlowInitRequest, dryRun bool) (r *FlowInitResponse, err error)
 
 	Status(ctx context.Context, requirementRoot string, request *FlowStatusRequest) (r *FlowStatusResponse, err error)
+
+	Skills(ctx context.Context, requirementRoot string, request *FlowSkillsRequest) (r *FlowSkillsResponse, err error)
 
 	Progress(ctx context.Context, requirementRoot string, request *FlowProgressRequest, dryRun bool) (r *FlowProgressResponse, err error)
 
@@ -3832,6 +4050,157 @@ func (p *FlowServiceStatusResult) Field1DeepEqual(src *erroridl.PublicError) boo
 }
 
 var fieldIDToName_FlowServiceStatusResult = map[int16]string{
+	0: "success",
+	1: "error",
+}
+
+type FlowServiceSkillsArgs struct {
+	RequirementRoot string             `thrift:"requirement_root,1,required" json:"requirement_root"`
+	Request         *FlowSkillsRequest `thrift:"request,2,required" json:"request"`
+}
+
+func NewFlowServiceSkillsArgs() *FlowServiceSkillsArgs {
+	return &FlowServiceSkillsArgs{}
+}
+
+func (p *FlowServiceSkillsArgs) InitDefault() {
+}
+
+func (p *FlowServiceSkillsArgs) GetRequirementRoot() (v string) {
+	return p.RequirementRoot
+}
+
+var FlowServiceSkillsArgs_Request_DEFAULT *FlowSkillsRequest
+
+func (p *FlowServiceSkillsArgs) GetRequest() (v *FlowSkillsRequest) {
+	if !p.IsSetRequest() {
+		return FlowServiceSkillsArgs_Request_DEFAULT
+	}
+	return p.Request
+}
+
+func (p *FlowServiceSkillsArgs) IsSetRequest() bool {
+	return p.Request != nil
+}
+
+func (p *FlowServiceSkillsArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("FlowServiceSkillsArgs(%+v)", *p)
+}
+
+func (p *FlowServiceSkillsArgs) DeepEqual(ano *FlowServiceSkillsArgs) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.RequirementRoot) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.Request) {
+		return false
+	}
+	return true
+}
+
+func (p *FlowServiceSkillsArgs) Field1DeepEqual(src string) bool {
+
+	if strings.Compare(p.RequirementRoot, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *FlowServiceSkillsArgs) Field2DeepEqual(src *FlowSkillsRequest) bool {
+
+	if !p.Request.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_FlowServiceSkillsArgs = map[int16]string{
+	1: "requirement_root",
+	2: "request",
+}
+
+type FlowServiceSkillsResult struct {
+	Success *FlowSkillsResponse   `thrift:"success,0,optional" json:"success,omitempty"`
+	Error   *erroridl.PublicError `thrift:"error,1,optional" json:"error,omitempty"`
+}
+
+func NewFlowServiceSkillsResult() *FlowServiceSkillsResult {
+	return &FlowServiceSkillsResult{}
+}
+
+func (p *FlowServiceSkillsResult) InitDefault() {
+}
+
+var FlowServiceSkillsResult_Success_DEFAULT *FlowSkillsResponse
+
+func (p *FlowServiceSkillsResult) GetSuccess() (v *FlowSkillsResponse) {
+	if !p.IsSetSuccess() {
+		return FlowServiceSkillsResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var FlowServiceSkillsResult_Error_DEFAULT *erroridl.PublicError
+
+func (p *FlowServiceSkillsResult) GetError() (v *erroridl.PublicError) {
+	if !p.IsSetError() {
+		return FlowServiceSkillsResult_Error_DEFAULT
+	}
+	return p.Error
+}
+
+func (p *FlowServiceSkillsResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *FlowServiceSkillsResult) IsSetError() bool {
+	return p.Error != nil
+}
+
+func (p *FlowServiceSkillsResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("FlowServiceSkillsResult(%+v)", *p)
+}
+
+func (p *FlowServiceSkillsResult) DeepEqual(ano *FlowServiceSkillsResult) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field0DeepEqual(ano.Success) {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Error) {
+		return false
+	}
+	return true
+}
+
+func (p *FlowServiceSkillsResult) Field0DeepEqual(src *FlowSkillsResponse) bool {
+
+	if !p.Success.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *FlowServiceSkillsResult) Field1DeepEqual(src *erroridl.PublicError) bool {
+
+	if !p.Error.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_FlowServiceSkillsResult = map[int16]string{
 	0: "success",
 	1: "error",
 }

@@ -4,7 +4,7 @@
 
 - `remnote-flashcards` HOME classification, native RemNote flashcards, Wiki links and final readback.
 - `fanloop-maintainer` four-step Define, Build, Certify and Deliver loop.
-- `pstack-native` six-step playbook-shaped delivery over the native pstack skill catalog in the workflow bundle.
+- `remnote-direct-maintainer` direct maintenance of the RemNote Skill package.
 - Installed `create-fanloop-workflow` plus `examples/workflows/example/` as non-production authoring aids.
 
 ## How to get to it (user POV)
@@ -65,7 +65,7 @@ historical counts. Deliver must not modify a candidate when main advances; it re
 recertification. Workflow-specific behavior stays in YAML and Skills, not generic verify Runtime code.
 
 Complete packages under the selected local repository's `skills/` directory determine the Workflow inventory. The retained
-products are fanloop-maintainer, pstack-native and remnote-flashcards; technical-solution-design is retired. Each invocation
+products are fanloop-maintainer, remnote-direct-maintainer and remnote-flashcards; technical-solution-design is retired. Each invocation
 reads that source directly, so valid package edits are visible without synchronization, rebuilding or reinstalling the CLI.
 An invalid explicit source or missing bound source fails without searching other repositories or loading old copies.
 Never infer the active configuration from CLI version alone; read back the selected source and exact Status Skill paths.
