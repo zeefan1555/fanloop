@@ -8,9 +8,9 @@ description: 检查 RemNote 闪卡内容质量，以及闪卡和 Wiki 创建、�
 ## 草稿立即审
 
 prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查。用户未要求 Wiki 时没有 Wiki 分支，不要等它。
-共用来源、模式和学习目标；审查普通卡的来源一致、单一记忆目标、独立理解、术语解释，以及原子术语卡或组合卡的背面规则。
+共用来源、模式和学习目标。普通卡按[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)审查。回执对每张普通卡填写 kid_clarity 五问，对每张组合卡逐字列出 star_headings。
 原文模式逐段比对指定原文，不改写；全部重复时仍检查复用决定与实际答案补充。
-回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys 及每张 PASS/FAIL 和原因。
+回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys、kid_clarity、star_headings，以及每张 PASS/FAIL 和原因。
 助手不写卡、不写 Wiki、不代替作者改稿。作者只修失败项，助手只复审改变的卡。用户明确要求 Wiki 且新增了适用术语时，才把术语返回 Wiki 清单。
 未覆盖、未结束、旧稿证据或失败项非空不满足 draft_quality_passed。
 
@@ -32,12 +32,12 @@ Wiki 内容，需要正文的每个 ID 显式列入 `remIds`。用 `verify scope
 
 ## 闪卡
 
-检查闪卡时先读取 [SuperMemo 20 条知识表述原则](../remnote-flashcards/references/supermemo-20-rules.md)，按最终回读内容逐卡检查理解、独立、原子、可判分、低干扰、可追溯和记忆价值。再按[制卡 Skill](../remnote-flashcards/SKILL.md)区分卡型。原子术语卡的背面必须是一行正式定义、一行白话类比、可选一行例子，出现 S/T/A/R 标题则失败。白话类比必须是一句给大约 8–10 岁、没有该领域背景的小朋友的日常场景；这一行有未解释术语、抽象倍数说法，或读者要停下来解码，则失败。例子若在，必须是能口算的算术，不能只把公式换成数字。同一批必须先出现该批用到的全部原子卡，再出现组合卡；术语只在组合卡里第一次出现则失败。组合卡问题必须从刚学的原子卡接过来，并且只问一个决定或对比。卡片标题必须是 `S — Situation：背景`、`T — Task：任务／目标`、`A — Action：行动`、`R — Result：结果`；只有中文、没有字母则失败。问题和每一段都要让识字的大约 5 岁小朋友读一遍就懂；大人要停下来解码则失败。S 必须是有人物和物件的具体场景，并点名哪里容易看错，不能是抽象金融。T 必须是一句「你要学会…」，并写出要避开的错。A 必须用小数目走一遍演算，算术用文字。R 必须是一句口诀；省略 R 则失败。标题下可以有一整段。原子卡标题必须是短名，长搜索句只作为该标题卡的别名。重用前面术语的问题行和答案行必须引用标题卡 Rem，不是别名 Rem。行内应显示短名，例如 `[[PE]]`，点击必须打开带费曼子 Rem 的卡。RichText 为 `{"i":"q","_id":"<标题卡 Rem ID>"}`；`flashcards apply` 答案为 `{"remId":"<标题卡 Rem ID>"}`。引用别名 Rem、字面括号、编造 ID 或 `pageKey` 失败。引用不能代替本卡自己的解释。用短费曼三行写组合卡，或用 STAR 写原子术语卡，都失败。原子卡或组合卡的答案行含 `→`、`←`、`⇒`、`⇐`、`>>`、`<<` 或同类箭头则失败；算术应写成「20 除以 2 等于 10」，或只用 `=`、`÷`。不要求固定答案 Rem 数量，不接受空标题、套话或无依据的结果。单篇文章或单章的主题标题必须是日期、来源类型和文章原标题，例如 `2026-10-06 book 前言`；转述标题失败。持续课程的 Tag 必须是教程名，例如 `人人都是量化交易员`；作者名当 Tag 失败。新建术语卡缺少 `search --cards-only` 未命中记录则失败。把 Wiki 页或空 cards 当成已有术语卡失败。用户未要求时出现 `spec` 或策略规格说明书卡失败。方法论文章没有有名字的方法原子卡、只有软叙述则失败。用户要求重做时复用该来源旧卡失败。原文导入／摘录保持 `remnote-flashcards` 的模式约定，不强制费曼改写或 STAR 排版。每张卡给出 `PASS` 或 `FAIL + 违反规则编号 + 原因`；失败项修复后重新回读评审，内容质量通过与下面的结构验证同时满足才算完成。
+检查闪卡时先读取 [SuperMemo 20 条知识表述原则](../remnote-flashcards/references/supermemo-20-rules.md)，按最终回读内容逐卡检查理解、独立、原子、可判分、低干扰、可追溯和记忆价值。普通学习卡的通过条件是[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)的失败条件全部不成立，并且写前 `preflight` 与当前草稿一致、全部门禁为 pass。`source_h1` 与 `theme_title` 不一致则失败。原文导入／摘录保持 `remnote-flashcards` 的模式约定，不强制费曼改写或 STAR 排版。每张卡给出 `PASS` 或 `FAIL + 门禁 id + 原因`；失败项修复后重新回读评审，内容质量通过与下面的结构验证同时满足才算完成。
 
 1. **日期与实体位置。** 用 `sdk date get-todays-doc` 获取今日笔记 ID，再 `read <ID> --view full` 确认是当天的 `dailyDocument`。新单卡的 `parentRemId` 必须等于该 ID。多卡批次可以共用一个普通 `text` 主题，主题父级等于该 ID，卡片是主题的直接子 Rem；没有主题时，每张新卡的父级等于该 ID。原卡更新保留原日期；错放修复使用本次确定的目标日期。跨午夜新写入重新解析日期；已写卡按回执记录的实际创建日期与每日笔记 ID 核验，不因校验日期改变而重建。引用、Portal、标题中的日期均不能替代真实父子关系。
-2. **分类身份。** `read <TAG_ID> --view full --ancestor-depth 8`，必要时继续读祖先，证明它是 HOME 子树里领域分组下最细的 Concept，且不是 Folder／Document。同名不等于同一标签。停在更粗的 Folder 上算失败。
+2. **分类身份。** `read <TAG_ID> --view full --ancestor-depth 8`，必要时继续读祖先，证明它是 HOME 子树里领域分组下最细的 Concept，且不是 Folder／Document。同名不等于同一标签。作者名、粗 Folder 和 Wiki 页当 Tag 都算失败。祖先路径要与 `preflight.tag_ancestor_path` 一致。
 3. **真实标签。** 回读单卡或主题的 `tags`，要求包含预期 Tag ID，且只有一个 HOME 主题分类。有主题时，子卡不重复打这个分类 Tag。再用 `search-by-tag --tag-id <TAG_ID> --result-mode tagged --view full` 反查，翻页直到找到该内容 ID 或结果耗尽。正文引用不算打 Tag。
-4. **卡片完整性。** 对内容根运行 `review-stats --root-id <CONTENT_ID>`，核对实际卡片 Rem ID 集合与本批次预期完全一致，防止漏卡、答案生成子卡或主题误成卡。逐卡回读正文与直接子 Rem；折叠时按具体 ID 继续读取。移动前后的 cardId、复习记录和内容必须保持不变。多卡主题写后必须运行 `remnote-cli sdk rem object-has-powerup --target-id <主题Rem_ID> --args-json '["cc"]'`。用户未要求集群时结果必须为 false；返回 true 失败，不要补加，也不要把它记成成功。用户明确要求时结果必须为 true，主题仍是 `text`。组合卡里的 Rem 引用必须指向 preparation 记下的标题卡 Rem ID，指向别名 Rem 失败。
+4. **卡片完整性。** 对内容根运行 `review-stats --root-id <CONTENT_ID>`，核对实际卡片 Rem ID 集合与本批次预期完全一致，防止漏卡、答案生成子卡或主题误成卡。逐卡回读正文与直接子 Rem；折叠时按具体 ID 继续读取。移动前后的 cardId、复习记录和内容必须保持不变。多卡主题写后必须运行 `remnote-cli sdk rem object-has-powerup --target-id <主题Rem_ID> --args-json '["cc"]'`，结果写入 `cluster_powerup`。用户未要求时期望 false；用户要求且本批有主题标题和至少 2 张新卡时期望 true。与期望不符则失败。意外的 true 是 remnote-direct 回归，不要补加，也不要把它记成成功。主题仍是 `text`。组合卡里的 Rem 引用必须指向 preparation 记下的标题卡 Rem ID，指向别名 Rem 失败。单篇或单章的主题标题必须与 `source_h1` 按契约拼成的 `theme_title` 一致。
 5. **范围复核。** 当天创建时用 `review-stats --today` 确认目标卡片均在今天；跨午夜检查回执中的实际创建日记；历史卡更新则检查原日记。修复 HOME 错放后对原父级复查，确认卡片已移出，分类 Tag 仍留在 HOME。普通写卡只检查本批次，不扫描无关历史内容。
 
 ## Wiki

@@ -281,7 +281,7 @@ Portal 的折叠状态按“被展示页面 Rem + Portal Rem ID”回读。
 - `log.md` 承担活动时间线；原生时间字段辅助核验。
 - `raw` 下的 URL、附件或原始 Rem 引用承担原始材料层。
 - 不使用 Wiki Tag、Tag taxonomy、Tag 反查或查询 Portal。
-- `remnote-cli`／Bridge 提供无界面读写；只有 CLI 无法完成原生界面状态时才使用 `control-remnote`。
+- `remnote-cli` 经本机 WebSocket 提供无界面读写；只有 CLI 无法完成原生界面状态时才使用 `control-remnote`。
 
 ## 常见陷阱
 

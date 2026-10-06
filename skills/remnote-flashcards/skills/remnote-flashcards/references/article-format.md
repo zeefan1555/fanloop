@@ -49,7 +49,7 @@ ASCII 图必须放进一个 fenced `text` 代码块，使空格、换行和等�
 调用方
   |
   v
-remnote-cli -> MCP Server -> Automation Bridge -> RemNote
+remnote-cli -> plugin WebSocket -> RemNote
 ```
 ````
 

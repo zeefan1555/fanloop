@@ -1,6 +1,7 @@
 ---
 status: accepted
 date: 2026-10-06
+amended: 2026-10-07
 amends: ADR-0117, ADR-0119, ADR-0126-remnote-bounded-workflows-and-maintenance, ADR-0127-review-drafts-and-prepare-wiki-concurrently
 ---
 
@@ -67,23 +68,40 @@ plus STAR combos that connect those methods to terms. If the user says prior
 cards for a source are bad, or asks for a redo, delete or replace those cards
 and do not reuse them. Otherwise incremental reuse still applies. Only that theme, or the single card
 when there is no theme, receives the Concept Tag. Child cards are not
-re-tagged. Card Cluster (`cc`) is optional and is not the default for 2–7
-cards. Add it only when the user explicitly asks. `flashcards apply` must
-follow the same rule: a theme `title` does not opt in, and the plan adds
-built-in `cc` only when `cardCluster` is true. The published
-`feat/remnote-task-acceleration` bridge at `a3ca8cd` does not do this.
-`flashcards` in `src/api/task-operations.ts` calls `addPowerup('cc')` whenever
-`newCards.length > 1`, and verify scope expects `cc` true. On 2026-10-06 the
-theme `2026-10-06 book 前言` (`C4lWZBYMbeUIoL9Zd`) received `cc=true` from a
-plan that omitted `cardCluster`. The PE theme `hhA0zbVbEpZbrLoCu` stayed
-false. Local unpushed commits bridge `22a5b5e` and server `87542a3` make
-`cardCluster === true` the only opt-in and document it in `--help`. Push to
-those repositories was denied. Until the running CLI contains that fix, a
-multi-card apply is unverified until `object-has-powerup ["cc"]` is false
-when the user did not opt in. ADR-0119 still says to add and
-read `cc` through the CLI when that request exists; it does not require Card
-Cluster on every multi-card theme. This replaces ADR-0117's sentence that
-multi-card themes use the built-in Card Cluster.
+re-tagged. Reject an author name, a coarse Folder used as the only tag, and
+a Wiki page used as the tag. The batch records ancestor-path proof.
+
+Card Cluster (`cc`) is optional and is not the default for 2–7 cards. The
+ordinary learning path is RemNote Direct: `remnote-cli` talks to the plugin
+over the local WebSocket. Help documents `cardCluster`. Omit and `false`
+never add built-in `cc`. Only `cardCluster: true` adds it, and only when the
+plan also has a theme title and at least two new cards. A theme `title` is
+not an opt-in. Do not add `cc` with `object-add-powerup` on this path.
+There is no second path for the case where help omits the field. After apply, `object-has-powerup ["cc"]` remains the regression
+check. Record it as `flashcards_written.cluster_powerup`. When the user did
+not opt in, the result must be false. When the user opted in and the batch
+met the title and new-card conditions, the result must be true. An
+unexpected true is a remnote-direct regression.
+
+Historical footnote, 2026-10-06: a plan that omitted `cardCluster` still
+produced `cc=true` on theme `2026-10-06 book 前言` (`C4lWZBYMbeUIoL9Zd`).
+The PE theme `hhA0zbVbEpZbrLoCu` stayed false. That incident is not the
+current contract. ADR-0119 still says to add and read `cc` through the CLI
+when that request exists; it does not require Card Cluster on every
+multi-card theme. This replaces ADR-0117's sentence that multi-card themes
+use the built-in Card Cluster.
+
+Amended 2026-10-07. The learning-card rules live in one reference,
+`skills/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md`.
+Before `--apply`, preparation stores `source_h1`, `theme_title`, and a
+`preflight` object. A single article or chapter must use
+`YYYY-MM-DD <source type> <source_h1>` with the literal H1; a mismatch
+blocks the write. The reviewer receipt lists five yes/no kid-clarity
+answers per ordinary card and the four STAR headings verbatim per combo.
+Existing conditions `draft_quality_passed`, `preparation_recorded`, and
+`result_verified` carry these gates. Step ids, routes, and skill bindings
+stay as they are. The 2026-10-07 amendment does not rename the remnote-direct
+scaffold placeholder.
 
 Skip WIKI on this lightweight path unless the user explicitly asks for wiki.
 An ordinary finance or concept batch does not create pages or inject wiki
@@ -99,4 +117,5 @@ The dry-run examples are
 `skills/remnote-flashcards/skills/remnote-flashcards/references/example-pe-valuation.md`
 and
 `skills/remnote-flashcards/skills/remnote-flashcards/references/example-book-preface.md`.
-Neither is evidence of a live RemNote write.
+Both show a Direct plan that omits `cardCluster`. Neither is evidence of a
+live RemNote write.

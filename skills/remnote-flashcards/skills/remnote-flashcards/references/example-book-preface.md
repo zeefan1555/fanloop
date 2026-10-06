@@ -1,33 +1,51 @@
 # 干跑示例：前言 / Tag 人人都是量化交易员
 
-这是给 Agent 对照的导入草稿，不是一次已经写入 RemNote 的回执。来源是 https://xingwudao.github.io/xquant-beginner/book/preface 。未连接 RemNote Bridge 时不要声称已经写卡。
+这是给 Agent 对照的导入草稿，不是一次已经写入 RemNote 的回执。来源是 https://xingwudao.github.io/xquant-beginner/book/preface 。没有真实写入回执时不要声称已经写卡。卡型规则见[学习卡契约](learning-card-contract.md)。
 
 ## 本批规则
 
 - 领域分组：`HOME / 03-RESOURCES / 金融知识`
-- 打在批次上的最细 Concept Tag：`人人都是量化交易员`。这是教程名。不要打作者名 `刑无刀`。
-- 这一页的 H1 是「前言」。主题 Rem 用文章原标题：`2026-10-06 book 前言`。不要改成「术语与方法」或「量化地图」。
+- 打在批次上的最细 Concept Tag：`人人都是量化交易员`。这是教程名。不要打作者名 `刑无刀`，不要停在 `金融知识`，也不要把 Wiki 页当 Tag。
+- 这一页的 H1 是「前言」。`source_h1` 就是 `前言`。`theme_title` 必须是 `2026-10-06 book 前言`。写成「术语与方法」或「量化地图」时 `theme_literal` 失败，不得写入。
 - 实体放在当日每日笔记。多张卡放在一个普通 `text` 主题 Rem 下。只给主题打教程 Tag。子卡不再打。
-- 不添加 Card Cluster（`cc`）。用户没有要求。计划省略 `cardCluster`。写后 `object-has-powerup ["cc"]` 必须为 false。2026-10-06 已发布的 `flashcards apply` 给主题 `2026-10-06 book 前言`（Rem `C4lWZBYMbeUIoL9Zd`）加上了 `cc`，该结果不合格。
+- 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `cluster_powerup` 必须为 false。若为 true，记为 remnote-direct 回归。
 - 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。Wiki 概念页也不能代替术语闪卡。
 - 创建 `回测`、`四个阶段`、`做看疑` 之前，各自运行 `remnote-cli search "<短名>" --cards-only --include-review-stats --view full`。本草稿假定三次都没有命中同一记忆目标的术语闪卡，所以新建。若命中且够用，引用那张标题卡的 Rem ID，不新建。
-- 用户没有要求重做。若用户说这份前言的旧卡质量差或要重做，删除或替换那些卡，不复用。
-- 不建 `spec`，也不建「策略规格说明书」。用户没有要求。
-- 这是方法论文。原子卡里既有术语 `回测`，也有有名字的方法 `四个阶段` 和 `做看疑`。组合卡把方法接到术语上。不要只交一段没有这些卡的软叙述。
-- 顺序：先三张原子卡，再一张组合卡。原子卡用短费曼背面，不用 STAR。白话类比是给大约 8–10 岁、没有金融背景的小朋友的一句柠檬水摊场景。
-- 组合卡标题必须是 `S — Situation：背景`、`T — Task：任务／目标`、`A — Action：行动`、`R — Result：结果`。问题和每一段都要让识字的大约 5 岁小朋友读一遍就懂。R 是一句口诀，不省略。
-- 每张卡只有一个记忆目标。本批 4 张，落在偏好的 3–7 张里。
-- 答案行没有箭头。算术写成「4 乘 2 等于 8」，或只用 `=`、`÷`。
+- 用户没有要求重做，也没有要求 `spec` 或「策略规格说明书」。
+- 这是方法论文。原子卡里既有术语 `回测`，也有有名字的方法 `四个阶段` 和 `做看疑`。本批 4 张。顺序、短标题、STAR 原文、箭头和儿童口吻按契约。
 
-三张原子卡的标题就是 `回测`、`四个阶段`、`做看疑`。长搜索句是同一张标题卡上的别名，不是引用目标：
+## 干跑 preflight
+
+```yaml
+preflight:
+  term_search: pass
+  atomics_first: pass
+  short_titles: pass
+  aliases_after_create: pass
+  rem_ref_title_ids: pass
+  star_labels_exact: pass
+  arrow_scan: pass
+  arrow_hits: 0
+  theme_literal: pass
+  tag_path: pass
+  no_spec_unless_asked: pass
+  card_cluster: pass
+  named_methods: pass
+  redo_reuse: pass
+  card_cluster_requested: false
+  card_cluster_plan: omit
+  source_h1: 前言
+  theme_title: 2026-10-06 book 前言
+  tag_ancestor_path: [HOME, 03-RESOURCES, 金融知识, 人人都是量化交易员]
+```
+
+`2026-10-06 book 术语与方法` 配 `source_h1: 前言` 是失败，不能 `--apply`。审卡回执的五问和四条 STAR 标题与市盈率示例同一形状。
+
+别名在标题卡创建之后再加上。`回测是什么？` 这种长句不是标题。组合卡只引用标题卡。下面草稿里的 `[[回测]]` 是显示结果，还没有真实 Rem ID。
 
 - `回测` 的别名：`回测是什么？`
 - `四个阶段` 的别名：`四个阶段是什么？`
 - `做看疑` 的别名：`做、看、疑是什么？`
-
-用 `getOrCreateAliasWithText` 或 `update <标题卡 ID> --add-aliases` 把长句加到标题卡上。返回的别名 Rem 不要写进组合卡。
-
-组合卡引用标题卡。RichText 写成 `{"i":"q","_id":"<回测标题卡 Rem ID>"}`。`flashcards apply` 的答案段写 `{"remId":"<回测标题卡 Rem ID>"}`。标题是 `回测`，所以行内显示 `[[回测]]`。`question` 仍是纯字符串，不会解析括号；正面用 `update --title` 或 Markdown 导入，并使用 `[[id:<标题卡 Rem ID>]]`。下面草稿里的 `[[回测]]` 表示这个显示结果。草稿里还没有真实 Rem ID。
 
 ## 可导入结构
 

@@ -1,33 +1,64 @@
 # 干跑示例：市盈率 PE / Tag 估值
 
-这是给 Agent 对照的导入草稿，不是一次已经写入 RemNote 的回执。未连接 RemNote Bridge 时不要声称已经写卡。
+这是给 Agent 对照的导入草稿，不是一次已经写入 RemNote 的回执。没有真实写入回执时不要声称已经写卡。卡型规则见[学习卡契约](learning-card-contract.md)。
 
 ## 本批规则
 
 - 领域分组：`HOME / 03-RESOURCES / 金融知识`
-- 打在批次上的最细 Concept Tag：`估值`
+- 打在批次上的最细 Concept Tag：`估值`。不是作者名，不是粗 Folder，也不是 Wiki 页。
 - 实体放在当日每日笔记。多张卡放在一个普通 `text` 主题 Rem 下，便于阅读。
-- 这批不是单篇文章，主题用 `resource` 加概念名。单篇文章或单章改用 `YYYY-MM-DD book <文章标题>`，中文槽用文章原标题。见 [前言文章干跑示例](example-book-preface.md)。
+- 这批不是单篇文章，`source_h1` 为 `n/a`。主题用 `resource` 加概念名。单篇文章或单章见 [前言文章干跑示例](example-book-preface.md)。
 - 只给主题打 `估值`。下面五张子卡不再打这个 Tag。
-- 不添加 Card Cluster（`cc`）。用户没有要求。计划省略 `cardCluster`。写后 `object-has-powerup ["cc"]` 必须为 false。主题 `hhA0zbVbEpZbrLoCu` 的实测是 false。
+- 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `object-has-powerup ["cc"]` 必须为 false，并记入 `cluster_powerup`。若为 true，记为 remnote-direct 回归。
 - 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。
-- 顺序：先三张原子术语卡（市盈率、每股收益、市净率），再两张组合卡。市净率有自己的原子卡，不在组合卡里第一次出现。
-- 原子卡用短费曼背面，不用 STAR。白话类比是给大约 8–10 岁、没有金融背景的小朋友的一句柠檬水摊场景。
-- 组合卡问题从刚学的原子卡接过来，只问一个决定。标题必须是 `S — Situation：背景`、`T — Task：任务／目标`、`A — Action：行动`、`R — Result：结果`。每个标题下有一整段。不要改成只有中文的四个标题。问题和每一段都要让识字的大约 5 岁小朋友读一遍就懂。S 是有人物和物件的具体场景，并点名哪里容易看错。T 是一句「你要学会…」，并写出要避开的错。A 用小数目走一遍演算。R 是一句口诀，不省略。
-- 每张卡只有一个记忆目标。本批 5 张，落在偏好的 3–7 张里。
-- 原子卡和组合卡的答案行没有箭头。不用 `→`、`←`、`⇒`、`⇐`、`>>`、`<<`。算术写成「50 除以 10 等于 5」，或只用 `=`、`÷`。
+- 顺序、短标题、别名、STAR 原文、箭头和儿童口吻都按契约。本批 5 张，落在偏好的 3–7 张里。原子卡标题是 `PE`、`EPS`、`PB`，不是带 `？` 或「是什么」的长句。
 
-三张原子卡的标题就是 `PE`、`EPS`、`PB`。费曼三行是标题卡的子 Rem。长搜索句是同一张标题卡上的别名，不是引用目标：
+## 干跑 preflight
+
+用户没要求集群，也没有单篇 H1。写入前对象应类似：
+
+```yaml
+preflight:
+  term_search: pass
+  atomics_first: pass
+  short_titles: pass
+  aliases_after_create: pass
+  rem_ref_title_ids: pass
+  star_labels_exact: pass
+  arrow_scan: pass
+  arrow_hits: 0
+  theme_literal: pass
+  tag_path: pass
+  no_spec_unless_asked: pass
+  card_cluster: pass
+  named_methods: pass
+  redo_reuse: pass
+  card_cluster_requested: false
+  card_cluster_plan: omit
+  source_h1: n/a
+  theme_title: 2026-10-06 resource 市盈率 PE
+  tag_ancestor_path: [HOME, 03-RESOURCES, 金融知识, 估值]
+```
+
+审卡回执对每张卡五问都是 yes。组合卡的 `star_headings` 逐字是契约里的四条标题。下面只示范第一张原子卡和第一张组合卡，其余卡同一形状。
+
+```yaml
+kid_clarity:
+  - {card_key: pe, one_goal: yes, one_pass: yes, concrete: yes, plain_words: yes, no_arrow: yes}
+star_headings:
+  - card_key: pe-gift
+    headings:
+      - S — Situation：背景
+      - T — Task：任务／目标
+      - A — Action：行动
+      - R — Result：结果
+```
+
+别名在标题卡创建之后再加上，组合卡只引用标题卡。下面草稿里的 `[[PE]]` 是标题为 `PE` 的显示结果。草稿里还没有真实 Rem ID。
 
 - `PE` 的别名：`市盈率（PE）是什么？`
 - `EPS` 的别名：`每股收益（EPS）是什么？`
 - `PB` 的别名：`市净率（PB）是什么？`
-
-用 `getOrCreateAliasWithText` 或 `update <标题卡 ID> --add-aliases` 把长句加到标题卡上。返回的别名 Rem 不要写进组合卡。点它会打开没有背面的别名页。
-
-组合卡引用标题卡。RichText 写成 `{"i":"q","_id":"<PE 标题卡 Rem ID>"}`。`flashcards apply` 的答案段写 `{"remId":"<PE 标题卡 Rem ID>"}`，不写 `{"i":"q"}`。标题是 `PE`，所以行内显示 `[[PE]]`，点击预览这张带费曼子 Rem 的卡。`question` 仍是纯字符串，不会解析括号；正面用 `update --title` 或 Markdown 导入，并使用 `[[id:<标题卡 Rem ID>]]`。下面草稿里的 `[[PE]]` 表示这个显示结果。草稿里还没有真实 Rem ID。
-
-主题标题按顶层命名：`2026-10-06 resource 市盈率 PE`。
 
 ## 可导入结构
 

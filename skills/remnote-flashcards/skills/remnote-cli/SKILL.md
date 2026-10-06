@@ -5,8 +5,8 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 
 # RemNote CLI
 
-日常操作直接使用已安装的 `remnote-cli`。链路是 CLI、本机 WebSocket、SDK 插件和官方 SDK；
-没有 MCP Server。以当前命令帮助、运行时协议及能力发现为准，不要求 CLI 与插件版本号相同。
+日常操作直接使用已安装的 `remnote-cli`。链路是 CLI、本机 WebSocket、SDK 插件和官方 SDK。
+以当前命令帮助、运行时协议及能力发现为准，不要求 CLI 与插件版本号相同。
 
 ## 身份与授权
 
@@ -43,9 +43,7 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 若任务接口不能保真表达原文的层级、格式或全部必要动作，先判断现有公开命令是否完整覆盖，
 不得压平正文、截短答案、改变模式或在写后才发现表达缺口。能力不足就记录精确缺口并阻塞，
 由独立维护任务补齐。普通单点操作使用 `create`、`insert-children`、`outline` 等现有命令；
-任务命令已完成的标签、折叠、索引或日志不再逐对象重复写入。`flashcards apply` 不得因为多张卡给主题添加 Card Cluster。只有计划字段 `cardCluster` 为 true 时才应添加内置 `cc`。主题 `title` 不是这个开关。`--help` 未列出 `cardCluster` 时，不要把这个未知字段写进计划；省略它也挡不住已发布命令。
-
-已发布的根因在 `zeefan1555/remnote-mcp-bridge` 分支 `feat/remnote-task-acceleration` 的 `a3ca8cd`，文件 `src/api/task-operations.ts` 的 `flashcards`。`newCards.length > 1` 时它调用 `addPowerup('cc')`，并把 verify scope 的 `cc` 期望写成 `true`。`createNote` 的占位标题是 `Task card cluster`。2026-10-06 的实跑与此相符：主题 `2026-10-06 book 前言`（Rem `C4lWZBYMbeUIoL9Zd`）的计划没有 `cardCluster`，`--help` 也没有该字段，写后 BuiltInPowerup `cc` 仍为 true。PE 主题 `hhA0zbVbEpZbrLoCu` 为 false。本地未推送的修复是 bridge `22a5b5e`：仅 `plan.cardCluster === true` 才 `addPowerup('cc')`，期望值为 `p.cardCluster === true`，占位标题改为 `Task theme`。配套帮助在 `zeefan1555/remnote-mcp-server` 的本地提交 `87542a3`，origin 的 `e846b1e` 帮助仍不提到 `cardCluster`。向这两个仓库推送曾返回 HTTP 403，cursor[bot] 没有写权限。在那两个提交进入所运行的 CLI 之前，每次多卡 `flashcards apply` 之后都要跑 `object-has-powerup ["cc"]`。用户未要求集群时结果必须为 false；为 true 则本批失败。用户明确要求集群、且帮助已经列出字段时，才在计划里写 `cardCluster: true`；帮助还没有该字段时，才按 card-clusters.md 调用 `object-add-powerup`。
+任务命令已完成的标签、折叠、索引或日志不再逐对象重复写入。`flashcards apply` 的 `cardCluster` 按学习卡契约：省略或 `false` 不添加内置 `cc`；只有 `true` 才添加，并且实现上还要有主题标题和至少 2 张新卡。主题 `title` 不是这个开关。用户没要求时不要写 `true`，也不要改调 `object-add-powerup`。写后仍用 `object-has-powerup ["cc"]` 回读，结果与 opt-in 不符就是 remnote-direct 回归。
 
 一级命令未覆盖时先查 `sdk capabilities` 和具体方法帮助，只调用公开、受支持的 SDK 方法。
 不调用私有路径、任意 JavaScript 或持久对象句柄。原生事务是否可用以运行时及仓库契约为准；
