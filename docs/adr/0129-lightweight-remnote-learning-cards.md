@@ -1,0 +1,102 @@
+---
+status: accepted
+date: 2026-10-06
+amends: ADR-0117, ADR-0119, ADR-0126-remnote-bounded-workflows-and-maintenance, ADR-0127-review-drafts-and-prepare-wiki-concurrently
+---
+
+# Lightweight RemNote Learning Cards
+
+The user finalized the ordinary RemNote learning path. This amends the card
+shape, default Card Cluster rule, and default Wiki scope in ADR-0117,
+ADR-0126, and ADR-0127. It does not change the four step IDs, their order,
+their executors, or the route conditions that already gate `wiki_ready`.
+
+Tag each learning batch with the most specific HOME Concept Tag under a domain
+grouping, for example `HOME / 03-RESOURCES / 金融知识 / 估值`. Do not stop at a
+broad folder when a finer Concept exists. Create that Concept through
+`remnote-structure` only when it is missing. For an ongoing tutorial, that
+Concept is the tutorial name, for example `人人都是量化交易员`, not the author
+name.
+
+Ordinary cards have two backs. An atomic term card remembers one term:
+definition, formula, or single-point principle. Its front is `问题 ===`. Its
+back is short Feynman text: one formal definition line, one plain-language
+analogy, and an optional one-line example. The analogy is one sentence for a
+curious child of about 8–10 with no background in the topic: a tangible
+everyday scene, no undefined jargon, and a rewrite if the reader has to pause.
+The formal definition line owns the terms. An optional example is arithmetic a
+child can do, not the formula with numbers substituted. A combo question and
+every STAR section must be clear, after one pass, to a curious five-year-old
+who can read. If an adult has to pause and decode, rewrite. S is a concrete
+scene with characters or objects, not abstract finance, and it names what
+looks confusing. T is one sentence that starts with 「你要学会」 and names the
+mistake to avoid. A is a worked mini-example with small numbers and worded
+arithmetic. R is one memorable 口诀. Learning combos keep all four sections.
+Do not use STAR on an atomic card. In one batch, every term gets its own atomic card before
+any combo that uses it. A combo question bridges from those cards and asks one
+decision. An atomic term card's title is the short name, such as `PE`. Longer search
+text, such as `市盈率（PE）是什么？`, is an alias on that same title card.
+`getOrCreateAliasWithText` may create that alias. Combo references use the
+title card Rem id, `{"i":"q","_id":"<titleCardRemId>"}`, not the alias Rem.
+The inline text then shows `[[PE]]`, and the click opens the card that holds
+the Feynman children. A `flashcards apply` answer segment uses
+`{"remId":"<titleCardRemId>"}`. The visible
+headings stay `S — Situation：背景`, `T — Task：任务／目标`, `A — Action：行动`,
+and `R — Result：结果`. A fuller paragraph may sit under each letter.
+Chinese-only labels are not a substitute. A combo card
+remembers one goal that relates two or more terms: contrast, causal chain, or
+decision rule. Its front is `问题 ===`. Its back uses that STAR shape, and the
+R section is the required 口诀. Atomic and combo answer lines do not use
+arrow symbols such as `→`, `←`, `⇒`, `⇐`, `>>`, or `<<`. RemNote treats those
+in an answer line as another nested card. Write arithmetic as words, or with
+`=` and `÷` only.
+Keep one memory goal per card. Prefer 3–7 cards per article or theme, and
+allow 0..N. This replaces the rule that every ordinary card uses STAR.
+
+Entities stay in Daily Notes. A multi-card batch may sit under one ordinary
+`text` theme Rem so the batch is readable. When the cards come from one
+article or chapter, the theme title is `YYYY-MM-DD <source type> <article title>`,
+using the article's own title. A book chapter uses `book` and the H1, for
+example `2026-10-06 book 前言`. Do not invent a paraphrase. Before creating a
+term card, search with `remnote-cli search` and `--cards-only` for an existing
+term flashcard with the same memory target. Reuse that title Rem when it is
+good enough. A Wiki concept page is not a term flashcard. Do not create a card
+for `spec` or 策略规格说明书 unless the user asks. A methodology article also
+gets short-title atomics for named methods, such as `做看疑` and `四个阶段`,
+plus STAR combos that connect those methods to terms. If the user says prior
+cards for a source are bad, or asks for a redo, delete or replace those cards
+and do not reuse them. Otherwise incremental reuse still applies. Only that theme, or the single card
+when there is no theme, receives the Concept Tag. Child cards are not
+re-tagged. Card Cluster (`cc`) is optional and is not the default for 2–7
+cards. Add it only when the user explicitly asks. `flashcards apply` must
+follow the same rule: a theme `title` does not opt in, and the plan adds
+built-in `cc` only when `cardCluster` is true. The published
+`feat/remnote-task-acceleration` bridge at `a3ca8cd` does not do this.
+`flashcards` in `src/api/task-operations.ts` calls `addPowerup('cc')` whenever
+`newCards.length > 1`, and verify scope expects `cc` true. On 2026-10-06 the
+theme `2026-10-06 book 前言` (`C4lWZBYMbeUIoL9Zd`) received `cc=true` from a
+plan that omitted `cardCluster`. The PE theme `hhA0zbVbEpZbrLoCu` stayed
+false. Local unpushed commits bridge `22a5b5e` and server `87542a3` make
+`cardCluster === true` the only opt-in and document it in `--help`. Push to
+those repositories was denied. Until the running CLI contains that fix, a
+multi-card apply is unverified until `object-has-powerup ["cc"]` is false
+when the user did not opt in. ADR-0119 still says to add and
+read `cc` through the CLI when that request exists; it does not require Card
+Cluster on every multi-card theme. This replaces ADR-0117's sentence that
+multi-card themes use the built-in Card Cluster.
+
+Skip WIKI on this lightweight path unless the user explicitly asks for wiki.
+An ordinary finance or concept batch does not create pages or inject wiki
+references. `wiki_ready` still gates the existing route. When wiki was not
+requested, that condition passes from an explicit not-applicable receipt and
+no wiki write. When the user does ask, ADR-0127's wiki worker, real page IDs,
+and the zero-card proof still apply to that mutation. This replaces the
+default that every learning batch prepares wiki pages for its terms.
+
+Original import and original excerpt stay verbatim. Incremental dedupe, daily
+note placement, multiline `===` cards, and Concept versus Folder are unchanged.
+The dry-run examples are
+`skills/remnote-flashcards/skills/remnote-flashcards/references/example-pe-valuation.md`
+and
+`skills/remnote-flashcards/skills/remnote-flashcards/references/example-book-preface.md`.
+Neither is evidence of a live RemNote write.

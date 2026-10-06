@@ -12,9 +12,9 @@ prompts:
     prompt: |
       先执行 panorama_presented 的 Prompt/Skill，展示成功后再执行业务。复用对话中的理解和材料，不重新访谈。
       只处理已授权制卡；恢复来源、内容模式、精确 KB、学习目标、已有卡片及术语清单，集中读取后交给各分支共享。
-      按 remnote-flashcards 的增量规则查重和读取原生复习证据；不可用标 unavailable，不推断掌握程度。
-      术语默认限于本次学习目标所需；用户要求全文术语时覆盖全文适用术语，普通词和临时数值不自动建页。
-      按 remnote-structure 定位唯一 HOME 及最具体 Concept Tag；复用已有分类，必要新建先核对 status 与写权限，再回读类型和真实父级。
+      按 remnote-flashcards 的增量规则查重和读取原生复习证据；不可用标 unavailable，不推断掌握程度。每个术语先 `search --cards-only` 找同一记忆目标的术语闪卡；命中且够用则记录标题卡 ID 供复用，不新建。Wiki 概念页和空 cards 不是术语闪卡。用户说该来源旧卡要重做时，不把那些卡记入复用。
+      轻量学习默认不建 Wiki，术语解释写在卡片背面。只有用户明确要求 Wiki 时，才把学习目标所需术语交给 Wiki；用户要求全文术语时覆盖全文适用术语。普通词和临时数值不建页。
+      按 remnote-structure 定位唯一 HOME 及最具体 Concept Tag；复用已有分类，必要新建先核对 status 与写权限，再回读类型和真实父级。持续课程的这个 Tag 用教程名，例如 `人人都是量化交易员`，不用作者名。
       home_tag_ready 包含 home_id、tag_id、ancestor_ids、created_tag_ids、source_refs、material_digest、mode、goal_keys、existing_card_ids、term_keys、term_scope。
       ID 来自当前连接，材料摘要绑定本次来源及范围；模式、学习目标和术语清单交接使用临时材料，Output 不存知识正文。
       后续临时草稿丢失时从来源和真实 Rem 恢复，重审发生变化的内容，不把旧摘要当正文。
@@ -27,39 +27,42 @@ prompts:
 
   prepare_cards_and_wiki_flow:
     prompt: |
-      先执行 panorama_presented。主 Agent 按 remnote-flashcards 写草稿，同时派一个 Wiki 助手按 remnote-wiki 统一查重、复用已有页、写缺页和必要增量。
-      共用准备阶段的来源、学习目标、模式和术语清单，不让助手重新收集全套材料。本步主 Agent 不写卡。
-      主 Agent 每完成一个草稿批次立即交给独立只读审卡助手；按 remnote-verify 审查来源一致、单一目标、独立可懂和术语解释。按批审，不为每张卡派助手。
-      审卡助手只能读材料与草稿、返回覆盖卡号及失败原因，不能修改卡或 Wiki。Wiki 助手仅写 Wiki；CLI 命令串行，作者与审卡助手利用其写入等待时间做内容工作。
-      草稿失败只修失败卡，再由审卡助手复审改动部分；新增术语交 Wiki 助手补入本次清单，再汇合。不等待 Wiki 完成才启动审卡。
-      Wiki 助手返回真实术语到页面 ID 映射、创建/更新/复用页、来源与索引日志 ID、引用对、批次及受影响范围回执；歧义和未知写入不能算完成。
-      两个分支全部结束后记录 preparation_recorded：material_digest、draft_digest、card_keys、reviewer_receipt（覆盖、失败、来源和摘要）、wiki_receipt（真实 ID 映射、mutated、范围、批次）、term_keys、skipped_count、not_applicable。
+      先执行 panorama_presented。主 Agent 按 remnote-flashcards 写草稿，先把每个记忆目标分成原子术语卡或组合卡。方法论文章先抽出有名字的方法做成短标题原子卡，再写把方法接到术语上的 STAR 组合卡。用户未明确要求时不要为 spec 或策略规格说明书建卡。已有够用的术语闪卡就复用标题卡，没有才起草新卡。本步主 Agent 不写卡。
+      轻量学习默认不派 Wiki 助手，不查页、不建页、不准备引用。只有用户明确要求 Wiki 时，才派一个 Wiki 助手按 remnote-wiki 统一查重、复用已有页、写缺页和必要增量。
+      共用准备阶段的来源、学习目标、模式和术语清单，不让助手重新收集全套材料。
+      主 Agent 每完成一个草稿批次立即交给独立只读审卡助手；按 remnote-verify 审查来源一致、单一目标、独立可懂，以及原子费曼背面或组合卡 STAR。同一批先排原子术语卡，再排组合卡。组合卡问题从刚学的原子卡接过来，标题必须是 S — Situation：背景、T — Task：任务／目标、A — Action：行动、R — Result：结果。问题和每一段都要让识字的大约 5 岁小朋友读一遍就懂。S 点名容易看错的具体场景，T 用「你要学会…」，A 用小数目演算，R 是一句口诀，不省略。原子卡的白话类比必须是给大约 8–10 岁、没有该领域背景的小朋友的一句日常场景，这一行不能有未解释术语。按批审，不为每张卡派助手。
+      审卡助手只能读材料与草稿、返回覆盖卡号及失败原因，不能修改卡或 Wiki。用户要求 Wiki 时，Wiki 助手仅写 Wiki；CLI 命令串行。不等待 Wiki 完成才启动审卡。
+      草稿失败只修失败卡，再由审卡助手复审改动部分。用户要求 Wiki 且出现新的适用术语时，才交给 Wiki 助手补入本次清单。
+      用户未要求 Wiki 时，wiki_receipt 写明 not_applicable 与原因「用户未要求 Wiki」，映射为空，mutated 为空，不调用空写入。用户要求 Wiki 时，Wiki 助手返回真实术语到页面 ID 映射、创建/更新/复用页、来源与索引日志 ID、引用对、批次及受影响范围回执；歧义和未知写入不能算完成。
+      审卡结束，且 Wiki 分支已结束或已记录不适用之后，记录 preparation_recorded：material_digest、draft_digest、card_keys、term_search、reviewer_receipt（覆盖 card_keys、失败、来源和摘要）、wiki_receipt（真实 ID 映射或 not_applicable、原因、mutated、范围、批次）、term_keys、skipped_count、not_applicable。
+      term_search 每个术语一条：query、cards_only、hit_title_rem_id 或 miss。新建术语卡没有对应 miss，或复用没有标题卡 Rem ID，不得进入写入。Wiki 页和空 cards 记为 miss 以外的排除，不能记成 hit。
       记录只含来源、ID、键、哈希、计数和结果，不保存草稿正文副本。正文留在本次临时交接；哈希绑定证据而不代替语义检查。
-      必须同时满足 draft_quality_passed=passed 与 wiki_ready=passed，且证据对应当前材料、最新草稿及全部术语，才能进入写入。
-      全部重复允许零新卡，仍审查实际补充或复用决定；没有术语及原文模式在 Wiki 回执写明不适用原因和空映射，不调用空写入。
+      reviewer_receipt 覆盖的 card_keys 必须与 preparation_receipt.card_keys 逐项相同，且失败项为空，才允许 draft_quality_passed。缺一条、失败非空或作者自证都不得进入写入。
+      必须同时满足 draft_quality_passed=passed 与 wiki_ready=passed，且证据对应当前材料与最新草稿，才能进入写入。用户未要求 Wiki 时，wiki_receipt 必须是 not_applicable，原因恰好为「用户未要求 Wiki」，且没有 Wiki 写入；wiki_ready 的 passed 只表示这份回执齐全，不表示写过页面。缺少这份回执不得前进。
+      全部重复允许零新卡，仍审查实际补充或复用决定。原文模式同样不写 Wiki，回执写明不适用原因和空映射，不调用空写入。
       分类错误回第一步；草稿或 Wiki 分支可恢复失败仅修失败部分。同问题连续三轮失败或结果不明 blocked，不编造通过回执。
     skills:
-      - {id: remnote-flashcards, prompt: 仅准备草稿并交接独立审卡，本步不写卡。, optional: false}
+      - {id: remnote-flashcards, prompt: 仅准备草稿，先区分原子术语卡与组合卡，再交接独立审卡；本步不写卡。, optional: false}
       - {id: remnote-verify, prompt: 独立只读评审当前草稿批次，输出覆盖和失败项。, optional: false}
-      - {id: remnote-wiki, prompt: Wiki 助手统一解析术语并仅写 Wiki，返回真实页面 ID。, optional: false}
+      - {id: remnote-wiki, prompt: 用户明确要求 Wiki 时才写页面并返回真实 ID；否则记录不适用且不写入。, optional: false}
       - {id: remnote-cli, prompt: 有界批次与串行连接，未知写入先核对。, optional: false}
 
   persist_and_verify_flow:
     prompt: |
-      先执行 panorama_presented。核对当前有效 preparation_receipt、两个 passed 值、材料及草稿摘要和助手完成状态；缺任何前提或证据过期不得写卡，回准备步骤修复。
-      将真实 Wiki ID 注入已审草稿对应的卡片计划；保留可见正文，不使用虚构引用、pageKey 或占位链接。注入改变正文时重新审查变更卡。
+      先执行 panorama_presented。核对当前有效 preparation_receipt、draft_quality_passed、wiki_ready 和助手完成状态。material_digest 与 draft_digest 必须与当前材料和最新草稿一致。缺回执、摘要不一致、term_search 不覆盖本批术语、reviewer 覆盖的 card_keys 不等于 card_keys，或失败项非空，都不得写卡，回准备步骤修复。
+      用户要求了 Wiki 时，才把真实 Wiki ID 注入已审草稿；保留可见正文，不使用虚构引用、pageKey 或占位链接。注入改变正文时重新审查变更卡。未要求 Wiki 时不注入引用。
       主 Agent 等 Wiki 助手结束后，按 remnote-cli 使用现有只读预览；格式、计划预算、身份权限和前置哈希通过才显式写入。
       每批最多 7 张新卡、10 个 Wiki 页且计划最多 100 KiB；按学习链路、分区和引用依赖分批，不截断原文或扩大上限。
-      新卡按真实创建日期置于每日笔记并挂 HOME Tag；多卡普通 text 主题使用 Card Cluster。更新保留原位置、Rem ID、cardId 和复习记录。
-      集中回读实际正文、父级、Tag、集群、引用及复习身份，与已审草稿逐项比对；正文改变必须独立重审，不以哈希代替语义判断。
+      新卡按真实创建日期置于每日笔记。单卡挂最细 HOME Concept Tag。多卡可以放在一个普通 text 主题 Rem 下，只给主题挂该 Tag，子卡不重复打标。卡片来自单篇文章或单章时，主题标题用 `YYYY-MM-DD book <文章标题>` 或匹配的来源类型加文章原标题，不用转述。计划默认省略 cardCluster。帮助未列出该字段时不要写入。用户明确要求且帮助已列出时才设 cardCluster true；帮助还没有该字段、且用户明确要求时，才按 card-clusters 调用 object-add-powerup。主题 title 不是集群开关。更新保留原位置、Rem ID、cardId 和复习记录。
+      写后对每个多卡主题运行 object-has-powerup ["cc"]。用户未要求集群时结果必须为 false，并写入 flashcards_written 的 cluster_powerup。返回 true 不得报 result_verified=passed。已发布 flashcards apply 在多张新卡时仍会添加 cc，省略字段拦不住。组合卡引用的 _id 必须等于 term_search 或新建回执里的标题卡 Rem ID，不能是别名 Rem。集中回读实际正文、父级、Tag、引用及复习身份，与已审草稿逐项比对；正文改变必须独立重审，不以哈希代替语义判断。
       按 remnote-verify 复用未失效检查，仅重查受影响项；批次 verified 及 affected_objects 回执不是整个任务完成。
-      本次涉及 Wiki 修改时，在最后一次相关修改后用现有 verify scope 完整检查 WIKI 根及全部后代零卡片；后续 Wiki 修改使证明失效。纯复用只查受影响页和引用。
+      本次涉及 Wiki 修改时，在最后一次相关修改后用现有 verify scope 完整检查 WIKI 根及全部后代零卡片；后续 Wiki 修改使证明失效。纯复用只查受影响页和引用。未要求且未修改 Wiki 时，不跑整库零卡片扫描，也不把缺少 Wiki 引用判失败。
       flashcards_written 包含 created_rem_ids、updated_rem_ids、reused_rem_ids、card_ids、topic_ids、daily_rem_ids、tag_id、source_refs、skipped_count、reference_pairs、batch_ids、review_receipt、verification_receipts、wiki_mutated 及不适用原因。
       所有适用内容、结构、引用与 Wiki 检查通过才报 terms_referenced=passed、result_verified=passed。零新卡仍核对复用对象、分类和 Wiki 变化。
       批内缺陷原位修复并只重查改动部分；改变已审正文回准备步骤独立复审。临时读失败本步重试，分类错误回定位。
       写后回流先恢复 progress Evidence 的真实 ID，查明未知结果才继续缺失动作；不换键重放、不整批重建。
     skills:
-      - {id: remnote-flashcards, prompt: 注入真实引用、预览后写入，保留对象与复习身份。, optional: false}
+      - {id: remnote-flashcards, prompt: 未要求 Wiki 时不注入引用；预览后写入。默认不加 Card Cluster。保留对象与复习身份。, optional: false}
       - {id: remnote-verify, prompt: 比对已审草稿及实际正文，核验最终结构与完整 Wiki 范围。, optional: false}
       - {id: remnote-cli, prompt: 区分批次回执和最终证明，集中读取并安全恢复。, optional: false}
 
@@ -67,7 +70,7 @@ prompts:
     prompt: |
       先执行 panorama_presented。确认 result_verified=passed 及最终回执仍有效，不进行新的知识写入。
       只读取已有运行记录，统计内容准备、独立审卡、工具读写、完整扫描、返工和等待；保留总 wall time，重叠时间不相加，无法区分明确为 unknown。
-      允许零发现，最多选一个有证据、可复用的通用问题，固定记录：证据、重复机制、建议改动、验证方法。
+      允许零发现，最多选一个有证据、可复用的通用问题，固定记录：证据、重复机制、建议改动、验证方法。若本轮主题在用户未要求集群、且计划没有 cardCluster true 时 object-has-powerup ["cc"] 为 true，这条就是本轮唯一发现。证据是主题 Rem ID 和该查询结果。机制是已发布 flashcards apply 在 newCards 多于一张时 addPowerup('cc')，不是操作者漏写关闭字段。建议改动指向 remnote-mcp-bridge src/api/task-operations.ts 的 flashcards，只在 plan.cardCluster === true 时添加 cc。
       retrospective_recorded 包含 timing、full_scan_count、rework_count、findings（0..1）、maintenance_ref。摘要追加到当前 progress Evidence/运行记录；有发现时按来源与机制去重汇总到现有共享维护清单。
       共享维护清单位置从当前环境既有记录取得，不新建平台；不可用时写明未同步及原因，保留本次建议引用，不为复盘阻塞已通过的业务交付。
       复盘仅建议，不现场修改 Workflow、验收条件或升级 CLI；不额外写 Wiki 日志导致最终证明失效。后续独立维护验证后才供下一任务使用。
@@ -79,21 +82,23 @@ prompts:
   draft_quality_condition:
     prompt: |
       核对独立只读审卡助手的覆盖集合等于当前草稿批次，失败项为空；来源、mode、material_digest 和 draft_digest 与 preparation_receipt 一致。
-      普通卡通过来源一致、单一记忆目标、独立理解、术语解释及 STAR 适用规则；原文模式逐段保真，不强制改写。零新卡仍覆盖实际更新及复用决定。
+      普通卡通过来源一致、单一记忆目标、独立理解和术语解释，以及与卡型匹配的背面：原子术语卡是一行正式定义、一行白话类比、可选一行例子，且没有 STAR 标题。白话类比必须是一句给大约 8–10 岁、没有该领域背景的小朋友的摸得到的日常场景；这一行有未解释术语、抽象倍数说法，或读者要停下来解码，都不得报 passed。例子若在，必须是能口算的算术，不能只把公式换成数字。同一批先是原子卡，再是组合卡；术语只在组合卡里首次出现不得报 passed。组合卡（两个及以上术语的对比、因果链或决策规则）标题必须是 `S — Situation：背景`、`T — Task：任务／目标`、`A — Action：行动`、`R — Result：结果`，标题下可以有一整段；只有中文、没有字母不得报 passed。问题和每一段都要让识字的大约 5 岁小朋友读一遍就懂；大人要停下来解码不得报 passed。S 必须是有人物和物件的具体场景，并点名哪里容易看错。T 必须是一句「你要学会…」，并写出要避开的错。A 必须用小数目走一遍演算。R 必须是一句口诀；省略 R 不得报 passed。问题从刚学的原子卡接过来，只问一个决定。原子卡标题是短名，长搜索句只是该标题卡的别名。重用该术语的问题行和答案行必须引用标题卡 Rem，行内显示短名，点击打开这张卡，不能打开别名页。原子卡或组合卡答案行含 `→`、`←`、`⇒`、`⇐`、`>>`、`<<` 或同类箭头不得报 passed；算术写成「20 除以 2 等于 10」，或只用 `=`、`÷`。用 STAR 写原子术语卡，或用三行定义背面写组合卡，都不得报 passed。原文模式逐段保真，不强制改写。零新卡仍覆盖实际更新及复用决定。单篇文章或单章的主题标题必须是日期、来源类型和文章原标题，例如 `2026-10-06 book 前言`；改写成用户没要的概括不得报 passed。持续课程的 Tag 必须是教程名，例如 `人人都是量化交易员`；用作者名当 Tag 不得报 passed。新建术语卡前必须有 `search --cards-only` 未命中同一记忆目标的术语闪卡；Wiki 页或空 cards 不算已有卡。用户未要求时出现 spec 或策略规格说明书卡不得报 passed。方法论文章只有软叙述、没有有名字的方法原子卡，不得报 passed。用户要求重做时复用该来源的旧卡不得报 passed。
       未审、旧稿回执、作者自证、覆盖缺失或失败不得报 passed；只复审改变的卡，保留未失效的已审部分。
     skills: []
 
   wiki_ready_condition:
     prompt: |
-      核对 Wiki 助手已完成，本次全部适用术语唯一解析到真实页面 ID，缺页/必要增量及页面间引用真实写入并回读。
-      wiki_receipt 与当前材料及最新 term_keys 一致，记录受影响范围和 mutated；歧义、部分成功或未知写入不得报 passed。
-      原文模式或没有适用术语允许带明确原因的空映射；不是对尚未完成分支的豁免。此 passed 不代表整库零卡片验收。
+      用户未明确要求 Wiki 时，核对 wiki_receipt 含 not_applicable 与原因「用户未要求 Wiki」，且本次没有 Wiki 写入。这种回执报 passed。
+      用户明确要求 Wiki 时，核对 Wiki 助手已完成，本次全部适用术语唯一解析到真实页面 ID，缺页/必要增量及页面间引用真实写入并回读。
+      要求 Wiki 时，wiki_receipt 与当前材料及最新 term_keys 一致，记录受影响范围和 mutated；歧义、部分成功或未知写入不得报 passed。
+      原文模式使用带明确原因的空映射。不适用回执不是对尚未完成分支的豁免。此 passed 不代表整库零卡片验收。
     skills: []
 
   terms_referenced_condition:
     prompt: |
-      按 preparation_receipt 的术语映射回读卡片和受影响 Wiki 正文，确认全部适用术语引用真实、唯一且可解析；复用 flashcard_receipt 的 reference_pairs 和不适用原因。
-      引用不能替代独立作答所需解释。原文模式或无适用术语记录明确原因；漏链、错链、字面伪链接、歧义或结果不明不得报 passed。
+      用户未要求 Wiki 时，核对卡片没有把作答依赖在 Wiki 链接上，并记录不适用原因；缺少 Wiki 引用仍报 passed。
+      用户要求 Wiki 时，按 preparation_receipt 的术语映射回读卡片和受影响 Wiki 正文，确认全部适用术语引用真实、唯一且可解析；复用 flashcard_receipt 的 reference_pairs 和不适用原因。
+      引用不能替代独立作答所需解释。原文模式记录明确原因；漏链、错链、字面伪链接、歧义或结果不明不得报 passed。
     skills: []
 
   record_condition:
@@ -107,6 +112,6 @@ prompts:
     prompt: |
       记录精确 ID、失败项和范围后回最早失败层；批内可修缺陷就地处理，仅重查受影响项。
       回流使下游 Output 失效，先从 progress Evidence 恢复并核验原对象及批次键。准备阶段不得重复写已完成卡片或 Wiki。
-      原位修复并保留 ID、日期、位置和复习记录；正文改变独立重审，术语变化补 Wiki，相关 Wiki 写入使完整零卡片证明失效。
+      原位修复并保留 ID、日期、位置和复习记录；正文改变独立重审。用户已要求 Wiki 且术语变化时才补 Wiki；未要求则不补。相关 Wiki 写入才使完整零卡片证明失效。
       不整批重建、不自动删除、未知写入不重放；同一问题连续三轮失败或结果不明则 blocked，说明已完成和剩余范围。
     skills: []

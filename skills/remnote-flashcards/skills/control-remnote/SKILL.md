@@ -10,7 +10,7 @@ description: "通过电脑界面观察、操作和核验 RemNote 桌面应用。
 ## 边界
 
 - 普通搜索、读取、创建、更新、移动和回读优先使用 `remnote-cli`；写入前运行 `remnote-cli status`。
-- 只有用户明确要求电脑操作，或 CLI 缺少对应原生能力时才操作界面。常见场景是检查侧边栏或用户明确要求查看练习队列。Card Cluster 的添加与状态验证使用 CLI 的 `object-add-powerup` / `object-has-powerup`，内置 code 为 `cc`，不进入界面流程。
+- 只有用户明确要求电脑操作，或 CLI 缺少对应原生能力时才操作界面。常见场景是检查侧边栏或用户明确要求查看练习队列。用户明确要求 Card Cluster 时，添加使用 CLI 的 `object-add-powerup`，内置 code 为 `cc`，不进入界面流程。写后是否带 `cc` 由 remnote-verify 用 `object-has-powerup` 回读：未要求时必须为 false。默认学习路径不调用 `object-add-powerup`。
 - 内容与业务规则由当前任务对应的 RemNote 技能决定；本技能只负责可靠地完成界面动作。
 - 不直接读取或修改 RemNote 应用数据目录。不使用 AppleScript、坐标脚本或其他桌面自动化替代 Computer Use，除非用户明确要求。
 

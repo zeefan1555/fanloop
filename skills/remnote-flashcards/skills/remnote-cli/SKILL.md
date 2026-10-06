@@ -43,7 +43,9 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 若任务接口不能保真表达原文的层级、格式或全部必要动作，先判断现有公开命令是否完整覆盖，
 不得压平正文、截短答案、改变模式或在写后才发现表达缺口。能力不足就记录精确缺口并阻塞，
 由独立维护任务补齐。普通单点操作使用 `create`、`insert-children`、`outline` 等现有命令；
-任务命令已完成的标签、集群、折叠、索引或日志不再逐对象重复写入。
+任务命令已完成的标签、折叠、索引或日志不再逐对象重复写入。`flashcards apply` 不得因为多张卡给主题添加 Card Cluster。只有计划字段 `cardCluster` 为 true 时才应添加内置 `cc`。主题 `title` 不是这个开关。`--help` 未列出 `cardCluster` 时，不要把这个未知字段写进计划；省略它也挡不住已发布命令。
+
+已发布的根因在 `zeefan1555/remnote-mcp-bridge` 分支 `feat/remnote-task-acceleration` 的 `a3ca8cd`，文件 `src/api/task-operations.ts` 的 `flashcards`。`newCards.length > 1` 时它调用 `addPowerup('cc')`，并把 verify scope 的 `cc` 期望写成 `true`。`createNote` 的占位标题是 `Task card cluster`。2026-10-06 的实跑与此相符：主题 `2026-10-06 book 前言`（Rem `C4lWZBYMbeUIoL9Zd`）的计划没有 `cardCluster`，`--help` 也没有该字段，写后 BuiltInPowerup `cc` 仍为 true。PE 主题 `hhA0zbVbEpZbrLoCu` 为 false。本地未推送的修复是 bridge `22a5b5e`：仅 `plan.cardCluster === true` 才 `addPowerup('cc')`，期望值为 `p.cardCluster === true`，占位标题改为 `Task theme`。配套帮助在 `zeefan1555/remnote-mcp-server` 的本地提交 `87542a3`，origin 的 `e846b1e` 帮助仍不提到 `cardCluster`。向这两个仓库推送曾返回 HTTP 403，cursor[bot] 没有写权限。在那两个提交进入所运行的 CLI 之前，每次多卡 `flashcards apply` 之后都要跑 `object-has-powerup ["cc"]`。用户未要求集群时结果必须为 false；为 true 则本批失败。用户明确要求集群、且帮助已经列出字段时，才在计划里写 `cardCluster: true`；帮助还没有该字段时，才按 card-clusters.md 调用 `object-add-powerup`。
 
 一级命令未覆盖时先查 `sdk capabilities` 和具体方法帮助，只调用公开、受支持的 SDK 方法。
 不调用私有路径、任意 JavaScript 或持久对象句柄。原生事务是否可用以运行时及仓库契约为准；
@@ -53,7 +55,7 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 
 任务回执的 `ids` 将语义键映射到真实 Rem ID；`facts` 包含正文哈希、原生卡片 ID 和复习哈希。
 不要猜创建顺序，不重新搜索刚创建的对象。更新答案使用精确答案 ID 和 `expectedTextHash`，
-保留卡片 ID、父级和复习记录。原生引用使用计划的 `{remId: ID}` 或 Markdown `[[id:ID]]`。
+保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句用 `getOrCreateAliasWithText` 或 `update --add-aliases` 加在这张标题卡上。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。它的 `question` 是纯字符串，不会解析括号；正面用 Markdown 导入或 `update --title` 写入 `[[id:<标题卡 Rem ID>]]`。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
 
 - 写后以真实回执和精确 ID 回读确认；最终正文仍须语义评审，哈希不能替代它。
 - Wiki 批次 verificationScope=affected_objects 的 verified 只覆盖本批受影响页面子树、aliases、索引日志及引用，不代表全 Wiki 验收。答案链接专用计划仅查答案、目标和必要权限前提，不触发整库扫描。

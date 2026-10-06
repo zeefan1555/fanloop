@@ -1,6 +1,6 @@
 ---
 name: remnote-wiki
-description: 构建、查询、摄取和审计 RemNote 中持续演进的互联 Wiki。用于创建或维护 Wiki、整合来源、基于 Wiki 回答问题或检查健康度；闪卡通过此技能解析并引用可复用概念。
+description: 构建、查询、摄取和审计 RemNote 中持续演进的互联 Wiki。用于用户明确要求创建或维护 Wiki、整合来源、基于 Wiki 回答问题或检查健康度。普通闪卡批次默认不调用本技能写页面。
 ---
 
 # RemNote Wiki
@@ -13,7 +13,9 @@ description: 构建、查询、摄取和审计 RemNote 中持续演进的互联 
 
 ## 当前 Workflow 分工
 
-本 Skill 由 prepare_cards_and_wiki 的 Wiki 助手执行，仅写 Wiki，不改卡片。复用共享来源及术语清单，一次集中查重、解析 aliases，返回真实页面 ID、受影响对象、批次回执及 mutated。主 Agent 同时起草并交独立助手审卡，两个分支完成后才在 persist_and_verify 注入引用并写卡。CLI 命令仍串行，不争用连接。原文模式和无适用术语记录不适用原因；失败或未知写入不得宣告 wiki_ready。
+轻量制卡默认不启用本 Skill 的写入。用户没有明确要求 Wiki 时，不查页、不建页、不改索引或日志，也不把术语交给持久化步骤注入。回执写 `not_applicable`，原因「用户未要求 Wiki」，映射和 mutated 为空。这个回执可以让 `wiki_ready` 记为 passed。可复用术语出现在卡片里，本身不是要求 Wiki。
+
+用户明确要求 Wiki 时，本 Skill 由 prepare_cards_and_wiki 的 Wiki 助手执行，仅写 Wiki，不改卡片。复用共享来源及术语清单，一次集中查重、解析 aliases，返回真实页面 ID、受影响对象、批次回执及 mutated。主 Agent 同时起草并交独立助手审卡，两个分支完成后才在 persist_and_verify 注入引用并写卡。CLI 命令仍串行，不争用连接。原文模式记录不适用原因；失败或未知写入不得宣告 wiki_ready。
 
 ## 何时启用
 
@@ -23,7 +25,9 @@ description: 构建、查询、摄取和审计 RemNote 中持续演进的互联 
 - 摄取、添加或处理一个来源；
 - 在已有 Wiki 的领域内提问；
 - lint、审计或健康检查 Wiki；
-- 在研究、笔记或制卡场景中提到 Wiki 或可复用概念。
+- 明确要求这次制卡写入或更新 Wiki。
+
+普通金融或概念学习、卡片里出现可复用术语、以及 2–7 张一组的批次，都不启用写入。
 
 ## Wiki 位置与结构
 
