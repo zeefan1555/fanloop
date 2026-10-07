@@ -7,7 +7,7 @@ description: 检查 RemNote 闪卡内容质量，以及闪卡和 Wiki 创建、�
 
 ## 草稿立即审
 
-prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查。用户未要求 Wiki 时没有 Wiki 分支，不要等它。
+prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查。默认没有 Wiki 分支，不要等它，也不要为了 Route 写 Wiki 不适用回执。
 共用来源、模式和学习目标。普通卡按[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)审查。回执对每张普通卡填写 kid_clarity 五问，对每张组合卡逐字列出 star_headings。
 原文模式逐段比对指定原文，不改写；全部重复时仍检查复用决定与实际答案补充。
 回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys、kid_clarity、star_headings，以及每张 PASS/FAIL 和原因。
@@ -42,7 +42,7 @@ Wiki 内容，需要正文的每个 ID 显式列入 `remIds`。用 `verify scope
 
 ## Wiki
 
-用户未要求 Wiki，且本批次没有 Wiki 写入时，跳过下面四项，在回执写明不适用。不要为了通过这些检查去创建页面。用户要求了 Wiki，或本批次确实改过 Wiki 时，才执行：
+默认批次没有 Wiki 写入时，跳过下面四项，回执不记录 Wiki 检查。不要为了通过检查去创建页面，也不要把跳过写成 Route 上的通过回执。用户要求了 Wiki，或本批次确实改过 Wiki 时，才执行：
 
 1. 回读本批次页面、aliases、原生引用、相关 `index.md` 条目与 `log.md` 记录。页面在正确 WIKI 分区、保持普通 `text`，无 HOME 或 `wiki-*` 分类 Tag；索引中每个受影响页面恰好出现一次，目标引用可解析。根和目录为 Folder，元文档为 Document，非叶节点按 `remnote-wiki` 折叠。
 2. 存在 Wiki 修改时，在最后一次相关修改后调用现有 `verify scope`，显式覆盖 WIKI 根及全部后代，以 `powerup: u`、`zeroCards` 和残留卡片结构检查证明。Wiki 批次的 `verificationScope: affected_objects` 不满足此门禁；只检查根、抽样或只看到禁用开关也不算。没有后续相关变更时完整扫描一次即可，后续 Wiki 修改使证明失效并重查；重连/跨会话按 remnote-cli 新鲜度规则处理。

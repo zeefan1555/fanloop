@@ -16,7 +16,9 @@ original-excerpt modes retain their content rules; independent goals still produ
 0..N cards. Use existing bounded context/task/verification APIs and private recovery
 journals. Plan limits do not authorize truncating content, changing modes or
 ignoring unknown outcomes. Exact native IDs, review history, daily/HOME placement,
-source integrity and full affected Wiki zero-card proof remain mandatory.
+and source integrity remain mandatory. Full Wiki zero-card proof is mandatory
+only when that batch mutates Wiki; ADR-0129 removes it from the ordinary
+term-card path.
 
 Complete fresh task evidence may satisfy a structural check without repeating
 individual SDK calls. Any later affected mutation, stale/partial read, reconnect

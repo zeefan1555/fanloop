@@ -10,7 +10,8 @@ amends: ADR-0117, ADR-0119, ADR-0126-remnote-bounded-workflows-and-maintenance, 
 The user finalized the ordinary RemNote learning path. This amends the card
 shape, default Card Cluster rule, and default Wiki scope in ADR-0117,
 ADR-0126, and ADR-0127. It does not change the four step IDs, their order,
-their executors, or the route conditions that already gate `wiki_ready`.
+and their executors. The same-day amendment below replaces the `wiki_ready`
+route gate.
 
 Tag each learning batch with the most specific HOME Concept Tag under a domain
 grouping, for example `HOME / 03-RESOURCES / 金融知识 / 估值`. Do not stop at a
@@ -98,18 +99,32 @@ Before `--apply`, preparation stores `source_h1`, `theme_title`, and a
 `YYYY-MM-DD <source type> <source_h1>` with the literal H1; a mismatch
 blocks the write. The reviewer receipt lists five yes/no kid-clarity
 answers per ordinary card and the four STAR headings verbatim per combo.
-Existing conditions `draft_quality_passed`, `preparation_recorded`, and
-`result_verified` carry these gates. Step ids, routes, and skill bindings
-stay as they are. The 2026-10-07 amendment does not rename the remnote-direct
+`draft_quality_passed` still checks that reviewer receipt. The route gate for
+the checklist is `learning_preflight_passed`, restated from this contract.
+The 2026-10-07 card-shape amendment does not rename the remnote-direct
 scaffold placeholder.
 
-Skip WIKI on this lightweight path unless the user explicitly asks for wiki.
+Skip WIKI on the ordinary path unless the user explicitly asks for wiki.
 An ordinary finance or concept batch does not create pages or inject wiki
-references. `wiki_ready` still gates the existing route. When wiki was not
-requested, that condition passes from an explicit not-applicable receipt and
-no wiki write. When the user does ask, ADR-0127's wiki worker, real page IDs,
-and the zero-card proof still apply to that mutation. This replaces the
-default that every learning batch prepares wiki pages for its terms.
+references. Term cards and title-card rem-refs are the default, not a wiki
+not-applicable receipt. When the user does ask, the wiki skill may run as an
+optional side path. Its page IDs do not satisfy `terms_ready` and are not the
+combo rem-ref target. A wiki mutation still needs ADR-0127's zero-card proof.
+This replaces the default that every learning batch prepares wiki pages.
+
+Amended later on 2026-10-07. The sentence that kept `wiki_ready` on the route,
+and let it pass from a not-applicable receipt, is withdrawn. Prepare advances
+only when `preparation_recorded`, `draft_quality_passed`, `terms_ready`, and
+`learning_preflight_passed` are all present. `terms_ready` requires one
+`search --cards-only` row per term, reuse by title Rem id or create on a miss,
+and combo refs that point at those title cards. Persist writes new atomics
+first, reads the title Rem ids, then injects `{"remId":"<titleCardRemId>"}`.
+`terms_referenced` is that readback. `remnote-wiki` is optional on prepare and
+is not executed on the default path. The repair value `wiki_links` is now
+`term_refs`. The four step IDs stay: `resolve_home_tag`,
+`prepare_cards_and_wiki`, `persist_and_verify`, `retrospect_run`. Display
+names describe the term path. Original import and excerpt may pass
+`terms_ready` only with `skip_original` and zero term creates.
 
 Original import and original excerpt stay verbatim. Incremental dedupe, daily
 note placement, multiline `===` cards, and Concept versus Folder are unchanged.

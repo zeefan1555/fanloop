@@ -16,9 +16,12 @@ conditions:
   draft_quality_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: draft_quality_condition}
     output: {key: draft_quality, type: enum_value, values: [passed]}
-  wiki_ready:
-    prompt_ref: {file: prompt.yaml, prompt_id: wiki_ready_condition}
-    output: {key: wiki_readiness, type: enum_value, values: [passed]}
+  terms_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: terms_ready_condition}
+    output: {key: term_readiness, type: enum_value, values: [passed]}
+  learning_preflight_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: learning_preflight_condition}
+    output: {key: learning_preflight, type: enum_value, values: [passed]}
   retrospective_recorded:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
     output: {key: retrospective, type: object}
@@ -38,9 +41,9 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
     output: {key: repair_scope, type: enum_value, values: [flashcards]}
     exclusive_group: step_outcome
-  wiki_links_need_fix:
+  term_refs_need_fix:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
-    output: {key: repair_scope, type: enum_value, values: [wiki_links]}
+    output: {key: repair_scope, type: enum_value, values: [term_refs]}
     exclusive_group: step_outcome
   verification_retry:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}

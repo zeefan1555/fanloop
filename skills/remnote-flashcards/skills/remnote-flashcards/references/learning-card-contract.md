@@ -2,7 +2,7 @@
 
 普通学习卡（原子术语卡、组合卡）的规则只维护在本文。制卡 Skill、审卡、写入和复盘按本文执行，不另写一套背面、标题、主题、Tag 或 Card Cluster 规则。
 
-`prompt.yaml` 的 `draft_quality_condition` 与 `persist_and_verify_flow` 复述下面的失败条件，用来挡住 Route。改清单时这三处一起改。Step id、Route 和 Skill 绑定不变。
+Route 用 `terms_ready` 和 `learning_preflight_passed` 挡住普通批次。`wiki_ready` 不在 Route 上，Wiki 不适用回执不能前进。`draft_quality_condition` 核对审卡回执；失败条件的通过与否以本文和 `learning_preflight_condition` 为准。改清单时本文与 `learning_preflight_condition` 一起改。四个 Step id 保持不变。`remnote-wiki` 在准备步骤是可选绑定，默认不执行。
 
 原文导入和原文摘录不套本文的费曼、STAR、儿童口吻和箭头禁令；它们仍逐段保真。本文也不约束普通文章。
 
@@ -88,6 +88,14 @@
 写后对每个多卡主题运行 `object-has-powerup ["cc"]`，结果写入 `flashcards_written.cluster_powerup`。用户没要求时期望 `false`；用户要求且本批满足标题加至少 2 张新卡时期望 `true`。与期望不符，不得报 `result_verified=passed`。意外的 `true` 是 remnote-direct 回归。
 
 细节命令见 [卡片集群](card-clusters.md)。
+
+## Route 门禁
+
+准备步骤进入写入，必须同时提交 `preparation_recorded`、`draft_quality_passed`、`terms_ready=passed`、`learning_preflight_passed=passed`。写入步骤进入复盘，必须同时提交 `flashcards_written`、`terms_referenced=passed`、`result_verified=passed`、`learning_preflight_passed=passed`。写后的 `learning_preflight_passed` 用回读重新判定，不能复述准备阶段的 pass。
+
+`terms_ready` 看 `term_pipeline`：每个术语有 `search --cards-only`，`reuse` 带标题卡 Rem ID，`create` 带 miss 和 `term_key`。组合卡 `rem_refs` 只含这些标题卡 ID 或本批 `term_key`。空管道、Wiki 不适用、别名 Rem 和 Wiki 页面 ID 都不得 passed。原文导入或摘录只有 `skip_original` 且零术语创建、零 Wiki 调用时可以通过。
+
+`terms_referenced` 在写入后回读这些标题卡 ID。指向别名 Rem 不得 passed，回流 `term_refs`。
 
 ## 写入前 preflight
 

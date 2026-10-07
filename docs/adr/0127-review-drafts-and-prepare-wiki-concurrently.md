@@ -6,20 +6,25 @@ amends: ADR-0117, ADR-0126-remnote-bounded-workflows-and-maintenance
 
 # Review Drafts And Prepare Wiki Concurrently
 
+ADR-0129 replaces the default Wiki worker and the `wiki_ready` join for ordinary
+learning batches. Term search or create, then title-card rem-refs, is the path
+that leaves prepare. Concurrent draft review, the four step IDs, batch limits,
+and the retrospective rules below remain except where ADR-0129 states otherwise.
+
 The approved speed plan replaces the ordering and review policy of ADR-0117 and
 ADR-0126. Keep one Stage, one Job and four Agent steps:
 `resolve_home_tag -> prepare_cards_and_wiki -> persist_and_verify -> retrospect_run`.
 Remove the old write-first routes; no compatibility branch or engine change.
 
 Reuse source material and resolve learning goals, classification, duplicates and
-terms once. The author drafts while a Wiki worker resolves aliases and reuses or
-creates pages. A separate read-only reviewer checks each draft batch immediately.
+terms once. A separate read-only reviewer checks each draft batch immediately.
 Workers share source references and temporary material, not persistent knowledge
-copies. The Wiki worker writes only Wiki; the author writes cards only after both
-branches finish. CLI connections remain serialized. Explicit passed values for
-`draft_quality_passed` and `wiki_ready`, plus evidence bound to the current material
-and draft, gate the join. YAML enforces the conjunction; Agents must validate the
-evidence, since the existing engine does not certify its semantic truth.
+copies. CLI connections remain serialized. ADR-0129 replaces the Wiki worker and
+the `wiki_ready` join: ordinary batches gate on `terms_ready` and
+`learning_preflight_passed` instead. YAML still enforces the conjunction; Agents
+must validate the evidence, since the existing engine does not certify its
+semantic truth. The wiki worker, real page IDs, and zero-card proof below apply
+only when the user explicitly asks for a wiki mutation.
 
 New terminology pages contain a clear definition, necessary example, sources and
 relevant references. Do not require background, debates or open questions, or
@@ -27,7 +32,8 @@ delete existing content. Default scope is terms needed for the learning goals;
 an explicit full-material terminology request includes all applicable terms.
 Ordinary words and temporary values do not become pages.
 
-Inject real Wiki IDs before read-only preview and card persistence. Preserve
+On an explicit wiki request, inject real Wiki IDs before read-only preview and
+card persistence. Ordinary batches inject title-card Rem IDs instead. Preserve
 ordinary STAR and original-text modes, 0..N goals, native IDs/history, placement,
 7-new-card/10-page/100-KiB limits, unknown-write reconciliation and three-round
 failure stop. Batch failures repair only failed objects, never recreate the batch.

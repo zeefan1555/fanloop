@@ -54,9 +54,9 @@ description: 创建、修改或评审 RemNote 闪卡。普通卡分成原子术�
 
 普通主题 Tag 可以容纳多篇笔记，不按每篇笔记新建分类。轻量学习路径默认跳过 WIKI：普通金融或概念批次不查询、不创建、不引用 Wiki 页面，也不为了术语建页。术语的最小定义写在卡片自己的背面。
 
-只有用户明确要求 Wiki 时，才由 Wiki 助手按同 Workflow 的 [remnote-wiki](../remnote-wiki/SKILL.md) 查询或创建页面，并在写卡前注入真实页面 ID。引用不能替代本卡作答所需的最小定义、条件与结论。普通词和一次性细节即使走 Wiki 路径也不建页。原文模式始终不补 Wiki 引用。
+默认路径不查、不建、不引用 Wiki。术语先 `search --cards-only`：够用则复用标题卡 Rem ID，不够才新建短标题原子卡，长问句只做这张卡的别名。组合卡只用 `{"remId":"<标题卡 Rem ID>"}` 引用标题卡，界面显示短名，例如 `[[PE]]`。引用别名 Rem 会打开空页，不得写入。
 
-用户没有要求 Wiki 时，仍要留下 `wiki_ready` 回执：`not_applicable`，原因写明「用户未要求 Wiki」，映射和写入都为空，不调用空计划。这个回执记为 passed，不是未完成。
+只有用户本批明确要求维护 Wiki 时，才读取 [remnote-wiki](../remnote-wiki/SKILL.md)。该工作可选，不满足 `terms_ready`，也不代替标题卡引用。原文模式不建术语卡，也不补 Wiki。
 
 ## 增量学习
 
@@ -156,10 +156,10 @@ Card Cluster 只按学习卡契约：用户没要求时计划省略 `cardCluster
 
 1. 选普通或原文模式；只读评审和普通笔记/文章不属于本 Workflow 入口。写前运行 `remnote-cli status`，核对连接、兼容版本和写入权限。
 2. 按增量学习查重。创建术语卡前先 `search --cards-only`。同一记忆目标的术语闪卡够用就复用标题卡 Rem ID；Wiki 页不算。用户要求重做时删除或替换该来源的旧卡，不复用。否则重复跳过、实质补充原位更新、新记忆目标才创建。保留实际 cardId、位置和复习记录。允许 0 张新卡，仍记录复用 ID 并前进。
-3. 普通卡先分成原子术语卡或组合卡，完成费曼与 SuperMemo 自检。每批草稿完成立即交独立只读助手按 remnote-verify 审卡。用户未要求 Wiki 时不派 Wiki 助手。用户明确要求 Wiki 时，Wiki 助手才解析术语与准备页面，并且不等待它完成才审卡。审卡回执包含来源及草稿摘要、覆盖卡号、每张普通卡的 kid_clarity 五问、每张组合卡的逐字 star_headings、失败项；只修失败卡再复审。
-4. 确认当前材料的 draft_quality_passed、wiki_ready 均 passed，且 `preflight` 与当前 `draft_digest` 一致、全部门禁为 pass，`source_h1` 与 `theme_title` 一致。未要求 Wiki 时，wiki_ready 的 passed 来自「用户未要求 Wiki」的不适用回执，不注入 Wiki ID。要求 Wiki 时，助手结束且证据覆盖最新草稿及术语后，才注入真实 Wiki ID。用 SDK `date get-todays-doc` 获取本次新卡日记；恢复使用原回执日期。按[remnote-cli](../remnote-cli/SKILL.md)组成有界 `flashcards apply` 计划，先预览；预览后仍按契约重扫箭头和主题，再显式 `--apply`。单卡、同一主题下的多卡、原答案补充和复用使用各自真实 ID；稳定键不冲突。没有实际对象时不调用空计划。
-5. 普通卡按契约进入计划。任务入口负责最细 Concept Tag，以及可选的普通 `text` 主题。`cardCluster` 只在契约允许时为 true。原文模式先核对计划能表达完整正文、顺序和层级；超过限制不能截短或改写，应选完整支持该结构的现有入口，否则报告能力缺口。写后使用回执 ID 集中核对父级、类型、最终答案和原生卡片集合；部分成功按 remnote-cli 的未知写入规则保存并核对，不整批重建。
-6. persist_and_verify 调用 [remnote-verify](../remnote-verify/SKILL.md)，将真实正文与已审草稿逐项对应，改变正文的卡独立重审；未改变且证据新鲜的审查直接复用。内容、结构和适用引用全部通过才报 flashcards_written、terms_referenced 与 result_verified，随后轻量复盘交付，不在复盘新增知识写入。未要求 Wiki 时，缺少 Wiki 引用不算失败。
+3. 普通卡先搜术语，再起草原子卡，再起草引用标题卡的组合卡。完成费曼与 SuperMemo 自检后，每批草稿立即交独立只读助手按 remnote-verify 审卡。默认不派 Wiki 助手。审卡回执包含来源及草稿摘要、覆盖卡号、每张普通卡的 kid_clarity 五问、每张组合卡的逐字 star_headings、失败项；只修失败卡再复审。
+4. 离开准备步骤必须同时有 draft_quality_passed、terms_ready 和 learning_preflight_passed。terms_ready 来自 term_pipeline：每个术语都有 `--cards-only` 搜索，复用带标题卡 Rem ID，新建带 miss。学习预检的全部门禁为 pass，且与当前 draft_digest 一致。不得用 Wiki 不适用回执前进。用 SDK `date get-todays-doc` 获取本次新卡日记；恢复使用原回执日期。按[remnote-cli](../remnote-cli/SKILL.md)先写入新原子卡并回读标题 Rem ID，把别名加到标题卡上，再把 `{"remId":"<标题卡 Rem ID>"}` 注入组合卡，先预览再显式 `--apply`。稳定键不冲突。没有实际对象时不调用空计划。
+5. 普通卡按契约进入计划。任务入口负责最细 Concept Tag，以及可选的普通 `text` 主题。`cardCluster` 只在契约允许时为 true。原文模式先核对计划能表达完整正文、顺序和层级；超过限制不能截短或改写，应选完整支持该结构的现有入口，否则报告能力缺口。写后使用回执 ID 集中核对父级、类型、最终答案、标题卡引用和原生卡片集合；部分成功按 remnote-cli 的未知写入规则保存并核对，不整批重建。
+6. persist_and_verify 调用 [remnote-verify](../remnote-verify/SKILL.md)，将真实正文与已审草稿逐项对应，改变正文的卡独立重审；未改变且证据新鲜的审查直接复用。写后重新判定 learning_preflight_passed。内容、结构、标题卡引用全部通过才报 flashcards_written、terms_referenced 与 result_verified，随后轻量复盘交付，不在复盘新增知识写入。缺少 Wiki 引用不算失败。
 
 ## 修改与核验
 
@@ -179,7 +179,7 @@ Card Cluster 只按学习卡契约：用户没要求时计划省略 `cardCluster
 - 原文摘录闪卡的正面等于原文标题，背面只包含指定原文摘录；摘录内部顺序、可见内容和结构保持一致，元数据已移除，正文没有意外生成子卡片。
 - 普通文章符合[文章格式](references/article-format.md)中的完成核验条件。
 - 本次新增的 HOME 节点按 `remnote-structure` 区分 Folder 与 Concept；闪卡实体位于每日笔记并通过 Tag 归类，不创建查询 Portal。
-- 用户未要求 Wiki 时，本次没有新建或更新 Wiki 页面，卡片也不依赖 Wiki 链接才能作答。用户要求 Wiki 时，页面直接属于 `entities`、`concepts`、`comparisons` 或 `queries`，Title 使用干净规范名；`index.md` 和 `log.md` 已同步更新；引用指向真实 Rem ID，aliases 归一到同一页面，无同义副本或 `wiki-*` Tag。
+- 组合卡引用的是标题卡 Rem ID，不是别名 Rem。默认批次没有新建或更新 Wiki 页面。用户明确要求 Wiki 时，页面才按 `remnote-wiki` 直接属于对应分区；那次写入不代替 terms_ready。
 - 普通学习卡满足学习卡契约的失败条件。背面形状、短标题、别名、标题卡引用、STAR 原文、箭头、口诀和儿童口吻不在本清单再写一遍。
 - 卡片保持确认后的排列与答案内容，不能只检查工具返回成功或数量。
 - 每批草稿已经独立审查，最终回读正文逐项对应已审草稿；正文改变及失败卡已独立复审，未变部分复用新鲜证据。

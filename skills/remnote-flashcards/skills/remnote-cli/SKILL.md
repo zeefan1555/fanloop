@@ -27,9 +27,13 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
   祖先、标签和子树。需要正文的 ID 放入 `remIds`；其他选择器只返回结构元数据，不能当正文。
 - 单点 `read` 从浅层开始，按返回的截断、游标和缺失证据补读；不要把整个 KB 正文装入上下文。
 - 卡片复习证据来自搜索结果的原生 `cards` 或 `review-stats`，不可用就标为 unavailable。
+- 创建术语卡之前先 `search "<query>" --cards-only`。命中且够用则复用标题卡 Rem ID。
 - `flashcards apply --plan <FILE|-> --idempotency-key <KEY>` 处理一组新卡、原答案补充和复用卡。
-- `wiki apply --plan <FILE|-> --idempotency-key <KEY>` 处理同一分区的页面、aliases、
-  索引、批次日志和答案原生引用。不同分区或超出计划预算时按依赖拆成有序批次。
+  普通学习批次先写入新原子卡并回读标题 Rem ID，再在组合卡答案使用 `{"remId":"<标题卡 Rem ID>"}`。
+  别名 Rem 不能当引用目标。`cardCluster: true` 只在用户明确要求且学习卡契约允许时写入。
+- 默认学习路径不调用 `wiki apply`。只有用户本批明确要求 Wiki 时，才用
+  `wiki apply --plan <FILE|-> --idempotency-key <KEY>` 处理同一分区的页面、aliases、
+  索引和批次日志。不同分区或超出计划预算时按依赖拆成有序批次。
 - `verify scope --expect <FILE|->` 用新鲜证据集中检查显式结构预期；完整范围或任何预期未通过均失败。
 
 上述三种任务/验证命令支持 `--summary`，日常编排优先使用；保留状态、完整性、真实 ID、现有哈希、范围、计数及失败明细，失败退出码不变。不加该选项可取完整输出，摘要不能代替需要正文的 context 回读。
@@ -75,5 +79,7 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 需要改代码、安装或权限时保存当前任务位置，进入单独的 RemNote Direct 维护任务；
 维护完成后先核对原 ID 再恢复，不在日常制卡中夹带发布、重放压力测试或原生事务探测。
 
-HOME/类型由 `remnote-structure` 管理；制卡、Wiki 和最终校验分别由同包对应 Skill 管理。
+HOME/类型由 `remnote-structure` 管理；制卡和最终校验由同包对应 Skill 管理。
+Wiki 只在用户明确要求时由 `remnote-wiki` 管理。日常制卡走 Fanloop 的 remnote-flashcards，
+使用本机 Direct CLI，不改走 MCP，也不在 Workflow 外手写创建。
 本 Skill 只负责调用边界、任务计划及回执，不重复定义内容模板。

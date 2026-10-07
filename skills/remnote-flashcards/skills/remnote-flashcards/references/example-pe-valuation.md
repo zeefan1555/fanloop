@@ -10,7 +10,7 @@
 - 这批不是单篇文章，`source_h1` 为 `n/a`。主题用 `resource` 加概念名。单篇文章或单章见 [前言文章干跑示例](example-book-preface.md)。
 - 只给主题打 `估值`。下面五张子卡不再打这个 Tag。
 - 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `object-has-powerup ["cc"]` 必须为 false，并记入 `cluster_powerup`。若为 true，记为 remnote-direct 回归。
-- 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。
+- 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。准备步骤的前进条件是 `terms_ready` 与 `learning_preflight_passed`，不是 Wiki 回执。
 - 顺序、短标题、别名、STAR 原文、箭头和儿童口吻都按契约。本批 5 张，落在偏好的 3–7 张里。原子卡标题是 `PE`、`EPS`、`PB`，不是带 `？` 或「是什么」的长句。
 
 ## 干跑 preflight
@@ -54,7 +54,17 @@ star_headings:
       - R — Result：结果
 ```
 
-别名在标题卡创建之后再加上，组合卡只引用标题卡。下面草稿里的 `[[PE]]` 是标题为 `PE` 的显示结果。草稿里还没有真实 Rem ID。
+别名在标题卡创建之后再加上，组合卡只引用标题卡。下面草稿里的 `[[PE]]` 是标题为 `PE` 的显示结果。草稿里还没有真实 Rem ID。若搜索命中已有的 PE 标题卡，`outcome` 改为 `reuse` 并填那个标题 Rem ID，不新建。
+
+```yaml
+term_pipeline:
+  - {query: PE, cards_only: true, outcome: create, term_key: pe, title_rem_id: pending}
+  - {query: EPS, cards_only: true, outcome: create, term_key: eps, title_rem_id: pending}
+  - {query: PB, cards_only: true, outcome: create, term_key: pb, title_rem_id: pending}
+combo_rem_refs:
+  - {card_key: pe-gift, refs: [pe, eps]}
+  - {card_key: pe-or-pb, refs: [pe, pb]}
+```
 
 - `PE` 的别名：`市盈率（PE）是什么？`
 - `EPS` 的别名：`每股收益（EPS）是什么？`

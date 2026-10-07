@@ -9,7 +9,7 @@
 - 这一页的 H1 是「前言」。`source_h1` 就是 `前言`。`theme_title` 必须是 `2026-10-06 book 前言`。写成「术语与方法」或「量化地图」时 `theme_literal` 失败，不得写入。
 - 实体放在当日每日笔记。多张卡放在一个普通 `text` 主题 Rem 下。只给主题打教程 Tag。子卡不再打。
 - 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `cluster_powerup` 必须为 false。若为 true，记为 remnote-direct 回归。
-- 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。Wiki 概念页也不能代替术语闪卡。
+- 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。Wiki 概念页也不能代替术语闪卡。离开准备步骤靠 `terms_ready` 和 `learning_preflight_passed`，不靠 Wiki 不适用回执。
 - 创建 `回测`、`四个阶段`、`做看疑` 之前，各自运行 `remnote-cli search "<短名>" --cards-only --include-review-stats --view full`。本草稿假定三次都没有命中同一记忆目标的术语闪卡，所以新建。若命中且够用，引用那张标题卡的 Rem ID，不新建。
 - 用户没有要求重做，也没有要求 `spec` 或「策略规格说明书」。
 - 这是方法论文。原子卡里既有术语 `回测`，也有有名字的方法 `四个阶段` 和 `做看疑`。本批 4 张。顺序、短标题、STAR 原文、箭头和儿童口吻按契约。
@@ -40,6 +40,17 @@ preflight:
 ```
 
 `2026-10-06 book 术语与方法` 配 `source_h1: 前言` 是失败，不能 `--apply`。审卡回执的五问和四条 STAR 标题与市盈率示例同一形状。
+
+```yaml
+term_pipeline:
+  - {query: 回测, cards_only: true, outcome: create, term_key: backtest, title_rem_id: pending}
+  - {query: 四个阶段, cards_only: true, outcome: create, term_key: four-stages, title_rem_id: pending}
+  - {query: 做看疑, cards_only: true, outcome: create, term_key: do-look-doubt, title_rem_id: pending}
+combo_rem_refs:
+  - {card_key: backtest-doubt, refs: [backtest, do-look-doubt, four-stages]}
+```
+
+`pending` 表示写入时先创建原子卡，回读标题 Rem ID，再把 `{"remId":"<标题卡 Rem ID>"}` 注入组合卡。这些 ID 不是 Wiki 页面，也不是别名 Rem。
 
 别名在标题卡创建之后再加上。`回测是什么？` 这种长句不是标题。组合卡只引用标题卡。下面草稿里的 `[[回测]]` 是显示结果，还没有真实 Rem ID。
 
