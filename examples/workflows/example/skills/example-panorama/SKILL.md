@@ -10,7 +10,8 @@ description: 在 example Workflow 的 panorama_presented Condition 要求时，�
 保持 blocked。
 
 先读取最新 `flow status`。每次进入新 Step 只展示一次，并严格按 Render、Deliver、Verify、Report 执行。
-只有展示成功后才能返回 `panorama_presented`；快照存在不等于已展示。
+只有展示成功后才能返回 `panorama_presented`；快照存在不等于已展示。没有用户可见消息通道的 headless
+worker 报告 blocked。不得把写入 artifacts/panorama-* 或任何仅保存文件当作 panorama_presented。
 
 ## botmux
 
@@ -23,12 +24,16 @@ botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUN
 
 ## local_agent
 
-运行一次非 dry-run Markdown render，把响应中的完整 `data.content` 原样作为进入 Step 后第一条用户可见
-消息发送，不加摘要或前缀：
+无用户可见消息通道的 headless worker 在 `panorama_presented` 上 blocked。report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
+
+运行一次非 dry-run Markdown render，把该次响应的完整 `data.content` 原样作为进入 Step 后第一条用户可见
+消息发送，不加摘要或前缀。`value` 使用该次 render 的 `data.snapshot_path`：
 
 ```bash
 fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown
 ```
+
+下列情况报告 blocked，不提交该 Condition：不得把 Markdown 写入 artifacts/panorama-* 或任何文件后声称已展示；进度、evidence 和 Result 不得把 content saved artifacts/panorama- 或 saved to artifacts 当作投递证明。
 
 ## aime
 

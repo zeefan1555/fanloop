@@ -84,8 +84,14 @@
 1. 每个 Workflow 必须在 `condition.yaml` 声明全景图 Condition，输出 `panorama_snapshot_path:path`，并通过 `prompt.yaml` 绑定同一 Workflow live 根中的必需展示 Skill。
 2. 全景图 Condition 必须接入实际 Route；需要展示的 Step，其正常、终止及回流 Route 的每个 `when.any_of` AND 组都必须包含该 Condition，不能只声明而允许路由绕过。
 3. 每次进入这些 Step（包括回流重入）先展示本次 renderer 的完整内容；宿主展示成功后才上报本次精确快照路径。失败或结果不明时报告 blocked；同一次 Step 内复用已展示回执，进入新 Step 后重新展示。
+4. `local_agent` 以及任何没有用户可见消息通道的 headless worker，不得把写入 `artifacts/panorama-*` 或任何仅保存文件当作 `panorama_presented`。投递只此一条：非 dry-run `fanloop card render --view panorama --format markdown`，把该次 `data.content` 原样作为该 Step 第一条用户可见消息，再上报该次 `data.snapshot_path`。进度或 evidence 中的 `content saved artifacts/panorama-` 与 `saved to artifacts` 不是投递证明。
 
-完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。必要时用已有 CLI 检查回执缺失的拒绝行为，不为此触发代码交付门禁。
+| 规则 | 什么强制执行 |
+| --- | --- |
+| 进入 Step 先展示完整 renderer 内容，成功后才上报 snapshot path | 各 Workflow 的 `workflow-panorama` / `fanloop-dev-panorama` Skill。Runtime 只校验回执类型与路由，不证明宿主已展示（ADR-0119）。 |
+| 无用户可见通道时 blocked；不得把写入 `artifacts/panorama-*` 当成已展示 | Skill 必须包含 `report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`。`scripts/validate-configuration.py --check-panorama-skills` 拒绝缺少该句或把写文件当成投递的 Skill，并指出路径和应补的句子。`--reject-file-save-evidence` 拒绝 `content saved artifacts/panorama-` 这类证据。 |
+
+完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。全景图 Skill 通过 `--check-panorama-skills`。必要时用已有 CLI 检查回执缺失的拒绝行为。不把 CLI 说成能证明用户看见卡片。
 
 ## Thrift IDL 契约主 Agent 审核
 

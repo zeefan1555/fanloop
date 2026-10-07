@@ -11,6 +11,7 @@ description: 按实际语义检查配置，普通模板自检，风险变更独�
 
 - 错字、排版：检查 diff 和受影响引用，行为不变可有据免测。
 - 模板、生成要求及 Prompt 文案：检查相关引用、必要命令帮助；用现有兼容 CLI 在隔离完整源加载受影响包，检查实际代表性结果。仅改 YAML 文案不跑路由矩阵。
+- 全景图展示 Skill：运行 `python3 scripts/validate-configuration.py --check-panorama-skills --config-source <绝对源>`。缺少 `report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`，或把写入 `artifacts/panorama-*` 当成投递时，命令失败并写出 Skill 路径和应补的句子。粘贴的 evidence 用 `--reject-file-save-evidence <文件>`；`content saved artifacts/panorama-` 必须失败。
 - Step、Condition、Route、绑定：严格加载和引用校验，运行 `python3 scripts/validate-configuration.py --config-source <绝对源> --binary <已有兼容CLI> --output-root <新证据目录> --workflow <受影响ID>`；多个 ID 重复传参。不跑无关 Workflow，不手工重造解析器错误用例；加载器回归仍由代码测试负责。
 
 路由/绑定变化还需确认两类互斥、代码原业务门禁有效、所有正常/终止/回流 Route 保留 Panorama。完整包及完整源摘要、候选未变化检查始终保留。禁止为验证指引创建未授权真实业务数据。

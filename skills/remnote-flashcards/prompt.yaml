@@ -5,8 +5,10 @@ prompts:
       每次进入 Step（包括回流重入）先执行绑定 Skill，展示 renderer 生成的最新 Panorama，再执行业务 Prompt。
       展示成功后保留本次精确 panorama_snapshot_path，与业务 Condition 一同上报；同一次 Step 内不重复展示。
       渲染或展示失败、结果不明时报告 blocked，不提交成功 Condition 或选择 Route。
+      local_agent 与无用户可见消息通道的 headless worker：report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
+      进度或 evidence 不得使用 content saved artifacts/panorama- 或 saved to artifacts 作为已展示证明。
     skills:
-      - {id: workflow-panorama, prompt: 原样展示本次 Panorama，成功后返回精确 snapshot_path。, optional: false}
+      - {id: workflow-panorama, prompt: "原样展示本次 Panorama，成功后返回精确 snapshot_path。无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
 
   resolve_home_tag_flow:
     prompt: |

@@ -33,7 +33,10 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 - 保留明确的 Human Gate。Agent 不得代替人批准，也不得把旧回复或实现自证当作新的人工决定。
 - 声明输出 `panorama_snapshot_path:path` 的全景图 Condition，绑定同一 Workflow 内的展示 Skill，并把它加入
   所有需要展示的正常、终止和回流 Route 的每个 `when.any_of` AND 组。进入新 Step 或回流重入时重新展示；
-  展示失败时 blocked。
+  展示失败时 blocked。展示 Skill 的 `local_agent` 只允许一条投递：非 dry-run
+  `fanloop card render --view panorama --format markdown`，把该次 `data.content` 原样作为 Step 的第一条用户可见消息，再上报该次 `data.snapshot_path`。
+  必须写明：`report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`
+  不得把写入 `artifacts/panorama-*` 写成成功路径。复制 `examples/workflows/example/skills/example-panorama/SKILL.md` 的投递顺序。
 
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。

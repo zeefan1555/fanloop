@@ -42,9 +42,12 @@ prompts:
     skills: []
 
   panorama_delivery_condition:
-    prompt: 进入当前 Step 后立即把最新 Panorama 作为第一条用户可见消息完整展示；成功后返回本次非 dry-run render 的精确 snapshot_path，失败时保持 blocked。
+    prompt: |
+      进入当前 Step 后立即把最新 Panorama 作为第一条用户可见消息完整展示；成功后返回本次非 dry-run render 的精确 snapshot_path，失败时保持 blocked。
+      local_agent 与无用户可见消息通道的 headless worker：report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
+      进度或 evidence 不得使用 content saved artifacts/panorama- 或 saved to artifacts 作为已展示证明。
     skills:
-      - {id: fanloop-dev-panorama, prompt: 展示 renderer 生成的唯一 Panorama，并返回精确 snapshot_path。, optional: false}
+      - {id: fanloop-dev-panorama, prompt: "展示 renderer 生成的唯一 Panorama，并返回精确 snapshot_path。无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
 
   define_report_condition:
     prompt: 发布并回读本 Requirement 的 Define 飞书报告；内容必须覆盖目标、范围、非目标、验收标准与试用计划。成功后返回 define_report_published，失败或结果不明保持 blocked。

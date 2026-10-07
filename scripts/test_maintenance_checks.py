@@ -179,6 +179,53 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertIn('unknown Workflow: missing', result.stderr)
         self.assertFalse(output.exists())
 
+    def test_fomo_file_save_evidence_is_rejected(self):
+        evidence = ROOT / 'scripts/testdata/panorama-file-save-evidence.json'
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--reject-file-save-evidence', str(evidence)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('content saved artifacts/panorama-', result.stderr)
+        self.assertIn(configuration.REQUIRED_BLOCKED_SENTENCE, result.stderr)
+        self.assertEqual('', result.stdout)
+
+    def test_file_save_skill_instruction_names_the_fix(self):
+        source = (ROOT / 'scripts/testdata/panorama-file-save-source').resolve()
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--check-panorama-skills', '--config-source', str(source)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('skills/fomo/skills/workflow-panorama/SKILL.md', result.stderr)
+        self.assertIn(configuration.REQUIRED_BLOCKED_SENTENCE, result.stderr)
+        self.assertIn('content saved artifacts/panorama-', result.stderr)
+        self.assertIn('writing a file', result.stderr)
+
+    def test_repository_panorama_skills_block_file_save_delivery(self):
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--check-panorama-skills', '--config-source', str(ROOT)],
+                                capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('panorama skills: 4 ok', result.stdout)
+
+    def test_path_only_receipt_is_not_a_file_save_claim(self):
+        path = self.root / 'prepare-result.json'
+        path.write_text(
+            '{"condition_results":[{"condition_id":"panorama_presented",'
+            '"output":{"type":"path","value":".fanloop/card/20261007T085445.957396+0800.json"}}]}\n'
+        )
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--reject-file-save-evidence', str(path)],
+                                capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('no file-save delivery claim', result.stdout)
+
+    def test_prohibition_line_is_not_a_delivery_claim(self):
+        text = (
+            '不得把 content saved artifacts/panorama-step.md 当作投递。\n'
+            + configuration.REQUIRED_BLOCKED_SENTENCE + '\n'
+        )
+        self.assertEqual([], configuration.file_save_delivery_errors(text))
+
 
 if __name__ == '__main__':
     unittest.main()

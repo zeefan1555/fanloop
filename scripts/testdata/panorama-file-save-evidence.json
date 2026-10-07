@@ -1,0 +1,23 @@
+{
+  "condition_results": [
+    {
+      "condition_id": "panorama_presented",
+      "output": {
+        "type": "path",
+        "value": ".fanloop/card/20261007T085310.491110+0800.json"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "source": "system",
+      "content": "remnote-cli status connected KB=byte acceptWriteOperations=true; HOME Z1E5xtdHsgCNSiYbF; created Concept 行为金融 XUrAVelOsKG5Aqepg under 金融知识 tS6R8jdLhA3s8oTUJ; cards-only miss for FOMO/错失恐惧症/怕踏空/近因偏差/定投",
+      "ref": "resolve_home_tag"
+    },
+    {
+      "source": "file",
+      "content": "panorama rendered local_agent markdown; snapshot .fanloop/card/20261007T085310.491110+0800.json; content saved artifacts/panorama-resolve_home_tag.md",
+      "ref": "artifacts/panorama-resolve_home_tag.md"
+    }
+  ]
+}
