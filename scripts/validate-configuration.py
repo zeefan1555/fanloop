@@ -2,8 +2,10 @@
 """Validate a complete local Workflow source and run its public CLI Route Matrix.
 
 Panorama Skills must block headless file-save delivery. --check-panorama-skills
-checks that text without a matrix. --reject-file-save-evidence fails when pasted
-evidence treats artifacts/panorama-* as panorama_presented.
+checks that text without a matrix. Skills that mention local_agent must also
+state the parent/child handoff: the child must not submit panorama_presented.
+--reject-file-save-evidence fails when pasted evidence treats artifacts/panorama-*
+as panorama_presented.
 """
 import argparse
 import hashlib
@@ -21,6 +23,15 @@ import sys
 # are what block that claim.
 REQUIRED_BLOCKED_SENTENCE = (
     'report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.'
+)
+# A headless child rendered markdown and submitted panorama_presented while the
+# parent that can post to the user chat never sent data.content (ADR-0119 still
+# only checks the path receipt).
+REQUIRED_HANDOFF_SENTENCES = (
+    'The child must not submit panorama_presented.',
+    'After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.',
+    'The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.',
+    'Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.',
 )
 DELIVERY_MARKERS = (
     'headless',
@@ -102,6 +113,14 @@ def panorama_skill_errors(text):
             errors.append(
                 'Skill instructs satisfying panorama by writing a file. '
                 f'Remove that instruction. {REQUIRED_BLOCKED_SENTENCE}'
+            )
+    if 'local_agent' in text:
+        missing = [sentence for sentence in REQUIRED_HANDOFF_SENTENCES if sentence not in text]
+        if missing:
+            quoted = ' '.join(f'"{sentence}"' for sentence in missing)
+            errors.append(
+                'local_agent panorama delivery is missing the parent/child handoff. '
+                f'Add these sentences: {quoted}'
             )
     return errors
 
@@ -194,7 +213,7 @@ def main():
     parser.add_argument('--output-root', type=Path)
     parser.add_argument('--workflow', action='append', help='Workflow matrix to run; repeatable, default all')
     parser.add_argument('--check-panorama-skills', action='store_true',
-                        help='Check panorama Skill delivery text, then exit')
+                        help='Check panorama Skill delivery text, including the local_agent parent/child handoff, then exit')
     parser.add_argument('--reject-file-save-evidence', type=Path,
                         help='Exit 1 when text claims panorama delivery by saving artifacts/panorama-*')
     args = parser.parse_args()

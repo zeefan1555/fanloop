@@ -26,7 +26,14 @@ botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUN
 
 无用户可见消息通道的 headless worker 在 `panorama_presented` 上 blocked。report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
 
-运行一次非 dry-run Markdown render，把该次响应的完整 `data.content` 原样作为进入 Step 后第一条用户可见
+能向用户聊天发消息的父 Agent 把本 Step 交给 headless 子 Agent 时，只做下面的交接。`fanloop card render` 的成功响应不证明用户看见了消息。
+
+The child must not submit panorama_presented.
+After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
+The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
+Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
+
+当前 Agent 自己持有用户可见消息通道，且没有把本 Step 交给 headless 子 Agent 时，运行一次非 dry-run Markdown render，把该次响应的完整 `data.content` 原样作为进入 Step 后第一条用户可见
 消息发送，不加摘要或前缀。`value` 使用该次 render 的 `data.snapshot_path`：
 
 ```bash
@@ -62,6 +69,8 @@ cp -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
 cmp -s -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
 aiden-bot-cli send-card --card-file "$tmp_card"
 ```
+
+只有已经把本次 `data.content` 原样发到用户可见通道的当前宿主，在成功展示后，才返回下面的 ConditionResult。headless 子 Agent 不提交 `panorama_presented`。
 
 成功展示后返回：
 

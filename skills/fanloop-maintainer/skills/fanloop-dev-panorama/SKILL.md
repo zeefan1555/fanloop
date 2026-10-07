@@ -48,7 +48,16 @@ botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUN
 
 无用户可见消息通道的 headless worker 在 `panorama_presented` 上 blocked。report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
 
-投递只此一条，按顺序执行。先做一次非 dry-run render：
+能向用户聊天发消息的父 Agent（例如 Grok Bot SendToUser 或 Codex commentary）把本 Step 交给 headless 子 Agent（executor 或 subagent）时，只做下面的交接。`fanloop card render` 的成功响应不证明用户看见了消息。
+
+The child must not submit panorama_presented.
+After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
+The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
+Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
+
+子 Agent 交还这两个字段后停止，不改写 `data.content`，不写 `artifacts/panorama-*`，不继续业务 Prompt。父 Agent 先原样发送，再上报同一 `data.snapshot_path`，然后才继续业务 Prompt。
+
+当前 Agent 自己持有可继续执行的用户可见消息通道，且没有把本 Step 交给 headless 子 Agent 时，投递只此一条，按顺序执行。先做一次非 dry-run render：
 
 ```bash
 fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown
@@ -56,7 +65,7 @@ fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format 
 
 只保留该次响应的 `data.content` 和 `data.snapshot_path`。把该次 `data.content` 原样作为进入该 Step 后的第一条用户可见消息单独发送；不加前缀或摘要，不展示 JSON envelope，不自行拼装内容。使用宿主可继续执行的用户可见消息通道，例如 Codex commentary。消息实际发出后即完成 Deliver/Verify，保留 ConditionResult 并在同一轮继续执行 Prompt、提交 Result 或进入后续 Agent Step；真正的人工问题只能随后发送，最终回复不得重复 Panorama。
 
-`panorama_presented` 的 `value` 必须是上述同一次 render 的 `data.snapshot_path`。下列情况报告 blocked，不提交该 Condition：没有可继续执行的用户可见消息通道；不得把 Markdown 写入 artifacts/panorama-* 或任何文件后声称已展示；进度、evidence 和 Result 不得把 content saved artifacts/panorama- 或 saved to artifacts 当作投递证明；工具输出、日志、只保存在上下文、回复“稍后发送”或只展示摘要也都不满足。
+`panorama_presented` 的 `value` 必须是上述同一次 render 的 `data.snapshot_path`。下列情况报告 blocked，不提交该 Condition：当前 Agent 没有可继续执行的用户可见消息通道，并且没有能代为发送的父 Agent；不得把 Markdown 写入 artifacts/panorama-* 或任何文件后声称已展示；进度、evidence 和 Result 不得把 content saved artifacts/panorama- 或 saved to artifacts 当作投递证明；工具输出、日志、只保存在上下文、回复“稍后发送”或只展示摘要也都不满足。有能发消息的父 Agent 时，子 Agent 按上面的交接交还 `data.content` 与 `data.snapshot_path`，不在这里改报 blocked。
 
 ### `aime`
 
@@ -96,7 +105,7 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 
 ## 返回 ConditionResult
 
-只有当前分支已成功展示或发送后，才返回：
+只有已经把本次 render 的 `data.content` 原样发到用户可见通道的当前宿主，在展示或发送成功后，才返回下面的 ConditionResult。headless 子 Agent 不提交 `panorama_presented`。
 
 ```json
 {"condition_id":"panorama_presented","output":{"type":"path","value":"<data.snapshot_path>"}}

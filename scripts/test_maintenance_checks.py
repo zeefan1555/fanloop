@@ -200,6 +200,39 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertIn('content saved artifacts/panorama-', result.stderr)
         self.assertIn('writing a file', result.stderr)
 
+    def test_parent_child_handoff_is_required_for_local_agent(self):
+        source = (ROOT / 'scripts/testdata/panorama-child-reports-source').resolve()
+        failed = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--check-panorama-skills', '--config-source', str(source)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(0, failed.returncode)
+        self.assertIn('skills/fomo/skills/workflow-panorama/SKILL.md', failed.stderr)
+        self.assertIn('parent/child handoff', failed.stderr)
+        for sentence in configuration.REQUIRED_HANDOFF_SENTENCES:
+            self.assertIn(sentence, failed.stderr)
+        self.assertNotIn('missing the blocked-when-headless rule', failed.stderr)
+        self.assertNotIn('writing a file', failed.stderr)
+
+        text = (source / 'skills/fomo/skills/workflow-panorama/SKILL.md').read_text()
+        self.write(
+            'with-handoff/skills/fomo/skills/workflow-panorama/SKILL.md',
+            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n',
+        )
+        passed = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--check-panorama-skills', '--config-source', str(self.root / 'with-handoff')],
+                                capture_output=True, text=True)
+        self.assertEqual(0, passed.returncode, passed.stderr)
+        self.assertIn('panorama skills: 1 ok', passed.stdout)
+
+    def test_handoff_is_not_required_without_local_agent(self):
+        text = (
+            'report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.\n'
+            'headless fanloop card render --view panorama --format markdown data.content\n'
+        )
+        self.assertEqual([], configuration.panorama_skill_errors(text))
+        errors = configuration.panorama_skill_errors(text + 'local_agent\n')
+        self.assertTrue(any('parent/child handoff' in error for error in errors))
+
     def test_repository_panorama_skills_block_file_save_delivery(self):
         result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--check-panorama-skills', '--config-source', str(ROOT)],

@@ -43,11 +43,17 @@ prompts:
 
   panorama_delivery_condition:
     prompt: |
-      进入当前 Step 后立即把最新 Panorama 作为第一条用户可见消息完整展示；成功后返回本次非 dry-run render 的精确 snapshot_path，失败时保持 blocked。
+      进入当前 Step 后立即把最新 Panorama 作为第一条用户可见消息完整展示。只有已把本次 data.content 原样发到用户可见通道的父 Agent 或当前宿主，才返回本次非 dry-run render 的精确 snapshot_path；失败时保持 blocked。headless 子 Agent 不上报。
       local_agent 与无用户可见消息通道的 headless worker：report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
       进度或 evidence 不得使用 content saved artifacts/panorama- 或 saved to artifacts 作为已展示证明。
+      父 Agent 能发用户可见消息并把本 Step 交给 headless 子 Agent 时：
+      The child must not submit panorama_presented.
+      After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
+      The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
+      Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
+      公开 CLI 不证明用户看见了消息。
     skills:
-      - {id: fanloop-dev-panorama, prompt: "展示 renderer 生成的唯一 Panorama，并返回精确 snapshot_path。无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
+      - {id: fanloop-dev-panorama, prompt: "The child must not submit panorama_presented. After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails. The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt. Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages. 无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
 
   define_report_condition:
     prompt: 发布并回读本 Requirement 的 Define 飞书报告；内容必须覆盖目标、范围、非目标、验收标准与试用计划。成功后返回 define_report_published，失败或结果不明保持 blocked。

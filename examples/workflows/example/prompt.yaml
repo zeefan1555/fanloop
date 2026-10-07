@@ -2,9 +2,15 @@ schema_version: 2
 
 prompts:
   panorama_condition:
-    prompt: 进入当前 Step 后展示最新 Panorama；成功后只返回本次精确快照路径，失败时保持 blocked。
+    prompt: |
+      进入当前 Step 后展示最新 Panorama。只有已把本次 data.content 原样发到用户可见通道的父 Agent 或当前宿主才返回本次精确快照路径；失败时保持 blocked。headless 子 Agent 不上报。
+      The child must not submit panorama_presented.
+      After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
+      The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
+      Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
+      公开 CLI 不证明用户看见了消息。
     skills:
-      - {id: example-panorama, prompt: 按当前宿主展示一次完整 Panorama 并返回快照路径。, optional: false}
+      - {id: example-panorama, prompt: "The child must not submit panorama_presented. The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt. Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.", optional: false}
 
   analyze_materials_flow:
     prompt: 读取用户材料，区分已确认事实与开放问题，形成可供后续产出的材料摘要。

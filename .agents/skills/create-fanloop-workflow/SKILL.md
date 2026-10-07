@@ -36,7 +36,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
   展示失败时 blocked。展示 Skill 的 `local_agent` 只允许一条投递：非 dry-run
   `fanloop card render --view panorama --format markdown`，把该次 `data.content` 原样作为 Step 的第一条用户可见消息，再上报该次 `data.snapshot_path`。
   必须写明：`report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`
-  不得把写入 `artifacts/panorama-*` 写成成功路径。复制 `examples/workflows/example/skills/example-panorama/SKILL.md` 的投递顺序。
+  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent 在非 dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送该 `data.content` 后再上报同一 `snapshot_path`，然后才继续业务 Prompt。不得把带全景图门禁的 Workflow 整段放进无法发送用户可见消息的子 Agent。复制 `examples/workflows/example/skills/example-panorama/SKILL.md` 的投递顺序。
 
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。

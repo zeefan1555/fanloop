@@ -3,12 +3,18 @@ prompts:
   panorama_delivery_condition:
     prompt: |
       每次进入 Step（包括回流重入）先执行绑定 Skill，展示 renderer 生成的最新 Panorama，再执行业务 Prompt。
-      展示成功后保留本次精确 panorama_snapshot_path，与业务 Condition 一同上报；同一次 Step 内不重复展示。
+      只有已把本次 data.content 原样发到用户可见通道的父 Agent 或当前宿主，才在展示成功后保留本次精确 panorama_snapshot_path，与业务 Condition 一同上报；同一次 Step 内不重复展示。headless 子 Agent 不上报。
       渲染或展示失败、结果不明时报告 blocked，不提交成功 Condition 或选择 Route。
       local_agent 与无用户可见消息通道的 headless worker：report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.
       进度或 evidence 不得使用 content saved artifacts/panorama- 或 saved to artifacts 作为已展示证明。
+      父 Agent 能发用户可见消息并把本 Step 交给 headless 子 Agent 时：
+      The child must not submit panorama_presented.
+      After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
+      The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
+      Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
+      公开 CLI 不证明用户看见了消息。
     skills:
-      - {id: workflow-panorama, prompt: "原样展示本次 Panorama，成功后返回精确 snapshot_path。无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
+      - {id: workflow-panorama, prompt: "The child must not submit panorama_presented. After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails. The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt. Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages. 无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
 
   resolve_home_tag_flow:
     prompt: |
