@@ -10,6 +10,8 @@ stops after the retrospect 75% panorama once the workflow has completed.
 --reject-combo-slang and --reject-combo-markdown-ref fail the 2026-10-07
 remnote-flashcards card mistakes. --check-learning-card-gates checks the
 remnote-flashcards package for those two gates.
+--check-notion-experience-sync fails when retrospect_run no longer tells the
+agent to POST findings with ntn into 「remnote workflow 经验表」.
 """
 import argparse
 import hashlib
@@ -277,6 +279,76 @@ def _require_sentence(source, relative, sentence, why):
     return []
 
 
+REQUIRED_NOTION_SYNC_SENTENCE = (
+    'When findings is non-empty, POST one page per finding with ntn api v1/pages to data source '
+    '「remnote workflow 经验表」; zero findings skip the write; a failed ntn call records notion_sync '
+    'and still allows retrospective_recorded.'
+)
+REQUIRED_NOTION_MAP_SENTENCE = (
+    'Map 经验 to the one-line lesson, 日期 to the ISO run date, 主题 to the RemNote theme title, '
+    '类别 to 文案清晰度|工具链路|流程门禁|其他, 详情 to evidence + mechanism + suggested change + verification, '
+    'and 编码状态 to 待编码 unless the finding already points at a merged fix (已编码) or is a non-code lesson (不适用).'
+)
+REQUIRED_NOTION_AUTH_SENTENCE = (
+    'Auth is ntn login; headless hosts set NOTION_KEYRING=0. Do not require an integration API key.'
+)
+REQUIRED_NOTION_CONFIG_SENTENCE = (
+    'FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID overrides the data source id; '
+    'FANLOOP_REMN_EXPERIENCE_DATABASE_ID overrides the database id. '
+    'Defaults live in references/notion-experience.md.'
+)
+NOTION_EXPERIENCE_SENTENCES = (
+    REQUIRED_NOTION_SYNC_SENTENCE,
+    REQUIRED_NOTION_MAP_SENTENCE,
+    REQUIRED_NOTION_AUTH_SENTENCE,
+    REQUIRED_NOTION_CONFIG_SENTENCE,
+)
+NOTION_EXPERIENCE_SENTENCE_FILES = (
+    'skills/remnote-flashcards/prompt.yaml',
+    'skills/remnote-flashcards/SKILL.md',
+    'skills/remnote-flashcards/skills/remnote-flashcards/SKILL.md',
+    'skills/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+    'skills/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md',
+)
+NOTION_EXPERIENCE_REFERENCE = (
+    'skills/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md'
+)
+NOTION_EXPERIENCE_DATABASE_ID = '80b2f42e-0e34-4d21-ab84-245bd4404f13'
+NOTION_EXPERIENCE_DATA_SOURCE_ID = 'ac9ebbdb-47b5-4f87-b821-df8a3eba5509'
+NOTION_EXPERIENCE_TITLE = 'remnote workflow 经验表'
+
+
+def notion_experience_sync_errors(source):
+    errors = []
+    why = 'retrospect_run must POST durable findings with ntn and keep delivery success when that call fails.'
+    for relative in NOTION_EXPERIENCE_SENTENCE_FILES:
+        for sentence in NOTION_EXPERIENCE_SENTENCES:
+            errors.extend(_require_sentence(source, relative, sentence, why))
+    reference = source / NOTION_EXPERIENCE_REFERENCE
+    if reference.is_file():
+        text = reference.read_text()
+        for token, label in (
+            (NOTION_EXPERIENCE_TITLE, 'database title'),
+            (NOTION_EXPERIENCE_DATABASE_ID, 'database id'),
+            (NOTION_EXPERIENCE_DATA_SOURCE_ID, 'data source id'),
+        ):
+            if token not in text:
+                errors.append(
+                    f'{NOTION_EXPERIENCE_REFERENCE}: missing {label} {token}. '
+                    'Keep the documented default for 「remnote workflow 经验表」.'
+                )
+    readme = source / 'README.md'
+    if not readme.is_file():
+        errors.append('README.md: missing. Name 「remnote workflow 经验表」 and ntn login.')
+    else:
+        text = readme.read_text()
+        if NOTION_EXPERIENCE_TITLE not in text or 'ntn login' not in text:
+            errors.append(
+                'README.md: name the database 「remnote workflow 经验表」 and auth command `ntn login`.'
+            )
+    return errors
+
+
 def learning_card_gate_errors(source):
     errors = []
     slang_why = 'combo kid_clarity plain_words/one_pass must reject the 2026-10-07 trading slang.'
@@ -406,6 +478,8 @@ def main():
                         help='Check panorama Skill delivery text, including the local_agent parent/child handoff and the post-complete Done panorama, then exit')
     parser.add_argument('--check-learning-card-gates', action='store_true',
                         help='Check remnote-flashcards slang and combo rem-ref instructions, then exit')
+    parser.add_argument('--check-notion-experience-sync', action='store_true',
+                        help='Check retrospect_run still posts findings with ntn into remnote workflow 经验表, then exit')
     parser.add_argument('--reject-file-save-evidence', type=Path,
                         help='Exit 1 when text claims panorama delivery by saving artifacts/panorama-*')
     parser.add_argument('--reject-missing-done-panorama', type=Path,
@@ -443,16 +517,20 @@ def main():
     errors = check_panorama_skills(source, workflows, include_examples=not args.workflow)
     if args.check_learning_card_gates:
         errors.extend(learning_card_gate_errors(source))
+    if args.check_notion_experience_sync:
+        errors.extend(notion_experience_sync_errors(source))
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    if args.check_panorama_skills or args.check_learning_card_gates:
+    if args.check_panorama_skills or args.check_learning_card_gates or args.check_notion_experience_sync:
         if args.check_panorama_skills:
             count = len(panorama_skill_files(source, workflows, include_examples=not args.workflow))
             print(f'panorama skills: {count} ok')
         if args.check_learning_card_gates:
             print('learning card gates: ok')
+        if args.check_notion_experience_sync:
+            print('notion experience sync: ok')
         return 0
     if args.binary is None or args.output_root is None:
         raise ValueError('matrix validation requires --binary and --output-root')

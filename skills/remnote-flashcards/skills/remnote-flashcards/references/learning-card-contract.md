@@ -184,6 +184,16 @@ reviewer_receipt:
 
 `retrospective.this_run_violations` 列出本轮曾经失败的门禁 id；没有则为空列表。意外的 `cc`（用户没要求，`cluster_powerup` 仍为 true）是本轮发现：证据是主题 Rem ID 和 `object-has-powerup ["cc"]` 的结果；机制是 remnote-direct 的 `flashcards apply` 回归；建议改动指向 remnote-direct；验证是同一查询回到与 opt-in 一致的值。
 
+`findings` 仍是 0..1。每条 finding 固定四段：证据、机制、建议改动、验证方法。零发现不写 Notion。有这一条时，用官方 `ntn` 在「remnote workflow 经验表」创建一行，字段和命令以 [notion-experience.md](notion-experience.md) 为准。进度 Evidence 仍追加本次摘要。`ntn` 失败只记 `notion_sync`，不挡住已经通过的制卡交付，也不在复盘里改 Workflow。
+
+FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID overrides the data source id; FANLOOP_REMN_EXPERIENCE_DATABASE_ID overrides the database id. Defaults live in references/notion-experience.md.
+
+Auth is ntn login; headless hosts set NOTION_KEYRING=0. Do not require an integration API key.
+
+Map 经验 to the one-line lesson, 日期 to the ISO run date, 主题 to the RemNote theme title, 类别 to 文案清晰度|工具链路|流程门禁|其他, 详情 to evidence + mechanism + suggested change + verification, and 编码状态 to 待编码 unless the finding already points at a merged fix (已编码) or is a non-code lesson (不适用).
+
+When findings is non-empty, POST one page per finding with ntn api v1/pages to data source 「remnote workflow 经验表」; zero findings skip the write; a failed ntn call records notion_sync and still allows retrospective_recorded.
+
 ## 历史
 
 2026-10-06，主题 `2026-10-06 book 前言`（Rem `C4lWZBYMbeUIoL9Zd`）在计划省略 `cardCluster` 时仍得到 `cc=true`。那是当时旧路径的失败记录，不是当前 Direct 的行为。当前行为见上文「Card Cluster」和 [ADR-0129](../../../../../docs/adr/0129-lightweight-remnote-learning-cards.md)。

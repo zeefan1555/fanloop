@@ -88,9 +88,13 @@ prompts:
       只读取已有运行记录，统计内容准备、独立审卡、工具读写、完整扫描、返工和等待；保留总 wall time，重叠时间不相加，无法区分明确为 unknown。
       允许零发现，最多选一个有证据、可复用的通用问题，固定记录：证据、重复机制、建议改动、验证方法。retrospective 同时带 this_run_violations：本轮曾经失败的学习卡契约门禁 id，没有则为空列表。
       若用户未要求集群而 cluster_powerup 为 true，这条就是本轮唯一发现。证据是主题 Rem ID 和 object-has-powerup ["cc"] 的结果。机制是 remnote-direct 的 flashcards apply 回归：省略或 false 不得添加 cc。建议改动指向 remnote-direct。验证方法是同一查询回到 false。这份发现表示内容证据已失效，回到写入步骤处理，不能用复盘终止 Route 把 true 收成成功。
-      retrospective_recorded 包含 timing、full_scan_count、rework_count、this_run_violations、findings（0..1）、maintenance_ref。摘要追加到当前 progress Evidence/运行记录；有发现时按来源与机制去重汇总到现有共享维护清单。
-      共享维护清单位置从当前环境既有记录取得，不新建平台；不可用时写明未同步及原因，保留本次建议引用，不为复盘阻塞已通过的业务交付。
-      复盘仅建议，不现场修改 Workflow、验收条件或升级 CLI。后续独立维护验证后才供下一任务使用。
+      retrospective_recorded 包含 timing、full_scan_count、rework_count、this_run_violations、findings（0..1）、notion_sync。摘要追加到当前 progress Evidence/运行记录。
+      有 finding 时，先读绑定配置源里的 skills/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md，再用官方 Notion CLI `ntn` 为这一条创建「remnote workflow 经验表」的一行。不要另建维护平台，不要另写一套数据库 ID。
+      FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID overrides the data source id; FANLOOP_REMN_EXPERIENCE_DATABASE_ID overrides the database id. Defaults live in references/notion-experience.md.
+      Auth is ntn login; headless hosts set NOTION_KEYRING=0. Do not require an integration API key.
+      Map 经验 to the one-line lesson, 日期 to the ISO run date, 主题 to the RemNote theme title, 类别 to 文案清晰度|工具链路|流程门禁|其他, 详情 to evidence + mechanism + suggested change + verification, and 编码状态 to 待编码 unless the finding already points at a merged fix (已编码) or is a non-code lesson (不适用).
+      When findings is non-empty, POST one page per finding with ntn api v1/pages to data source 「remnote workflow 经验表」; zero findings skip the write; a failed ntn call records notion_sync and still allows retrospective_recorded.
+      复盘只记录建议，不现场修改 Workflow、验收条件或升级 CLI。后续独立维护验证后才供下一任务使用。
       交付真实日期、创建/更新/复用/跳过数量、分类、标题卡与组合卡 ID、验证范围和未实测项。默认交付不列 Wiki 页面。不用固定分钟数承诺提速。
       若发现实际内容证据已失效则回对应步骤处理，不能用复盘终止 Route 绕过失败。
       终止 Route 被接受、Workflow 为 completed 之后，不要停在进入本步时的全景图。父宿主再执行一次非 dry-run `fanloop card render --view panorama --format markdown`，把该次精确 `data.content` 原样作为用户可见消息送出。那一次是 Done 与 100%。没有用户可见通道则 blocked。不得把写入文件当成这次投递。公开 CLI 不证明用户看见了消息。

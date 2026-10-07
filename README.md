@@ -13,7 +13,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 仓库 `skills/` 托管四套生产 Workflow，不设置默认 Workflow：
 
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
-- `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。
+- `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `skills/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
 - `remnote-direct-maintainer`：按实际影响维护独立的 CLI/SDK 插件仓库，完成候选验证、推送与适用的本地接管。
 
 每套 Workflow 是仓库 `skills/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。

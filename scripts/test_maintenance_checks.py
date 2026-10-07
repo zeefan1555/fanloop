@@ -338,6 +338,53 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn('learning card gates: ok', result.stdout)
 
+    def test_repository_notion_experience_sync(self):
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--check-notion-experience-sync', '--config-source', str(ROOT)],
+                                capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('notion experience sync: ok', result.stdout)
+        help_text = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'), '--help'],
+                                   capture_output=True, text=True)
+        self.assertIn('--check-notion-experience-sync', help_text.stdout)
+
+    def test_missing_notion_sync_sentence_names_the_prompt(self):
+        source = self.root / 'notion-source'
+        for relative in configuration.NOTION_EXPERIENCE_SENTENCE_FILES:
+            text = (ROOT / relative).read_text()
+            if relative.endswith('prompt.yaml'):
+                text = text.replace(configuration.REQUIRED_NOTION_SYNC_SENTENCE, '')
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+        (source / 'README.md').write_text(
+            'ntn login\n' + configuration.NOTION_EXPERIENCE_TITLE + '\n'
+        )
+        errors = configuration.notion_experience_sync_errors(source)
+        self.assertTrue(
+            any(relative.endswith('prompt.yaml') and configuration.REQUIRED_NOTION_SYNC_SENTENCE in error
+                for relative in configuration.NOTION_EXPERIENCE_SENTENCE_FILES
+                for error in errors if relative.endswith('prompt.yaml') and 'prompt.yaml' in error),
+            errors,
+        )
+        self.assertFalse(any('SKILL.md' in error or 'notion-experience.md' in error for error in errors), errors)
+
+    def test_missing_notion_data_source_id_names_the_reference(self):
+        source = self.root / 'notion-ids'
+        for relative in configuration.NOTION_EXPERIENCE_SENTENCE_FILES:
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text((ROOT / relative).read_text().replace(
+                configuration.NOTION_EXPERIENCE_DATA_SOURCE_ID, 'removed-data-source'))
+        (source / 'README.md').write_text(
+            'ntn login\n' + configuration.NOTION_EXPERIENCE_TITLE + '\n'
+        )
+        errors = configuration.notion_experience_sync_errors(source)
+        self.assertTrue(
+            any(configuration.NOTION_EXPERIENCE_DATA_SOURCE_ID in error for error in errors),
+            errors,
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

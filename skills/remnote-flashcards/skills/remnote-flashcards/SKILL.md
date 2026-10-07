@@ -162,6 +162,15 @@ Card Cluster 只按学习卡契约：用户没要求时计划省略 `cardCluster
 4. 离开准备步骤必须同时有 draft_quality_passed、terms_ready 和 learning_preflight_passed。terms_ready 来自 term_pipeline：每个术语都有 `--cards-only` 搜索，复用带标题卡 Rem ID，新建带 miss。学习预检的全部门禁为 pass，且与当前 draft_digest 一致。不得用 Wiki 不适用回执前进。用 SDK `date get-todays-doc` 获取本次新卡日记；恢复使用原回执日期。按[remnote-cli](../remnote-cli/SKILL.md)先写入新原子卡并回读标题 Rem ID，把别名加到标题卡上，再把 `{"remId":"<标题卡 Rem ID>"}` 注入组合卡，先预览再显式 `--apply`。稳定键不冲突。没有实际对象时不调用空计划。
 5. 普通卡按契约进入计划。任务入口负责最细 Concept Tag，以及可选的普通 `text` 主题。`cardCluster` 只在契约允许时为 true。原文模式先核对计划能表达完整正文、顺序和层级；超过限制不能截短或改写，应选完整支持该结构的现有入口，否则报告能力缺口。写后使用回执 ID 集中核对父级、类型、最终答案、标题卡引用和原生卡片集合；部分成功按 remnote-cli 的未知写入规则保存并核对，不整批重建。
 6. persist_and_verify 调用 [remnote-verify](../remnote-verify/SKILL.md)，将真实正文与已审草稿逐项对应，改变正文的卡独立重审；未改变且证据新鲜的审查直接复用。写后重新判定 learning_preflight_passed。内容、结构、标题卡引用全部通过才报 flashcards_written、terms_referenced 与 result_verified，随后轻量复盘交付，不在复盘新增知识写入。缺少 Wiki 引用不算失败。
+7. retrospect_run 只记录一条或零条发现。有发现时按 [notion-experience.md](references/notion-experience.md) 用 `ntn` 写入「remnote workflow 经验表」，不另建维护平台，也不在复盘里改 Workflow。
+
+FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID overrides the data source id; FANLOOP_REMN_EXPERIENCE_DATABASE_ID overrides the database id. Defaults live in references/notion-experience.md.
+
+Auth is ntn login; headless hosts set NOTION_KEYRING=0. Do not require an integration API key.
+
+Map 经验 to the one-line lesson, 日期 to the ISO run date, 主题 to the RemNote theme title, 类别 to 文案清晰度|工具链路|流程门禁|其他, 详情 to evidence + mechanism + suggested change + verification, and 编码状态 to 待编码 unless the finding already points at a merged fix (已编码) or is a non-code lesson (不适用).
+
+When findings is non-empty, POST one page per finding with ntn api v1/pages to data source 「remnote workflow 经验表」; zero findings skip the write; a failed ntn call records notion_sync and still allows retrospective_recorded.
 
 ## 修改与核验
 
