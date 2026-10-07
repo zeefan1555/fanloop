@@ -31,7 +31,11 @@ Route 用 `terms_ready` 和 `learning_preflight_passed` 挡住普通批次。`wi
 
 原子卡标题是短名，例如 `PE`。标题里出现 `？` 或 `是什么` 就失败。长搜索句是这张标题卡的别名，例如 `市盈率（PE）是什么？`，在标题卡创建之后再用 `getOrCreateAliasWithText` 或 `update <标题卡 ID> --add-aliases` 加上。别名 Rem 只供搜索。
 
-组合卡只引用标题卡 Rem。直接写 RichText 用 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 的答案段写 `{"remId":"<标题卡 Rem ID>"}`。行内显示短名，例如 `[[PE]]`，点击打开带费曼子 Rem 的卡。不要引用别名 Rem，不要写字面括号，不要写 `pageKey`，不要编造 ID。`question` 是纯字符串，不会解析括号；正面用 Markdown 导入或 `update --title`，并写 `[[id:<标题卡 Rem ID>]]`。
+组合卡只引用标题卡 Rem。写入只有两条：`flashcards apply` 的答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`；直接改 RichText 用 `sdk rem object-set-text`，对象是 `{"i":"q","_id":"<标题卡 Rem ID>"}`。行内显示短名，例如 `[[PE]]`，点击打开带费曼子 Rem 的卡。不要引用别名 Rem，不要写字面括号，不要写 `pageKey`，不要编造 ID。`question` 是纯字符串，不会解析括号。
+
+combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
+
+2026-10-07 失败例：`remnote-cli create --parent-id <theme> --content-file` 里的 `[[id:gTpsZTEYvBxB4S1PM]]`（分批加仓）把 T 正文写成了 `[[DCF]]0`。不得再走这条。修复是 `object-set-text` 的 `{i:q,_id}`。
 
 ## STAR 原文
 
@@ -137,7 +141,7 @@ preflight:
 - `atomics_first`：组合卡用到的术语没有先于该组合卡的原子卡；已复用的标题卡算已有。
 - `short_titles`：原子卡标题含 `？` 或 `是什么`，或不是短名。
 - `aliases_after_create`：长搜索句被写成卡片标题或另一张卡，或在标题卡创建之前就去建别名。
-- `rem_ref_title_ids`：组合卡引用的 Rem 不是标题卡 ID，包括别名 Rem、字面括号、`pageKey` 或编造 ID。
+- `rem_ref_title_ids`：组合卡引用的 Rem 不是标题卡 ID，包括别名 Rem、字面括号、`pageKey`、编造 ID，或用 `create --content-file` 写 Markdown `[[id:]]`。2026-10-07 失败例见上文 `[[DCF]]0`。不得把那次写坏当成已引用。
 - `star_labels_exact`：组合卡缺少逐字 STAR 标题；T 正文不是以「你要学会」开头；A 不是小数目演算；R 不是一句口诀；用 STAR 写原子卡；用三行定义背面写组合卡；原子卡背面不是一行正式定义、一行白话类比、可选一行例子。
 - `arrow_scan`：普通学习卡正面或答案行含箭头；`arrow_hits` 不是 0。
 - `theme_literal`：单篇或单章的 `theme_title` 不是 `YYYY-MM-DD <来源类型> <source_h1>`，`source_h1` 不是文章原 H1，或二者不一致。
@@ -155,7 +159,7 @@ preflight:
 - `one_goal`：能不能用一句话说出这张卡只记一件事？
 - `one_pass`：目标读者读一遍就懂，不用停下来解码？原子卡的白话类比按大约 8–10 岁、没有该领域背景；组合卡的问题和每一段按识字的大约 5 岁。
 - `concrete`：有摸得到的人物或物件，而不是抽象倍数说法？组合卡的 S 还要点名哪里容易看错。
-- `plain_words`：白话行没有本行没讲清的术语？原子卡看类比那一行；组合卡看 S、T、A、R 正文。
+- `plain_words`：白话行没有本行没讲清的术语？原子卡看类比那一行；组合卡看问题以及 S、T、A、R 正文。未解释的成人交易黑话失败。combo plain_words rejects unexplained trading slang: 梭哈, 全仓, 一把梭, 优秀个股; rewrite with plain kid words such as 一次花光 or 分开买.
 - `no_arrow`：正面和答案行都没有箭头？
 
 每张组合卡再列 `star_headings`，四条字符串与「STAR 原文」逐字相同。

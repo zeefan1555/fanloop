@@ -70,6 +70,12 @@ cmp -s -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
 aiden-bot-cli send-card --card-file "$tmp_card"
 ```
 
+## 完成后
+
+成功的终止 Route 被接受、Workflow 为 completed 之后，进入 Step 时的全景图不是完成投递。local_agent 以及任何必须把 `data.content` 发给用户的父宿主再做一次非 dry-run `fanloop card render --view panorama --format markdown`，把该次精确 `data.content` 原样送出。那一次内容含 `Done` 与 `100%`。没有用户可见通道则 blocked。不得把写入文件当成这次投递。公开 CLI 不证明用户看见了消息。
+
+after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
+
 只有已经把本次 `data.content` 原样发到用户可见通道的当前宿主，在成功展示后，才返回下面的 ConditionResult。headless 子 Agent 不提交 `panorama_presented`。
 
 成功展示后返回：

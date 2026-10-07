@@ -1,6 +1,10 @@
 # RemNote CLI 卡片语法
 
-写入通过同 Workflow 的 [remnote-cli](../../remnote-cli/SKILL.md)。链路是 CLI 与插件 WebSocket。先读取实际 `create`、`insert-children` 或 `journal --help`，按 `--content-file` 传输并回读真实结构。下列格式用于内容表达与已有卡片识别。
+写入通过同 Workflow 的 [remnote-cli](../../remnote-cli/SKILL.md)。链路是 CLI 与插件 WebSocket。闪卡组合卡的标题卡引用不走 `create --content-file`。下列格式只表达可见结构和已有卡片识别。
+
+combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
+
+2026-10-07 失败例：`create --content-file` 中的 `[[id:gTpsZTEYvBxB4S1PM]]`（分批加仓）把 T 正文写成 `[[DCF]]0`。不得再把组合卡 rem-ref 放进这个文件。
 
 ## 新建或改写卡片：统一使用多行格式
 

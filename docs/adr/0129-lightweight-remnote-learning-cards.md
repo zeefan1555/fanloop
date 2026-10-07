@@ -134,3 +134,14 @@ and
 `skills/remnote-flashcards/skills/remnote-flashcards/references/example-book-preface.md`.
 Both show a Direct plan that omits `cardCluster`. Neither is evidence of a
 live RemNote write.
+
+Amended 2026-10-07 after the remnote-flashcards run. Combo question text and
+every STAR section stay on the five-year-old plain-words rule. Unexplained
+adult trading slang fails `one_pass` and `plain_words`. The words from that
+run are 梭哈, 全仓, 一把梭, and 优秀个股. The plain rewrites from that run are
+一次花光 and 分开买. Combo rem-refs are still only
+`{"remId":"<titleCardRemId>"}` on a `flashcards apply` answer segment, or
+`{"i":"q","_id":"<titleCardRemId>"}` via `object-set-text`. Markdown
+`[[id:]]` through `create --content-file` is not a write path. That run's
+`[[id:gTpsZTEYvBxB4S1PM]]` (分批加仓) was stored as `[[DCF]]0`. The four step
+IDs are unchanged.

@@ -216,7 +216,8 @@ class MaintenanceChecks(unittest.TestCase):
         text = (source / 'skills/fomo/skills/workflow-panorama/SKILL.md').read_text()
         self.write(
             'with-handoff/skills/fomo/skills/workflow-panorama/SKILL.md',
-            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n',
+            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
+            + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n',
         )
         passed = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--check-panorama-skills', '--config-source', str(self.root / 'with-handoff')],
@@ -258,6 +259,84 @@ class MaintenanceChecks(unittest.TestCase):
             + configuration.REQUIRED_BLOCKED_SENTENCE + '\n'
         )
         self.assertEqual([], configuration.file_save_delivery_errors(text))
+
+    def test_retrospect_transcript_without_done_panorama_fails(self):
+        evidence = ROOT / 'scripts/testdata/panorama-retrospect-without-done.md'
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--reject-missing-done-panorama', str(evidence)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('missing Done 100% panorama', result.stderr)
+        self.assertIn(configuration.REQUIRED_DONE_PANORAMA_SENTENCE, result.stderr)
+        self.assertIn('`Done` `100%`', result.stderr)
+        delivered = evidence.read_text() + (
+            '\n# 后端研发交付 · 制卡 `Done` `100%`\n整体进度：100%\n'
+        )
+        self.assertEqual([], configuration.missing_done_panorama_errors(delivered))
+        in_progress = evidence.read_text().replace('workflow status completed', 'still on retrospect_run')
+        self.assertEqual([], configuration.missing_done_panorama_errors(in_progress))
+
+    def test_skip_done_phrase_names_the_replacement(self):
+        text = (
+            'local_agent\n'
+            + configuration.REQUIRED_BLOCKED_SENTENCE + '\n'
+            + 'headless fanloop card render --view panorama --format markdown data.content\n'
+            + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
+            + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n'
+            + '最终回复不得重复 Panorama。\n'
+        )
+        errors = configuration.panorama_skill_errors(text)
+        self.assertTrue(any('最终回复不得重复 Panorama' in error for error in errors), errors)
+        self.assertTrue(any(configuration.REQUIRED_DONE_PANORAMA_SENTENCE in error for error in errors))
+
+    def test_combo_slang_fixture_fails_and_plain_words_pass(self):
+        evidence = ROOT / 'scripts/testdata/combo-slang-one-pass.md'
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--reject-combo-slang', str(evidence)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('plain_words', result.stderr)
+        self.assertIn('one_pass', result.stderr)
+        self.assertIn('一次花光', result.stderr)
+        self.assertIn('梭哈', result.stderr)
+        plain = (
+            'question: 这笔钱要不要一次花光？\n'
+            'S: 你把零花钱分开买两样东西。\n'
+            'kid_clarity:\n'
+            '  - {card_key: batch-add, one_pass: yes, plain_words: yes}\n'
+        )
+        self.assertEqual([], configuration.combo_slang_errors(plain))
+
+    def test_combo_markdown_id_ref_fixture_names_the_writer(self):
+        evidence = ROOT / 'scripts/testdata/combo-create-content-file-id-ref.md'
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--reject-combo-markdown-ref', str(evidence)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('[[DCF]]0', result.stderr)
+        self.assertIn('gTpsZTEYvBxB4S1PM', result.stderr)
+        self.assertIn('object-set-text', result.stderr)
+        self.assertIn('{"remId":"..."}', result.stderr)
+        banned = (
+            '不得用 create --content-file 写 [[id:gTpsZTEYvBxB4S1PM]]。失败例被写成 [[DCF]]0。\n'
+            + configuration.REQUIRED_COMBO_REF_SENTENCE + '\n'
+        )
+        self.assertEqual([], configuration.combo_markdown_ref_errors(banned))
+        self.assertEqual([], configuration.combo_id_teaching_errors(banned))
+
+    def test_cli_help_renders_literal_percent(self):
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'), '--help'],
+                                capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('75%', result.stdout)
+        self.assertNotIn('75%%', result.stdout)
+
+    def test_repository_learning_card_gates(self):
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+                                 '--check-learning-card-gates', '--config-source', str(ROOT)],
+                                capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('learning card gates: ok', result.stdout)
 
 
 if __name__ == '__main__':

@@ -22,8 +22,8 @@ blocked，不渲染、不发送。
 
 ## 展示 Panorama
 
-仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_presented` 时执行。
-每次进入一个新 Step 只展示一次；同一 Step 内的 progress 和人工交互不重复展示。
+进入 Step 时，仅当最新 `flow status` 的 `data.state.current.conditions[]` 包含 `panorama_presented` 才展示这一次。
+每次进入一个新 Step 只展示一次；同一 Step 内的 progress 和人工交互不重复展示。Workflow completed 之后的 Done 投递不走这句，见「完成后」。
 
 先读取最新 `flow status`，再只执行对应的一个分支。所有分支都必须执行一次非 dry-run render，只使用
 本次成功响应的精确 `data.snapshot_path`；不得扫描 `.fanloop/card` 猜最新文件。
@@ -63,7 +63,7 @@ Never run a panorama-gated Workflow fully headless in a child that cannot post u
 fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown
 ```
 
-只保留该次响应的 `data.content` 和 `data.snapshot_path`。把该次 `data.content` 原样作为进入该 Step 后的第一条用户可见消息单独发送；不加前缀或摘要，不展示 JSON envelope，不自行拼装内容。使用宿主可继续执行的用户可见消息通道，例如 Codex commentary。消息实际发出后即完成 Deliver/Verify，保留 ConditionResult 并在同一轮继续执行 Prompt、提交 Result 或进入后续 Agent Step；真正的人工问题只能随后发送，最终回复不得重复 Panorama。
+只保留该次响应的 `data.content` 和 `data.snapshot_path`。把该次 `data.content` 原样作为进入该 Step 后的第一条用户可见消息单独发送；不加前缀或摘要，不展示 JSON envelope，不自行拼装内容。使用宿主可继续执行的用户可见消息通道，例如 Codex commentary。消息实际发出后即完成 Deliver/Verify，保留 ConditionResult 并在同一轮继续执行 Prompt、提交 Result 或进入后续 Agent Step。真正的人工问题只能随后发送。同一步内不要再贴同一张进入全景图。完成后的 Done 全景图是另一次 render，见「完成后」。
 
 `panorama_presented` 的 `value` 必须是上述同一次 render 的 `data.snapshot_path`。下列情况报告 blocked，不提交该 Condition：当前 Agent 没有可继续执行的用户可见消息通道，并且没有能代为发送的父 Agent；不得把 Markdown 写入 artifacts/panorama-* 或任何文件后声称已展示；进度、evidence 和 Result 不得把 content saved artifacts/panorama- 或 saved to artifacts 当作投递证明；工具输出、日志、只保存在上下文、回复“稍后发送”或只展示摘要也都不满足。有能发消息的父 Agent 时，子 Agent 按上面的交接交还 `data.content` 与 `data.snapshot_path`，不在这里改报 blocked。
 
@@ -102,6 +102,12 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 ```
 
 不得重新渲染或修改 JSON。暂存、校验或发送任一步失败时，清理临时文件并停止。
+
+## 完成后
+
+进入 Step 时的全景图只覆盖该 Step 开始时的进度。成功的终止 Route 被接受、Workflow 为 completed 之后，`current` 为空，`panorama_presented` 不会再出现。local_agent，以及任何必须把 `data.content` 发给用户的父宿主（例如 Grok Bot SendToUser 或 Codex commentary），这时再做一次非 dry-run `fanloop card render --view panorama --format markdown`，把该次精确 `data.content` 原样作为用户可见消息送出。那一次内容含 `Done` 与 `100%`。复盘步骤里的 75% 全景图不是这次投递。没有用户可见通道则 blocked。不得把写入文件当成这次投递。公开 CLI 不证明用户看见了消息。
+
+after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
 
 ## 返回 ConditionResult
 

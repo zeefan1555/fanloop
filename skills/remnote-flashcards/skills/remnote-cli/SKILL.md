@@ -57,7 +57,11 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 
 任务回执的 `ids` 将语义键映射到真实 Rem ID；`facts` 包含正文哈希、原生卡片 ID 和复习哈希。
 不要猜创建顺序，不重新搜索刚创建的对象。更新答案使用精确答案 ID 和 `expectedTextHash`，
-保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句用 `getOrCreateAliasWithText` 或 `update --add-aliases` 加在这张标题卡上。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。它的 `question` 是纯字符串，不会解析括号；正面用 Markdown 导入或 `update --title` 写入 `[[id:<标题卡 Rem ID>]]`。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
+保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句用 `getOrCreateAliasWithText` 或 `update --add-aliases` 加在这张标题卡上。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。`question` 是纯字符串，不会解析括号。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
+
+combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
+
+2026-10-07 失败例：`create --parent-id <theme> --content-file` 里的 `[[id:gTpsZTEYvBxB4S1PM]]`（分批加仓）把 T 正文写成 `[[DCF]]0`。不得再走这条。
 
 - 写后以真实回执和精确 ID 回读确认；最终正文仍须语义评审，哈希不能替代它。
 - Wiki 批次 verificationScope=affected_objects 的 verified 只覆盖本批受影响页面子树、aliases、索引日志及引用，不代表全 Wiki 验收。答案链接专用计划仅查答案、目标和必要权限前提，不触发整库扫描。

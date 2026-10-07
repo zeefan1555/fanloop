@@ -11,6 +11,8 @@ prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查。默
 共用来源、模式和学习目标。普通卡按[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)审查。回执对每张普通卡填写 kid_clarity 五问，对每张组合卡逐字列出 star_headings。
 原文模式逐段比对指定原文，不改写；全部重复时仍检查复用决定与实际答案补充。
 回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys、kid_clarity、star_headings，以及每张 PASS/FAIL 和原因。
+
+组合卡的问题和 S、T、A、R 不得使用未解释的成人交易黑话。出现则该卡 `one_pass` 与 `plain_words` 为 no，整张 FAIL。combo plain_words rejects unexplained trading slang: 梭哈, 全仓, 一把梭, 优秀个股; rewrite with plain kid words such as 一次花光 or 分开买.
 助手不写卡、不写 Wiki、不代替作者改稿。作者只修失败项，助手只复审改变的卡。用户明确要求 Wiki 且新增了适用术语时，才把术语返回 Wiki 清单。
 未覆盖、未结束、旧稿证据或失败项非空不满足 draft_quality_passed。
 

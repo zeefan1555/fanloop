@@ -54,7 +54,9 @@ description: 创建、修改或评审 RemNote 闪卡。普通卡分成原子术�
 
 普通主题 Tag 可以容纳多篇笔记，不按每篇笔记新建分类。轻量学习路径默认跳过 WIKI：普通金融或概念批次不查询、不创建、不引用 Wiki 页面，也不为了术语建页。术语的最小定义写在卡片自己的背面。
 
-默认路径不查、不建、不引用 Wiki。术语先 `search --cards-only`：够用则复用标题卡 Rem ID，不够才新建短标题原子卡，长问句只做这张卡的别名。组合卡只用 `{"remId":"<标题卡 Rem ID>"}` 引用标题卡，界面显示短名，例如 `[[PE]]`。引用别名 Rem 会打开空页，不得写入。
+默认路径不查、不建、不引用 Wiki。术语先 `search --cards-only`：够用则复用标题卡 Rem ID，不够才新建短标题原子卡，长问句只做这张卡的别名。组合卡只用 `{"remId":"<标题卡 Rem ID>"}` 引用标题卡，或用 `object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。界面显示短名，例如 `[[PE]]`。引用别名 Rem 会打开空页，不得写入。
+
+combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
 
 只有用户本批明确要求维护 Wiki 时，才读取 [remnote-wiki](../remnote-wiki/SKILL.md)。该工作可选，不满足 `terms_ready`，也不代替标题卡引用。原文模式不建术语卡，也不补 Wiki。
 

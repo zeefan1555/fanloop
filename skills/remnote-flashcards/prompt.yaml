@@ -12,7 +12,8 @@ prompts:
       After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
       The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
       Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
-      公开 CLI 不证明用户看见了消息。
+      公开 CLI 不证明用户看见了消息。进入 Step 时的全景图不是 Workflow 完成后的投递。
+      after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
     skills:
       - {id: workflow-panorama, prompt: "The child must not submit panorama_presented. After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails. The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt. Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages. 无用户可见通道则 blocked，不得把写入 artifacts/panorama-* 当作投递。", optional: false}
 
@@ -62,6 +63,8 @@ prompts:
       先执行 panorama_presented。核对当前有效 preparation_receipt、draft_quality_passed、terms_ready、learning_preflight_passed。material_digest 与 draft_digest 必须与当前材料和最新草稿一致。缺回执、摘要不一致、term_pipeline 不覆盖本批术语、reviewer 覆盖的 card_keys 不等于 card_keys、失败项非空、preflight 缺失或与当前 draft_digest 不一致、任一门禁不是 pass，都不得写卡，回准备步骤修复。source_h1 与 theme_title 按契约重算；不一致就阻塞。
       默认路径不注入 Wiki 页面 ID，不等待 Wiki 助手，不调用 wiki apply。
       写入顺序固定：先写尚无标题 Rem ID 的原子卡，回读标题卡 Rem ID，再把别名加到这张标题卡上；然后把组合卡答案里的 term_key 换成 `{"remId":"<标题卡 Rem ID>"}`，先预览再 `--apply`。已经复用的标题卡不新建。不得引用别名 Rem。界面应显示短名，例如 [[PE]]，点击打开带背面的标题卡。
+      combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
+      2026-10-07 失败例：`create --content-file` 中的 `[[id:gTpsZTEYvBxB4S1PM]]`（分批加仓）把 T 正文写成 `[[DCF]]0`。不得再走这条。
       按 remnote-cli 使用现有只读预览；格式、计划预算、身份权限和前置哈希通过，并且学习预检在预览后仍全部 pass，才显式写入。
       每批最多 7 张新卡且计划最多 100 KiB。用户没有要求 Wiki 时不要为了凑满 10 个 Wiki 页而建页。按学习链路和引用依赖分批，不截断原文或扩大上限。
       新卡按真实创建日期置于每日笔记。单卡挂最细 HOME Concept Tag。多卡可以放在一个普通 text 主题 Rem 下，只给主题挂该 Tag，子卡不重复打标。主题标题用 preparation 里已经对上的 theme_title。更新保留原位置、Rem ID、cardId 和复习记录。
@@ -90,6 +93,8 @@ prompts:
       复盘仅建议，不现场修改 Workflow、验收条件或升级 CLI。后续独立维护验证后才供下一任务使用。
       交付真实日期、创建/更新/复用/跳过数量、分类、标题卡与组合卡 ID、验证范围和未实测项。默认交付不列 Wiki 页面。不用固定分钟数承诺提速。
       若发现实际内容证据已失效则回对应步骤处理，不能用复盘终止 Route 绕过失败。
+      终止 Route 被接受、Workflow 为 completed 之后，不要停在进入本步时的全景图。父宿主再执行一次非 dry-run `fanloop card render --view panorama --format markdown`，把该次精确 `data.content` 原样作为用户可见消息送出。那一次是 Done 与 100%。没有用户可见通道则 blocked。不得把写入文件当成这次投递。公开 CLI 不证明用户看见了消息。
+      after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
     skills:
       - {id: remnote-cli, prompt: 读取已有回执及范围，不额外修改知识对象。, optional: false}
 
@@ -98,6 +103,7 @@ prompts:
       核对独立只读审卡助手的覆盖集合等于当前草稿批次，失败项为空；来源、mode、material_digest 和 draft_digest 与 preparation_receipt 一致。
       reviewer_receipt 对每张普通卡有 kid_clarity，恰好五个键 one_goal、one_pass、concrete、plain_words、no_arrow，值只能是 yes 或 no，且全部为 yes。每张组合卡有 star_headings，四条与学习卡契约逐字相同：`S — Situation：背景`、`T — Task：任务／目标`、`A — Action：行动`、`R — Result：结果`。
       学习卡契约「失败条件」里任一条成立，不得报 passed。那些条件的通过与否同时由 learning_preflight_passed 挡住 Route；本 Condition 不接受作者自证，也不接受缺五问或任一为 no。
+      组合卡的问题和 S、T、A、R 不得使用未解释的成人交易黑话。出现则 one_pass 与 plain_words 为 no，不得报 passed。combo plain_words rejects unexplained trading slang: 梭哈, 全仓, 一把梭, 优秀个股; rewrite with plain kid words such as 一次花光 or 分开买.
       原文导入和原文摘录逐段保真，不套契约的费曼或 STAR，也不因短标题、别名、STAR、箭头、原子卡顺序或 kid_clarity 失败。零新卡仍覆盖实际更新及复用决定。
       未审、旧稿回执、覆盖缺失或失败不得报 passed；只复审改变的卡，保留未失效的已审部分。
     skills: []
@@ -114,7 +120,7 @@ prompts:
   learning_preflight_condition:
     prompt: |
       本 Condition 是 Route 门禁。判定以学习卡契约的 preflight 和「失败条件」为准。任一 fail、缺对象、摘要不一致或结果不明，不得报 passed。
-      准备步骤：preflight.draft_digest 等于当前 draft_digest，每个门禁都是 pass，arrow_hits 为 0。门禁 id 是 term_search、atomics_first、short_titles、aliases_after_create、rem_ref_title_ids、star_labels_exact、arrow_scan、theme_literal、tag_path、no_spec_unless_asked、card_cluster、named_methods、redo_reuse。kid_clarity 五问任一为 no 也不得报 passed。
+      准备步骤：preflight.draft_digest 等于当前 draft_digest，每个门禁都是 pass，arrow_hits 为 0。门禁 id 是 term_search、atomics_first、short_titles、aliases_after_create、rem_ref_title_ids、star_labels_exact、arrow_scan、theme_literal、tag_path、no_spec_unless_asked、card_cluster、named_methods、redo_reuse。kid_clarity 五问任一为 no 也不得报 passed。组合卡问题或 S、T、A、R 里的未解释交易黑话使 plain_words 与 one_pass 为 no。combo plain_words rejects unexplained trading slang: 梭哈, 全仓, 一把梭, 优秀个股; rewrite with plain kid words such as 一次花光 or 分开买.
       theme_literal：单篇或单章的 theme_title 必须是 `YYYY-MM-DD <来源类型> <source_h1>`，source_h1 是原 H1。书稿例：`2026-10-06 book 前言`。写成「术语与方法」失败。
       tag_path：叶子是教程或课程 Concept，例如「人人都是量化交易员」。作者名，例如「刑无刀」，或只停在粗 Folder，失败。
       no_spec_unless_asked：用户未要求时出现 spec 或策略规格说明书卡，失败。
