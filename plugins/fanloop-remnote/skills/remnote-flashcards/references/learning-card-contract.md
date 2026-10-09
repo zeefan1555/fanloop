@@ -29,7 +29,7 @@ Route 用 `terms_ready` 和 `learning_preflight_passed` 挡住普通批次。`wi
 
 ## 标题、别名、引用
 
-原子卡标题是短名，例如 `PE`。标题里出现 `？` 或 `是什么` 就失败。长搜索句是这张标题卡的别名，例如 `市盈率（PE）是什么？`。标题卡已经存在之后，每张标题卡一条命令：`remnote-cli sdk rem object-get-or-create-alias-with-text`。别名 Rem 只供搜索。`remnote-cli update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本用 SDK 方法，不改走桌面。
+原子卡标题是短名，例如 `PE`。标题里出现 `？` 或 `是什么` 就失败。长搜索句是这张标题卡的别名，例如 `市盈率（PE）是什么？`。标题卡已经存在之后，每张标题卡一条命令：`remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`。别名 Rem 只供搜索。`remnote-cli update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本用 SDK 方法，不改走桌面。
 
 组合卡只引用标题卡 Rem。写入只有两条：`flashcards apply` 的答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`；直接改 RichText 用 `sdk rem object-set-text`，对象是 `{"i":"q","_id":"<标题卡 Rem ID>"}`。行内显示短名，例如 `[[PE]]`，点击打开带费曼子 Rem 的卡。不要引用别名 Rem，不要写字面括号，不要写 `pageKey`，不要编造 ID。`question` 是纯字符串，不会解析括号。
 
@@ -62,7 +62,7 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 不是单篇文章时，`source_h1` 写 `n/a`，主题用日期、来源类型和概念名，例如 `2026-10-06 resource 市盈率 PE`。材料里已经有 H1 却改写成概念名，仍算失败。
 
-多张卡要放在同一个主题下时，放进同一次 `flashcards apply`，`title` 用这个 `theme_title`。`title` 会新建一个主题，只挂本计划的 `newCards`。计划没有字段可以指定已经存在的主题。第二次带 `title` 的 apply 会再造一个主题。`reusedCardRemIds` 和 `answerPatches` 也不改父级。这是 remnote-direct 的缺口。已有标题卡 Rem ID 可以在该计划的答案里写 `{"remId"}`。本批新建、还没有 Rem ID 的标题卡，等这次 apply 回读 ID 后用 `object-set-text` 注入，不要把 `newCards[].key` 写成 `{"remId"}`。
+多张卡要放在同一个主题下时，术语卡计划的 `title` 用这个 `theme_title`。`title` 会新建一个主题，只挂本计划的 `newCards`。计划没有字段可以指定已经存在的主题。组合卡计划不写 `title`，否则会再造一个主题。`reusedCardRemIds` 和 `answerPatches` 也不改父级。组合卡 apply 之后父级还是每日笔记。用 `move-note` 把它移成主题的最后一个子 Rem，再用 `object-remove-tag` 去掉它自己的 Tag。不要把组合卡留在每日笔记上。命令见制卡清单。已有标题卡 Rem ID 写在组合卡答案的 `{"remId"}` 里。不要把 `newCards[].key` 写成 `{"remId"}`。
 
 ## Concept Tag
 
@@ -78,7 +78,7 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 叶子 Concept 还不存在时：先只读确认（中文空 `search` 不算缺失），向用户提出完整祖先路径和 Concept 名称，得到明确同意，再 `create --parent-id` 并用 `sdk rem object-set-type --args-json '[1]'` 设成 Concept，回读 `remType=concept` 之后，预览才使用这个真实 `tagRemId`。未同意不创建，也不要用猜的 ID 预览。
 
-多张卡只给主题 Rem 打这个 Tag，子卡不重复打。单张卡打在卡片自身。
+多张卡只给主题 Rem 打这个 Tag。组合卡自己不挂 Tag，主题的 HOME Tag 索引它。单张卡打在卡片自身。
 
 ## 查重
 
@@ -144,7 +144,7 @@ preflight:
 - `term_search`：新建术语卡没有 `search --cards-only` 对同一记忆目标的 miss；复用没有标题卡 Rem ID；Wiki 页或空 cards 被记成 hit。含中日韩文字的搜索返回空不是 miss。先沿 Tag 树、`search-by-tag` 或 `context` 交叉核对；仍不能确定时，只让桌面点重载中文搜索缓存的按钮，然后回到 CLI 重查，不要把这张卡记成新建。
 - `atomics_first`：组合卡用到的术语没有先于该组合卡的原子卡；已复用的标题卡算已有。
 - `short_titles`：原子卡标题含 `？` 或 `是什么`，或不是短名。
-- `aliases_after_create`：长搜索句被写成卡片标题或另一张卡，或在标题卡创建之前就去建别名。标题卡存在之后的命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text`，每张一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 报 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。
+- `aliases_after_create`：长搜索句被写成卡片标题或另一张卡，或在标题卡创建之前就去建别名。标题卡存在之后的命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`，每张一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 报 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。
 - `rem_ref_title_ids`：组合卡引用的 Rem 不是标题卡 ID，包括别名 Rem、字面括号、`pageKey`、编造 ID，或用 `create --content-file` 写 Markdown `[[id:]]`。2026-10-07 失败例见上文 `[[DCF]]0`。不得把那次写坏当成已引用。
 - `star_labels_exact`：组合卡缺少逐字 STAR 标题；T 正文不是以「你要学会」开头；A 不是小数目演算；R 不是一句口诀；用 STAR 写原子卡；用三行定义背面写组合卡；原子卡背面不是一行正式定义、一行白话类比、可选一行例子。
 - `arrow_scan`：普通学习卡正面或答案行含箭头；`arrow_hits` 不是 0。

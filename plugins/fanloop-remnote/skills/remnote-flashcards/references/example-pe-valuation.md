@@ -8,7 +8,7 @@
 - 打在批次上的最细 Concept Tag：`估值`。不是作者名，不是粗 Folder，也不是 Wiki 页。
 - 实体放在当日每日笔记。多张卡放在一个普通 `text` 主题 Rem 下，便于阅读。
 - 这批不是单篇文章，`source_h1` 为 `n/a`。主题用 `resource` 加概念名。单篇文章或单章见 [前言文章干跑示例](example-book-preface.md)。
-- 只给主题打 `估值`。下面五张子卡不再打这个 Tag。
+- 只给主题打 `估值`。组合卡是主题的最后一个子 Rem，自己不挂这个 Tag。
 - 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `object-has-powerup ["cc"]` 必须为 false，并记入 `cluster_powerup`。若为 true，记为 remnote-direct 回归。
 - 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。准备步骤的前进条件是 `terms_ready` 与 `learning_preflight_passed`，不是 Wiki 回执。
 - 顺序、短标题、别名、STAR 原文、箭头和儿童口吻都按契约。本批 5 张，落在偏好的 3–7 张里。原子卡标题是 `PE`、`EPS`、`PB`，不是带 `？` 或「是什么」的长句。
@@ -76,7 +76,9 @@ combo_rem_refs:
 
 ## FlashcardsPlan 形状
 
-占位符，不是本次知识库的 Rem ID。`title` 会新建一个主题，并把本计划的 `newCards` 都挂在它下面。计划没有字段可以指定已经存在的主题，所以不要再跑一次 apply 把组合卡挂回去。`PE` 若是本批新建，创建计划里不能写 `{"remId"}` 指向它；apply 回读 ID 之后用 `object-set-text` 的 `{"i":"q","_id"}` 注入。别名命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text`，长问句为 `市盈率（PE）是什么？`，每张标题卡一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 不可用。若搜索已经复用了 PE 标题卡，组合卡答案才可以在这一次计划里写 `{ "remId": "<已有 PE 标题卡 Rem ID>" }`。
+占位符，不是本次知识库的 Rem ID。术语卡计划的 `title` 新建主题。组合卡计划不写 `title`。`PE` 若是本批新建，等术语卡 apply 回读 ID 之后，组合卡答案才写 `{"remId"}`。组合卡 apply 之后用 `move-note` 移成主题的最后一个子 Rem，再用 `object-remove-tag` 去掉它自己的 Tag。不要把组合卡留在每日笔记上。别名命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["市盈率（PE）是什么？"]]'`，每张标题卡一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 不可用。若搜索已经复用了 PE 标题卡，组合卡答案才可以写 `{ "remId": "<已有 PE 标题卡 Rem ID>" }`。
+
+术语卡计划。`title` 只覆盖这些术语卡：
 
 ```text
 {
@@ -93,13 +95,27 @@ combo_rem_refs:
         ["正式定义：市盈率 = 股价 / 每股收益（EPS），表示买下公司时，付的钱是它一年赚的钱的多少倍。"],
         ["白话类比：柠檬水摊一年赚 10 块，你花 50 块把它买下来，等于一次付了它 5 年赚的钱。"]
       ]
-    },
+    }
+  ]
+}
+```
+
+组合卡计划不写 `title`。apply 之后再 `move-note` 到主题末尾，并 `object-remove-tag`：
+
+```text
+{
+  schemaVersion: 1,
+  dailyRemId: "<今日笔记 Rem ID>",
+  homeRootId: "<HOME Rem ID>",
+  tagRemId: "<估值 Concept Rem ID>",
+  newCards: [
     {
       key: "pe-gift",
       question: "刚学完 PE：小明的摊多了一笔生日礼，两个摊卖价都是 20 块。小明的摊是真的更便宜吗？",
       answer: [
         ["S — Situation：背景"],
-        ["小明和小红各有一个柠檬水摊，卖价都是 20 块。"]
+        ["小明和小红各有一个柠檬水摊，卖价都是 20 块。"],
+        [{ "remId": "<已回读的 PE 标题卡 Rem ID>" }]
       ]
     }
   ]

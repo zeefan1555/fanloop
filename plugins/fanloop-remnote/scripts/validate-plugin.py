@@ -227,8 +227,10 @@ REQUIRED_SNIPPETS = {
         "FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID overrides the data source id",
         "Auth is ntn login",
         "When findings is non-empty, POST one page per finding",
-        "sdk rem object-get-or-create-alias-with-text",
+        "sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[[\"<alias>\"]]'",
         "SDK 0.0.46 cannot acknowledge abort",
+        "move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>",
+        "object-remove-tag --target-id <COMBO_ID> --args-json '[\"<TAG_ID>\", false]' --allow-destructive",
         "reviewer=user",
         "没有字段可以指定已经存在的主题",
         "object-set-type --target-id <新 Rem ID> --args-json '[1]'",
@@ -243,8 +245,10 @@ REQUIRED_SNIPPETS = {
         "`validated` 和 `planHash`",
         "get-todays-doc` 是写入",
         "没有字段能指定已有主题",
-        "sdk rem object-get-or-create-alias-with-text",
+        "sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[[\"<alias>\"]]'",
         "SDK 0.0.46 cannot acknowledge abort",
+        "move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>",
+        "object-remove-tag --target-id <COMBO_ID> --args-json '[\"<TAG_ID>\", false]' --allow-destructive",
     ),
 }
 

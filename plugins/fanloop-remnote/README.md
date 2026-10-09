@@ -58,7 +58,7 @@ This folder is not published to a marketplace.
 3. The preview reports `validated` and `planHash` only, not the cards. Read the plan file. Only then ask it to apply, reusing the same idempotency key.
 4. A `partial` or `unknown` result means stop and read back. Do not ask it to replay with a new key.
 5. An empty Chinese `search` is not proof a Rem is missing. RemNote's Chinese search cache can be stale. Reload that cache before treating the miss as real.
-6. One plan's `title` creates one new theme for that plan's cards. A second `flashcards apply` cannot attach a combo to that theme. Aliases after the title card exists are `remnote-cli sdk rem object-get-or-create-alias-with-text`, one call per card. `update --add-aliases` depends on the SDK version and fails on SDK 0.0.46.
+6. A term-card plan's `title` creates the theme. The combo plan omits `title`. After that apply, `move-note` places the combo last inside the theme, and `object-remove-tag` clears the combo's own tag. The theme's HOME tag indexes it. Do not leave the combo on the daily note. Aliases are `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`, one call per card. `update --add-aliases` depends on the SDK version and fails on SDK 0.0.46.
 7. Reads and writes stay on `remnote-cli`. Desktop control is only for a control the CLI cannot perform, such as the Chinese search-cache reload button.
 
 For a Direct code change, name that repository and ask for `remnote-direct-maintainer`. Card creation does not go through that skill.

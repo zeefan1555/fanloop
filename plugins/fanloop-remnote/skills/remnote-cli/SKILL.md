@@ -33,8 +33,9 @@ description: "Call the installed remnote-cli for bounded RemNote reads and task 
 - 创建术语卡之前先 `search "<query>" --cards-only`。命中且够用则复用标题卡 Rem ID。
   含中日韩文字的搜索返回空列表时，这不是 miss，见下文「中文搜索缓存」。
 - `flashcards apply --plan <FILE|-> --idempotency-key <KEY>` 处理一组新卡、原答案补充和复用卡。
-  计划没有字段能指定已有主题。`title` 会在 `dailyRemId` 下新建一个主题，只挂本计划的 `newCards`。再跑一次带 `title` 的 apply 会再新建一个主题，不能把组合卡挂回第一次的主题。`reusedCardRemIds` 和 `answerPatches` 也不改父级。这是 remnote-direct 的缺口。写前读一次 `flashcards apply --help`；帮助里仍然没有已有主题字段时，按这一次计划的位置写入，不要发明移动父级的命令。
-  必须共用一个主题的原子卡和组合卡放进同一个计划，只 apply 一次。`{"remId"}` 只能指向已经存在的标题卡。本批新建、还没有 Rem ID 的标题卡，不能在这个创建计划里写成 `{"remId"}`，`newCards[].key` 也不是 Rem ID。这次 apply 回读到标题卡 Rem ID 之后，缺的引用用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}` 写入。别名用 `remnote-cli sdk rem object-get-or-create-alias-with-text`，每张标题卡一条命令。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 报 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。别名 Rem 不能当引用目标。`cardCluster: true` 只在用户明确要求且学习卡契约允许时写入。
+  计划没有字段能指定已有主题。`title` 会在 `dailyRemId` 下新建一个主题，只挂本计划的 `newCards`。组合卡计划再写 `title` 会再新建一个主题。`reusedCardRemIds` 和 `answerPatches` 也不改父级。
+  术语卡计划写 `title`。组合卡等标题卡 Rem ID 回读之后单独一次 `flashcards apply`，计划不写 `title`。`{"remId"}` 只能指向已经存在的标题卡。`newCards[].key` 不是 Rem ID。组合卡必须放进已有主题，作为最后一个子 Rem，自己不挂 Tag。不要把组合卡留在每日笔记上。apply 之后每次 shell 一个命令。先干跑 `remnote-cli move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`，对照后再加 `--apply`。然后 `remnote-cli sdk rem object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`。`update-tags --remove-tag-ids` 会失败，它要求 allowDestructive。回读主题子 Rem 顺序、组合卡没有 tags、`review-stats --root-id <THEME_ID>` 列出全部卡片、`search-by-tag` 只返回主题。
+  别名用 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`，每张标题卡一条命令。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 报 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。别名 Rem 不能当引用目标。`cardCluster: true` 只在用户明确要求且学习卡契约允许时写入。
 - 默认学习路径不调用 `wiki apply`。只有用户本批明确要求 Wiki 时，才用
   `wiki apply --plan <FILE|-> --idempotency-key <KEY>` 处理同一分区的页面、aliases、
   索引和批次日志。不同分区或超出计划预算时按依赖拆成有序批次。
@@ -83,7 +84,7 @@ description: "Call the installed remnote-cli for bounded RemNote reads and task 
 
 任务回执的 `ids` 将语义键映射到真实 Rem ID；`facts` 包含正文哈希、原生卡片 ID 和复习哈希。
 不要猜创建顺序，不重新搜索刚创建的对象。更新答案使用精确答案 ID 和 `expectedTextHash`，
-保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句在标题卡存在之后，用 `remnote-cli sdk rem object-get-or-create-alias-with-text` 加在这张标题卡上，每张一条命令。首次使用先读该命令的 `--help`。`update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本不要改用 `update --add-aliases`，也不要改走桌面。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。`question` 是纯字符串，不会解析括号。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
+保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句在标题卡存在之后，用 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'` 加在这张标题卡上，每张一条命令。`update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本不要改用 `update --add-aliases`，也不要改走桌面。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。`question` 是纯字符串，不会解析括号。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
 
 combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
 

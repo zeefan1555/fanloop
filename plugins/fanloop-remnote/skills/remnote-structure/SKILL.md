@@ -44,7 +44,7 @@ remnote-cli search-by-tag --tag-id <REM_ID> --result-mode tagged --limit 1 --con
 
 - HOME：保存 Folder 与 Concept Tag；分类关系通过打 Tag 建立。
 - WIKI：只保存固定目录、元文档、原始来源和普通知识页面。闪卡可以引用 Wiki 页面，但不得成为 WIKI 子树的一部分。
-- 每日笔记：新闪卡、主题、普通笔记和文章的实体写入今日笔记。单卡给自身打 HOME Tag。多卡放在主题下时只给主题打 Tag，子卡通常不再打。学习批次使用领域分组下最细的 Concept Tag，例如 `HOME / 03-RESOURCES / 金融知识 / 估值`。拒绝作者名、只停在粗 Folder，以及把 Wiki 页当 Tag。持续课程用教程名，例如 `人人都是量化交易员`，不用作者名 `刑无刀`。路径证明按学习卡契约的 `tag_path`。
+- 每日笔记：新闪卡、主题、普通笔记和文章的实体写入今日笔记。单卡给自身打 HOME Tag。多卡放在主题下时只给主题打 Tag。组合卡是主题的最后一个子 Rem，自己不挂 Tag。学习批次使用领域分组下最细的 Concept Tag，例如 `HOME / 03-RESOURCES / 金融知识 / 估值`。拒绝作者名、只停在粗 Folder，以及把 Wiki 页当 Tag。持续课程用教程名，例如 `人人都是量化交易员`，不用作者名 `刑无刀`。路径证明按学习卡契约的 `tag_path`。
 - 创建前分别确定今日笔记父级与 HOME Tag ID；位置和标签是两个独立检查项，创建后调用 `remnote-verify`。
 - 审计 WIKI 的卡片状态调用 `remnote-verify`：知识页面误开卡片时原位清除方向；真正错放的学习卡移入每日笔记并打 HOME Tag，保留原 ID。
 

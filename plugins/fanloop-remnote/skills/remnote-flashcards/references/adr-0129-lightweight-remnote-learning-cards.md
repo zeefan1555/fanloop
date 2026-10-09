@@ -121,15 +121,15 @@ only when `preparation_recorded`, `draft_quality_passed`, `terms_ready`, and
 `search --cards-only` row per term, reuse by title Rem id or create on a miss,
 and combo refs that point at those title cards. Persist writes new atomics
 first, reads the title Rem ids, then injects `{"remId":"<titleCardRemId>"}`.
-Plugin note, 2026-10-09: a second `flashcards apply` cannot parent the combo
-under the theme the first plan created. FlashcardsPlan has no existing-theme
-field; `title` creates a new theme for that plan only. Put the cards that
-must share a theme in one plan. Inject rem-refs that did not exist yet with
-`object-set-text`, and add aliases with
-`remnote-cli sdk rem object-get-or-create-alias-with-text`, one call per card.
-`update --add-aliases` is SDK-version-dependent. SDK 0.0.46 fails with
-`Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`.
-That note records a remnote-direct gap. It does not change the card contract.
+Plugin note, 2026-10-09: FlashcardsPlan has no existing-theme field, so the
+combo plan omits `title`. After that apply the combo is still a child of the
+daily note. Move it to the last child of the theme with `move-note`, then
+remove its own tag with `object-remove-tag`. Do not leave the combo on the
+daily note. The theme's HOME tag indexes it. Aliases are
+`sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`,
+one call per card. `update --add-aliases` is SDK-version-dependent. SDK 0.0.46
+fails with `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`.
+That note does not change the card contract.
 `terms_referenced` is that readback. `remnote-wiki` is optional on prepare and
 is not executed on the default path. The repair value `wiki_links` is now
 `term_refs`. The four step IDs stay: `resolve_home_tag`,

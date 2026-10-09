@@ -7,7 +7,7 @@
 - 领域分组：`HOME / 03-RESOURCES / 金融知识`
 - 打在批次上的最细 Concept Tag：`人人都是量化交易员`。这是教程名。不要打作者名 `刑无刀`，不要停在 `金融知识`，也不要把 Wiki 页当 Tag。
 - 这一页的 H1 是「前言」。`source_h1` 就是 `前言`。`theme_title` 必须是 `2026-10-06 book 前言`。写成「术语与方法」或「量化地图」时 `theme_literal` 失败，不得写入。
-- 实体放在当日每日笔记。多张卡放在一个普通 `text` 主题 Rem 下。只给主题打教程 Tag。子卡不再打。
+- 主题放在当日每日笔记。术语卡在主题下。组合卡是主题的最后一个子 Rem，自己不挂教程 Tag。主题的 Tag 索引这些卡。
 - 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `cluster_powerup` 必须为 false。若为 true，记为 remnote-direct 回归。
 - 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。Wiki 概念页也不能代替术语闪卡。离开准备步骤靠 `terms_ready` 和 `learning_preflight_passed`，不靠 Wiki 不适用回执。
 - 创建 `回测`、`四个阶段`、`做看疑` 之前，各自运行 `remnote-cli search "<短名>" --cards-only --include-review-stats --view full`。本草稿假定三次都没有命中同一记忆目标的术语闪卡，所以新建。若命中且够用，引用那张标题卡的 Rem ID，不新建。
@@ -50,7 +50,7 @@ combo_rem_refs:
   - {card_key: backtest-doubt, refs: [backtest, do-look-doubt, four-stages]}
 ```
 
-`pending` 表示这张标题卡还没有 Rem ID。这些卡和组合卡放进同一次 `flashcards apply`。创建计划里不要把 `term_key` 写成 `{"remId"}`。这次 apply 回读 ID 之后，用 `object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}` 注入。不要再跑一次带 `title` 的 apply：那会再造一个主题。这些 ID 不是 Wiki 页面，也不是别名 Rem。别名命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text`，每张标题卡一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 不可用。
+`pending` 表示这张标题卡还没有 Rem ID。术语卡先 apply。组合卡计划不写 `title`，答案里的 `{"remId"}` 用回读到的标题卡 ID。不要把 `term_key` 写成 `{"remId"}`。组合卡 apply 之后用 `move-note` 移成主题的最后一个子 Rem，再用 `object-remove-tag` 去掉它自己的 Tag。不要把组合卡留在每日笔记上。这些 ID 不是 Wiki 页面，也不是别名 Rem。别名命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`，每张标题卡一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 不可用。
 
 别名在标题卡创建之后再加上。`回测是什么？` 这种长句不是标题。组合卡只引用标题卡。下面草稿里的 `[[回测]]` 是显示结果，还没有真实 Rem ID。
 
@@ -60,11 +60,11 @@ combo_rem_refs:
 
 ## 阅读草稿
 
-下面的 Markdown（`问题 ===` 加缩进子 bullet）只帮助看背面形状。它不是 `flashcards apply` 读的计划。计划是 `question` 字符串加 `answer` 的 `Segment[][]`，字段见 [FlashcardsPlan](../../remnote-cli/references/flashcards-plan.md)。`title` 为 `2026-10-06 book 前言` 的那一次计划新建唯一主题。段间看起来空的 Rem 含一个 `U+200B`。原子术语卡没有这些空行，也没有 S/T/A/R 标题。
+下面的 Markdown（`问题 ===` 加缩进子 bullet）只帮助看背面形状。它不是 `flashcards apply` 读的计划。计划是 `question` 字符串加 `answer` 的 `Segment[][]`，字段见 [FlashcardsPlan](../../remnote-cli/references/flashcards-plan.md)。`title` 为 `2026-10-06 book 前言` 的术语卡计划新建主题。组合卡不在这份带 `title` 的计划里。段间看起来空的 Rem 含一个 `U+200B`。原子术语卡没有这些空行，也没有 S/T/A/R 标题。
 
 ## FlashcardsPlan 形状
 
-占位符。组合卡在创建计划里不引用尚不存在的 `回测` Rem ID。apply 回读之后再 `object-set-text`。
+占位符。下面带 `title` 的计划只有术语卡。组合卡是另一次不写 `title` 的计划，答案里的 `{"remId"}` 用已回读的标题卡 ID。apply 之后 `move-note` 到主题末尾，再 `object-remove-tag`。
 
 ```text
 {
@@ -80,14 +80,6 @@ combo_rem_refs:
       answer: [
         ["正式定义：回测是用过去已经发生的记录，按写好的买卖规则重走一遍，看当时会赚还是亏。"],
         ["白话类比：小明拿出上周的天气本，按「晴天才摆摊」重走一遍，看那周会赚几块。"]
-      ]
-    },
-    {
-      key: "backtest-doubt",
-      question: "刚学完 回测 和 做看疑：用上周的天气本重走，赚了 8 块。就能说这个规矩以后也会赚吗？",
-      answer: [
-        ["S — Situation：背景"],
-        ["小明用上周的天气本重走「晴天才摆摊」。晴了 4 天，每天 2 块，一共 8 块。"]
       ]
     }
   ]
