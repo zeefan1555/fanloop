@@ -1,6 +1,6 @@
 ---
 name: control-remnote
-description: "通过电脑界面观察、操作和核验 RemNote 桌面应用。用于用户明确要求电脑操作，或 remnote-cli 无法完成的原生界面状态；普通内容读写仍使用 remnote-cli。"
+description: "通过电脑界面完成 remnote-cli 没有对应命令的 RemNote 动作。日常制卡里这一步是桌面按钮「重新加载搜索缓存」。搜索、读取、别名、标签和写卡仍使用 remnote-cli。"
 ---
 
 # Control RemNote
@@ -10,7 +10,7 @@ description: "通过电脑界面观察、操作和核验 RemNote 桌面应用。
 ## 边界
 
 - 普通搜索、读取、创建、更新、移动和回读优先使用 `remnote-cli`；写入前运行 `remnote-cli status`。
-- 只有用户明确要求电脑操作，或 CLI 缺少对应原生能力时才操作界面。常见场景是检查侧边栏或用户明确要求查看练习队列。Card Cluster 不走界面，也不用 `object-add-powerup` 补 `cc`。添加与否只由 `flashcards apply` 的 `cardCluster` 决定，规则在学习卡契约。写后由 remnote-verify 用 `object-has-powerup` 回读。
+- 只有 CLI 确实没有对应命令时才操作界面。日常制卡里这一步是桌面按钮「重新加载搜索缓存」。已知术语对照搜索返回空时，先点这个按钮，再回到 CLI 重搜。宿主没有 Computer Use 时，报告 blocked，请用户自己点该按钮。不要用 AppleScript，除非用户明确要求。点完立刻回到 CLI 重查，不要在桌面上搜索、加别名或写卡。用户要求查看练习队列或侧边栏，且 `review-stats` 与 `read` 表达不了那个原生状态时，才观察界面。Card Cluster 不走界面，也不用 `object-add-powerup` 补 `cc`。添加与否只由 `flashcards apply` 的 `cardCluster` 决定，规则在学习卡契约。写后由 remnote-verify 用 `object-has-powerup` 回读。别名用 `sdk rem object-get-or-create-alias-with-text`，不在桌面上加。
 - 内容与业务规则由当前任务对应的 RemNote 技能决定；本技能只负责可靠地完成界面动作。
 - 不直接读取或修改 RemNote 应用数据目录。不使用 AppleScript、坐标脚本或其他桌面自动化替代 Computer Use，除非用户明确要求。
 

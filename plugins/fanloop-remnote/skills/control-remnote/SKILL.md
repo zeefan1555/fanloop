@@ -1,6 +1,6 @@
 ---
 name: control-remnote
-description: "Operate a RemNote desktop control that remnote-cli cannot perform. Use when the CLI truly has no command, such as the Chinese search-cache reload button. Prefer remnote-cli for every search, read, alias, tag, and card write. If this host has no computer-use tool, stop and report blocked."
+description: "Operate a RemNote desktop control that remnote-cli cannot perform. Use when the CLI truly has no command. On the card path that control is the button 「重新加载搜索缓存」. Prefer remnote-cli for every search, read, alias, tag, and card write. If this host has no computer-use tool, stop and report blocked."
 ---
 
 # Control RemNote
@@ -11,7 +11,7 @@ description: "Operate a RemNote desktop control that remnote-cli cannot perform.
 
 - 本插件不调用 `fanloop flow`。搜索、读取、创建、别名、标签、更新、移动和回读都使用 `remnote-cli`，即使用户提到了界面。写入前运行 `remnote-cli status`。
 - 当前宿主没有 Computer Use（没有 `cua.getApp` 这一类工具）时，停下来报告 blocked。不要改用 AppleScript、坐标脚本、shell 点按或其他桌面自动化来补这条能力。
-- 只有 CLI 确实没有对应命令时才操作界面。例子：重载中文搜索缓存的按钮。点完立刻回到 CLI 重查，不要在桌面上搜索或写卡。用户要求查看练习队列或侧边栏，且 `review-stats` 与 `read` 表达不了那个原生状态时，才观察界面。Card Cluster 不走界面，也不用 `object-add-powerup` 补 `cc`。添加与否只由 `flashcards apply` 的 `cardCluster` 决定，规则在学习卡契约。写后由 remnote-verify 用 `object-has-powerup` 回读。别名用 `sdk rem object-get-or-create-alias-with-text`，不在桌面上加。
+- 只有 CLI 确实没有对应命令时才操作界面。日常制卡里这一步是桌面按钮「重新加载搜索缓存」。已知术语对照搜索返回空时，先点这个按钮，再回到 CLI 重搜。宿主没有 Computer Use 时，报告 blocked，请用户自己点该按钮。不要用 AppleScript，除非用户明确要求。点完立刻回到 CLI 重查，不要在桌面上搜索或写卡。用户要求查看练习队列或侧边栏，且 `review-stats` 与 `read` 表达不了那个原生状态时，才观察界面。Card Cluster 不走界面，也不用 `object-add-powerup` 补 `cc`。添加与否只由 `flashcards apply` 的 `cardCluster` 决定，规则在学习卡契约。写后由 remnote-verify 用 `object-has-powerup` 回读。别名用 `sdk rem object-get-or-create-alias-with-text`，不在桌面上加。
 - 内容与业务规则由当前任务对应的 RemNote 技能决定；本技能只负责可靠地完成界面动作。
 - 不直接读取或修改 RemNote 应用数据目录。不使用 AppleScript、坐标脚本或其他桌面自动化替代 Computer Use，除非用户明确要求。
 

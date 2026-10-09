@@ -33,6 +33,12 @@ preflight:
   card_cluster: pass
   named_methods: pass
   redo_reuse: pass
+  theme_para: pass
+  tag_approval: pass
+  control_search: pass
+  combo_placement: pass
+  alias_method: pass
+  factual_review: pass
   card_cluster_requested: false
   card_cluster_plan: omit
   source_h1: n/a

@@ -8,6 +8,15 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 日常操作直接使用已安装的 `remnote-cli`。链路是 CLI、本机 WebSocket、SDK 插件和官方 SDK。
 以当前命令帮助、运行时协议及能力发现为准，不要求 CLI 与插件版本号相同。
 
+## 运行前提
+
+- Node >= 22.13。系统自带的 node 可能更旧，构建 remnote-direct 前先确认版本。
+- 在 remnote-direct 仓库执行 `npm run setup && npm run build`。
+- SDK Bridge 由 `node scripts/serve-dist.js --root dist --port 8090` 提供，监听 `127.0.0.1:8090`。
+- 没有 FUSE 时用 `APPIMAGE_EXTRACT_AND_RUN=1 /path/to/RemNote.AppImage --no-sandbox`。
+- 这些后台进程不会跨过重启。background processes do not survive reboot. 下次运行先重新拉起 Bridge，并确认 `remnote-cli status`。
+- 配对令牌留在 `~/.config/remnote-cli/connection.json`，不写入仓库。
+
 ## 身份与授权
 
 - 每批写入前运行 `remnote-cli status`，核对实际插件身份、协议、SDK、精确 KB 绑定、权限和写入开关。
@@ -18,6 +27,8 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
   删除、替换、移动和批量迁移先核对目标 ID、引用及影响；能力或授权不足立即停止。
 - 每次 shell 执行只运行一个 `remnote-cli` 命令；本机命令串行，不争用同一监听端口。
   每条任务命令内部复用连接，退出关闭，不新增常驻服务。
+- 不得并行运行 `remnote-cli`。包括互不依赖的查询、同一轮里的多个 shell、后台任务和 `&`。
+  第二条会失败，错误是 `CLI port occupied`。等上一条命令退出再发下一条。
 
 ## 读取与任务接口
 
@@ -27,10 +38,13 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
   祖先、标签和子树。需要正文的 ID 放入 `remIds`；其他选择器只返回结构元数据，不能当正文。
 - 单点 `read` 从浅层开始，按返回的截断、游标和缺失证据补读；不要把整个 KB 正文装入上下文。
 - 卡片复习证据来自搜索结果的原生 `cards` 或 `review-stats`，不可用就标为 unavailable。
-- 创建术语卡之前先 `search "<query>" --cards-only`。命中且够用则复用标题卡 Rem ID。
+- 创建术语卡之前先做已知术语对照搜索，再 `search "<query>" --cards-only`。术语有英文形式时另搜英文。Also search the English form of the term when it has one. 命中且够用则复用标题卡 Rem ID。
+  含中日韩文字的搜索返回空列表时，这不是 miss。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。
 - `flashcards apply --plan <FILE|-> --idempotency-key <KEY>` 处理一组新卡、原答案补充和复用卡。
-  普通学习批次先写入新原子卡并回读标题 Rem ID，再在组合卡答案使用 `{"remId":"<标题卡 Rem ID>"}`。
-  别名 Rem 不能当引用目标。`cardCluster: true` 只在用户明确要求且学习卡契约允许时写入。
+  计划没有字段能指定已有主题。`title` 会在每日笔记下新建一个主题，只挂本计划的 `newCards`。组合卡计划再写 `title` 会再新建一个主题。
+  术语卡计划写 `title`。组合卡等标题卡 Rem ID 回读之后单独一次 `flashcards apply`，计划不写 `title`。`{"remId"}` 只能指向已经存在的标题卡。
+  组合卡必须放进已有主题，作为最后一个子 Rem，自己不挂 Tag。不要把组合卡留在每日笔记上。先干跑 `remnote-cli move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`，对照后再加 `--apply`。然后 `remnote-cli sdk rem object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`。`update-tags --remove-tag-ids` 会失败，它要求 allowDestructive。
+  别名用 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`，每张标题卡一条命令。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 报 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。别名 Rem 不能当引用目标。`cardCluster: true` 只在用户明确要求且学习卡契约允许时写入。
 - 默认学习路径不调用 `wiki apply`。只有用户本批明确要求 Wiki 时，才用
   `wiki apply --plan <FILE|-> --idempotency-key <KEY>` 处理同一分区的页面、aliases、
   索引和批次日志。不同分区或超出计划预算时按依赖拆成有序批次。
@@ -40,9 +54,23 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 每计划最多 7 张新卡或 10 个 Wiki 页，且不超过 100 KiB；同批 Wiki 引用用 pageKey，跨批或 flashcards 计划必须使用真实 Rem ID。
 不新增跳过验证选项，计划预览仍是只读检查而非完成回执。
 
-任务命令默认预览；审阅计划及预览后才加 `--apply`。每个计划使用稳定键，批次之间键不冲突；
+任务命令默认预览；审阅计划及预览后才加 `--apply`。`flashcards apply` 不加 `--apply` 时，输出只有 `validated` 和 `planHash`，没有卡片正文。`--apply` 之前读完计划文件，对照已审草稿的 digest。
+
+每个计划使用稳定键，批次之间键不冲突；
 已有批次不能因重试、跨日或接续会话换键。遵守当前帮助的 JSON、对象数、正文长度和回执上限，
-不以分批绕过授权上限，不并行处理有依赖的批次。没有工作时跳过命令并记录原因，不构造空写入。
+不以分批绕过授权上限。任何 `remnote-cli` 调用都不得并行。没有工作时跳过命令并记录原因，不构造空写入。
+
+## 中文搜索缓存
+
+含中日韩文字的 `search` 返回空列表时，结果没有权威性。先用一个已知存在的术语做对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one.
+
+这个按钮是日常路径上唯一的非 CLI 步骤。宿主没有 Computer Use 时，报告 blocked，请用户自己点该按钮，确认之后再用 CLI 重查。不要用桌面做搜索、别名、建卡或建 Tag。
+
+## 今日笔记
+
+先做只读查找。`remnote-cli sdk date get-todays-doc` 是写入：笔记不存在时会创建。只读评审、预览和查重不得调用。只有本批已经授权写入，而且只读查找没有确认今日笔记时才调用，并在记录里标明这次调用可能创建了每日笔记。
+
+## 表达与单点命令
 
 若任务接口不能保真表达原文的层级、格式或全部必要动作，先判断现有公开命令是否完整覆盖，
 不得压平正文、截短答案、改变模式或在写后才发现表达缺口。能力不足就记录精确缺口并阻塞，
@@ -57,7 +85,7 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 
 任务回执的 `ids` 将语义键映射到真实 Rem ID；`facts` 包含正文哈希、原生卡片 ID 和复习哈希。
 不要猜创建顺序，不重新搜索刚创建的对象。更新答案使用精确答案 ID 和 `expectedTextHash`，
-保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句用 `getOrCreateAliasWithText` 或 `update --add-aliases` 加在这张标题卡上。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。`question` 是纯字符串，不会解析括号。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
+保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句在标题卡存在之后，用 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'` 加在这张标题卡上，每张一条命令。`update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本不要改用 `update --add-aliases`，也不要改走桌面。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。`question` 是纯字符串，不会解析括号。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
 
 combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
 
@@ -79,7 +107,7 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 ## 故障与分工
 
 区分 CLI 端口占用、插件未连接、认证、错误 KB、权限、协议/能力不兼容和写入关闭。
-连接故障可按同包 `control-remnote` 观察桌面状态；不得盲目重启或重装。
+连接故障先看 `remnote-cli status`。能用 CLI 完成的搜索、读取、别名、标签和写卡都走 CLI。只有 CLI 确实没有对应命令的界面动作才用 `control-remnote`。日常路径上那一步是桌面按钮「重新加载搜索缓存」。不得盲目重启或重装，也不要用桌面代替上面的写入。
 需要改代码、安装或权限时保存当前任务位置，进入单独的 RemNote Direct 维护任务；
 维护完成后先核对原 ID 再恢复，不在日常制卡中夹带发布、重放压力测试或原生事务探测。
 

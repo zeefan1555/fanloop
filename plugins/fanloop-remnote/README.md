@@ -11,7 +11,8 @@ The skills call the installed `remnote-cli` (local WebSocket to the RemNote plug
 
 ## Prerequisites
 
-- Node.js `>= 22.13`.
+- Node.js `>= 22.13` for the remnote-direct build. The system Node may be older. Node >= 22.13 is the floor.
+- In the remnote-direct repo, run `npm run setup && npm run build` before serving the bridge.
 - `remnote-cli` installed and paired. The pairing token stays in `~/.config/remnote-cli/connection.json`. Do not copy that file into the plugin or the git repo.
 - RemNote running, with the remnote-direct SDK Bridge plugin loaded. From the remnote-direct repo, serve the built plugin on localhost:
 
@@ -19,7 +20,7 @@ The skills call the installed `remnote-cli` (local WebSocket to the RemNote plug
   node scripts/serve-dist.js --root dist --port 8090
   ```
 
-  That server binds to `127.0.0.1`. In RemNote, load the SDK Bridge from that local URL. `remnote-cli status` should then show the knowledge base you intend to touch.
+  That server binds to `127.0.0.1`. In RemNote, load the SDK Bridge from that local URL. `remnote-cli status` should then show the knowledge base you intend to touch. These background processes do not survive reboot. The next run starts the bridge again and confirms `remnote-cli status`.
 - On a host without FUSE, start the RemNote AppImage with extraction and the sandbox disabled:
 
   ```bash
@@ -57,9 +58,9 @@ This folder is not published to a marketplace.
 2. In Cursor, ask for flashcards from a short source you actually want to learn. The agent should search with `--cards-only`, draft, and run `flashcards apply` **without** `--apply` first.
 3. The preview reports `validated` and `planHash` only, not the cards. Read the plan file. Only then ask it to apply, reusing the same idempotency key.
 4. A `partial` or `unknown` result means stop and read back. Do not ask it to replay with a new key.
-5. An empty Chinese `search` is not proof a Rem is missing. RemNote's Chinese search cache can be stale. Reload that cache before treating the miss as real.
+5. An empty Chinese `search` is not proof a Rem is missing. Run a known-term control search first. If that control is empty, click the desktop button 「重新加载搜索缓存」, then search again. Also search the English form of a term when it has one.
 6. A term-card plan's `title` creates the theme. The combo plan omits `title`. After that apply, `move-note` places the combo last inside the theme, and `object-remove-tag` clears the combo's own tag. The theme's HOME tag indexes it. Do not leave the combo on the daily note. Aliases are `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`, one call per card. `update --add-aliases` depends on the SDK version and fails on SDK 0.0.46.
-7. Reads and writes stay on `remnote-cli`. Desktop control is only for a control the CLI cannot perform, such as the Chinese search-cache reload button.
+7. Reads and writes stay on `remnote-cli`. Desktop control is only for a control the CLI cannot perform. On this path that control is the button 「重新加载搜索缓存」.
 
 For a Direct code change, name that repository and ask for `remnote-direct-maintainer`. Card creation does not go through that skill.
 
@@ -97,4 +98,4 @@ plugins/fanloop-remnote/
     remnote-direct-deliver/
 ```
 
-Fanloop panorama cards are not in this plugin. They need `fanloop card render`. Each step instead sends a short status in chat. The production workflow packages under `skills/remnote-flashcards/` and `skills/remnote-direct-maintainer/` are unchanged.
+Fanloop panorama cards are not in this plugin. They need `fanloop card render`. Each step instead sends a short status in chat. The production `skills/remnote-flashcards/` package keeps the same card rules. Its engine checks the new receipts on the forward routes.

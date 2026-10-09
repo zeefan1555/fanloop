@@ -18,11 +18,11 @@ description: "Create, update, or review RemNote flashcards on today's daily note
 - 计划形状见 [FlashcardsPlan](../remnote-cli/references/flashcards-plan.md)。`newCards` 最多 7 张，计划最大 100 KiB。不截断正文，不抬高上限。
 - 每次 shell 只跑一个 `remnote-cli` 命令。不得并行，包括同一轮里的多个 shell。并行会报 `CLI port occupied`。
 - `flashcards apply` 默认预览。不加 `--apply` 的输出只有 `validated` 和 `planHash`，没有卡片正文。`--apply` 之前读完计划文件本身，对照已审草稿；学习预检在这次阅读之后仍全部为 pass，才另一次调用加上 `--apply`。
-- 含中日韩文字的 `search` 返回空，不是「没有这张卡」或「没有这个 Tag」。按 [remnote-cli](../remnote-cli/SKILL.md) 用 Tag 树、`search-by-tag` 或 `context` 交叉核对。仍不能确定时，只把重载中文搜索缓存的按钮交给桌面；查重和写入仍回到 CLI。不得据此新建术语卡。
+- 含中日韩文字的 `search` 返回空，不是「没有这张卡」或「没有这个 Tag」。先做已知术语对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one. 查重和写入仍回到 CLI。不得据此新建术语卡。
 - 今日笔记先只读查找。`sdk date get-todays-doc` 是写入，笔记不存在时会创建。只读阶段不得调用。
 - 同一计划重试、跨日或换会话都用原来的 `--idempotency-key`。批次之间的键不冲突。
 - 结果是 `partial` 或 `unknown`，或超时、断连：停止写入，留下原计划、键、已知 ID 和私有恢复记录，只读核对。不自动重放，不换键，不删除重建，不把空搜索当成没写过。
-- 写前 preflight 的门禁 id 全部要在，且都是 pass：`term_search`、`atomics_first`、`short_titles`、`aliases_after_create`、`rem_ref_title_ids`、`star_labels_exact`、`arrow_scan`、`theme_literal`、`tag_path`、`no_spec_unless_asked`、`card_cluster`、`named_methods`、`redo_reuse`。`arrow_hits` 为 0。契约里的失败条件一条成立就不得通过，也不得 `--apply`。
+- 写前 preflight 的门禁 id 全部要在，且都是 pass：`term_search`、`atomics_first`、`short_titles`、`aliases_after_create`、`rem_ref_title_ids`、`star_labels_exact`、`arrow_scan`、`theme_literal`、`theme_para`、`tag_path`、`tag_approval`、`control_search`、`no_spec_unless_asked`、`card_cluster`、`named_methods`、`redo_reuse`、`combo_placement`、`alias_method`、`factual_review`。`arrow_hits` 为 0。契约里的失败条件一条成立就不得通过，也不得 `--apply`。example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice. 这是 `factual_review`，不是 `kid_clarity` 的第六个键。theme_para maps 00-NOTE to note, 01-PROJECTS to project, 02-AREAS to area, 03-RESOURCES to resource, and 04-ARCHIVE to archive.
 - 用户没要求时不为 `spec` 或策略规格说明书建卡。没要求时不写 Wiki，不用「未要求 Wiki」充当通过。
 - combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
 
@@ -34,16 +34,18 @@ description: "Create, update, or review RemNote flashcards on today's daily note
 
 复用对话里已有的理解和材料，不重新访谈。材料是 spec 或策略规格说明书，且用户没有明确要求为它制卡：blocked，不记 `home_tag_ready`，不进入术语检索。
 
-按 [remnote-structure](../remnote-structure/SKILL.md) 定位唯一 HOME 和最细 Concept Tag。持续课程用教程名，不用作者名。叶子必须是 Concept。中文名称的 `search` 为空时，沿 HOME 树用 `read` 或 `search --parent-id` 核对，不要把 Tag 判成缺失。单篇或单章记下逐字 `source_h1`。每个术语先 `search --cards-only`，够用则记下标题卡 Rem ID；Wiki 页和空 `cards` 不是术语闪卡。中日韩查询返回空不是 miss，先按 remnote-cli 交叉核对。仍不能确定时，只让桌面点重载中文搜索缓存的按钮，然后回到 CLI 重查。用户说该来源旧卡要重做时，那些卡不进入复用。复习证据不可用就标 unavailable，不推断掌握程度。
+按 [remnote-structure](../remnote-structure/SKILL.md) 定位唯一 HOME 和最细 Concept Tag。持续课程用教程名，不用作者名。叶子必须是 Concept。中文名称的 `search` 为空时，先做已知术语对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one. 不要把 Tag 判成缺失。单篇或单章记下逐字 `source_h1`。来源类型按 `theme_para` 对齐 Tag 所在 PARA 区。每个术语先 `search --cards-only`，够用则记下标题卡 Rem ID；Wiki 页和空 `cards` 不是术语闪卡。用户说该来源旧卡要重做时，那些卡不进入复用。复习证据不可用就标 unavailable，不推断掌握程度。
 
 最细 Concept 沿 HOME 树确认不存在时，顺序固定：
 
 1. 向用户提出完整祖先路径和要新建的 Concept 名称，等用户明确同意。空的中文 `search` 不是同意，也不是缺失证明。
-2. 用户同意之后，才做这次明确批准的写入：`remnote-cli create --parent-id <父级 ID>`，然后 `remnote-cli sdk rem object-set-type --target-id <新 Rem ID> --args-json '[1]'`。每次 shell 一个命令。
+2. 用户同意之后，才做这次明确批准的写入：`remnote-cli create --title "<Concept 名称>" --parent-id <父级 ID>`，然后 `remnote-cli sdk rem object-set-type --target-id <新 Rem ID> --args-json '[1]'`。每次 shell 一个命令。
 3. `read` 回读 `remType=concept` 和父级。把这个真实 Rem ID 记入 `tag_id` 和 `created_tag_ids`。
 4. 后面的预览和 `--apply` 用这个 `tagRemId`。不要猜 ID，不要在用户同意前创建，也不要靠 `flashcards apply` 顺手建 Tag。
 
 没得到同意就停在本步，不预览。
+
+离开本步还要 `tag_approved=passed`。叶子已存在时 approval 为 not_needed，`created_tag_ids` 为空。
 
 通过 `home_tag_ready` 必须同时有：`home_id`、`tag_id`、`ancestor_ids`、`tag_ancestor_path`、`created_tag_ids`、`source_refs`、`material_digest`、`mode`、`goal_keys`、`existing_card_ids`、`term_keys`、`term_scope`、`source_h1`（不是单篇时为 `n/a`）。ID 来自当前连接。
 
@@ -60,14 +62,15 @@ description: "Create, update, or review RemNote flashcards on today's daily note
 
 每完成一批草稿，交给独立只读审卡。审卡按 [remnote-verify](../remnote-verify/SKILL.md)。审卡者只读材料和草稿，不改卡、不改 Wiki。只修失败卡，再复审改动部分。作者自证不能通过。
 
-能派子 Agent 时，派一个不继承起草上下文的只读审卡。这个宿主派不出子 Agent 时，请父级或宿主跑这次只读审卡，并把 `reviewer_receipt` 交回来。没有这样的父级时，请用户按同一份检查审这份草稿，回执记 `reviewer=user`。起草者不得自己填回执并称作独立审卡。子 Agent、父级和用户都没有完成审卡时，`draft_quality_passed` 失败，不得写卡。
+能派子 Agent 时，派一个不继承起草上下文的只读审卡。这个宿主派不出子 Agent 时，请父级或宿主跑这次只读审卡，并把 `reviewer_receipt` 交回来。没有这样的父级时，请用户按同一份检查审这份草稿，回执记 `reviewer=user`。起草者不得自己填回执并称作独立审卡。子 Agent、父级和用户都没有完成审卡时，`draft_quality_passed` 失败，不得写卡。只复审改变的卡，对照重新计算的 draft_digest。回执记录 `plugin_commit`，即本插件的 git commit。
 
-离开本步必须四项同时成立，缺一不可：
+离开本步必须五项同时成立，缺一不可。第五项是 `control_search_passed=passed`：已知术语对照搜索已经做过；对照为空时已经点过「重新加载搜索缓存」并重搜。原文导入或摘录且 `terms_ready` 为 `skip_original` 时，可以带 `skip_original` 通过。
 
 - `preparation_recorded`：`material_digest`、`draft_digest`、`card_keys`、`term_pipeline`、`source_h1`、`theme_title`、`preflight`、`reviewer_receipt`（覆盖 `card_keys`、失败项、来源、摘要、`kid_clarity`、`star_headings`）、`term_keys`、`skipped_count`。不写 `wiki_receipt`。
 - `draft_quality_passed`：审卡覆盖的 `card_keys` 与 `preparation_receipt.card_keys` 逐项相同，失败项为空。每张普通卡有 `kid_clarity` 五问 `one_goal`、`one_pass`、`concrete`、`plain_words`、`no_arrow`，值只能是 yes 或 no，且全部 yes。每张组合卡的 `star_headings` 逐字是 `S — Situation：背景`、`T — Task：任务／目标`、`A — Action：行动`、`R — Result：结果`。combo plain_words rejects unexplained trading slang: 梭哈, 全仓, 一把梭, 优秀个股; rewrite with plain kid words such as 一次花光 or 分开买.
 - `terms_ready=passed`：`term_pipeline` 覆盖本批每一个术语。每条有 `query`、`cards_only: true`，`outcome` 为 `reuse` 或 `create`。`reuse` 带标题卡 Rem ID。`create` 带同一记忆目标的 miss 和 `term_key`。组合卡 `rem_refs` 只含这些标题卡 ID 或本批 `term_key`。空管道、别名 Rem、Wiki 页、`pageKey`、字面括号、编造 ID 都不得通过。全部重复允许零新卡，仍要有搜索证据和标题卡 ID。原文导入或原文摘录只有 `mode` 为 `original_import` 或 `original_excerpt`、`term_pipeline.action` 为 `skip_original`、术语创建为 0、Wiki 调用为 0 时可以通过。
 - `learning_preflight_passed=passed`：`preflight.draft_digest` 等于当前 `draft_digest`，上面列出的每个门禁都是 pass，`arrow_hits` 为 0。任一 fail、缺对象、摘要不一致或结果不明都不得通过。
+- `control_search_passed=passed`：已知术语对照搜索已完成。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one.
 
 `source_h1` 与 `theme_title` 对不上，不要把 `theme_literal` 写成 pass。
 
@@ -79,7 +82,7 @@ description: "Create, update, or review RemNote flashcards on today's daily note
 
 ### 3. `persist_and_verify`
 
-先核对上一步四项仍有效，且 `material_digest` 与 `draft_digest` 对得上当前材料和最新草稿。缺回执、摘要不一致、`term_pipeline` 没覆盖本批术语、审卡覆盖不等于 `card_keys`、失败项非空、preflight 缺失或不一致、任一门禁不是 pass：不得写卡，回到准备步骤。`source_h1` 与 `theme_title` 按契约重算，不一致就阻塞。
+先核对上一步五项仍有效，且 `material_digest` 与 `draft_digest` 对得上当前材料和最新草稿。缺回执、摘要不一致、`term_pipeline` 没覆盖本批术语、审卡覆盖不等于 `card_keys`、失败项非空、preflight 缺失或不一致、任一门禁不是 pass：不得写卡，回到准备步骤。`source_h1` 与 `theme_title` 按契约重算，不一致就阻塞。
 
 默认不注入 Wiki 页面 ID，不等待 Wiki，不调用 `wiki apply`。
 
@@ -109,12 +112,14 @@ description: "Create, update, or review RemNote flashcards on today's daily note
 
 写后用回读重新判定 `learning_preflight_passed`。只复述准备阶段的 pass 不得报 passed。没有 Wiki 修改时，不跑 WIKI 零卡片扫描，也不把缺少 Wiki 引用判失败。
 
-离开本步必须四项同时成立：
+离开本步必须六项同时成立。另外两项是 `combo_placed=passed` 与 `aliases_written=passed`。没有组合卡时记 `no_combo`。没有新别名时记 `no_new_aliases`。
 
 - `flashcards_written`：`created_rem_ids`、`updated_rem_ids`、`reused_rem_ids`、`card_ids`、`topic_ids`、`daily_rem_ids`、`tag_id`、`source_refs`、`skipped_count`、`reference_pairs`、`batch_ids`、`review_receipt`、`verification_receipts`、`cluster_powerup`。`reference_pairs` 的目标是标题卡 Rem ID。`cluster_powerup` 为 `true`、`false`，或没有多卡主题时的 `not_applicable`。
 - `terms_referenced=passed`：组合卡答案里的引用 Rem ID 等于本批标题卡 Rem ID，回读标题是短名，点击目标带背面。没有组合卡时核对没有引用到别名 Rem 或 Wiki 页，并记下 `no_combo_refs`。
 - `result_verified=passed`：内容、结构、预检和标题卡引用都通过。零新卡仍核对复用对象和分类。
 - `learning_preflight_passed=passed`：来自写后回读，不是准备阶段的复述。
+- `combo_placed=passed`：组合卡是主题的最后一个子 Rem，且没有自己的 Tag。没有组合卡时记 `no_combo`。
+- `aliases_written=passed`：新别名用 `sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`。没有新别名时记 `no_new_aliases`。
 
 失败：
 
@@ -187,7 +192,7 @@ When findings is non-empty, POST one page per finding with ntn api v1/pages to d
 新建主题 Rem、普通笔记和文章使用“日期 + 类型或来源 + 中文主题”的可搜索标题；RemNote 标题不添加 `.md` 后缀。例如：`2026-06-12 X 长期投资框架`、`2026-06-12 meeting 项目复盘`。
 
 - 日期提供时间线索；类型可用 `meeting`、`project`、`book`、`resource`、`idea`，外部内容可直接使用来源名。
-- 单篇文章或单章的闪卡主题按[学习卡契约](references/learning-card-contract.md)：`YYYY-MM-DD <来源类型> <文章原 H1>`。书稿例：H1「前言」写成 `2026-10-06 book 前言`。不要改写成「术语与方法」或「量化地图」。
+- 单篇文章或单章的闪卡主题按[学习卡契约](references/learning-card-contract.md)：`YYYY-MM-DD <来源类型> <文章原 H1>`。来源类型对齐 Tag 所在 PARA 区。theme_para maps 00-NOTE to note, 01-PROJECTS to project, 02-AREAS to area, 03-RESOURCES to resource, and 04-ARCHIVE to archive. 教程 Tag 在 `03-RESOURCES` 下时，H1「前言」写成 `2026-10-06 resource 前言`。历史事故字符串 `2026-10-06 book 前言` 只保留为记录。不要改写成「术语与方法」或「量化地图」。
 - 外部内容保持中文可读主题；项目材料优先保留项目语义，不为模板损害辨识度。不是单篇文章时，才用概念名或用户指定的主题，例如 `2026-10-06 resource 市盈率 PE`。
 - 只对新内容和用户明确指定的高价值旧内容应用；不批量重命名历史内容。
 - 该规则只作用于顶层内容单元。单张卡的正面仍是可直接复习的问题，原文导入和原文摘录仍保留原文标题，WIKI 页面仍使用干净规范名。

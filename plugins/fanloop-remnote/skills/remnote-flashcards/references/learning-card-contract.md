@@ -2,7 +2,7 @@
 
 普通学习卡（原子术语卡、组合卡）的规则只维护在本文。制卡 Skill、审卡、写入和复盘按本文执行，不另写一套背面、标题、主题、Tag 或 Card Cluster 规则。
 
-Route 用 `terms_ready` 和 `learning_preflight_passed` 挡住普通批次。`wiki_ready` 不在 Route 上，Wiki 不适用回执不能前进。`draft_quality_condition` 核对审卡回执；失败条件的通过与否以本文和 `learning_preflight_condition` 为准。改清单时本文与 `learning_preflight_condition` 一起改。四个 Step id 保持不变。`remnote-wiki` 在准备步骤是可选绑定，默认不执行。
+Route 用 `terms_ready`、`learning_preflight_passed`、`tag_approved`、`control_search_passed`、`combo_placed` 和 `aliases_written` 挡住普通批次。插件没有 Fanloop 引擎，这些仍是清单上的必过项。`wiki_ready` 不在 Route 上，Wiki 不适用回执不能前进。`draft_quality_condition` 核对审卡回执；失败条件的通过与否以本文为准。改清单时本文与制卡技能一起改。四个 Step id 保持不变。`remnote-wiki` 在准备步骤是可选绑定，默认不执行。
 
 原文导入和原文摘录不套本文的费曼、STAR、儿童口吻和箭头禁令；它们仍逐段保真。本文也不约束普通文章。
 
@@ -56,9 +56,9 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 准备回执同时记下 `source_h1` 和 `theme_title`。
 
-材料是单篇文章或单章时，`source_h1` 是该页原 H1，逐字，不转述。`theme_title` 必须等于 `YYYY-MM-DD <来源类型> <source_h1>`，中间各一个空格。书稿的来源类型是 `book`。H1 为「前言」时主题是 `2026-10-06 book 前言`，不是「术语与方法」或「量化地图」。日期用本次写入日。
+材料是单篇文章或单章时，`source_h1` 是该页原 H1，逐字，不转述。`theme_title` 必须等于 `YYYY-MM-DD <来源类型> <source_h1>`，中间各一个空格。来源类型对齐 Tag 所在的 PARA 区。theme_para maps 00-NOTE to note, 01-PROJECTS to project, 02-AREAS to area, 03-RESOURCES to resource, and 04-ARCHIVE to archive. 教程 Tag 在 `03-RESOURCES` 下、H1 为「前言」时，主题是 `2026-10-06 resource 前言`，不是「术语与方法」或「量化地图」。日期用本次写入日。历史事故字符串 `2026-10-06 book 前言` 只保留在文末，不是当前主题。
 
-`source_h1` 与 `theme_title` 对不上，或 `source_h1` 不是原 H1，门禁 `theme_literal` 失败，不得 `--apply`。不能沿用上一稿的 pass。
+`source_h1` 与 `theme_title` 对不上，或 `source_h1` 不是原 H1，门禁 `theme_literal` 失败。来源类型与 PARA 区不一致，门禁 `theme_para` 失败。二者任一失败都不得 `--apply`。不能沿用上一稿的 pass。
 
 不是单篇文章时，`source_h1` 写 `n/a`，主题用日期、来源类型和概念名，例如 `2026-10-06 resource 市盈率 PE`。材料里已经有 H1 却改写成概念名，仍算失败。
 
@@ -76,13 +76,13 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 `preflight.tag_path` 要带祖先路径证明：`home_id`、`tag_id`、`ancestor_ids`，以及从 HOME 到叶子的标题。叶子必须是 Concept，不是 Folder、Document 或 Wiki 页。
 
-叶子 Concept 还不存在时：先只读确认（中文空 `search` 不算缺失），向用户提出完整祖先路径和 Concept 名称，得到明确同意，再 `create --parent-id` 并用 `sdk rem object-set-type --args-json '[1]'` 设成 Concept，回读 `remType=concept` 之后，预览才使用这个真实 `tagRemId`。未同意不创建，也不要用猜的 ID 预览。
+叶子 Concept 还不存在时：先只读确认（中文空 `search` 不算缺失），向用户提出完整祖先路径和 Concept 名称，得到明确同意，再 `remnote-cli create --title "<Concept 名称>" --parent-id <父级 ID>`，并用 `sdk rem object-set-type --target-id <新 Rem ID> --args-json '[1]'` 设成 Concept，回读 `remType=concept` 之后，预览才使用这个真实 `tagRemId`。未同意不创建，也不要用猜的 ID 预览。叶子已存在时 `tag_approval` 为 pass，approval 为 not_needed，`created_tag_ids` 为空。
 
 多张卡只给主题 Rem 打这个 Tag。组合卡自己不挂 Tag，主题的 HOME Tag 索引它。单张卡打在卡片自身。
 
 ## 查重
 
-创建术语卡之前，按短名、别名和关键问法运行 `remnote-cli search "<query>" --cards-only --include-review-stats --view full`。命中且这张术语闪卡够用，复用标题卡 Rem ID，不新建。Wiki 页和空 `cards` 不是命中。用户要求重做时，不复用该来源的旧卡。
+创建术语卡之前，先用一个已知存在的术语做对照搜索，再按短名、别名和关键问法运行 `remnote-cli search "<query>" --cards-only --include-review-stats --view full`。术语有英文形式时另搜英文。Also search the English form of the term when it has one. 命中且这张术语闪卡够用，复用标题卡 Rem ID，不新建。Wiki 页和空 `cards` 不是命中。含中日韩文字的搜索返回空不是 miss。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。用户要求重做时，不复用该来源的旧卡。
 
 ## Card Cluster
 
@@ -99,7 +99,9 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 ## Route 门禁
 
-准备步骤进入写入，必须同时提交 `preparation_recorded`、`draft_quality_passed`、`terms_ready=passed`、`learning_preflight_passed=passed`。写入步骤进入复盘，必须同时提交 `flashcards_written`、`terms_referenced=passed`、`result_verified=passed`、`learning_preflight_passed=passed`。写后的 `learning_preflight_passed` 用回读重新判定，不能复述准备阶段的 pass。
+定位步骤进入准备，必须同时有 `home_tag_ready` 与 `tag_approved=passed`。准备步骤进入写入，必须同时提交 `preparation_recorded`、`draft_quality_passed`、`terms_ready=passed`、`learning_preflight_passed=passed`、`control_search_passed=passed`。写入步骤进入复盘，必须同时提交 `flashcards_written`、`terms_referenced=passed`、`result_verified=passed`、`learning_preflight_passed=passed`、`combo_placed=passed`、`aliases_written=passed`。写后的 `learning_preflight_passed` 用回读重新判定，不能复述准备阶段的 pass。插件按同一清单停住，不调用 `fanloop flow`。
+
+预览不加 `--apply` 时，输出只有 `validated` 和 `planHash`，没有卡片正文。`--apply` 之前读完计划文件，对照已审草稿的 digest。今日笔记先只读查找。`sdk date get-todays-doc` 是写入。每次 shell 一个命令。不得并行，并行会报 `CLI port occupied`。没有组合卡时 `combo_placed` 记 `no_combo`。没有新别名时 `aliases_written` 记 `no_new_aliases`。先干跑 `remnote-cli move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`，再另一次调用加上 `--apply`。然后 `remnote-cli sdk rem object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`。
 
 `terms_ready` 看 `term_pipeline`：每个术语有 `search --cards-only`，`reuse` 带标题卡 Rem ID，`create` 带 miss 和 `term_key`。组合卡 `rem_refs` 只含这些标题卡 ID 或本批 `term_key`。空管道、Wiki 不适用、别名 Rem 和 Wiki 页面 ID 都不得 passed。原文导入或摘录只有 `skip_original` 且零术语创建、零 Wiki 调用时可以通过。
 
@@ -126,10 +128,16 @@ preflight:
   card_cluster: pass
   named_methods: pass
   redo_reuse: pass
+  theme_para: pass
+  tag_approval: pass
+  control_search: pass
+  combo_placement: pass
+  alias_method: pass
+  factual_review: pass
   card_cluster_requested: false
   card_cluster_plan: omit
   source_h1: 前言
-  theme_title: 2026-10-06 book 前言
+  theme_title: 2026-10-06 resource 前言
   tag_ancestor_path: [HOME, 03-RESOURCES, 金融知识, 人人都是量化交易员]
 ```
 
@@ -141,7 +149,7 @@ preflight:
 
 下面任一条成立，普通学习卡不得报草稿通过，也不得 `--apply`。原文导入和原文摘录不因为短标题、别名、STAR、箭头、原子卡顺序、方法原子卡或 kid_clarity 失败；它们按制卡 Skill 的原文规则逐段保真。原文批次如果使用多卡主题，`card_cluster` 仍然适用。
 
-- `term_search`：新建术语卡没有 `search --cards-only` 对同一记忆目标的 miss；复用没有标题卡 Rem ID；Wiki 页或空 cards 被记成 hit。含中日韩文字的搜索返回空不是 miss。先沿 Tag 树、`search-by-tag` 或 `context` 交叉核对；仍不能确定时，只让桌面点重载中文搜索缓存的按钮，然后回到 CLI 重查，不要把这张卡记成新建。
+- `term_search`：新建术语卡没有 `search --cards-only` 对同一记忆目标的 miss；复用没有标题卡 Rem ID；Wiki 页或空 cards 被记成 hit。含中日韩文字的搜索返回空不是 miss。先做已知术语对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one. 不要把这张卡记成新建。
 - `atomics_first`：组合卡用到的术语没有先于该组合卡的原子卡；已复用的标题卡算已有。
 - `short_titles`：原子卡标题含 `？` 或 `是什么`，或不是短名。
 - `aliases_after_create`：长搜索句被写成卡片标题或另一张卡，或在标题卡创建之前就去建别名。标题卡存在之后的命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`，每张一条。`update --add-aliases` 取决于 SDK 版本；SDK 0.0.46 报 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。
@@ -149,7 +157,13 @@ preflight:
 - `star_labels_exact`：组合卡缺少逐字 STAR 标题；T 正文不是以「你要学会」开头；A 不是小数目演算；R 不是一句口诀；用 STAR 写原子卡；用三行定义背面写组合卡；原子卡背面不是一行正式定义、一行白话类比、可选一行例子。
 - `arrow_scan`：普通学习卡正面或答案行含箭头；`arrow_hits` 不是 0。
 - `theme_literal`：单篇或单章的 `theme_title` 不是 `YYYY-MM-DD <来源类型> <source_h1>`，`source_h1` 不是文章原 H1，或二者不一致。
+- `theme_para`：来源类型与 Tag 所在 PARA 区不一致。theme_para maps 00-NOTE to note, 01-PROJECTS to project, 02-AREAS to area, 03-RESOURCES to resource, and 04-ARCHIVE to archive.
 - `tag_path`：Tag 是作者名、只停在粗 Folder，或把 Wiki 页当 Tag；没有祖先路径证明。
+- `tag_approval`：缺失的 Concept 没有用户明确同意，或没有 `create --title "<Concept 名称>" --parent-id` 之后的 `remType=concept` 回读。空的中文 search 不是同意。
+- `control_search`：把空的中日韩 search 当成 miss，或没有先做已知术语对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one.
+- `combo_placement`：有组合卡时，它不是主题的最后一个子 Rem，或它自己仍挂着 Tag。没有组合卡时必须记 `no_combo` 才能 pass。
+- `alias_method`：新别名没有用 `sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`。SDK 0.0.46 上 `update --add-aliases` 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。没有新别名时必须记 `no_new_aliases` 才能 pass。
+- `factual_review`：example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice. 这不是 kid_clarity 的第六个键。
 - `no_spec_unless_asked`：用户未要求时出现 `spec` 或策略规格说明书卡。
 - `card_cluster`：用户未要求时计划为 `true`；用户要求且本批有主题标题和至少 2 张新卡时计划不是 `true`；用户要求但张数或标题不满足时仍写了 `true`。
 - `named_methods`：方法论文章没有有名字的方法原子卡。
@@ -184,7 +198,7 @@ reviewer_receipt:
 
 作者自证不能代替这份回执。覆盖的 `card_keys` 必须与 `preparation_receipt.card_keys` 逐项相同，失败项为空。
 
-能派子 Agent 时，由不继承起草上下文的只读审卡填写。这个宿主派不出子 Agent 时，请父级或宿主审并交回回执。没有这样的父级时，请用户按上面的五问和 STAR 原文审草稿，回执记 `reviewer=user`。起草者自己填回执不算独立审卡。三种都没发生时，`draft_quality_passed` 失败。
+能派子 Agent 时，由不继承起草上下文的只读审卡填写。这个宿主派不出子 Agent 时，请父级或宿主审并交回回执。没有这样的父级时，请用户按上面的五问和 STAR 原文审草稿，回执记 `reviewer=user`。起草者自己填回执不算独立审卡。三种都没发生时，`draft_quality_passed` 失败。只复审改变的卡，对照重新计算的 draft_digest。回执记录 `plugin_commit`：插件运行记插件 git commit；Fanloop 运行记 `skills/remnote-flashcards` 源的 git commit。
 
 ## 复盘
 

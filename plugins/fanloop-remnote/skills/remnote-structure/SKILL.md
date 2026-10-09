@@ -24,7 +24,7 @@ description: "Find, create, or correct RemNote Folders and Concept tags. Use whe
 
 ## 查找
 
-1. 用 `search` 找到唯一顶层 `HOME` 或 `WIKI`，以没有父级且标题精确匹配为准。查询含中日韩文字且结果为空时，这不是「节点不存在」。从已经读到的父级继续 `read` 或 `search --parent-id`，用标题精确比对。仍不能确定时，不要新建。重载中文搜索缓存的按钮是 CLI 没有的界面动作，只在这时用 `control-remnote` 点该按钮，然后回到 CLI 重查。宿主没有 Computer Use 时，请用户自己点这个按钮。
+1. 用 `search` 找到唯一顶层 `HOME` 或 `WIKI`，以没有父级且标题精确匹配为准。查询含中日韩文字且结果为空时，这不是「节点不存在」。先做已知术语对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one. 从已经读到的父级继续 `read` 或 `search --parent-id`，用标题精确比对。仍不能确定时，不要新建。宿主没有 Computer Use 时，报告 blocked，请用户自己点该按钮。
 2. 从根开始用 `read --content-mode structured --view full` 浅读层级；已知父级时用 `search --parent-id` 限定范围。中文 Tag 名以这棵树的回读为准，不以一次空 `search` 为准。
 3. 同名候选按父级路径、Rem ID、`remType`、aliases 和用途消歧，不能只按标题选择。
 4. 判断候选是否是真实 Tag 时，运行：
@@ -68,7 +68,7 @@ remnote-cli sdk rem object-set-is-folder --target-id <REM_ID> --args-json '[true
 学习批次发现最细 Concept 不存在时，先由 `remnote-flashcards` 向用户提出完整祖先路径和 Concept 名称，并得到明确同意。未同意不执行下面的创建。中文空 `search` 不是缺失证明，也不是同意。
 
 1. 在预期父级和 HOME 根范围内分别按规范名、别名查重；已有同义 Tag 时复用，不创建同名副本。
-2. 缺失时用 `create --parent-id <PARENT_ID>` 创建普通 Rem，再设置 Concept：
+2. 学习批次里这个 Concept 还不存在时，先向用户提出从 HOME 到叶子的完整祖先路径，等明确同意。空的中文 `search` 不是同意。同意之后用 `remnote-cli create --title "<Concept 名称>" --parent-id <父级 ID>` 创建，再设置 Concept：
 
 ```bash
 remnote-cli sdk rem object-set-type --target-id <REM_ID> --args-json '[1]'

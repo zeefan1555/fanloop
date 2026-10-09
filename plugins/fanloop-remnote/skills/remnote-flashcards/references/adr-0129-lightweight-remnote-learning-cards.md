@@ -156,3 +156,18 @@ run are 梭哈, 全仓, 一把梭, and 优秀个股. The plain rewrites from tha
 `[[id:]]` through `create --content-file` is not a write path. That run's
 `[[id:gTpsZTEYvBxB4S1PM]]` (分批加仓) was stored as `[[DCF]]0`. The four step
 IDs are unchanged.
+
+Amended 2026-10-09 for the live-run lessons. The source-type token must match
+the Concept tag's PARA area. theme_para maps 00-NOTE to note, 01-PROJECTS to
+project, 02-AREAS to area, 03-RESOURCES to resource, and 04-ARCHIVE to archive.
+This replaces the sentence that a book chapter always uses `book`. The forward
+preface example under `03-RESOURCES` is `2026-10-06 resource 前言`. The
+2026-10-06 incident string `2026-10-06 book 前言` (`C4lWZBYMbeUIoL9Zd`) stays
+as history. An empty CJK search is not authoritative. 已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。
+Also search the English form of the term when it has one. Preview without
+`--apply` shows only `validated` and `planHash`. Compare the plan file to the
+reviewed draft digest before `--apply`. Receipts record `plugin_commit`.
+Re-review only changed cards against a recomputed digest. When the runner
+cannot spawn a reviewer, the parent or host reviews; otherwise the receipt is
+`reviewer=user`. example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice.
+The four step IDs are unchanged.

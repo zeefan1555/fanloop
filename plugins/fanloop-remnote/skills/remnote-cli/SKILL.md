@@ -9,6 +9,14 @@ description: "Call the installed remnote-cli for bounded RemNote reads and task 
 以当前命令帮助、运行时协议及能力发现为准，不要求 CLI 与插件版本号相同。
 不要调用 `fanloop flow`。内容规则由 [remnote-flashcards](../remnote-flashcards/SKILL.md) 和它的学习卡契约管理。制卡计划的字段见 [FlashcardsPlan](references/flashcards-plan.md)。配对令牌只留在 `~/.config/remnote-cli/connection.json`，不写入仓库、截图或任务证据。
 
+## 运行前提
+
+- Node >= 22.13。系统自带的 node 可能更旧，构建 remnote-direct 前先确认版本。
+- 在 remnote-direct 仓库执行 `npm run setup && npm run build`。
+- SDK Bridge 由 `node scripts/serve-dist.js --root dist --port 8090` 提供，监听 `127.0.0.1:8090`。
+- 没有 FUSE 时用 `APPIMAGE_EXTRACT_AND_RUN=1 /path/to/RemNote.AppImage --no-sandbox`。
+- 这些后台进程不会跨过重启。background processes do not survive reboot. 下次运行先重新拉起 Bridge，并确认 `remnote-cli status`。
+
 ## 身份与授权
 
 - 每批写入前运行 `remnote-cli status`，核对实际插件身份、协议、SDK、精确 KB 绑定、权限和写入开关。
@@ -63,7 +71,7 @@ description: "Call the installed remnote-cli for bounded RemNote reads and task 
 - 已有 tag id 时用 `search-by-tag`。
 - 已有 Rem ID 时用 `context` 或 `read`。
 
-这些只读核对仍不能确定有没有该 Rem 时，不要创建。重载中文搜索缓存是界面上的按钮，`remnote-cli` 没有这条命令。只在这时用同包 `control-remnote` 点该按钮，然后回到 CLI 再做上面的只读核对。宿主没有 Computer Use 时，请用户自己点这个按钮，确认之后再用 CLI 重查。不要用桌面做搜索、别名、建卡或建 Tag。不含中日韩文字的空搜索仍可能是真的没有；中日韩查询的空结果不能当真的没有。
+先用一个已知存在的术语做对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one. 这些只读核对仍不能确定有没有该 Rem 时，不要创建。这个按钮是日常路径上唯一的非 CLI 步骤，`remnote-cli` 没有这条命令。只在这时用同包 `control-remnote` 点该按钮，然后回到 CLI 再做上面的只读核对。宿主没有 Computer Use 时，报告 blocked，请用户自己点这个按钮，确认之后再用 CLI 重查。不要用桌面做搜索、别名、建卡或建 Tag。不含中日韩文字的空搜索仍可能是真的没有；中日韩查询的空结果不能当真的没有。
 
 ## 今日笔记
 

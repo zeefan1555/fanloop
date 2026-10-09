@@ -7,13 +7,15 @@ description: 检查 RemNote 闪卡内容质量，以及闪卡和 Wiki 创建、�
 
 ## 草稿立即审
 
-prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查。默认没有 Wiki 分支，不要等它，也不要为了 Route 写 Wiki 不适用回执。
-共用来源、模式和学习目标。普通卡按[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)审查。回执对每张普通卡填写 kid_clarity 五问，对每张组合卡逐字列出 star_headings。
+prepare_cards_and_wiki 每完成一批草稿即派独立只读助手审查。能派子 Agent 时，派一个不继承起草上下文的只读审卡。这个宿主派不出子 Agent 时，请父级或宿主跑这次审查并交回 `reviewer_receipt`。没有这样的父级时，请用户按学习卡契约的五问和 STAR 原文审草稿，回执记 `reviewer=user`。起草者自己填回执不算通过；没有这三方之一的回执时 `draft_quality_passed` 失败。默认没有 Wiki 分支，不要等它，也不要为了 Route 写 Wiki 不适用回执。
+共用来源、模式和学习目标。普通卡按[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)审查。回执对每张普通卡填写 kid_clarity 五问，对每张组合卡逐字列出 star_headings。五问键仍然恰好是 `one_goal`、`one_pass`、`concrete`、`plain_words`、`no_arrow`。
+example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice.
+这条是 `factual_review`，不是 kid_clarity 的第六个键。
 原文模式逐段比对指定原文，不改写；全部重复时仍检查复用决定与实际答案补充。
-回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys、kid_clarity、star_headings，以及每张 PASS/FAIL 和原因。
+回执包含 material_digest、draft_digest、来源引用、覆盖 card_keys、kid_clarity、star_headings、plugin_commit，以及每张 PASS/FAIL 和原因。`plugin_commit` 是 `skills/remnote-flashcards` 源的 git commit；插件运行则记插件 git commit。只复审改变的卡，对照重新计算的 draft_digest。
 
 组合卡的问题和 S、T、A、R 不得使用未解释的成人交易黑话。出现则该卡 `one_pass` 与 `plain_words` 为 no，整张 FAIL。combo plain_words rejects unexplained trading slang: 梭哈, 全仓, 一把梭, 优秀个股; rewrite with plain kid words such as 一次花光 or 分开买.
-助手不写卡、不写 Wiki、不代替作者改稿。作者只修失败项，助手只复审改变的卡。用户明确要求 Wiki 且新增了适用术语时，才把术语返回 Wiki 清单。
+助手不写卡、不写 Wiki、不代替作者改稿。作者只修失败项，助手只复审改变的卡，对照重新计算的 draft_digest。用户明确要求 Wiki 且新增了适用术语时，才把术语返回 Wiki 清单。
 未覆盖、未结束、旧稿证据或失败项非空不满足 draft_quality_passed。
 
 使用 `remnote-cli` 读取真实状态。输入本批次内容 Rem ID、预期卡片 ID、HOME Tag ID、Wiki 页面 ID，以及新增／更新／迁移动作；缺少 ID 时先定向查找。仅请求检查时保持只读；创建或修复任务中的失败项在已授权范围内修复并重新验证。操作前遵循 `remnote-cli` 的 status 和命令帮助规则。
@@ -36,7 +38,7 @@ Wiki 内容，需要正文的每个 ID 显式列入 `remIds`。用 `verify scope
 
 检查闪卡时先读取 [SuperMemo 20 条知识表述原则](../remnote-flashcards/references/supermemo-20-rules.md)，按最终回读内容逐卡检查理解、独立、原子、可判分、低干扰、可追溯和记忆价值。普通学习卡的通过条件是[学习卡契约](../remnote-flashcards/references/learning-card-contract.md)的失败条件全部不成立，并且写前 `preflight` 与当前草稿一致、全部门禁为 pass。`source_h1` 与 `theme_title` 不一致则失败。原文导入／摘录保持 `remnote-flashcards` 的模式约定，不强制费曼改写或 STAR 排版。每张卡给出 `PASS` 或 `FAIL + 门禁 id + 原因`；失败项修复后重新回读评审，内容质量通过与下面的结构验证同时满足才算完成。
 
-1. **日期与实体位置。** 用 `sdk date get-todays-doc` 获取今日笔记 ID，再 `read <ID> --view full` 确认是当天的 `dailyDocument`。新单卡的 `parentRemId` 必须等于该 ID。多卡批次可以共用一个普通 `text` 主题，主题父级等于该 ID，卡片是主题的直接子 Rem；没有主题时，每张新卡的父级等于该 ID。原卡更新保留原日期；错放修复使用本次确定的目标日期。跨午夜新写入重新解析日期；已写卡按回执记录的实际创建日期与每日笔记 ID 核验，不因校验日期改变而重建。引用、Portal、标题中的日期均不能替代真实父子关系。
+1. **日期与实体位置。** 先只读查找今日笔记。`sdk date get-todays-doc` 是写入，笔记不存在时会创建；只读核验不得调用。确认目标 ID 后 `read <ID> --view full`，它必须是当天的 `dailyDocument`。没有主题时，新单卡的 `parentRemId` 必须等于该 ID。有主题时，主题父级等于该 ID。术语卡是主题的直接子 Rem。组合卡也必须是主题的直接子 Rem，并且是最后一个，排在术语卡之后。组合卡的父级是主题，不是每日笔记。组合卡没有 tags。`review-stats --root-id <THEME_ID>` 列出本批全部卡片。`search-by-tag` 只返回主题。原卡更新保留原日期；错放修复使用本次确定的目标日期。跨午夜新写入重新解析日期；已写卡按回执记录的实际创建日期与每日笔记 ID 核验，不因校验日期改变而重建。引用、Portal、标题中的日期均不能替代真实父子关系。
 2. **分类身份。** `read <TAG_ID> --view full --ancestor-depth 8`，必要时继续读祖先，证明它是 HOME 子树里领域分组下最细的 Concept，且不是 Folder／Document。同名不等于同一标签。作者名、粗 Folder 和 Wiki 页当 Tag 都算失败。祖先路径要与 `preflight.tag_ancestor_path` 一致。
 3. **真实标签。** 回读单卡或主题的 `tags`，要求包含预期 Tag ID，且只有一个 HOME 主题分类。有主题时，子卡不重复打这个分类 Tag。再用 `search-by-tag --tag-id <TAG_ID> --result-mode tagged --view full` 反查，翻页直到找到该内容 ID 或结果耗尽。正文引用不算打 Tag。
 4. **卡片完整性。** 对内容根运行 `review-stats --root-id <CONTENT_ID>`，核对实际卡片 Rem ID 集合与本批次预期完全一致，防止漏卡、答案生成子卡或主题误成卡。逐卡回读正文与直接子 Rem；折叠时按具体 ID 继续读取。移动前后的 cardId、复习记录和内容必须保持不变。多卡主题写后必须运行 `remnote-cli sdk rem object-has-powerup --target-id <主题Rem_ID> --args-json '["cc"]'`，结果写入 `cluster_powerup`。用户未要求时期望 false；用户要求且本批有主题标题和至少 2 张新卡时期望 true。与期望不符则失败。意外的 true 是 remnote-direct 回归，不要补加，也不要把它记成成功。主题仍是 `text`。组合卡里的 Rem 引用必须指向 preparation 记下的标题卡 Rem ID，指向别名 Rem 失败。单篇或单章的主题标题必须与 `source_h1` 按契约拼成的 `theme_title` 一致。

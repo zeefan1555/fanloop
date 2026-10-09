@@ -34,18 +34,18 @@ description: 创建、修改或评审 RemNote 闪卡。普通卡分成原子术�
 - 04-ARCHIVE：已结束且需要保留的内容。
 - 00-NOTE：尚未归入正式知识结构的随手笔记和凭证记录。
 
-按 `remnote-structure` 查找或创建分类结构。学习批次打领域分组下最细的那一个 Concept Tag，使用精确 Rem ID 建立标签关系。例如路径 `HOME / 03-RESOURCES / 金融知识 / 估值`：`03-RESOURCES` 与 `金融知识` 是分组，打在批次上的是 `估值`。已有更细 Concept 时，不要停在一级 Folder 或宽泛领域上；没有该 Concept 时先创建并回读类型和父级，再打 Tag。
+按 `remnote-structure` 查找或创建分类结构。学习批次打领域分组下最细的那一个 Concept Tag，使用精确 Rem ID 建立标签关系。例如路径 `HOME / 03-RESOURCES / 金融知识 / 估值`：`03-RESOURCES` 与 `金融知识` 是分组，打在批次上的是 `估值`。已有更细 Concept 时，不要停在一级 Folder 或宽泛领域上。没有该 Concept 时，先提出完整祖先路径，等用户明确同意，再 `remnote-cli create --title "<Concept 名称>" --parent-id <父级 ID>`，然后 `remnote-cli sdk rem object-set-type --target-id <新 Rem ID> --args-json '[1]'`，回读 `remType=concept`。空的中文 `search` 不是同意。
 
 持续课程或教程系列的这个最细 Tag 用教程或课程名，不用作者名。例：`HOME / 03-RESOURCES / 金融知识 / 人人都是量化交易员`。作者可以记在别的元数据里。`刑无刀` 不是这门课的 Tag。单篇概念批次仍用该概念的 Tag，例如 `估值`。
 
-单张卡给卡片自身打这个 Tag。多张卡放在主题 Rem 下时，只给主题打 Tag，子卡通常不再打同一个分类 Tag。普通文章再复用 `HOME / 03-RESOURCES / 文章` Concept 作为第二个类型标签。名称只用于查找和展示。
+单张卡给卡片自身打这个 Tag。多张卡放在主题 Rem 下时，只给主题打 Tag。组合卡自己不挂 Tag，并且是主题的最后一个子 Rem。普通文章再复用 `HOME / 03-RESOURCES / 文章` Concept 作为第二个类型标签。名称只用于查找和展示。
 
 ## 顶层内容命名
 
 新建主题 Rem、普通笔记和文章使用“日期 + 类型或来源 + 中文主题”的可搜索标题；RemNote 标题不添加 `.md` 后缀。例如：`2026-06-12 X 长期投资框架`、`2026-06-12 meeting 项目复盘`。
 
 - 日期提供时间线索；类型可用 `meeting`、`project`、`book`、`resource`、`idea`，外部内容可直接使用来源名。
-- 单篇文章或单章的闪卡主题按[学习卡契约](references/learning-card-contract.md)：`YYYY-MM-DD <来源类型> <文章原 H1>`。书稿例：H1「前言」写成 `2026-10-06 book 前言`。不要改写成「术语与方法」或「量化地图」。
+- 单篇文章或单章的闪卡主题按[学习卡契约](references/learning-card-contract.md)：`YYYY-MM-DD <来源类型> <文章原 H1>`。来源类型对齐 Tag 所在 PARA 区。theme_para maps 00-NOTE to note, 01-PROJECTS to project, 02-AREAS to area, 03-RESOURCES to resource, and 04-ARCHIVE to archive. 教程 Tag 在 `03-RESOURCES` 下时，H1「前言」写成 `2026-10-06 resource 前言`。历史事故字符串 `2026-10-06 book 前言` 只保留为记录。不要改写成「术语与方法」或「量化地图」。
 - 外部内容保持中文可读主题；项目材料优先保留项目语义，不为模板损害辨识度。不是单篇文章时，才用概念名或用户指定的主题，例如 `2026-10-06 resource 市盈率 PE`。
 - 只对新内容和用户明确指定的高价值旧内容应用；不批量重命名历史内容。
 - 该规则只作用于顶层内容单元。单张卡的正面仍是可直接复习的问题，原文导入和原文摘录仍保留原文标题，WIKI 页面仍使用干净规范名。
@@ -62,7 +62,7 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 ## 增量学习
 
-每次制卡前先把材料拆成独立记忆目标。创建任何术语卡之前，按短名、别名和关键问法运行 `remnote-cli search "<query>" --cards-only --include-review-stats --view full`，找同一记忆目标的术语闪卡，并按最具体的主题 Tag 补充检索。命中且这张卡够用时复用它：组合卡引用该标题卡的 Rem ID，不新建。只有没有术语闪卡时才创建。
+每次制卡前先把材料拆成独立记忆目标。创建任何术语卡之前，先用一个已知存在的术语做对照搜索。已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。Also search the English form of the term when it has one. 然后按短名、别名和关键问法运行 `remnote-cli search "<query>" --cards-only --include-review-stats --view full`，找同一记忆目标的术语闪卡，并按最具体的主题 Tag 补充检索。命中且这张卡够用时复用它：组合卡引用该标题卡的 Rem ID，不新建。只有没有术语闪卡时才创建。每次 shell 一个命令。不得并行，并行会报 `CLI port occupied`。
 
 Wiki 概念页不是术语闪卡。搜索命中 Wiki 页面，或该 Rem 的 `cards` 为空，都不算已经有这张卡。默认不查询 Wiki；即使用户要求了 Wiki，页面是否存在也不代表学习者已经掌握，也不代替上面的 `--cards-only` 搜索。
 
@@ -104,7 +104,7 @@ Wiki 概念页不是术语闪卡。搜索命中 Wiki 页面，或该 Rem 的 `ca
 
 ### 闪卡
 
-实体放在每日笔记。只有一张卡时，卡片直接属于今日笔记，并挂最细 Concept Tag。同一批次有多张卡时，可以在今日笔记下建一个普通 `text` 主题 Rem，把卡片作为它的直接子 Rem，方便阅读；只给主题打该 Tag，子卡通常不再打。主题保持 `text`，不转成 Document 或 Folder。
+主题放在每日笔记。只有一张卡、没有主题时，卡片直接属于今日笔记，并挂最细 Concept Tag。同一批次有多张卡时，在今日笔记下建一个普通 `text` 主题 Rem。术语卡是它的子 Rem。组合卡必须是主题的最后一个子 Rem，自己不挂 Tag。不要把组合卡留在每日笔记上。主题保持 `text`，不转成 Document 或 Folder。
 
 Card Cluster 只按学习卡契约：用户没要求时计划省略 `cardCluster` 或写 `false`，两者都不添加 `cc`；用户明确要求，且有主题标题、新卡至少 2 张时才写 `cardCluster: true`。不要用 `object-add-powerup` 补 `cc`。写后按 [卡片集群](references/card-clusters.md) 用 `object-has-powerup ["cc"]` 回读，结果记入 `cluster_powerup`。意外的 `true` 是 remnote-direct 回归。
 
@@ -159,7 +159,7 @@ Card Cluster 只按学习卡契约：用户没要求时计划省略 `cardCluster
 1. 选普通或原文模式；只读评审和普通笔记/文章不属于本 Workflow 入口。写前运行 `remnote-cli status`，核对连接、兼容版本和写入权限。
 2. 按增量学习查重。创建术语卡前先 `search --cards-only`。同一记忆目标的术语闪卡够用就复用标题卡 Rem ID；Wiki 页不算。用户要求重做时删除或替换该来源的旧卡，不复用。否则重复跳过、实质补充原位更新、新记忆目标才创建。保留实际 cardId、位置和复习记录。允许 0 张新卡，仍记录复用 ID 并前进。
 3. 普通卡先搜术语，再起草原子卡，再起草引用标题卡的组合卡。完成费曼与 SuperMemo 自检后，每批草稿立即交独立只读助手按 remnote-verify 审卡。默认不派 Wiki 助手。审卡回执包含来源及草稿摘要、覆盖卡号、每张普通卡的 kid_clarity 五问、每张组合卡的逐字 star_headings、失败项；只修失败卡再复审。
-4. 离开准备步骤必须同时有 draft_quality_passed、terms_ready 和 learning_preflight_passed。terms_ready 来自 term_pipeline：每个术语都有 `--cards-only` 搜索，复用带标题卡 Rem ID，新建带 miss。学习预检的全部门禁为 pass，且与当前 draft_digest 一致。不得用 Wiki 不适用回执前进。用 SDK `date get-todays-doc` 获取本次新卡日记；恢复使用原回执日期。按[remnote-cli](../remnote-cli/SKILL.md)先写入新原子卡并回读标题 Rem ID，把别名加到标题卡上，再把 `{"remId":"<标题卡 Rem ID>"}` 注入组合卡，先预览再显式 `--apply`。稳定键不冲突。没有实际对象时不调用空计划。
+4. 离开准备步骤必须同时有 draft_quality_passed、terms_ready、learning_preflight_passed 和 control_search_passed。定位步骤离开前还要有 tag_approved。terms_ready 来自 term_pipeline：每个术语都有 `--cards-only` 搜索，复用带标题卡 Rem ID，新建带 miss。学习预检的全部门禁为 pass，且与当前 draft_digest 一致。门禁还包括 theme_para、tag_approval、control_search、combo_placement、alias_method、factual_review。不得用 Wiki 不适用回执前进。今日笔记先只读查找。`sdk date get-todays-doc` 是写入。按[remnote-cli](../remnote-cli/SKILL.md)：术语卡计划写 `title`。计划没有字段可以指定已经存在的主题。组合卡计划不写 `title`。别名命令是 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`。SDK 0.0.46 上 `update --add-aliases` 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。组合卡 apply 之后先干跑 `remnote-cli move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`，再加 `--apply`，然后 `remnote-cli sdk rem object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`。预览输出只有 `validated` 和 `planHash`。读完计划文件并对照已审草稿的 digest 之后才 `--apply`。离开写入步骤还要有 combo_placed 和 aliases_written。审卡回执记录 `plugin_commit`。能派子 Agent 时派独立审卡；派不出时请父级或宿主审；没有父级时回执记 `reviewer=user`。example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice. 稳定键不冲突。没有实际对象时不调用空计划。每次 shell 一个命令。不得并行，并行会报 `CLI port occupied`。
 5. 普通卡按契约进入计划。任务入口负责最细 Concept Tag，以及可选的普通 `text` 主题。`cardCluster` 只在契约允许时为 true。原文模式先核对计划能表达完整正文、顺序和层级；超过限制不能截短或改写，应选完整支持该结构的现有入口，否则报告能力缺口。写后使用回执 ID 集中核对父级、类型、最终答案、标题卡引用和原生卡片集合；部分成功按 remnote-cli 的未知写入规则保存并核对，不整批重建。
 6. persist_and_verify 调用 [remnote-verify](../remnote-verify/SKILL.md)，将真实正文与已审草稿逐项对应，改变正文的卡独立重审；未改变且证据新鲜的审查直接复用。写后重新判定 learning_preflight_passed。内容、结构、标题卡引用全部通过才报 flashcards_written、terms_referenced 与 result_verified，随后轻量复盘交付，不在复盘新增知识写入。缺少 Wiki 引用不算失败。
 7. retrospect_run 只记录一条或零条发现。有发现时按 [notion-experience.md](references/notion-experience.md) 用 `ntn` 写入「remnote workflow 经验表」，不另建维护平台，也不在复盘里改 Workflow。

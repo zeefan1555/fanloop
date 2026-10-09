@@ -22,6 +22,18 @@ conditions:
   learning_preflight_passed:
     prompt_ref: {file: prompt.yaml, prompt_id: learning_preflight_condition}
     output: {key: learning_preflight, type: enum_value, values: [passed]}
+  tag_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: tag_approval_condition}
+    output: {key: tag_approval, type: enum_value, values: [passed]}
+  control_search_passed:
+    prompt_ref: {file: prompt.yaml, prompt_id: control_search_condition}
+    output: {key: control_search, type: enum_value, values: [passed]}
+  combo_placed:
+    prompt_ref: {file: prompt.yaml, prompt_id: combo_placement_condition}
+    output: {key: combo_placement, type: enum_value, values: [passed]}
+  aliases_written:
+    prompt_ref: {file: prompt.yaml, prompt_id: alias_method_condition}
+    output: {key: alias_method, type: enum_value, values: [passed]}
   retrospective_recorded:
     prompt_ref: {file: prompt.yaml, prompt_id: record_condition}
     output: {key: retrospective, type: object}

@@ -62,6 +62,41 @@ REQUIRED_COMBO_REF_SENTENCE = (
     'combo rem-refs use flashcards apply TextSegments {"remId":"..."} or '
     'object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].'
 )
+# 2026-10-09 live runs. Runtime only checks condition types and routes, so these
+# sentences keep the new receipts from drifting out of the prompts and contract.
+REQUIRED_CONTROL_SEARCH_SENTENCE = (
+    '已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。'
+)
+REQUIRED_ENGLISH_SEARCH_SENTENCE = 'Also search the English form of the term when it has one.'
+REQUIRED_FACTUAL_REVIEW_SENTENCE = (
+    'example numbers state their condition, such as when idle; '
+    'do not use a platform term as an everyday word, such as 小程序 on a WeChat card; '
+    "a binary question's answer line states the choice."
+)
+REQUIRED_ALIAS_COMMAND = (
+    "sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[[\"<alias>\"]]'"
+)
+REQUIRED_ALIAS_ABORT = 'SDK 0.0.46 cannot acknowledge abort'
+REQUIRED_MOVE_NOTE = (
+    'move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last '
+    '--expected-old-parent-rem-id <DAILY_ID>'
+)
+REQUIRED_REMOVE_TAG = (
+    "object-remove-tag --target-id <COMBO_ID> --args-json '[\"<TAG_ID>\", false]' --allow-destructive"
+)
+REQUIRED_TAG_CREATE = 'create --title "<Concept 名称>" --parent-id'
+REQUIRED_THEME_PARA = (
+    'theme_para maps 00-NOTE to note, 01-PROJECTS to project, 02-AREAS to area, '
+    '03-RESOURCES to resource, and 04-ARCHIVE to archive.'
+)
+REQUIRED_PLUGIN_COMMIT = 'plugin_commit'
+REQUIRED_REVIEWER_USER = 'reviewer=user'
+LIVE_RUN_ROUTE_CONDITIONS = (
+    'tag_approved',
+    'control_search_passed',
+    'combo_placed',
+    'aliases_written',
+)
 MANGLED_COMBO_REF = '[[DCF]]0'
 DONE_PANORAMA_HEADER = re.compile(r'`Done`\s*`100%`')
 RETROSPECT_PROGRESS = re.compile(r'`75%`|整体进度：75%')
@@ -365,6 +400,68 @@ def learning_card_gate_errors(source):
         'skills/remnote-flashcards/prompt.yaml',
     ):
         errors.extend(_require_sentence(source, relative, REQUIRED_COMBO_REF_SENTENCE, ref_why))
+    live_why = '2026-10-09 live-run gates stay in the prompt, contract, and CLI skill.'
+    live_sentences = (
+        REQUIRED_CONTROL_SEARCH_SENTENCE,
+        REQUIRED_ENGLISH_SEARCH_SENTENCE,
+        REQUIRED_FACTUAL_REVIEW_SENTENCE,
+        REQUIRED_ALIAS_COMMAND,
+        REQUIRED_ALIAS_ABORT,
+        REQUIRED_MOVE_NOTE,
+        REQUIRED_REMOVE_TAG,
+        REQUIRED_TAG_CREATE,
+        REQUIRED_THEME_PARA,
+        REQUIRED_PLUGIN_COMMIT,
+        REQUIRED_REVIEWER_USER,
+    )
+    for relative in (
+        'skills/remnote-flashcards/prompt.yaml',
+        'skills/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+    ):
+        for sentence in live_sentences:
+            errors.extend(_require_sentence(source, relative, sentence, live_why))
+    for sentence in (
+        REQUIRED_CONTROL_SEARCH_SENTENCE,
+        REQUIRED_ENGLISH_SEARCH_SENTENCE,
+        REQUIRED_ALIAS_COMMAND,
+        REQUIRED_ALIAS_ABORT,
+        REQUIRED_MOVE_NOTE,
+        REQUIRED_REMOVE_TAG,
+        'CLI port occupied',
+        '`validated` 和 `planHash`',
+        'get-todays-doc` 是写入',
+        'npm run setup && npm run build',
+        'background processes do not survive reboot',
+        'Node >= 22.13',
+    ):
+        errors.extend(_require_sentence(
+            source,
+            'skills/remnote-flashcards/skills/remnote-cli/SKILL.md',
+            sentence,
+            live_why,
+        ))
+    for sentence in (
+        REQUIRED_FACTUAL_REVIEW_SENTENCE,
+        REQUIRED_PLUGIN_COMMIT,
+        REQUIRED_REVIEWER_USER,
+    ):
+        errors.extend(_require_sentence(
+            source,
+            'skills/remnote-flashcards/skills/remnote-verify/SKILL.md',
+            sentence,
+            live_why,
+        ))
+    flow = source / 'skills/remnote-flashcards/flow.yaml'
+    if flow.is_file():
+        flow_text = flow.read_text()
+        for condition_id in LIVE_RUN_ROUTE_CONDITIONS:
+            if condition_id not in flow_text:
+                errors.append(
+                    f'skills/remnote-flashcards/flow.yaml: missing route condition {condition_id}. '
+                    'The engine only advances when the forward route lists it.'
+                )
+        if 'panorama_presented' not in flow_text:
+            errors.append('skills/remnote-flashcards/flow.yaml: panorama_presented must stay on every forward route.')
     package = source / 'skills' / 'remnote-flashcards'
     if not package.is_dir():
         return errors

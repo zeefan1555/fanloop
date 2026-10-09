@@ -145,3 +145,30 @@ run are 梭哈, 全仓, 一把梭, and 优秀个股. The plain rewrites from tha
 `[[id:]]` through `create --content-file` is not a write path. That run's
 `[[id:gTpsZTEYvBxB4S1PM]]` (分批加仓) was stored as `[[DCF]]0`. The four step
 IDs are unchanged.
+
+Amended 2026-10-09. The source-type token in `YYYY-MM-DD <source type> <source_h1>`
+must match the Concept tag's PARA area. theme_para maps 00-NOTE to note,
+01-PROJECTS to project, 02-AREAS to area, 03-RESOURCES to resource, and
+04-ARCHIVE to archive. This replaces the sentence that a book chapter always
+uses `book`. The forward preface example under `03-RESOURCES` is
+`2026-10-06 resource 前言`. The 2026-10-06 incident string
+`2026-10-06 book 前言` (`C4lWZBYMbeUIoL9Zd`) stays as history. A combo card is
+the last child of the theme and has no tag of its own. After the untitled
+combo apply, dry-run then `--apply`
+`move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`,
+then `object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`.
+Do not leave the combo on the daily note. Aliases are
+`sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`.
+`update --add-aliases` fails on SDK 0.0.46 with
+`Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`.
+Forward routes also require `tag_approved`, `control_search_passed`,
+`combo_placed`, and `aliases_written`. An empty CJK search is not authoritative:
+run a known-term control search first. 已知术语对照搜索返回空时，先点桌面按钮「重新加载搜索缓存」，再重搜。
+Also search the English form of the term when it has one. Preview without
+`--apply` shows only `validated` and `planHash`; compare the plan file to the
+reviewed draft digest before `--apply`. Never run remnote-cli in parallel
+(`CLI port occupied`). `sdk date get-todays-doc` is a write. Reviewer fallback:
+parent or host when the runner cannot spawn a sub-agent, otherwise
+`reviewer=user`. Re-review only changed cards against a recomputed digest.
+Receipts record `plugin_commit`. example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice.
+Runtime still checks types and routing. The four step IDs are unchanged.

@@ -66,7 +66,7 @@ remnote-cli sdk rem object-set-is-folder --target-id <REM_ID> --args-json '[true
 ## 创建或修正 Concept Tag
 
 1. 在预期父级和 HOME 根范围内分别按规范名、别名查重；已有同义 Tag 时复用，不创建同名副本。
-2. 缺失时用 `create --parent-id <PARENT_ID>` 创建普通 Rem，再设置 Concept：
+2. 学习批次里这个 Concept 还不存在时，先向用户提出从 HOME 到叶子的完整祖先路径，等明确同意。空的中文 `search` 不是同意。同意之后用 `remnote-cli create --title "<Concept 名称>" --parent-id <父级 ID>` 创建，再设置 Concept：
 
 ```bash
 remnote-cli sdk rem object-set-type --target-id <REM_ID> --args-json '[1]'

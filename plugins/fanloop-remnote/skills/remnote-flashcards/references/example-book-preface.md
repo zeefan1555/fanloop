@@ -6,7 +6,7 @@
 
 - 领域分组：`HOME / 03-RESOURCES / 金融知识`
 - 打在批次上的最细 Concept Tag：`人人都是量化交易员`。这是教程名。不要打作者名 `刑无刀`，不要停在 `金融知识`，也不要把 Wiki 页当 Tag。
-- 这一页的 H1 是「前言」。`source_h1` 就是 `前言`。`theme_title` 必须是 `2026-10-06 book 前言`。写成「术语与方法」或「量化地图」时 `theme_literal` 失败，不得写入。
+- 这一页的 H1 是「前言」。`source_h1` 就是 `前言`。`theme_title` 必须是 `2026-10-06 resource 前言`。写成「术语与方法」或「量化地图」时 `theme_literal` 失败，不得写入。
 - 主题放在当日每日笔记。术语卡在主题下。组合卡是主题的最后一个子 Rem，自己不挂教程 Tag。主题的 Tag 索引这些卡。
 - 用户没有要求 Card Cluster。计划省略 `cardCluster`（写 `false` 也可以）。当前 Direct 这两种都不会添加 `cc`。写后 `cluster_powerup` 必须为 false。若为 true，记为 remnote-direct 回归。
 - 不写 WIKI，也不在卡片里放 Wiki 链接。用户没有要求。Wiki 概念页也不能代替术语闪卡。离开准备步骤靠 `terms_ready` 和 `learning_preflight_passed`，不靠 Wiki 不适用回执。
@@ -32,10 +32,16 @@ preflight:
   card_cluster: pass
   named_methods: pass
   redo_reuse: pass
+  theme_para: pass
+  tag_approval: pass
+  control_search: pass
+  combo_placement: pass
+  alias_method: pass
+  factual_review: pass
   card_cluster_requested: false
   card_cluster_plan: omit
   source_h1: 前言
-  theme_title: 2026-10-06 book 前言
+  theme_title: 2026-10-06 resource 前言
   tag_ancestor_path: [HOME, 03-RESOURCES, 金融知识, 人人都是量化交易员]
 ```
 
@@ -60,7 +66,7 @@ combo_rem_refs:
 
 ## 阅读草稿
 
-下面的 Markdown（`问题 ===` 加缩进子 bullet）只帮助看背面形状。它不是 `flashcards apply` 读的计划。计划是 `question` 字符串加 `answer` 的 `Segment[][]`，字段见 [FlashcardsPlan](../../remnote-cli/references/flashcards-plan.md)。`title` 为 `2026-10-06 book 前言` 的术语卡计划新建主题。组合卡不在这份带 `title` 的计划里。段间看起来空的 Rem 含一个 `U+200B`。原子术语卡没有这些空行，也没有 S/T/A/R 标题。
+下面的 Markdown（`问题 ===` 加缩进子 bullet）只帮助看背面形状。它不是 `flashcards apply` 读的计划。计划是 `question` 字符串加 `answer` 的 `Segment[][]`，字段见 [FlashcardsPlan](../../remnote-cli/references/flashcards-plan.md)。`title` 为 `2026-10-06 resource 前言` 的术语卡计划新建主题。组合卡不在这份带 `title` 的计划里。段间看起来空的 Rem 含一个 `U+200B`。原子术语卡没有这些空行，也没有 S/T/A/R 标题。
 
 ## FlashcardsPlan 形状
 
@@ -72,7 +78,7 @@ combo_rem_refs:
   dailyRemId: "<今日笔记 Rem ID>",
   homeRootId: "<HOME Rem ID>",
   tagRemId: "<人人都是量化交易员 Concept Rem ID>",
-  title: "2026-10-06 book 前言",
+  title: "2026-10-06 resource 前言",
   newCards: [
     {
       key: "backtest",
@@ -89,7 +95,7 @@ combo_rem_refs:
 ## 阅读草稿正文
 
 ```markdown
-- 2026-10-06 book 前言
+- 2026-10-06 resource 前言
     - 回测 ===
         - 正式定义：回测是用过去已经发生的记录，按写好的买卖规则重走一遍，看当时会赚还是亏。
         - 白话类比：小明拿出上周的天气本，按「晴天才摆摊」重走一遍，看那周会赚几块。

@@ -331,6 +331,23 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertIn('75%', result.stdout)
         self.assertNotIn('75%%', result.stdout)
 
+    def test_missing_live_run_sentence_names_the_prompt(self):
+        source = self.root / 'live-run-gates'
+        relative = 'skills/remnote-flashcards/prompt.yaml'
+        path = source / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text((ROOT / relative).read_text().replace(
+            configuration.REQUIRED_FACTUAL_REVIEW_SENTENCE, ''))
+        contract = 'skills/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md'
+        (source / contract).parent.mkdir(parents=True, exist_ok=True)
+        (source / contract).write_text((ROOT / contract).read_text())
+        errors = configuration.learning_card_gate_errors(source)
+        self.assertTrue(
+            any('prompt.yaml' in error and configuration.REQUIRED_FACTUAL_REVIEW_SENTENCE in error
+                for error in errors),
+            errors,
+        )
+
     def test_repository_learning_card_gates(self):
         result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--check-learning-card-gates', '--config-source', str(ROOT)],
