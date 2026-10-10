@@ -44,6 +44,63 @@ Wiki 内容，需要正文的每个 ID 显式列入 `remIds`。用 `verify scope
 4. **卡片完整性。** 对内容根运行 `review-stats --root-id <CONTENT_ID>`，核对实际卡片 Rem ID 集合与本批次预期完全一致，防止漏卡、答案生成子卡或主题误成卡。逐卡回读正文与直接子 Rem；折叠时按具体 ID 继续读取。移动前后的 cardId、复习记录和内容必须保持不变。多卡主题写后必须运行 `remnote-cli sdk rem object-has-powerup --target-id <主题Rem_ID> --args-json '["cc"]'`，结果写入 `cluster_powerup`。用户未要求时期望 false；用户要求且本批有主题标题和至少 2 张新卡时期望 true。与期望不符则失败。意外的 true 是 remnote-direct 回归，不要补加，也不要把它记成成功。主题仍是 `text`。组合卡里的 Rem 引用必须指向 preparation 记下的标题卡 Rem ID，指向别名 Rem 失败。单篇或单章的主题标题必须与 `source_h1` 按契约拼成的 `theme_title` 一致。
 5. **范围复核。** 当天创建时用 `review-stats --today` 确认目标卡片均在今天；跨午夜检查回执中的实际创建日记；历史卡更新则检查原日记。修复 HOME 错放后对原父级复查，确认卡片已移出，分类 Tag 仍留在 HOME。普通写卡只检查本批次，不扫描无关历史内容。
 
+## 组合卡引用与字面括号扫描
+
+`terms_referenced` 同时覆盖组合卡正面和答案。回读每张组合卡与它的答案子 Rem（`read <ID> --view full` 或 `context`），按下面的结构扫描判定，不对序列化 JSON 做 grep：JSON 数组本身就有 `[[`，grep 会误报，也会漏掉被转义的文本。
+
+```python
+def strings(node):
+    """递归收集 RichText / TextSegments 里的字符串，跳过引用对象的 _id/remId。"""
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, list):
+        for x in node:
+            yield from strings(x)
+    elif isinstance(node, dict):
+        if node.get("i") == "q" or "remId" in node:
+            return
+        for k in ("text", "backText"):
+            if k in node:
+                yield from strings(node[k])
+
+def refs(node):
+    if isinstance(node, list):
+        for x in node:
+            yield from refs(x)
+    elif isinstance(node, dict):
+        if node.get("i") == "q":
+            yield node["_id"]
+        elif "remId" in node:
+            yield node["remId"]
+        for k in ("text", "backText"):
+            if k in node:
+                yield from refs(node[k])
+
+def check_combo(rem, answers, title_ids, expected_ref_ids):
+    """rem/answers 是回读对象，含 text、backText、aliases。"""
+    fields = [rem.get("text"), rem.get("backText"), rem.get("aliases", [])]
+    for a in answers:
+        fields += [a.get("text"), a.get("backText"), a.get("aliases", [])]
+    literal = [s for f in fields for s in strings(f) if "[[" in s or "]]" in s]
+    own = set(refs([f for f in fields if f is not None]))
+    expected = set(expected_ref_ids)
+    allowed = set(title_ids)
+    return {"no_literal_brackets": not literal,
+            "literal_brackets": literal,
+            "ref_ids": sorted(own),
+            "expected_ref_ids": sorted(expected),
+            "ok": not literal and bool(expected) and expected <= allowed and own == expected}
+```
+
+- 从 `preparation_receipt.combo_rem_refs` 取得每张组合卡的期望引用；用 `flashcards_written.ids` 把本批 `term_key` 解析成 `card:<term_key>` 对应的标题卡 ID。
+- 每张组合卡的 `expected_ref_ids` 必须非空且是本批标题卡 ID 的子集；`ref_ids` 必须与它完全相等。全批并集通过或只验证已出现的引用不能代替逐卡比对。
+- `no_literal_brackets` 必须为 `true`，`literal_brackets` 必须为空；正面、答案、`backText`、aliases 都算。
+- `--apply` 之前对计划做同样的扫描：对每个 `newCards[]` 递归收集 `question`（字符串或 TextSegments）与 `answer` 里的字符串段，任一含 `[[`／`]]` 就不 apply，回 `term_refs` 修复；每张计划卡记录 `no_literal_brackets=true`。
+
+## 真实界面验证
+
+写后结构通过之后，按 [verify-remnote](../verify-remnote/SKILL.md) 在真实 RemNote 网页里打开每张组合卡，截图正面蓝色引用与悬停预览，作为 `real_app_verified` 的证据。CLI 回读通过不代表界面显示正确。
+
 ## Wiki
 
 默认批次没有 Wiki 写入时，跳过下面四项，回执不记录 Wiki 检查。不要为了通过检查去创建页面，也不要把跳过写成 Route 上的通过回执。用户要求了 Wiki，或本批次确实改过 Wiki 时，才执行：

@@ -70,11 +70,14 @@ prompts:
       别名在标题卡已经存在之后再加。每张标题卡一条：`remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`。`update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。
       组合卡必须放在主题 Rem 里面，排在术语卡之后，是最后一个子 Rem，自己不挂 Tag。组合卡 apply 之后父级还是每日笔记。先干跑 `remnote-cli move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`，对照后再另一次调用加上 `--apply`。然后 `remnote-cli sdk rem object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`。`update-tags --remove-tag-ids` 会失败，它要求 allowDestructive。不要把组合卡留在每日笔记上。
       回读：主题子 Rem 顺序是术语卡在前、组合卡为最后一个；组合卡没有 tags；`review-stats --root-id <THEME_ID>` 列出本批全部卡片；`search-by-tag` 只返回主题。没有组合卡时 combo_placed 记 no_combo。没有新标题卡时 aliases_written 记 no_new_aliases。
-      已经复用的标题卡不新建。不得引用别名 Rem。界面应显示短名，例如 [[PE]]，点击打开带背面的标题卡。
+      已经复用的标题卡不新建。不得引用别名 Rem。界面应显示蓝色短名，例如 PE，悬停预览带背面的标题卡。
+      先读 `remnote-cli flashcards apply --help`，确认 question 支持 TextSegments；缺少该能力时报告 blocked 并更新 CLI，不执行 apply。组合卡 question 与答案都写 TextSegments，引用段是 {"remId":"<标题卡 Rem ID>"}。纯字符串 question 不得含 [[ 或 ]]。
+      --apply 之前按 remnote-verify 的字面括号结构扫描读计划：递归收集每张卡 question 与 answer 里的字符串段，任一含 [[ 或 ]] 就不 apply。不得对序列化 JSON 做 grep。
       combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
       2026-10-07 失败例：`create --content-file` 中的 `[[id:gTpsZTEYvBxB4S1PM]]`（分批加仓）把 T 正文写成 `[[DCF]]0`。不得再走这条。
       预览不加 `--apply` 时，输出只有 `validated` 和 `planHash`，没有卡片正文。`--apply` 之前读完计划文件，对照已审草稿的 digest。格式、计划预算、身份权限和前置哈希通过，并且学习预检在这次阅读之后仍全部 pass，才另一次调用加上 `--apply`。
-      离开本步的正常 Route 同时要求 flashcards_written、terms_referenced=passed、result_verified=passed、learning_preflight_passed=passed、combo_placed=passed、aliases_written=passed。
+      离开本步的正常 Route 同时要求 flashcards_written、terms_referenced=passed、result_verified=passed、learning_preflight_passed=passed、combo_placed=passed、aliases_written=passed、real_app_verified。
+      real_app_verified 按 verify-remnote 在真实 RemNote 网页里打开每张组合卡，确认正面与答案引用为蓝色引用并悬停出预览，截图存到本需求的 evidence/ 目录。
       每批最多 7 张新卡且计划最多 100 KiB。用户没有要求 Wiki 时不要为了凑满 10 个 Wiki 页而建页。按学习链路和引用依赖分批，不截断原文或扩大上限。
       新卡按真实创建日期置于每日笔记。单卡挂最细 HOME Concept Tag。多卡可以放在一个普通 text 主题 Rem 下，只给主题挂该 Tag，子卡不重复打标。主题标题用 preparation 里已经对上的 theme_title。更新保留原位置、Rem ID、cardId 和复习记录。
       --apply 之前再扫一遍普通学习卡的正面和答案行。arrow_hits 必须为 0。
@@ -90,6 +93,7 @@ prompts:
       - {id: remnote-flashcards, prompt: 术语卡计划写 title。组合卡计划不写 title。apply 之后 move-note 再 object-remove-tag。默认不写 Wiki。, optional: false}
       - {id: remnote-verify, prompt: 比对已审草稿及实际正文。组合卡是主题最后一个子 Rem 且没有 tags。标题卡引用、主题、Tag 和 cc 按契约回读。没有 Wiki 修改时不扫 WIKI。, optional: false}
       - {id: remnote-cli, prompt: 每次 shell 一个命令。别名用 object-get-or-create-alias-with-text。预览只看 validated 和 planHash，对照计划文件后再 --apply。, optional: false}
+      - {id: verify-remnote, prompt: 写后在真实 RemNote 网页点开每张组合卡，截图正面蓝色引用与悬停预览，存到需求 evidence/。, optional: false}
 
   retrospect_run_flow:
     prompt: |
@@ -155,7 +159,9 @@ prompts:
 
   terms_referenced_condition:
     prompt: |
-      回读组合卡答案里的原生引用。每个引用的 Rem ID 必须等于本批 term_pipeline 的标题卡 Rem ID，回读标题是短名，点击目标带该卡的背面子 Rem。别名 Rem、Wiki 页面、pageKey、字面 [[名称]] 或无法解析的 ID 不得报 passed。
+      回读组合卡正面（text）和答案（各答案子 Rem 的 text 与 backText）里的原生引用。每个引用的 Rem ID 必须等于本批 term_pipeline 的标题卡 Rem ID，回读标题是短名，目标带该卡的背面子 Rem。别名 Rem、Wiki 页面、pageKey、字面 [[名称]] 或无法解析的 ID 不得报 passed。
+      从 preparation_receipt.combo_rem_refs 取得每张组合卡的期望引用；其中 term_key 用 flashcards_written.ids 的 card:<term_key> 解析成标题卡 ID。每张组合卡的期望集合必须非空且是本批标题卡 ID 集合的子集，正面加答案的实际引用 ID 集合必须与该期望集合完全相等；只看全批并集或只验证已出现的引用不算。
+      按 remnote-verify 的字面括号结构扫描：从回读对象的 text、backText、aliases 递归收集字符串段，任一含 [[ 或 ]] 不得报 passed。每张组合卡记录 no_literal_brackets=true；不得对序列化 JSON 做 grep，因为 JSON 里的 [[ 可能只是数组括号。
       没有组合卡时，核对没有把术语引用到别名 Rem 或 Wiki 页，并记下 no_combo_refs。这不是 Wiki 不适用回执。
       引用不能替代卡内作答所需的解释。原文模式没有术语引用时，仅当 terms_ready 的 skip_original 仍有效才报 passed。
       漏引用、错引用或结果不明不得报 passed，repair_scope 用 term_refs。
@@ -198,6 +204,16 @@ prompts:
       `update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本用上面的 SDK 方法。
       别名 Rem 不得当作组合卡引用目标。每次 shell 一个命令。不得并行，并行会报 CLI port occupied。
     skills: []
+
+  real_app_verified_condition:
+    prompt: |
+      按 verify-remnote 从 remnote-cli status 读取当前 knowledgeBaseId，再在已登录同一账号的真实 RemNote 网页里打开本批每张组合卡，由 computerUse／浏览器 Agent 操作，不用 Shell CDP。
+      每张组合卡正面和答案里的每个引用都是 span.rem-reference-container[data-rem-reference-id]；等 加载中 消失后显示短名。页面读到的 front_ref_ids 与 answer_ref_ids 合集必须等于该卡解析后的 preparation_receipt.combo_rem_refs。正面和答案各至少悬停一个引用，弹出带 预览 标签、显示标题卡背面的预览。
+      输出 object：outcome=passed、combos（每张 combo_rem_id、front_ref_ids、answer_ref_ids、front_screenshot、answer_screenshot、hover_screenshots）、evidence_dir、kb_id、surface=web。截图路径必须在本需求的 evidence/ 目录下且文件存在。
+      没有组合卡时不打开浏览器，提交 `{outcome: "no_combo", combos: []}`。
+      桌面端 SDK Bridge（display :10，ws 127.0.0.1:3002）不可用、未登录、引用仍显示字面括号或预览不出现，都不得提交；报告 blocked 或回 term_refs 修复。
+    skills:
+      - {id: verify-remnote, prompt: Launch、Doctor、Drive features/combo-front-refs.md 与 combo-answer-refs.md，Evidence 存到需求 evidence/，Cleanup 不删证据。, optional: false}
 
   record_condition:
     prompt: |

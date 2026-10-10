@@ -31,7 +31,7 @@ Route 用 `terms_ready`、`learning_preflight_passed`、`tag_approved`、`contro
 
 原子卡标题是短名，例如 `PE`。标题里出现 `？` 或 `是什么` 就失败。长搜索句是这张标题卡的别名，例如 `市盈率（PE）是什么？`。标题卡已经存在之后，每张标题卡一条命令：`remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`。别名 Rem 只供搜索。`remnote-cli update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本用 SDK 方法，不改走桌面。
 
-组合卡只引用标题卡 Rem。写入只有两条：`flashcards apply` 的答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`；直接改 RichText 用 `sdk rem object-set-text`，对象是 `{"i":"q","_id":"<标题卡 Rem ID>"}`。行内显示短名，例如 `[[PE]]`，点击打开带费曼子 Rem 的卡。不要引用别名 Rem，不要写字面括号，不要写 `pageKey`，不要编造 ID。`question` 是纯字符串，不会解析括号。
+组合卡只引用标题卡 Rem。写入只有两条：`flashcards apply` 的正面和答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`；直接改 RichText 用 `sdk rem object-set-text`，对象是 `{"i":"q","_id":"<标题卡 Rem ID>"}`。界面显示蓝色短名，例如 `PE`，悬停预览带费曼子 Rem 的卡。不要引用别名 Rem，不要写字面括号，不要写 `pageKey`，不要编造 ID。组合卡正面示例：`"question":["刚学完 ",{"remId":"<标题卡 Rem ID>"},"：……？ ==="]`。当前 CLI 会拒绝含 `[[` 或 `]]` 的纯字符串 `question`，不得保留这种旧写法。
 
 combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
 
@@ -97,7 +97,7 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 ## Route 门禁
 
-定位步骤进入准备，必须同时提交 `home_tag_ready` 与 `tag_approved=passed`。准备步骤进入写入，必须同时提交 `preparation_recorded`、`draft_quality_passed`、`terms_ready=passed`、`learning_preflight_passed=passed`、`control_search_passed=passed`。写入步骤进入复盘，必须同时提交 `flashcards_written`、`terms_referenced=passed`、`result_verified=passed`、`learning_preflight_passed=passed`、`combo_placed=passed`、`aliases_written=passed`。写后的 `learning_preflight_passed` 用回读重新判定，不能复述准备阶段的 pass。
+定位步骤进入准备，必须同时提交 `home_tag_ready` 与 `tag_approved=passed`。准备步骤进入写入，必须同时提交 `preparation_recorded`、`draft_quality_passed`、`terms_ready=passed`、`learning_preflight_passed=passed`、`control_search_passed=passed`。写入步骤进入复盘，必须同时提交 `flashcards_written`、`terms_referenced=passed`、`result_verified=passed`、`learning_preflight_passed=passed`、`combo_placed=passed`、`aliases_written=passed` 与 `real_app_verified`。写后的 `learning_preflight_passed` 用回读重新判定，不能复述准备阶段的 pass。
 
 多张卡要放在同一个主题下时，术语卡计划的 `title` 用这个 `theme_title`。`title` 会新建一个主题，只挂本计划的 `newCards`。计划没有字段可以指定已经存在的主题。组合卡计划不写 `title`，否则会再造一个主题。`reusedCardRemIds` 和 `answerPatches` 也不改父级。组合卡 apply 之后父级还是每日笔记。用 `move-note` 把它移成主题的最后一个子 Rem，再用 `object-remove-tag` 去掉它自己的 Tag。不要把组合卡留在每日笔记上。先干跑 `remnote-cli move-note <COMBO_ID> --new-parent-rem-id <THEME_ID> --position last --expected-old-parent-rem-id <DAILY_ID>`，再另一次调用加上 `--apply`。然后 `remnote-cli sdk rem object-remove-tag --target-id <COMBO_ID> --args-json '["<TAG_ID>", false]' --allow-destructive`。没有组合卡时 `combo_placed` 记 `no_combo`。没有新别名时 `aliases_written` 记 `no_new_aliases`。
 
@@ -105,7 +105,7 @@ combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-t
 
 `terms_ready` 看 `term_pipeline`：每个术语有 `search --cards-only`，`reuse` 带标题卡 Rem ID，`create` 带 miss 和 `term_key`。组合卡 `rem_refs` 只含这些标题卡 ID 或本批 `term_key`。空管道、Wiki 不适用、别名 Rem 和 Wiki 页面 ID 都不得 passed。原文导入或摘录只有 `skip_original` 且零术语创建、零 Wiki 调用时可以通过。
 
-`terms_referenced` 在写入后回读这些标题卡 ID。指向别名 Rem 不得 passed，回流 `term_refs`。
+`terms_referenced` 在写入后逐张回读组合卡正面和答案中的标题卡 ID，并记录 `no_literal_brackets=true`。从 `preparation_receipt.combo_rem_refs` 取得该卡的期望集合，并用 `flashcards_written.ids` 把本批 `term_key` 解析成 `card:<term_key>` 对应的标题卡 ID。期望集合必须非空且是本批标题卡 ID 的子集；实际集合必须与期望集合完全相等。指向别名 Rem、遗漏引用或残留字面括号不得 passed，回流 `term_refs`。
 
 ## 写入前 preflight
 
@@ -153,7 +153,7 @@ preflight:
 - `atomics_first`：组合卡用到的术语没有先于该组合卡的原子卡；已复用的标题卡算已有。
 - `short_titles`：原子卡标题含 `？` 或 `是什么`，或不是短名。
 - `aliases_after_create`：长搜索句被写成卡片标题或另一张卡，或在标题卡创建之前就去建别名。
-- `rem_ref_title_ids`：组合卡引用的 Rem 不是标题卡 ID，包括别名 Rem、字面括号、`pageKey`、编造 ID，或用 `create --content-file` 写 Markdown `[[id:]]`。2026-10-07 失败例见上文 `[[DCF]]0`。不得把那次写坏当成已引用。
+- `rem_ref_title_ids`：组合卡正面或答案引用的 Rem 不是标题卡 ID，或正面／答案／别名里残留字面 `[[`、`]]`，包括别名 Rem、字面括号、`pageKey`、编造 ID，或用 `create --content-file` 写 Markdown `[[id:]]`。2026-10-07 失败例见上文 `[[DCF]]0`。不得把那次写坏当成已引用。
 - `star_labels_exact`：组合卡缺少逐字 STAR 标题；T 正文不是以「你要学会」开头；A 不是小数目演算；R 不是一句口诀；用 STAR 写原子卡；用三行定义背面写组合卡；原子卡背面不是一行正式定义、一行白话类比、可选一行例子。
 - `arrow_scan`：普通学习卡正面或答案行含箭头；`arrow_hits` 不是 0。
 - `theme_literal`：单篇或单章的 `theme_title` 不是 `YYYY-MM-DD <来源类型> <source_h1>`，`source_h1` 不是文章原 H1，或二者不一致。

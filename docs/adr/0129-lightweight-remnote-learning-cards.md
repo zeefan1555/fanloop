@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-06
-amended: 2026-10-07
+amended: 2026-10-10
 amends: ADR-0117, ADR-0119, ADR-0126-remnote-bounded-workflows-and-maintenance, ADR-0127-review-drafts-and-prepare-wiki-concurrently
 ---
 
@@ -39,10 +39,10 @@ any combo that uses it. A combo question bridges from those cards and asks one
 decision. An atomic term card's title is the short name, such as `PE`. Longer search
 text, such as `市盈率（PE）是什么？`, is an alias on that same title card.
 `getOrCreateAliasWithText` may create that alias. Combo references use the
-title card Rem id, `{"i":"q","_id":"<titleCardRemId>"}`, not the alias Rem.
-The inline text then shows `[[PE]]`, and the click opens the card that holds
-the Feynman children. A `flashcards apply` answer segment uses
-`{"remId":"<titleCardRemId>"}`. The visible
+title card Rem id, not the alias Rem. A `flashcards apply` question or answer
+segment uses `{"remId":"<titleCardRemId>"}`. A direct RichText update uses
+`{"i":"q","_id":"<titleCardRemId>"}`. The interface shows the blue short
+title, and hovering it opens a preview of the Feynman children. The visible
 headings stay `S — Situation：背景`, `T — Task：任务／目标`, `A — Action：行动`,
 and `R — Result：结果`. A fuller paragraph may sit under each letter.
 Chinese-only labels are not a substitute. A combo card
@@ -139,8 +139,8 @@ Amended 2026-10-07 after the remnote-flashcards run. Combo question text and
 every STAR section stay on the five-year-old plain-words rule. Unexplained
 adult trading slang fails `one_pass` and `plain_words`. The words from that
 run are 梭哈, 全仓, 一把梭, and 优秀个股. The plain rewrites from that run are
-一次花光 and 分开买. Combo rem-refs are still only
-`{"remId":"<titleCardRemId>"}` on a `flashcards apply` answer segment, or
+一次花光 and 分开买. Combo rem-refs use
+`{"remId":"<titleCardRemId>"}` on `flashcards apply` question and answer segments, or
 `{"i":"q","_id":"<titleCardRemId>"}` via `object-set-text`. Markdown
 `[[id:]]` through `create --content-file` is not a write path. That run's
 `[[id:gTpsZTEYvBxB4S1PM]]` (分批加仓) was stored as `[[DCF]]0`. The four step
@@ -172,3 +172,18 @@ parent or host when the runner cannot spawn a sub-agent, otherwise
 `reviewer=user`. Re-review only changed cards against a recomputed digest.
 Receipts record `plugin_commit`. example numbers state their condition, such as when idle; do not use a platform term as an everyday word, such as 小程序 on a WeChat card; a binary question's answer line states the choice.
 Runtime still checks types and routing. The four step IDs are unchanged.
+
+Amended 2026-10-10. `flashcards apply` writes combo fronts and answers from
+`TextSegments`; a plain-string question containing `[[` or `]]` is invalid.
+Before apply and after readback, a structured scan records
+`no_literal_brackets=true` only when the question, answers, `backText`, and
+aliases contain no literal bracket reference. Each combo's expected reference IDs
+come from `preparation_receipt.combo_rem_refs`, with new `term_key` values resolved
+through `flashcards_written.ids`. That expected set must be a non-empty subset of
+the batch title-card IDs, and the actual front-plus-answer set must equal it. `persist_and_verify`
+also requires `real_app_verified`. The verifier reads the current
+`knowledgeBaseId` from `remnote-cli status`, checks front and answer references
+plus hover previews in the web app, and records an explicit `no_combo` result
+when the batch has no combo cards. The four step IDs, names, order, and executors
+remain unchanged. This preserves ADR-0126's requirement that the workflow stay
+independent of a particular knowledge base.

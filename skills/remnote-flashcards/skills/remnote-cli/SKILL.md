@@ -85,7 +85,7 @@ description: 使用已安装的 RemNote Direct CLI 做有边界的查询、任�
 
 任务回执的 `ids` 将语义键映射到真实 Rem ID；`facts` 包含正文哈希、原生卡片 ID 和复习哈希。
 不要猜创建顺序，不重新搜索刚创建的对象。更新答案使用精确答案 ID 和 `expectedTextHash`，
-保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句在标题卡存在之后，用 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'` 加在这张标题卡上，每张一条命令。`update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本不要改用 `update --add-aliases`，也不要改走桌面。组合卡引用标题卡 Rem，不引用返回的别名 Rem。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 答案 TextSegments 写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。`question` 是纯字符串，不会解析括号。标题为 `PE` 时行内显示 `[[PE]]`。flashcards 计划不要使用 `pageKey`。
+保留卡片 ID、父级和复习记录。原子卡标题是短名。长搜索句在标题卡存在之后，用 `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'` 加在这张标题卡上，每张一条命令。`update --add-aliases` 取决于 SDK 版本。SDK 0.0.46 失败，错误是 `Native transactions are unavailable: SDK 0.0.46 cannot acknowledge abort`。该版本不要改用 `update --add-aliases`，也不要改走桌面。组合卡引用标题卡 Rem，不引用返回的别名 Rem。运行前从 `remnote-cli flashcards apply --help` 确认 question 支持 TextSegments；缺少该能力时先更新 CLI，不执行 apply。直接写 RichText 用 `sdk rem object-set-text` 的 `{"i":"q","_id":"<标题卡 Rem ID>"}`。`flashcards apply` 的正面和答案 TextSegments 都写 `{"remId":"<标题卡 Rem ID>"}`，不要写 `{"i":"q"}`。组合卡正面示例：`"question":["刚学完 ",{"remId":"<标题卡 Rem ID>"},"：……？ ==="]`。当前 CLI 会拒绝含 `[[` 或 `]]` 的纯字符串 `question`，不得保留这种旧写法。标题为 `PE` 时界面显示蓝色 `PE` 引用。flashcards 计划不要使用 `pageKey`。
 
 combo rem-refs use flashcards apply TextSegments {"remId":"..."} or object-set-text RichText {"i":"q","_id":"..."}; do not use create --content-file with [[id:]].
 
