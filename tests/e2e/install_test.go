@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
 )
@@ -86,17 +87,16 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	}
 }
 
-func TestLocalInstallerRequiresConfigurationSource(t *testing.T) {
-	repository := repositoryRoot(t)
-	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+func TestLocalInstallerBootstrapsWithoutConfiguration(t *testing.T) {
+	fixture := makeReleaseFixture(t, repositoryRoot(t), "1.2.3", "1.2.3")
 	fixture.ConfigSource = ""
 	dataRoot := t.TempDir()
 	result := runInstaller(t, fixture, dataRoot, t.TempDir(), t.TempDir())
-	if result.err == nil || !strings.Contains(result.stderr, "absolute repository") {
-		t.Fatalf("missing source accepted: %v\n%s", result.err, result.stderr)
+	if result.err != nil {
+		t.Fatalf("bootstrap: %v %s", result.err, result.stderr)
 	}
-	if _, err := os.Lstat(filepath.Join(dataRoot, "current")); !os.IsNotExist(err) {
-		t.Fatalf("failed install activated current: %v", err)
+	if _, err := os.Lstat(filepath.Join(dataRoot, "config", "current")); !os.IsNotExist(err) {
+		t.Fatal("bootstrap created configuration")
 	}
 }
 
@@ -136,7 +136,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(oldRelease.ConfigSource, "skills", "sample-custom", "skills", "controller-tools", "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(oldRelease.ConfigSource, "skills", "fanloop-workflow", "sample-custom", "skills", "controller-tools", "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(withoutBotmuxBinding(os.Environ()), "HOME="+home, "FANLOOP_DATA_HOME="+dataRoot)
 	if output, err := pinned.CombinedOutput(); err != nil {
@@ -298,14 +298,16 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
-	liveRoot := filepath.Join(fixture.ConfigSource, "skills")
+	binding, _ := os.Readlink(filepath.Join(dataRoot, "config", "current"))
+	liveRoot := filepath.Join(binding, "skills", "fanloop-workflow")
 	assertFlowSkillPaths(t, initialized.stdout, liveRoot)
 	liveSkill := firstSkillPath(t, filepath.Join(liveRoot, "sample-custom", "skills"))
 	content, err := os.ReadFile(liveSkill)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(liveSkill, append(content, []byte("\nlive config marker\n")...), 0o600); err != nil {
+	authorSkill := firstSkillPath(t, filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow", "sample-custom", "skills"))
+	if err := os.WriteFile(authorSkill, append(content, []byte("\nlive config marker\n")...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	status := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", requirementRoot)
@@ -485,13 +487,102 @@ func TestDoctorRejectsBrokenLiveSkillConfiguration(t *testing.T) {
 	if result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
 		t.Fatalf("install: %v\n%s", result.err, result.stderr)
 	}
-	path := firstSkillPath(t, filepath.Join(fixture.ConfigSource, "skills", "sample-custom", "skills"))
+	binding, _ := os.Readlink(filepath.Join(dataRoot, "config", "current"))
+	path := firstSkillPath(t, filepath.Join(binding, "skills", "fanloop-workflow", "sample-custom", "skills"))
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
 	}
 	diagnosed := runCurrent(dataRoot, codexRoot, agentsRoot, "doctor")
 	if diagnosed.err == nil || !strings.Contains(diagnosed.stdout, `"id": "skills"`) || !strings.Contains(diagnosed.stdout, `"status": "failed"`) {
 		t.Fatalf("Doctor accepted broken live Skill configuration: %#v", diagnosed)
+	}
+}
+
+func TestDoctorValidatesManagedSnapshotIdentity(t *testing.T) {
+	repository := repositoryRoot(t)
+	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+	if result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot); result.err != nil {
+		t.Fatalf("install: %v\n%s", result.err, result.stderr)
+	}
+	snapshot, err := filepath.EvalSymlinks(filepath.Join(dataRoot, "config", "current"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := filepath.Join(snapshot, "configuration.json")
+	original, err := os.ReadFile(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(source string, args ...string) (string, error) {
+		command := exec.Command(filepath.Join(dataRoot, "current", "bin", "fanloop"), args...)
+		command.Env = append(withoutBotmuxBinding(os.Environ()),
+			"FANLOOP_DATA_HOME="+dataRoot,
+			"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
+			"FANLOOP_AGENT_SKILLS_ROOT="+agentsRoot,
+			"FANLOOP_TRAE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".trae-skills"),
+			"FANLOOP_CLAUDE_SKILLS_ROOT="+filepath.Join(agentsRoot, ".claude-skills"))
+		if source != "" {
+			command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+source)
+		}
+		output, err := command.CombinedOutput()
+		return string(output), err
+	}
+	for _, damage := range []string{"healthy", "modified", "missing", "wrong_commit"} {
+		t.Run(damage, func(t *testing.T) {
+			if err := os.Remove(manifest); err != nil {
+				t.Fatal(err)
+			}
+			if damage != "missing" {
+				content := original
+				if damage == "modified" {
+					content = []byte(`{}`)
+				}
+				if damage == "wrong_commit" {
+					var identity map[string]any
+					if err := json.Unmarshal(original, &identity); err != nil {
+						t.Fatal(err)
+					}
+					identity["commit_sha"] = strings.Repeat("1", 40)
+					content, err = json.Marshal(identity)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err := os.WriteFile(manifest, content, 0444); err != nil {
+					t.Fatal(err)
+				}
+			}
+			defer func() {
+				_ = os.Remove(manifest)
+				if err := os.WriteFile(manifest, original, 0444); err != nil {
+					t.Fatal(err)
+				}
+			}()
+			for _, selection := range []string{"default", "explicit"} {
+				t.Run(selection, func(t *testing.T) {
+					source := ""
+					if selection == "explicit" {
+						source = snapshot
+					}
+					for _, args := range [][]string{{"doctor"}, {"verify", "doctor"}} {
+						output, err := run(source, args...)
+						if damage == "healthy" {
+							if err != nil {
+								t.Fatalf("%v rejected healthy snapshot: %v\n%s", args, err, output)
+							}
+						} else if err == nil || !strings.Contains(output, `"workflows"`) {
+							t.Fatalf("%v accepted damaged snapshot or failed for unrelated cause: %v\n%s", args, err, output)
+						}
+					}
+				})
+			}
+		})
+	}
+	for _, args := range [][]string{{"doctor"}, {"verify", "doctor"}} {
+		if output, err := run(fixture.ConfigSource, args...); err != nil {
+			t.Fatalf("%v rejected ordinary author source without manifest: %v\n%s", args, err, output)
+		}
 	}
 }
 
@@ -544,10 +635,12 @@ func runInstaller(t *testing.T, fixture releaseFixture, dataRoot, codexRoot, age
 	}
 	command := exec.Command(filepath.Join(fixture.Directory, "bin", "fanloop"),
 		"__install", "--source", fixture.Directory, "--data-root", dataRoot,
-		"--config-source", fixture.ConfigSource,
 		"--codex-skills-root", codexRoot, "--agent-skills-root", agentsRoot,
 		"--trae-skills-root", traeRoot, "--claude-skills-root", claudeRoot, "--replace-invalid",
 	)
+	if fixture.ConfigSource != "" {
+		command.Args = append(command.Args, "--config-source", fixture.ConfigSource)
+	}
 	command.Env = append(withoutBotmuxBinding(os.Environ()),
 		"FANLOOP_DATA_HOME="+dataRoot,
 		"FANLOOP_CODEX_SKILLS_ROOT="+codexRoot,
@@ -662,19 +755,19 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 		assertSkillLink(t, dataRoot, root)
 	}
 	binding, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	wantSource, sourceErr := filepath.EvalSymlinks(fixture.ConfigSource)
-	if err != nil || sourceErr != nil || binding != wantSource {
-		t.Fatalf("source binding = %q, %v; want %q", binding, err, fixture.ConfigSource)
+	identity, sourceErr := configuration.Read(binding)
+	if err != nil || sourceErr != nil || identity.CommitSHA == "" {
+		t.Fatalf("snapshot binding %q: %v %v", binding, err, sourceErr)
 	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "current", "workflows")); !os.IsNotExist(err) {
 		t.Fatalf("install created a configuration copy: %v", err)
 	}
-	liveRoot := filepath.Join(fixture.ConfigSource, "skills")
+	liveRoot := filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow")
 	info, err := os.Lstat(liveRoot)
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		t.Fatalf("live Workflow root is not a real directory: %#v, %v", info, err)
 	}
-	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "skills")) {
+	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow")) {
 		t.Fatal("first install did not seed the source Workflow tree byte-for-byte")
 	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "releases", version, "skills")); !os.IsNotExist(err) {
@@ -739,7 +832,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 func makeSyntheticConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
 	root := t.TempDir()
-	bundle := filepath.Join(root, "skills", workflowID)
+	bundle := filepath.Join(root, "skills", "fanloop-workflow", workflowID)
 	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(repository, "examples", "workflows", "example"))); err != nil {
 		t.Fatal(err)
 	}
@@ -752,13 +845,14 @@ func makeSyntheticConfigSource(t *testing.T, repository, workflowID string) stri
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	commitConfigurationFixture(t, root)
 	return root
 }
 
 func makeLinearRuntimeConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
 	root := t.TempDir()
-	bundle := filepath.Join(root, "skills", workflowID)
+	bundle := filepath.Join(root, "skills", "fanloop-workflow", workflowID)
 	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
 		t.Fatal(err)
 	}
@@ -771,6 +865,7 @@ func makeLinearRuntimeConfigSource(t *testing.T, repository, workflowID string) 
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	commitConfigurationFixture(t, root)
 	return root
 }
 
@@ -793,7 +888,7 @@ func makeReleaseFixtureWithChangedSyntheticPrompt(t *testing.T, repository, rele
 	t.Helper()
 	fixture := makeReleaseFixture(t, repository, releaseVersion, compiledVersion)
 	fixture.ConfigSource = makeSyntheticControllerConfigSource(t, repository, "sample-custom")
-	path := filepath.Join(fixture.ConfigSource, "skills", "sample-custom", "prompt.yaml")
+	path := filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow", "sample-custom", "prompt.yaml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -805,17 +900,19 @@ func makeReleaseFixtureWithChangedSyntheticPrompt(t *testing.T, repository, rele
 	if err := os.WriteFile(path, changed, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	commitConfigurationFixture(t, fixture.ConfigSource)
 	return fixture
 }
 
 func makeSyntheticControllerConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
 	root := makeSyntheticConfigSource(t, repository, workflowID)
-	target := filepath.Join(root, "skills", workflowID, "skills", "controller-tools", "scripts", "pin-controller-release.sh")
+	target := filepath.Join(root, "skills", "fanloop-workflow", workflowID, "skills", "controller-tools", "scripts", "pin-controller-release.sh")
 	copyTreeFile(t, filepath.Join(repository, "tests", "e2e", "testdata", "pin-controller-release.sh"), target)
 	if err := os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(target)), "SKILL.md"), []byte("---\nname: controller-tools\ndescription: Synthetic controller pinning fixture.\n---\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	commitConfigurationFixture(t, root)
 	return root
 }
 
@@ -1002,4 +1099,18 @@ func copyFixtureDirectory(t *testing.T, source, target string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func commitConfigurationFixture(t *testing.T, root string) {
+	t.Helper()
+	for _, args := range [][]string{{"init", "-b", "main"}, {"config", "user.name", "Fixture"}, {"config", "user.email", "fixture@example.test"}, {"add", "."}, {"commit", "--allow-empty", "-m", "configuration fixture"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("fixture Git %v: %v %s", args, err, output)
+		}
+	}
+	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_KEY_0", "url."+root+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_0", configuration.Repository)
 }

@@ -1,41 +1,22 @@
-# Local Workflow Skill Packages
+# Workflow Configuration Snapshots
 
 ## Sub-features
 
-- One complete package at `skills/<workflow-id>/`: root SKILL.md, five YAML files and package-local `skills/**` resources.
-- Absolute source binding at `$FANLOOP_DATA_HOME/config/current`; explicit `FANLOOP_CONFIG_SOURCE` overrides it.
-- No source search, copied live tree, remote update or fallback.
-- Strict full-package validation and shared source-directory locking across data homes.
+- second-brain-agent main is the single source, with complete skills/fanloop-workflow packages.
+- New flow init fetches, validates and activates an immutable commit snapshot.
+- Existing status/report/skills are offline; explicit repository source bypasses refresh.
+- Complete path/content/executable-bit identity, shared locking, no partial activation.
 
 ## How to get to it (user POV)
 
-Install from the repository with `./scripts/install-local.sh`. Run `fanloop doctor` and
-`flow init/status` from an unrelated working directory. Their paths must identify
-the bound source's packages, not the binary or the invocation directory.
+Install into isolated data and Skill roots without configuration. Run flow init from an unrelated directory. Read Doctor, config/current/configuration.json and Status Skill paths; they identify the same commit snapshot. Explicit FANLOOP_CONFIG_SOURCE selects an author repository root.
 
 ## Driving it with fanloop
 
-Bind source A, invoke from another cwd, then explicitly select source B and verify its
-Prompt and Skill paths. Edit a local prompt and resource without rebuilding; the next
-invocation must read it while the binary digest remains unchanged. Unset the override
-and confirm A is used. A bad explicit source or missing bound source must fail without
-reading another checkout or old `current/workflows` bytes.
+Use a local Git fixture through Git's url.insteadOf for repeatable remote-main tests, plus one authorized real GitHub main smoke. Initialize two independent Roots at the same SHA; confirm snapshot reuse. Advance main and delete a resource/package; the new snapshot must exactly match the new collection. Existing paths remain readable. Block Git and prove existing status/report/skills succeed while a fresh init returns CONFIGURATION_FETCH_FAILED, external, exit 1, retryable, with no State or current change. Invalid and symlink packages fail before activation. Dry-run validates without State or current change. Exercise concurrent inits and failed activation. Hold an existing Root State lock while a valid report waits; a refresh may prepare its candidate but must not switch the binding until that report completes. The report must succeed against one snapshot.
 
-Reject explicitly empty/whitespace and relative sources, symlinked roots/packages/resources, missing SKILL.md, missing
-YAML, unknown root files, invalid YAML and missing bound Skills without business State
-writes. Preserve nested resources and executable scripts. Only the two public entry
-Skills may appear in global Skill roots. `fanloop update` must be an unknown operation.
-Run with no remote helper or network credentials.
-
-Use `scripts/validate-configuration.py` for the fixed source's Route Matrix and complete
-configuration manifest; it does not execute business Skill actions. Repeat `--workflow ID`
-to run only affected matrices; no selection means all, duplicate IDs run once and an
-unknown ID fails before any matrix. Verify the manifest still lists all source files
-and reports unchanged source. Prompt prose alone needs strict loading and a relevant
-example, not matrices or manually rebuilt parser-negative suites.
+Use an explicit author source to prove immediate edit visibility and invalid-source rejection. scripts/validate-configuration.py validates the fixed full collection, records its complete manifest, supports affected --workflow selection and checks unchanged source. Unknown IDs fail before matrices.
 
 ## Gotchas
 
-Workflow content is read from the repository on every invocation, independently of the
-immutable CLI Release. Existing Requirements retain their Workflow ID. A pinned
-self-iteration controller uses its own complete source snapshot.
+Snapshots are immutable; edit and commit the source repository. Default Dashboard is read-only. Author roots use the same category layout. No manual update, tag or provider selector exists. Capture configuration_manifest_sha256 with the frozen code candidate.

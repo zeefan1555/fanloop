@@ -6,7 +6,10 @@
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
 **Live Workflow**
-本地仓库 skills/<workflow-id>/ 完整包：根 SKILL.md、五份 YAML 与子 skills/** 资源。安装以 $FANLOOP_DATA_HOME/config/current 绑定绝对仓库，显式 FANLOOP_CONFIG_SOURCE 优先；不按 cwd 搜索，不复制运行副本。每次调用读取最新本地字节，源失效立即失败。五 YAML 继续定义层级、正常 Route、Condition、Loop 和 Prompt，内容独立于 CLI Release。
+second-brain-agent main 的 `skills/fanloop-workflow/<workflow-id>/` 完整包。默认读取 config/current 指向的提交快照，flow init 刷新；已有流程离线读取。显式 FANLOOP_CONFIG_SOURCE 为作者仓库根并跳过刷新。五 YAML、子 Skills 与资源独立于 CLI Release。
+
+**Configuration Snapshot**
+config/snapshots/<commit-sha>/ 下的不可变配置集合。configuration.json 固定仓库、ref、commit、Workflow IDs 与文件路径、内容、可执行位摘要。完整校验后才原子切换 current。
 
 **Requirement Workflow Resolution**
 Requirement 只持久化 Workflow ID 与创建它的 CLI Release version。每次 CLI 调用都按该 ID 从同一个
@@ -94,7 +97,7 @@ main 前进时只记录新 base 并回 Build，不能修改候选；重新认证
 squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交本地安装和回读。
 
 **Local Source Distribution**
-GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装离线绑定源仓库；配置从本地完整包直接读取，无下载或同步。
+GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装离线导入显式干净提交或保留当前快照；新 init 自动刷新远端 main。
 
 **Maintainer Reports**
 代码通道固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和

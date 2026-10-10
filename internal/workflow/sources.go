@@ -38,7 +38,11 @@ func SourceRoot(source string) (string, error) {
 	if !filepath.IsAbs(source) || filepath.Clean(source) == string(filepath.Separator) {
 		return "", fmt.Errorf("configuration source must be an absolute repository directory")
 	}
-	root := filepath.Join(source, "skills")
+	source = filepath.Clean(source)
+	if err := requireRealDirectory(source); err != nil {
+		return "", fmt.Errorf("local configuration source: %w", err)
+	}
+	root := filepath.Join(source, "skills", "fanloop-workflow")
 	if err := requireRealWorkflowRoot(root); err != nil {
 		return "", fmt.Errorf("local configuration source: %w", err)
 	}

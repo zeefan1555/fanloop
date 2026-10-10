@@ -6,3 +6,6 @@ scenarios:
   remnote-flashcards:
     workflow: remnote-flashcards
     description: 基于已理解的概念完成 HOME 分类、RemNote 制卡、Wiki 引用与最终校验
+  pstack-native:
+    workflow: pstack-native
+    description: 按剧本选择、设计、实现、验证与发布推进交付

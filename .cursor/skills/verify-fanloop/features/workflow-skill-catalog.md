@@ -5,7 +5,7 @@
 - Read-only discovery of every legal child Skill, including those not bound to the current Step.
 - Absolute package_root, skill_root and SKILL.md paths; stable directory IDs and sorted entries.
 - Optional description from YAML frontmatter; absent or unusable metadata produces an empty string without new package restrictions.
-- Current Requirement and fresh local source resolution, with existing failures and no fallback.
+- Current Requirement and offline snapshot or explicit author source resolution, with existing failures and no fallback.
 
 ## How to get to it (user POV)
 
@@ -15,7 +15,7 @@ paths to select further reading when a Skill references another Skill.
 
 ## Driving it with fanloop
 
-Use an isolated current source and Requirement. Query from an unrelated cwd and
+Use an isolated explicit author source and Requirement. Query from an unrelated cwd and
 with `--input '{}'`. Add an unbound Skill with description, a Skill without
 frontmatter and one with unusable metadata; all must appear sorted, the latter
 two with empty descriptions. Verify a valid YAML string alias resolves its text,

@@ -12,7 +12,7 @@ import (
 func TestCurrentSchemaRequirementReloadsLiveWorkflowAndSkill(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "runtime-controls", "--title", "Live reload"), "flow.init")
-	liveWorkflow := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills", "runtime-controls")
+	liveWorkflow := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills", "fanloop-workflow", "runtime-controls")
 	promptPath := filepath.Join(liveWorkflow, "prompt.yaml")
 	prompt := readFile(t, promptPath)
 	marker := "live prompt reload marker"
@@ -143,7 +143,7 @@ func TestCurrentSchemaRequirementDoesNotRevalidateHistoricalRoutes(t *testing.T)
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Historical route drift"), "flow.init")
 	prepareRequirementAfterFirstStep(t, binary, root)
-	liveFlow := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills", "linear-runtime", "flow.yaml")
+	liveFlow := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills", "fanloop-workflow", "linear-runtime", "flow.yaml")
 	content := readFile(t, liveFlow)
 	changed := bytes.Replace(content, []byte("[[first_completed]]"), []byte("[[first_completed, second_evidence]]"), 1)
 	if bytes.Equal(changed, content) {

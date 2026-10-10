@@ -14,6 +14,7 @@ import (
 
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
@@ -29,10 +30,11 @@ const (
 )
 
 type Runtime struct {
-	ReleaseRoot  string
-	BinaryPath   string
-	WorkflowRoot string
-	SkillRoots   []string
+	ReleaseRoot        string
+	BinaryPath         string
+	WorkflowRoot       string
+	SkillRoots         []string
+	ConfigurationError error
 }
 
 func DefaultRuntime() Runtime {
@@ -51,8 +53,20 @@ func DefaultRuntime() Runtime {
 	if roots, err := release.DefaultSkillRoots(); err == nil {
 		skillRoots = roots.Values()
 	}
-	workflowRoot, _ := workflow.DefaultRoot()
-	return Runtime{ReleaseRoot: releaseRoot, BinaryPath: executable, WorkflowRoot: workflowRoot, SkillRoots: skillRoots}
+	workflowRoot, configurationErr := workflow.DefaultRoot()
+	_, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE")
+	if source := filepath.Dir(filepath.Dir(workflowRoot)); configurationErr == nil && (!explicit || configuration.IsSnapshotSource(source)) {
+		_, configurationErr = os.Lstat(filepath.Join(source, "configuration.json"))
+	}
+	if configurationErr != nil {
+		dataRoot, err := release.DefaultDataRoot()
+		if !explicit && err == nil {
+			if _, err := os.Lstat(filepath.Join(dataRoot, "config", "current")); os.IsNotExist(err) {
+				configurationErr = nil
+			}
+		}
+	}
+	return Runtime{ReleaseRoot: releaseRoot, BinaryPath: executable, WorkflowRoot: workflowRoot, SkillRoots: skillRoots, ConfigurationError: configurationErr}
 }
 
 func (runtime Runtime) Run(requirementRoot string) *idl.DoctorResponse {
@@ -82,7 +96,7 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 			check("release_manifest", statusWarn, "No installed release manifest; this appears to be a source build.", "Install a matched Fanloop release for production use."),
 			skipped("binary_checksum", "Release manifest is unavailable."),
 			skipped("skills", "Release manifest is unavailable."),
-			workflowCheck(runtime.WorkflowRoot),
+			runtime.workflowCheck(),
 			skipped("version_drift", "Release manifest is unavailable."),
 		}
 	}
@@ -91,12 +105,12 @@ func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
 			check("release_manifest", statusFail, "Release manifest is invalid: "+err.Error(), "Reinstall this Fanloop release."),
 			skipped("binary_checksum", "Release manifest is invalid."),
 			skipped("skills", "Release manifest is invalid."),
-			workflowCheck(runtime.WorkflowRoot),
+			runtime.workflowCheck(),
 			skipped("version_drift", "Release manifest is invalid."),
 		}
 	}
 	checks := []*idl.DoctorCheck{check("release_manifest", statusPass, "Release manifest is valid.", "")}
-	checks = append(checks, runtime.binaryCheck(manifest), skillCheck(runtime.ReleaseRoot, manifest), workflowCheck(runtime.WorkflowRoot))
+	checks = append(checks, runtime.binaryCheck(manifest), skillCheck(runtime.ReleaseRoot, manifest), runtime.workflowCheck())
 	if len(runtime.SkillRoots) > 0 {
 		checks = append(checks, skillLinkCheck(runtime.ReleaseRoot, runtime.SkillRoots, manifest))
 	}
@@ -126,9 +140,13 @@ func skillCheck(root string, manifest release.Manifest) *idl.DoctorCheck {
 	return check("skills", statusPass, "The packaged public Skills match the release manifest.", "")
 }
 
-func workflowCheck(root string) *idl.DoctorCheck {
+func (runtime Runtime) workflowCheck() *idl.DoctorCheck {
+	if runtime.ConfigurationError != nil {
+		return check("workflows", statusFail, runtime.ConfigurationError.Error(), "Repair the selected configuration source.")
+	}
+	root := runtime.WorkflowRoot
 	if root == "" {
-		return check("workflows", statusFail, "Local Workflow source is unavailable.", "Install from a valid repository or set an absolute FANLOOP_CONFIG_SOURCE.")
+		return check("workflows", statusWarn, "No Workflow configuration is activated.", "Run flow init to fetch configuration or install with --config-source.")
 	}
 	unlock, err := workflow.LockSource(root, false)
 	if err != nil {
@@ -142,7 +160,16 @@ func workflowCheck(root string) *idl.DoctorCheck {
 	if len(definitions) == 0 {
 		return check("workflows", statusFail, "Local Workflow source is empty.", "Add complete Workflow packages under the source repository's skills/ directory.")
 	}
-	return check("workflows", statusPass, "Local Workflow packages are valid: "+root, "")
+	message := "Workflow packages are valid: " + root
+	source := filepath.Dir(filepath.Dir(root))
+	if configuration.IsSnapshotSource(source) {
+		identity, err := configuration.Read(source)
+		if err != nil {
+			return check("workflows", statusFail, err.Error(), "Refresh a valid configuration snapshot.")
+		}
+		message += "; commit_sha=" + identity.CommitSHA + "; configuration_manifest_sha256=" + identity.SHA256
+	}
+	return check("workflows", statusPass, message, "")
 }
 
 func skillLinkCheck(releaseRoot string, roots []string, manifest release.Manifest) *idl.DoctorCheck {

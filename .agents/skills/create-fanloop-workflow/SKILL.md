@@ -5,11 +5,11 @@ description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓
 
 # Create Fanloop Workflow
 
-把输入材料转换为仓库 `<repo>/skills/<workflow-id>/` 下的完整 Skill 包：根 SKILL.md、五份 YAML 和子 skills/<skill-id>/**。产物随仓库维护，包根不再添加 workflows/<id>/ 包装层；写入不代表已通过检查或业务审批。
+把输入材料转换为 second-brain-agent 配置仓库 `<repo>/skills/fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 SKILL.md、五份 YAML 和子 skills/<skill-id>/**。产物随仓库维护，包根不再添加 workflows/<id>/ 包装层；写入不代表已通过检查或业务审批。
 
 ## 1. 先确认需要 Workflow
 
-读取 `AGENTS.md`、`idl/yaml.thrift`、相关 `docs/adr/`，以及最接近目标的现有 Workflow。存在相近业务
+读取配置仓库 `AGENTS.md`、Fanloop 代码仓库的 `idl/yaml.thrift` 与相关 `docs/adr/`，以及最接近目标的现有 Workflow。存在相近业务
 Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行骨架。若一个原子 Skill 已足够完成任务，停止
 新增 Workflow，并说明应复用或新增哪个 Skill。
 
@@ -54,7 +54,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 `executor` 变化。取得针对该具体草案的明确批准后，才把临时草案写入：
 
 ```text
-<repo>/skills/<workflow-id>/
+<repo>/skills/fanloop-workflow/<workflow-id>/
 |-- SKILL.md
 |-- workflow.yaml
 |-- condition.yaml
@@ -72,4 +72,4 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 一条成功 Route 和一条回流 Route；不另写校验器或为配置改动构建新 binary。
 
 逐项核对五份 YAML 引用闭合、所有 SkillBinding 都指向同目录已有 Skill、Route 可达且不含绕过 Human Gate
-或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按仓库 `.agents/skills/edit-fanloop-skills/SKILL.md` 直接校验、提交、PR 合并和本地交付，不再启动维护 Workflow。`FANLOOP_CONFIG_SOURCE` 可用于候选检查，但最终必须回读用户默认环境实际绑定的源。配置下一次调用生效，无下载、复制或 CLI 重建；未发生的合并或本地更新不能写成完成事实。
+或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按仓库 `.agents/skills/edit-fanloop-skills/SKILL.md` 直接校验、提交、PR 合并和本地交付，不再启动维护 Workflow。`FANLOOP_CONFIG_SOURCE` 可用于候选检查，但最终必须回读用户默认环境实际绑定的源。默认配置随下一次新 flow init 拉取生效；显式作者源的编辑随下一次调用生效，无需 CLI 重建；未发生的合并或本地更新不能写成完成事实。

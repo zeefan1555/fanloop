@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -50,27 +49,4 @@ func lockFile(file *os.File, exclusive bool) (func(), error) {
 		return nil, err
 	}
 	return func() { _ = file.Close() }, nil
-}
-
-func PrepareConfiguration(_ context.Context, dataRoot string) (func(), error) {
-	unlockBinding, err := LockConfiguration(dataRoot, false)
-	if err != nil {
-		return nil, err
-	}
-	root, err := ConfigurationRoot(dataRoot)
-	if err != nil {
-		unlockBinding()
-		return nil, err
-	}
-	unlockSource, err := LockSource(root, false)
-	if err != nil {
-		unlockBinding()
-		return nil, err
-	}
-	unlock := func() { unlockSource(); unlockBinding() }
-	if _, err := ListFrom(root); err != nil {
-		unlock()
-		return nil, err
-	}
-	return unlock, nil
 }

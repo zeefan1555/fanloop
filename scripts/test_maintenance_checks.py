@@ -14,6 +14,11 @@ configuration = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(configuration)
 
 
+def synthetic_gate_text():
+    return '\n'.join(str(value) for name, value in vars(configuration).items()
+                     if name.startswith(('REQUIRED_', 'NOTION_EXPERIENCE_')) and isinstance(value, str))
+
+
 class MaintenanceChecks(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -50,8 +55,6 @@ class MaintenanceChecks(unittest.TestCase):
 
     def test_configuration_and_unknown_paths(self):
         for name in ('AGENTS.md', 'docs/adr/example.md', 'docs/testing-guide.md',
-                     'skills/example/SKILL.md', 'skills/example/prompt.yaml',
-                     'skills/example/skills/write/references/example.md',
                      '.agents/skills/edit-example/SKILL.md',
                      '.agents/skills/edit-example/references/example.md'):
             self.write(name)
@@ -154,22 +157,22 @@ class MaintenanceChecks(unittest.TestCase):
 
     def test_matrix_selection_and_snapshot(self):
         for name in ('alpha', 'beta'):
-            self.write(f'skills/{name}/SKILL.md')
+            self.write(f'skills/fanloop-workflow/{name}/SKILL.md')
         self.assertEqual(['alpha', 'beta'], configuration.select_workflows(self.root, None))
         self.assertEqual(['beta'], configuration.select_workflows(self.root, ['beta', 'beta']))
         with self.assertRaisesRegex(ValueError, 'unknown Workflow'):
             configuration.select_workflows(self.root, ['alpha', 'missing'])
         before = configuration.snapshot(self.root / 'skills')
-        self.write('skills/alpha/SKILL.md', 'changed\n')
+        self.write('skills/fanloop-workflow/alpha/SKILL.md', 'changed\n')
         self.assertNotEqual(before, configuration.snapshot(self.root / 'skills'))
-        (self.root / 'skills/escape').symlink_to(self.root / 'skills/alpha')
+        (self.root / 'skills/fanloop-workflow/escape').symlink_to(self.root / 'skills/fanloop-workflow/alpha')
         with self.assertRaises(ValueError):
             configuration.select_workflows(self.root, None)
         with self.assertRaises(ValueError):
             configuration.snapshot(self.root / 'skills')
 
     def test_unknown_workflow_has_no_matrix_side_effect(self):
-        self.write('skills/alpha/SKILL.md')
+        self.write('skills/fanloop-workflow/alpha/SKILL.md')
         output = self.root / 'output'
         result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--config-source', str(self.root), '--binary', sys.executable,
@@ -195,7 +198,7 @@ class MaintenanceChecks(unittest.TestCase):
                                  '--check-panorama-skills', '--config-source', str(source)],
                                 capture_output=True, text=True)
         self.assertNotEqual(0, result.returncode)
-        self.assertIn('skills/fomo/skills/workflow-panorama/SKILL.md', result.stderr)
+        self.assertIn('skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md', result.stderr)
         self.assertIn(configuration.REQUIRED_BLOCKED_SENTENCE, result.stderr)
         self.assertIn('content saved artifacts/panorama-', result.stderr)
         self.assertIn('writing a file', result.stderr)
@@ -206,16 +209,16 @@ class MaintenanceChecks(unittest.TestCase):
                                  '--check-panorama-skills', '--config-source', str(source)],
                                 capture_output=True, text=True)
         self.assertNotEqual(0, failed.returncode)
-        self.assertIn('skills/fomo/skills/workflow-panorama/SKILL.md', failed.stderr)
+        self.assertIn('skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md', failed.stderr)
         self.assertIn('parent/child handoff', failed.stderr)
         for sentence in configuration.REQUIRED_HANDOFF_SENTENCES:
             self.assertIn(sentence, failed.stderr)
         self.assertNotIn('missing the blocked-when-headless rule', failed.stderr)
         self.assertNotIn('writing a file', failed.stderr)
 
-        text = (source / 'skills/fomo/skills/workflow-panorama/SKILL.md').read_text()
+        text = (source / 'skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md').read_text()
         self.write(
-            'with-handoff/skills/fomo/skills/workflow-panorama/SKILL.md',
+            'with-handoff/skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md',
             text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
             + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n',
         )
@@ -233,13 +236,6 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertEqual([], configuration.panorama_skill_errors(text))
         errors = configuration.panorama_skill_errors(text + 'local_agent\n')
         self.assertTrue(any('parent/child handoff' in error for error in errors))
-
-    def test_repository_panorama_skills_block_file_save_delivery(self):
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
-                                 '--check-panorama-skills', '--config-source', str(ROOT)],
-                                capture_output=True, text=True)
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn('panorama skills: 4 ok', result.stdout)
 
     def test_path_only_receipt_is_not_a_file_save_claim(self):
         path = self.root / 'prepare-result.json'
@@ -333,14 +329,14 @@ class MaintenanceChecks(unittest.TestCase):
 
     def test_missing_live_run_sentence_names_the_prompt(self):
         source = self.root / 'live-run-gates'
-        relative = 'skills/remnote-flashcards/prompt.yaml'
+        relative = 'skills/fanloop-workflow/remnote-flashcards/prompt.yaml'
         path = source / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text((ROOT / relative).read_text().replace(
+        path.write_text(synthetic_gate_text().replace(
             configuration.REQUIRED_FACTUAL_REVIEW_SENTENCE, ''))
-        contract = 'skills/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md'
+        contract = 'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md'
         (source / contract).parent.mkdir(parents=True, exist_ok=True)
-        (source / contract).write_text((ROOT / contract).read_text())
+        (source / contract).write_text(synthetic_gate_text())
         errors = configuration.learning_card_gate_errors(source)
         self.assertTrue(
             any('prompt.yaml' in error and configuration.REQUIRED_FACTUAL_REVIEW_SENTENCE in error
@@ -348,27 +344,10 @@ class MaintenanceChecks(unittest.TestCase):
             errors,
         )
 
-    def test_repository_learning_card_gates(self):
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
-                                 '--check-learning-card-gates', '--config-source', str(ROOT)],
-                                capture_output=True, text=True)
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn('learning card gates: ok', result.stdout)
-
-    def test_repository_notion_experience_sync(self):
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
-                                 '--check-notion-experience-sync', '--config-source', str(ROOT)],
-                                capture_output=True, text=True)
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn('notion experience sync: ok', result.stdout)
-        help_text = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'), '--help'],
-                                   capture_output=True, text=True)
-        self.assertIn('--check-notion-experience-sync', help_text.stdout)
-
     def test_missing_notion_sync_sentence_names_the_prompt(self):
         source = self.root / 'notion-source'
         for relative in configuration.NOTION_EXPERIENCE_SENTENCE_FILES:
-            text = (ROOT / relative).read_text()
+            text = synthetic_gate_text()
             if relative.endswith('prompt.yaml'):
                 text = text.replace(configuration.REQUIRED_NOTION_SYNC_SENTENCE, '')
             path = source / relative
@@ -391,7 +370,7 @@ class MaintenanceChecks(unittest.TestCase):
         for relative in configuration.NOTION_EXPERIENCE_SENTENCE_FILES:
             path = source / relative
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text((ROOT / relative).read_text().replace(
+            path.write_text(synthetic_gate_text().replace(
                 configuration.NOTION_EXPERIENCE_DATA_SOURCE_ID, 'removed-data-source'))
         (source / 'README.md').write_text(
             'ntn login\n' + configuration.NOTION_EXPERIENCE_TITLE + '\n'

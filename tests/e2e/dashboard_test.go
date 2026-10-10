@@ -134,7 +134,7 @@ func TestDashboardServesReadOnlyInstalledWorkflows(t *testing.T) {
 	if statusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("write=%d %s", statusCode, responseBody)
 	}
-	content, err := os.ReadFile(filepath.Join(fixture.ConfigSource, "skills", workflowRelative))
+	content, err := os.ReadFile(filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow", workflowRelative))
 	if err != nil || string(content) != workflowFile.Content {
 		t.Fatal("rejected write changed configuration")
 	}

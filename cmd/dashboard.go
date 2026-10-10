@@ -5,9 +5,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	clierrs "github.com/zeefan1555/fanloop/errs"
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/dashboard"
 	"github.com/zeefan1555/fanloop/internal/idl/dashboardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
@@ -34,7 +36,7 @@ Typed flags:
 
 Constraints:
   The business Request is empty. The command does not create, delete, or rename Workflows or Skills.
-  FANLOOP_CONFIG_SOURCE must be an absolute repository root containing complete Workflow packages in skills/.
+  FANLOOP_CONFIG_SOURCE must be an absolute repository root containing complete Workflow packages in skills/fanloop-workflow/.
 
 Controls:
   --input accepts {}, @file, or - for stdin and is not part of Request JSON.
@@ -100,7 +102,13 @@ func newDashboardHandler(root string, editable bool) (http.Handler, error) {
 		return nil, err
 	}
 	defer unlock()
-	return dashboard.NewHandler(root, editable)
+	source := filepath.Dir(filepath.Dir(root))
+	snapshotSource := ""
+	if !editable || configuration.IsSnapshotSource(source) {
+		snapshotSource = source
+		editable = false
+	}
+	return dashboard.NewHandler(root, editable, snapshotSource)
 }
 
 func dashboardFailure(ioStreams streams, err error) error {

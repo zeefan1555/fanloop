@@ -41,3 +41,5 @@ the Step inspector and default source fragment are restored.
 ## Gotchas
 
 The server stays in the foreground and binds only to loopback. It cannot create, delete, rename or publish configuration. Local edits are whole-file replacements only. HTTP polling reads local files without any remote configuration service.
+
+A managed snapshot with changed bytes or missing configuration.json must fail before serving configuration, both at startup and after the server is running, including explicit selection of that same snapshot. Cover all startup/running × changed/missing × default/explicit combinations against files, file and topology APIs. Deleting metadata must never turn managed storage into an editable author source. Test this separately from write permission.

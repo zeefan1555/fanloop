@@ -283,3 +283,37 @@ func withoutEnvironmentKeys(environment []string, keys ...string) []string {
 	}
 	return filtered
 }
+
+func TestLocalInstallerEmptyArgumentsWorkWithSystemBash(t *testing.T) {
+	for _, args := range [][]string{nil, {"output"}, {"--config-source", "/explicit-source"}} {
+		t.Run(strings.Join(args, "_"), func(t *testing.T) {
+			root := t.TempDir()
+			scripts := filepath.Join(root, "scripts")
+			build := filepath.Join(root, "build")
+			if err := os.MkdirAll(filepath.Join(build, "bin"), 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir(scripts, 0755); err != nil {
+				t.Fatal(err)
+			}
+			content, err := os.ReadFile(filepath.Join(repositoryRoot(t), "scripts", "install-local.sh"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(filepath.Join(scripts, "install-local.sh"), content, 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(filepath.Join(scripts, "build-local.sh"), []byte("#!/bin/sh\nprintf '%s\\n' \"$FIXTURE_BUILD\"\n"), 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(filepath.Join(build, "bin", "fanloop"), []byte("#!/bin/sh\nprintf '%s\\n' \"$@\"\n"), 0755); err != nil {
+				t.Fatal(err)
+			}
+			command := exec.Command("/bin/bash", append([]string{filepath.Join(scripts, "install-local.sh")}, args...)...)
+			command.Env = append(withoutBotmuxBinding(os.Environ()), "FIXTURE_BUILD="+build)
+			if out, err := command.CombinedOutput(); err != nil {
+				t.Fatalf("system Bash empty argument forwarding: %v %s", err, out)
+			}
+		})
+	}
+}

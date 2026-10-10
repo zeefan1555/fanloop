@@ -10,7 +10,7 @@
 
 触发条件：需求经过 `/grill-with-docs`、飞书评审或对话澄清。
 
-1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约随仓库 skills/<workflow-id>/ 完整包提交，并记录 Git 基线与文件摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
+1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约随仓库 skills/fanloop-workflow/<workflow-id>/ 完整包提交，并记录 Git 基线与文件摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
 2. 只沉淀用户明确确认的结论，或用户授权范围内经主 Agent 完整审阅并记录明确决定的结论。开放问题继续保留为开放问题，未审阅的推荐项不自动成为决策。
 3. 让代码契约真值与实现处于同一分支，并在实现提交之前或同一提交中纳入 Git；外部文档、聊天记录和未跟踪文件不能作为唯一事实源。
 
@@ -56,15 +56,13 @@
 
 完成标准：一个冻结候选对应一组本地证据、两份独立认证回执和一次交付；任何返工都回到最早责任阶段，而不是在 Review、CI 或发布时继续补丁。
 
-## 本地 Workflow Skill 包真值
+## Workflow 配置中心
 
-触发条件：读取、修改、安装或执行 Workflow/Skill，或查看 Dashboard。
-
-1. 仓库 skills/<workflow-id>/ 是 Workflow 配置唯一真值；包根包含 SKILL.md 与五份 YAML，子 Skill 和完整资源位于同包 skills/ 下。不存在 workflows/<id>/ 包装层。
-2. 本地安装通过 $FANLOOP_DATA_HOME/config/current 绑定绝对源仓库，默认绑定安装脚本所在仓库；显式绝对 FANLOOP_CONFIG_SOURCE 优先。每次调用读取源包，源失效立即失败，不搜索 cwd、旧副本或其他仓库。没有远端配置同步命令。
-3. Dashboard 默认只读绑定源；只有显式绝对 FANLOOP_CONFIG_SOURCE 时可编辑该仓库，包括当前绑定仓库。必须拒绝符号链接、陈旧摘要和不完整包，所有数据目录共享同一规范源目录锁。配置经自动校验、必要独立行为试用、本地提交与公开 CLI 回读交付。
-4. scripts/validate-configuration.py 对固定本地源生成完整摘要及未变检查；默认全部 Workflow Route Matrix，重复 --workflow 可选择受影响矩阵，未知 ID 报错。代码 CI 使用 internal/workflow/testdata/{linear-runtime,runtime-controls} 独立 fixture，在临时源根 skills/ 下组装，不绑定个人凭据或生产正文。
-5. Agent每次读取最新Status返回的精确Skill路径。配置内容不写入 Requirement State 或 CLI Release；五份 YAML 在加载时自动校验，Thrift继续保留主 Agent 契约审核门禁。
+1. 生产真值为 `zeefan1555/second-brain-agent` 的 `main`，完整包位于 `skills/fanloop-workflow/<workflow-id>/`。本代码仓库只保留通用 fixture 和作者工具。
+2. `flow init` 用系统 Git/SSH 拉取并验证完整集合，成功才原子激活 `$FANLOOP_DATA_HOME/config/snapshots/<commit-sha>/`。`config/current` 指向不可变快照；拉取、校验或激活失败不修改 current、不创建 Requirement。dry-run 只校验临时内容。
+3. 已有 Requirement 的 status/report/skills 离线读取当前快照。显式绝对 `FANLOOP_CONFIG_SOURCE` 指向配置仓库根，跳过远端刷新，用于作者和测试。Dashboard 默认只读快照，仅显式作者源可编辑；共享源锁、摘要检查和完整包校验不变。
+4. 本地安装器离线；显式 `--config-source` 导入干净 Git 提交，否则保留 current。首次安装无配置时由后续 init 拉取。configuration.json 记录提交、Workflow IDs 和路径/内容/executable bit 的完整摘要。
+5. 配置在 second-brain 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
 
 ## YAML 架构真值与自动校验
 
@@ -93,7 +91,7 @@
 | 进入 Step 先展示完整 renderer 内容，成功后才上报 snapshot path | 各 Workflow 的 `workflow-panorama` / `fanloop-dev-panorama` Skill。Runtime 只校验回执类型与路由，不证明宿主已展示（ADR-0119）。 |
 | 无用户可见通道时 blocked；不得把写入 `artifacts/panorama-*` 当成已展示 | Skill 必须包含 `report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`。`scripts/validate-configuration.py --check-panorama-skills` 拒绝缺少该句或把写文件当成投递的 Skill，并指出路径和应补的句子。`--reject-file-save-evidence` 拒绝 `content saved artifacts/panorama-` 这类证据。 |
 | 父 Agent 能发消息时，headless 子 Agent 不得上报 `panorama_presented`；子 Agent 交还 `data.content` 与 `snapshot_path`，父 Agent 原样发送后再上报同一路径 | 提到 `local_agent` 的全景图 Skill 必须包含 `The child must not submit panorama_presented.`、`After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.`、`The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.`、`Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.`。`--check-panorama-skills` 拒绝缺少这些句子的 Skill。CLI 不证明用户看见了消息。 |
-| 成功终止 Route 之后再投递一次 Done `100%` 全景图；复盘步骤里的 75% 不是这次投递 | 提到 `local_agent` 的全景图 Skill，以及 `skills/remnote-flashcards/prompt.yaml`，必须包含 `after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.`。`--check-panorama-skills` 拒绝缺少该句，或仍写「最终回复不得重复 Panorama」的 Skill。`--reject-missing-done-panorama` 拒绝复盘 75% 之后 workflow completed、却没有后续 Done 100% 全景图标题的转录。CLI 不证明用户看见了消息。 |
+| 成功终止 Route 之后再投递一次 Done `100%` 全景图；复盘步骤里的 75% 不是这次投递 | 提到 `local_agent` 的全景图 Skill，以及 `skills/fanloop-workflow/remnote-flashcards/prompt.yaml`，必须包含 `after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.`。`--check-panorama-skills` 拒绝缺少该句，或仍写「最终回复不得重复 Panorama」的 Skill。`--reject-missing-done-panorama` 拒绝复盘 75% 之后 workflow completed、却没有后续 Done 100% 全景图标题的转录。CLI 不证明用户看见了消息。 |
 
 完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。全景图 Skill 通过 `--check-panorama-skills`。必要时用已有 CLI 检查回执缺失的拒绝行为。不把 CLI 说成能证明用户看见卡片。
 
@@ -124,8 +122,8 @@
 
 1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、bnpm、Luban 或手工 `npm publish` 入口。
 2. `npm run build` 与 `npm run install:local` 只是本地 Shell 入口的快捷方式，不生成或发布 npm 包。
-3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装离线绑定源仓库，不创建 Workflow 运行副本。
-4. 生产配置直接编辑仓库完整包，下一次 CLI 调用生效；不需要网络、CLI 重建或重新安装。
+3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装离线导入显式配置提交，未指定时保留已有快照。
+4. 生产配置在 second-brain main 维护，下次 flow init 自动拉取；显式作者源编辑在下一次调用生效。
 
 ## ADR 一致性
 

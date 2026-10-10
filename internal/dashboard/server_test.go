@@ -15,7 +15,7 @@ import (
 
 func TestHandlerListsReadsAndProtectsLiveFiles(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, true)
+	handler, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestHandlerListsReadsAndProtectsLiveFiles(t *testing.T) {
 
 func TestPublishedHandlerRejectsWrites(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,14 +139,14 @@ func TestHandlerRejectsSymlinkedCurrentAncestor(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := NewHandler(filepath.Join(dataRoot, "current", filepath.Base(realRoot)), false); err == nil || !strings.Contains(err.Error(), "real directory") {
+	if _, err := NewHandler(filepath.Join(dataRoot, "current", filepath.Base(realRoot)), false, ""); err == nil || !strings.Contains(err.Error(), "real directory") {
 		t.Fatalf("NewHandler accepted symlinked current ancestor: %v", err)
 	}
 }
 
 func TestHandlerRejectsCandidateRootSwappedToSymlinkAfterStartup(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, true)
+	handler, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestHandlerRejectsCandidateRootSwappedToSymlinkAfterStartup(t *testing.T) {
 
 func TestLiveHandlerAcceptsAtomicallyReplacedWorkflowRoot(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, false)
+	handler, err := NewHandler(root, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestLiveHandlerAcceptsAtomicallyReplacedWorkflowRoot(t *testing.T) {
 
 func TestAtomicWriteAtStaysOnOpenedCandidateRoot(t *testing.T) {
 	root := copyRuntimeControls(t)
-	value, err := NewHandler(root, true)
+	value, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestAtomicWriteAtStaysOnOpenedCandidateRoot(t *testing.T) {
 
 func TestHandlerCanReadAndRepairAFileAfterExternalBundleCorruption(t *testing.T) {
 	root := copyRuntimeControls(t)
-	handler, err := NewHandler(root, true)
+	handler, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func TestHandlerCanReadAndRepairAFileAfterExternalBundleCorruption(t *testing.T)
 func TestHandlerRejectsSkillSaveWhenAnotherWorkflowIsInvalid(t *testing.T) {
 	root := copyRuntimeControls(t)
 	copySyntheticWorkflow(t, root, "other-controls")
-	handler, err := NewHandler(root, true)
+	handler, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func TestEmbeddedEditorNeverOverwritesDirtyTextDuringPolling(t *testing.T) {
 
 func TestHandlerSerializesConcurrentSavesWithTheSameObservedDigest(t *testing.T) {
 	root := copyRuntimeControls(t)
-	value, err := NewHandler(root, true)
+	value, err := NewHandler(root, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,7 +341,7 @@ func TestHandlerSerializesConcurrentSavesWithTheSameObservedDigest(t *testing.T)
 		}
 		candidates[content] = true
 		// Independent handlers have no shared in-memory mutex or data home.
-		writer, err := NewHandler(root, true)
+		writer, err := NewHandler(root, true, "")
 		if err != nil {
 			t.Fatal(err)
 		}

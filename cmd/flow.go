@@ -44,7 +44,8 @@ func newFlowInitCommand(ioStreams streams, root *string) *cobra.Command {
   Initialize a new Requirement with one Workflow, only after flow status reports NOT_INITIALIZED.
 
 Effect:
-  Local write. A non-dry-run call creates the Requirement's local Flow State; dry-run validates without writing it.
+  Fetch second-brain-agent main, validate and activate an immutable configuration snapshot, then create local Flow State.
+  Dry-run fetches and validates without activation or State. An explicit FANLOOP_CONFIG_SOURCE uses the local author repository.
 
 Request JSON:
   {

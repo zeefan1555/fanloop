@@ -1,6 +1,6 @@
 ---
 name: edit-fanloop-skills
-description: 直接维护 Fanloop 仓库的 Workflow YAML、Skill 指令和关联文档，完成校验、PR 合并及本地配置回读；不启动自迭代。用于 skills/ 和 .agents/skills/ 的内容修改，不用于引擎、IDL 或可执行脚本。
+description: 直接维护 second-brain-agent 配置中心的 Workflow YAML、Skill 指令和关联文档，完成校验、PR 合并及本地配置回读；不启动自迭代。用于 skills/ 和 .agents/skills/ 的内容修改，不用于引擎、IDL 或可执行脚本。
 ---
 
 # Edit Fanloop Skills
@@ -11,7 +11,7 @@ description: 直接维护 Fanloop 仓库的 Workflow YAML、Skill 指令和关�
 
 读取目标仓库 `AGENTS.md`、相关 ADR 和受影响的完整 Skill；涉及 Workflow 时读取同包五份 YAML 及绑定资源。确认实际 Git 根、远端、默认分支、已有 PR 和用户停止位置，保留无关修改。以最新目标分支创建工作分支；实际绑定的配置源保持已交付版本，候选在独立 worktree 中修改。
 
-范围限于 `skills/<workflow-id>/` 的 YAML、非可执行 Skill Markdown、`.agents/skills/<skill>/` 的非可执行 Markdown 及必要关联文档。脚本、Runtime、IDL、Schema、安装或测试基础设施改动停止这条路径，说明代码范围后另行处理；目录名不是代码豁免。计划请求止于计划，不进行 Git 写入或业务写入。
+范围限于 `skills/fanloop-workflow/<workflow-id>/` 的 YAML、非可执行 Skill Markdown、`.agents/skills/<skill>/` 的非可执行 Markdown 及必要关联文档。脚本、Runtime、IDL、Schema、安装或测试基础设施改动停止这条路径，说明代码范围后另行处理；目录名不是代码豁免。计划请求止于计划，不进行 Git 写入或业务写入。
 
 ## 2. 修改并检查
 
@@ -21,7 +21,7 @@ description: 直接维护 Fanloop 仓库的 Workflow YAML、Skill 指令和关�
 
 - 错字、排版：检查 diff、链接和引用，说明行为试用不适用。
 - 普通指令、模板：实际自检代表性输入与结果；Workflow 包使用现有 CLI 加载检查，仓库级独立 Skill 检查 frontmatter 和引用。
-- Step、Condition、Route、绑定：用 `scripts/validate-configuration.py` 和现有兼容 CLI，只选择受影响的 `--workflow`，产物放仓库外；保留完整包摘要。
+- Step、Condition、Route、绑定：用 Fanloop 代码仓库的 `scripts/validate-configuration.py` 和现有兼容 CLI，只选择受影响的 `--workflow`，产物放仓库外；保留完整包摘要。
 - 路由、绑定、权限、安全、审批或外部写入规则：增加一次全新上下文 Agent 的独立试用，限定隔离目录、允许副作用和停止点，回读其原始产物。
 
 校验失败先修复；候选变化后重跑受影响检查。使用 `git diff --check` 并核对最终 diff、ADR 和已确认范围。不为内容修改调整引擎、Golden 或重建 CLI，不以静态检查冒充行为试用。
@@ -34,12 +34,8 @@ description: 直接维护 Fanloop 仓库的 Workflow YAML、Skill 指令和关�
 
 按用户授权 squash 合并并回读 `MERGED`、merge commit 与候选内容；发起 auto-merge 不代表已合并。用户只要求编辑、提交或提 PR 时停在该处，不自行合并或更新配置。
 
-## 4. 更新实际配置源
+## 4. 回读已交付配置
 
-先读取 `FANLOOP_CONFIG_SOURCE` 是否设置；已设置时按原值验证，不静默忽略空值或非法路径。未设置时解析 `${FANLOOP_DATA_HOME:-$HOME/.fanloop}/config/current`。记录实际源仓库、当前提交与绑定，确认它属于同一远端。这里不是 CLI 的 `${FANLOOP_DATA_HOME:-$HOME/.fanloop}/current`。
+记录 second-brain-agent main 的精确提交与完整资源摘要。显式作者源用 FANLOOP_CONFIG_SOURCE 指向该仓库根并以公开 CLI 校验。默认运行源是不可变快照，不编辑 config/current 指向的文件。授权刷新时用全新隔离 Requirement 执行 flow init，回读 Doctor 的提交和摘要、Status 的绝对 Skill 路径；固定控制器保持原配置。没有刷新授权时报告已交付 main，下一次新 init 会自动拉取。
 
-先确认用户工作区和实际配置源没有影响更新的未提交改动或分叉，再从远端获取并仅快进到已核实的合并提交；两者相同只更新一次。源不匹配、无法快进或绑定变化时停止并报告，保留现有文件和绑定，不强制 reset、不复制配置或偷偷改链接。PR 已合并后的本地失败只恢复该提交的本地交付，不另建 PR。
-
-用用户默认环境执行 `fanloop doctor`，通过公开 CLI 回读受影响的配置和真实路径，对照合并提交逐文件核对摘要。独立 `.agents/skills/` Skill 由宿主读取仓库文件，不把它冒充 CLI Workflow；核对该文件和 AGENTS 入口即可。显式候选源检查不能替代默认环境生效检查。不安装 CLI、不刷新旧 Requirement 的固定控制器。
-
-完成时给出 PR URL、merge commit、实际配置源、校验及回读结果；任一环节未完成就说明真实停止位置。默认终点是已合并且本地已生效，不是仅写好文件或提交 PR。
+完成时给出配置提交、适用的 PR URL、校验和实际快照回读证据。不为配置正文修改重建 CLI。

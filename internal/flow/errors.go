@@ -19,8 +19,8 @@ func requestError(err error) *erroridl.PublicError {
 
 func storeError(failure *erroridl.PublicError) *erroridl.PublicError { return failure }
 
-func loadWorkflow(selector string) (workflow.Loaded, *erroridl.PublicError) {
-	loaded, err := workflow.LoadSelector(selector)
+func loadWorkflow(root, selector string) (workflow.Loaded, *erroridl.PublicError) {
+	loaded, err := workflow.LoadFrom(root, selector)
 	if err == nil {
 		return loaded, nil
 	}

@@ -64,9 +64,7 @@ Workflow Steps, Conditions and Routes evolve independently. Read the current fiv
 historical counts. Deliver must not modify a candidate when main advances; it returns to Build for a new candidate and full
 recertification. Workflow-specific behavior stays in YAML and Skills, not generic verify Runtime code.
 
-Complete packages under the selected local repository's `skills/` directory determine the Workflow inventory. The retained
-products are fanloop-maintainer, remnote-direct-maintainer and remnote-flashcards; technical-solution-design is retired. Each invocation
-reads that source directly, so valid package edits are visible without synchronization, rebuilding or reinstalling the CLI.
+Complete packages under second-brain-agent main's `skills/fanloop-workflow/` determine the production inventory: fanloop-maintainer, pstack-native, remnote-direct-maintainer and remnote-flashcards. New init activates a validated immutable commit snapshot; existing calls remain offline. Explicit author-source edits are immediately visible without rebuilding the CLI.
 An invalid explicit source or missing bound source fails without searching other repositories or loading old copies.
 Never infer the active configuration from CLI version alone; read back the selected source and exact Status Skill paths.
 The example Bundle validates as an authoring candidate but is never selected, installed or loaded as production inventory.

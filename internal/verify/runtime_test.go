@@ -144,7 +144,7 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 		t.Fatal(err)
 	}
 	dataRoot := t.TempDir()
-	workflowRoot := filepath.Join(dataRoot, "source", "skills")
+	workflowRoot := filepath.Join(dataRoot, "source", "skills", "fanloop-workflow")
 	if err := os.CopyFS(filepath.Join(workflowRoot, "linear-runtime"), os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 			} else if childDataRoot != frozenRoot {
 				t.Fatalf("snapshot child roots changed: %q != %q", childDataRoot, frozenRoot)
 			}
-			frozenMarker := filepath.Join(childDataRoot, "source", "skills", "linear-runtime", "skills", "test-guide", "SKILL.md")
+			frozenMarker := filepath.Join(childDataRoot, "source", "skills", "fanloop-workflow", "linear-runtime", "skills", "test-guide", "SKILL.md")
 			got, err := os.ReadFile(frozenMarker)
 			if err != nil || !reflect.DeepEqual(got, want) {
 				t.Fatalf("frozen configuration changed: %v", err)
@@ -201,7 +201,7 @@ func TestSnapshotFreezesOneConfigurationForEveryPublicObservation(t *testing.T) 
 
 func TestSmokeEnvironmentUsesCurrentBindingInsteadOfCachedRoot(t *testing.T) {
 	data, source, work := t.TempDir(), t.TempDir(), t.TempDir()
-	writeTestFile(t, filepath.Join(source, "skills", "marker"), "current binding")
+	writeTestFile(t, filepath.Join(source, "skills", "fanloop-workflow", "marker"), "current binding")
 	if err := os.Mkdir(filepath.Join(data, "config"), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func TestSmokeEnvironmentUsesCurrentBindingInsteadOfCachedRoot(t *testing.T) {
 	if _, err := runtime.isolatedEnvironment(work); err != nil {
 		t.Fatal(err)
 	}
-	if content, err := os.ReadFile(filepath.Join(work, "data", "source", "skills", "marker")); err != nil || string(content) != "current binding" {
+	if content, err := os.ReadFile(filepath.Join(work, "data", "source", "skills", "fanloop-workflow", "marker")); err != nil || string(content) != "current binding" {
 		t.Fatalf("snapshot did not use the current binding: %q, %v", content, err)
 	}
 }

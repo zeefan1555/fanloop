@@ -5,11 +5,11 @@ orchestration directory.
 
 | Boundary | Paths | Owns |
 | --- | --- | --- |
-| Live Workflow configuration | `skills/<workflow-id>/` complete local packages | Five-file Workflow definitions, bound Agent instructions, complete resources and local source validation |
+| Live Workflow configuration | `skills/fanloop-workflow/<workflow-id>/` complete local packages | Five-file Workflow definitions, bound Agent instructions, complete resources and local source validation |
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback read-only viewer and explicit source editor |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
-| Configuration source | `internal/workflow/{sources,configuration}.go` | Absolute repository binding, explicit override, full-package validation and canonical source locking |
+| Configuration source | `internal/configuration/`, `internal/workflow/{sources,configuration}.go` | Git main snapshots, explicit author source, complete validation and atomic activation |
 | Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh`, `package.json` | Immutable local CLI builds, offline installation, diagnosis and nested Release switching |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
@@ -26,9 +26,7 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Three production Workflow IDs are tracked as complete packages under `skills/<id>/`:
-`fanloop-maintainer`, `remnote-flashcards`, and `remnote-direct-maintainer`. Ownership of those directories remains the Live Workflow
-configuration boundary above; this note only records the live suite list.
+Four production Workflow IDs live only in second-brain-agent main under `skills/fanloop-workflow/<id>/`: fanloop-maintainer, pstack-native, remnote-flashcards, remnote-direct-maintainer. Initial configuration commit: 473b8a6cfeb9152d31fbfe35f75556be0341e7d6. Three packages came from Fanloop 7833b38; pstack-native preserves 0d4594f. ADR-0132 supersedes ADR-0128's retirement inventory only.
 
 ## Verify entry
 

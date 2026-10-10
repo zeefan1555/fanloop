@@ -73,7 +73,7 @@ func TestWorkflowSelectorRejectsVersionedID(t *testing.T) {
 
 func TestLoadUsesLiveWorkflowRootOnEveryCall(t *testing.T) {
 	dataRoot := t.TempDir()
-	liveRoot := filepath.Join(dataRoot, "skills")
+	liveRoot := filepath.Join(dataRoot, "skills", "fanloop-workflow")
 	workflowID := "reloadable-loop"
 	targetRoot := filepath.Join(liveRoot, workflowID)
 	writeValidWorkflow(t, liveRoot, workflowID)

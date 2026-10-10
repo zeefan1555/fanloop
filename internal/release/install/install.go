@@ -1,6 +1,7 @@
 package install
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/doctor"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -63,26 +65,36 @@ func Run(request Request) (Result, error) {
 	if err := preflightCurrent(current, releasesRoot); err != nil {
 		return Result{}, err
 	}
-	workflowRoot, err := workflow.SourceRoot(request.ConfigSource)
-	if err != nil {
-		return Result{}, err
-	}
-	unlockSource, err := workflow.LockSource(workflowRoot, false)
-	if err != nil {
-		return Result{}, err
-	}
-	defer unlockSource()
-	definitions, err := workflow.ListFrom(workflowRoot)
-	if err != nil {
-		return Result{}, fmt.Errorf("local Workflows: %w", err)
-	}
-	if len(definitions) == 0 {
-		return Result{}, fmt.Errorf("local source contains no Workflow packages")
-	}
+	configurationSource := ""
+	workflowRoot := ""
 	configuredSkills := []string{}
-	for _, definition := range definitions {
-		for name := range definition.SkillPaths {
-			configuredSkills = append(configuredSkills, name)
+	if request.ConfigSource != "" {
+		configurationSource, err = configuration.Import(context.Background(), request.DataRoot, request.ConfigSource)
+		if err != nil {
+			return Result{}, err
+		}
+	} else {
+		configurationSource, err = os.Readlink(filepath.Join(request.DataRoot, "config", "current"))
+		if err != nil && !os.IsNotExist(err) {
+			return Result{}, err
+		}
+	}
+	if configurationSource != "" {
+		if _, err := configuration.Read(configurationSource); err != nil {
+			return Result{}, err
+		}
+		workflowRoot, err = workflow.SourceRoot(configurationSource)
+		if err != nil {
+			return Result{}, err
+		}
+		definitions, err := workflow.ListFrom(workflowRoot)
+		if err != nil {
+			return Result{}, err
+		}
+		for _, definition := range definitions {
+			for name := range definition.SkillPaths {
+				configuredSkills = append(configuredSkills, name)
+			}
 		}
 	}
 	sort.Strings(configuredSkills)
@@ -173,7 +185,7 @@ func Run(request Request) (Result, error) {
 		rollbackInstall()
 		return Result{}, err
 	}
-	if err := activateInstallation(request.DataRoot, filepath.Dir(workflowRoot), filepath.Join("..", "releases", manifest.ReleaseVersion)); err != nil {
+	if err := activateInstallation(request.DataRoot, configurationSource, filepath.Join("..", "releases", manifest.ReleaseVersion)); err != nil {
 		if _, restoreErr := createSkillLinks(removedLinks); restoreErr != nil {
 			err = fmt.Errorf("activate current: %v; restore retired Skill links: %w", err, restoreErr)
 		}
@@ -462,6 +474,9 @@ func atomicSymlink(path, target string) error {
 }
 
 func activateInstallation(dataRoot, source, releaseTarget string) error {
+	if source == "" {
+		return ensureCurrent(filepath.Join(dataRoot, "current"), releaseTarget)
+	}
 	binding := filepath.Join(dataRoot, "config", "current")
 	previous, err := os.Readlink(binding)
 	if err != nil && !os.IsNotExist(err) {

@@ -45,9 +45,9 @@ import sys
 print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
 PY
 
-mkdir -p "$run_root/data/skills"
-cp -R "$repo_root/internal/workflow/testdata/linear-runtime" "$run_root/data/skills/"
-cp -R "$repo_root/internal/workflow/testdata/runtime-controls" "$run_root/data/skills/"
+mkdir -p "$run_root/data/skills/fanloop-workflow"
+cp -R "$repo_root/internal/workflow/testdata/linear-runtime" "$run_root/data/skills/fanloop-workflow/"
+cp -R "$repo_root/internal/workflow/testdata/runtime-controls" "$run_root/data/skills/fanloop-workflow/"
 export FANLOOP_DATA_HOME="$run_root/data"
 export FANLOOP_CONFIG_SOURCE="$run_root/data"
 export PATH="$fake_bin:$PATH"

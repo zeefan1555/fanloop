@@ -284,7 +284,7 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"<repo>/skills/<workflow-id>/", "SKILL.md", "FANLOOP_CONFIG_SOURCE"} {
+	for _, required := range []string{"<repo>/skills/fanloop-workflow/<workflow-id>/", "SKILL.md", "FANLOOP_CONFIG_SOURCE"} {
 		if !strings.Contains(string(skill), required) {
 			t.Errorf("Workflow authoring Skill is missing %q", required)
 		}
@@ -301,12 +301,8 @@ func TestProductionConfigurationUsesCompleteLocalPackages(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(repo, "workflows")); !os.IsNotExist(err) {
 		t.Fatal("Workflow packages must not have an extra workflows wrapper")
 	}
-	for _, id := range []string{"fanloop-maintainer", "remnote-flashcards", "remnote-direct-maintainer"} {
-		for _, name := range []string{"SKILL.md", "workflow.yaml", "condition.yaml", "flow.yaml", "loop.yaml", "prompt.yaml", "skills"} {
-			if _, err := os.Stat(filepath.Join(repo, "skills", id, name)); err != nil {
-				t.Fatalf("incomplete package %s/%s: %v", id, name, err)
-			}
-		}
+	if _, err := os.Stat(filepath.Join(repo, "skills")); !os.IsNotExist(err) {
+		t.Fatal("production packages must live only in second-brain-agent")
 	}
 	for _, name := range []string{"entrypoints/fanloop-workflow/SKILL.md", ".cursor/skills/verify-fanloop/SKILL.md", "scripts/pin-controller-release.sh"} {
 		if _, err := os.Stat(filepath.Join(repo, name)); err != nil {
@@ -320,7 +316,7 @@ func TestProductionConfigurationUsesCompleteLocalPackages(t *testing.T) {
 	if strings.Contains(string(technicalDesign), "[ADR-0079](./adr/0079-add-technical-solution-design-workflow.md)") {
 		t.Fatal("technical design still treats the retired technical-solution ADR as current routing authority")
 	}
-	if !strings.Contains(string(technicalDesign), "[ADR-0124](./adr/0124-load-local-workflow-skill-packages.md)") {
+	if !strings.Contains(string(technicalDesign), "[ADR-0132](./adr/0132-git-workflow-configuration-center.md)") {
 		t.Fatal("technical design is missing the local package source authority")
 	}
 }

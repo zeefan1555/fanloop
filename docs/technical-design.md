@@ -12,12 +12,14 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-仓库 skills/ 托管三套生产配置：
+second-brain-agent main 的 skills/fanloop-workflow/ 托管四套生产配置：
 
 - `fanloop-maintainer`：Fanloop 的 4 Stage / 4 Job / 4 Step 维护闭环；Define、Build、Certify 与 Deliver 依次完成验收契约、自主验证、独立认证和 PR/本地交付。
+- `pstack-native`：六步剧本交付，保留完整脚本与资源。
+- `remnote-direct-maintainer`：RemNote Direct 的受管维护流程。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 
-完整包目录为 `skills/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
+完整包目录为 `skills/fanloop-workflow/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
 `fanloop-workflow` 与 `create-fanloop-workflow` 两个公共 Skill；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
 额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。
 
@@ -91,18 +93,18 @@ Manifest 的本地 Release；标准输出是构建目录的绝对路径。`skill
 
 Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、Storage Schema 支持与
 两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
-复用目录安装，切换 CLI Release 并绑定显式源或当前仓库，不访问远端配置服务。
+复用目录安装，离线切换 CLI Release；显式配置源导入干净提交快照，否则保留已有配置。
 
-`$FANLOOP_DATA_HOME/config/current` 绑定绝对源仓库；显式 FANLOOP_CONFIG_SOURCE 优先。统一解析器只读取源的 skills/ 完整包，不搜索 cwd、不回退旧副本；每次调用重新加载。安装与 CLI 持有绑定锁，所有使用同源的 CLI 与 Dashboard 共享规范源目录锁。绑定/激活失败回滚已有安装。
+`$FANLOOP_DATA_HOME/config/current` 指向不可变 Git 配置快照。flow init 在稳定锁内拉取 main、校验整集、记录配置身份并原子激活；dry-run 只校验。已有 flow status/report/skills 离线读取。显式 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。完整包目录是 skills/fanloop-workflow/<id>。配置失败不创建 Requirement，也不替换 current。
 
 `fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认绑定源只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启该仓库保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；可编辑当前绑定仓库，不调用远端配置服务。
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。
-本地源绑定、完整包与 Dashboard 边界见 [ADR-0124](./adr/0124-load-local-workflow-skill-packages.md)。
+本地源绑定、完整包与 Dashboard 边界见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
 GitHub 只托管源码、PR 和 CI；不构建或发布 npm、跨平台归档或其他分发制品。合并后从精确 merge commit 本地构建、安装并回读版本、Doctor 与 smoke。生产 Workflow 随仓库维护，下一次调用直接读取。完整决定见
-[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0124](./adr/0124-load-local-workflow-skill-packages.md)。
+[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-新增生产 Workflow 直接增加 skills/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
+新增生产 Workflow 直接增加 skills/fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 
 仓库级本地门禁只有一个：
 

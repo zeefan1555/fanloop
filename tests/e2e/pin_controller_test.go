@@ -7,12 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
-func TestPinControllerLocksSnapshotAndCleansOnlyFailedNewHome(t *testing.T) {
+func TestPinControllerCleansOnlyFailedNewHome(t *testing.T) {
 	repository := repositoryRoot(t)
 	script := filepath.Join(repository, "scripts", "pin-controller-release.sh")
 	production, err := os.ReadFile(script)
@@ -37,51 +34,20 @@ func TestPinControllerLocksSnapshotAndCleansOnlyFailedNewHome(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(data, "current", "release", "bin", "fanloop"), []byte(stub), 0700); err != nil {
 		t.Fatal(err)
 	}
-	unlock, err := workflow.LockSource(filepath.Join(source, "skills"), true)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Join(data, "config"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		if unlock != nil {
-			unlock()
-		}
-	}()
-	command := exec.Command("bash", script, root)
-	command.Env = append(withoutBotmuxBinding(os.Environ()), "HOME="+home, "FANLOOP_DATA_HOME="+data, "FANLOOP_CONFIG_SOURCE="+source)
+	if err := os.Symlink(source, filepath.Join(data, "config", "current")); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command("/bin/bash", script, root)
+	command.Env = append(withoutBotmuxBinding(os.Environ()), "HOME="+home, "FANLOOP_DATA_HOME="+data)
 	var output bytes.Buffer
 	command.Stdout, command.Stderr = &output, &output
-	if err := command.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer command.Process.Kill()
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
 	controller := filepath.Join(root, "bound-release-home")
-	deadline := time.After(10 * time.Second)
-	for {
-		if _, err := os.Stat(controller); err == nil {
-			break
-		}
-		select {
-		case err := <-done:
-			t.Fatalf("pinner exited before locking: %v\n%s", err, output.String())
-		case <-deadline:
-			t.Fatal("pinner did not create its owned home")
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
-	select {
-	case err := <-done:
-		t.Fatalf("pinner did not wait for source lock: %v\n%s", err, output.String())
-	case <-time.After(150 * time.Millisecond):
-	}
-	if _, err := os.Stat(filepath.Join(controller, "source")); !os.IsNotExist(err) {
-		t.Fatalf("snapshot created before source lock: %v", err)
-	}
-	unlock()
-	unlock = nil
-	if err := <-done; err == nil || !strings.Contains(output.String(), "deliberate-install-failure") {
-		t.Fatalf("unexpected pin failure: %v\n%s", err, output.String())
+	err = command.Run()
+	if err == nil || !strings.Contains(output.String(), "deliberate-install-failure") {
+		t.Fatalf("unexpected pin failure: %v %s", err, output.String())
 	}
 	if _, err := os.Lstat(controller); !os.IsNotExist(err) {
 		t.Fatalf("failed new home retained: %v", err)
@@ -93,7 +59,7 @@ func TestPinControllerLocksSnapshotAndCleansOnlyFailedNewHome(t *testing.T) {
 	if err := os.WriteFile(marker, []byte("keep"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	retry := exec.Command("bash", script, root)
+	retry := exec.Command("/bin/bash", script, root)
 	retry.Env = command.Env
 	if output, err := retry.CombinedOutput(); err == nil || !strings.Contains(string(output), "existing pinned controller is invalid") {
 		t.Fatalf("existing invalid controller accepted: %v\n%s", err, output)

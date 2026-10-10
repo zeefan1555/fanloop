@@ -39,7 +39,7 @@ func Load(id string) (Loaded, error) {
 
 func LoadFrom(root, id string) (Loaded, error) {
 	if !workflowIDPattern.MatchString(id) {
-		return Loaded{}, fmt.Errorf("invalid workflow id %q", id)
+		return Loaded{}, fmt.Errorf("%w %q", ErrInvalidSelector, id)
 	}
 	return loadFromRef(root, Ref{ID: id})
 }

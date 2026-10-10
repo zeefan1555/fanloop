@@ -20,7 +20,7 @@ func TestFlowSkillsDiscoversUnboundSkillsFromCurrentSourceWithoutBusinessWrites(
 	if err != nil {
 		t.Fatal(err)
 	}
-	packageRoot := filepath.Join(source, "skills", syntheticWorkflowID)
+	packageRoot := filepath.Join(source, "skills", "fanloop-workflow", syntheticWorkflowID)
 	if err := os.CopyFS(packageRoot, os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", syntheticWorkflowID))); err != nil {
 		t.Fatal(err)
 	}

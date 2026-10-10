@@ -32,13 +32,13 @@ func TestFlowInitMapsLiveWorkflowSelectionErrors(t *testing.T) {
 		command := commandFor(binary, "flow", "init", "--root", t.TempDir(), "--workflow", "linear-runtime", "--title", "Invalid Source")
 		command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE=relative")
 		result := collect(command)
-		assertError(t, result, 5, "INTERNAL")
+		assertError(t, result, 5, "WORKFLOW_INVALID")
 	})
 	t.Run("missing configuration source", func(t *testing.T) {
 		command := commandFor(binary, "flow", "init", "--root", t.TempDir(), "--workflow", "linear-runtime", "--title", "Missing Source")
 		command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+filepath.Join(t.TempDir(), "missing"))
 		result := collect(command)
-		assertError(t, result, 5, "INTERNAL")
+		assertError(t, result, 5, "WORKFLOW_INVALID")
 	})
 	for _, test := range []struct {
 		name string
@@ -91,15 +91,15 @@ func TestFlowInitMapsLiveWorkflowSelectionErrors(t *testing.T) {
 			}
 			seedLiveWorkflows(t, dataRoot)
 			configSource := filepath.Join(dataRoot, "source")
-			test.link(t, filepath.Join(configSource, "skills"))
+			test.link(t, filepath.Join(configSource, "skills", "fanloop-workflow"))
 			command := commandFor(binary, "flow", "init", "--root", t.TempDir(), "--workflow", "linear-runtime", "--title", "Unsafe Source")
 			command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+configSource)
 			result := collect(command)
-			assertError(t, result, 5, "INTERNAL")
+			assertError(t, result, 5, "WORKFLOW_INVALID")
 		})
 	}
 
-	configRoot := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills")
+	configRoot := filepath.Join(filepath.Dir(binary), ".fanloop-user", "source", "skills", "fanloop-workflow")
 	for _, test := range []struct {
 		name    string
 		file    string
@@ -131,7 +131,7 @@ func TestFlowInitMapsLiveWorkflowSelectionErrors(t *testing.T) {
 
 			root := t.TempDir()
 			command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Invalid Workflow")
-			command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+filepath.Dir(configRoot))
+			command.Env = append(command.Env, "FANLOOP_CONFIG_SOURCE="+filepath.Dir(filepath.Dir(configRoot)))
 			result := collect(command)
 			assertError(t, result, 5, "WORKFLOW_INVALID")
 			if !strings.Contains(result.stderr, test.message) {

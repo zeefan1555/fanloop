@@ -2,15 +2,18 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
 
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
+	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/trace"
@@ -58,9 +61,21 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if local.Exists() {
 		return nil, newFlowError(erroridl.ErrorCode_ALREADY_INITIALIZED, "requirement is already initialized", nil)
 	}
-	loaded, flowFailure := loadWorkflow(request.Workflow)
-	if flowFailure != nil {
-		return nil, flowFailure
+	dataRoot, err := release.DefaultDataRoot()
+	if err != nil {
+		return nil, internalError(err)
+	}
+	configurationRoot, unlock, err := configuration.Prepare(ctx, dataRoot, dryRun)
+	if err != nil {
+		if errors.Is(err, configuration.ErrFetch) {
+			return nil, newFlowError(erroridl.ErrorCode_CONFIGURATION_FETCH_FAILED, err.Error(), nil)
+		}
+		return nil, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
+	}
+	defer unlock()
+	loaded, failure := loadWorkflow(configurationRoot, request.Workflow)
+	if failure != nil {
+		return nil, failure
 	}
 	first, ok := loaded.Workflow.FirstStepID()
 	if !ok {

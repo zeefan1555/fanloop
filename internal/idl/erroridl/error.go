@@ -11,6 +11,13 @@ import (
 
 var (
 	ERROR_SPECS = map[ErrorCode]*ErrorSpec{
+		ErrorCode_CONFIGURATION_FETCH_FAILED: &ErrorSpec{
+			Code:      ErrorCode_CONFIGURATION_FETCH_FAILED,
+			Type:      ErrorType_external,
+			ExitCode:  1,
+			Retryable: true,
+			Hint:      "Check Git network connectivity and SSH permissions, then retry.",
+		},
 		ErrorCode_INVALID_ARGUMENT: &ErrorSpec{
 			Code:      ErrorCode_INVALID_ARGUMENT,
 			Type:      ErrorType_validation,
@@ -283,34 +290,35 @@ func (p *ErrorType) Value() (driver.Value, error) {
 type ErrorCode int64
 
 const (
-	ErrorCode_unspecified              ErrorCode = 0
-	ErrorCode_INVALID_ARGUMENT         ErrorCode = 1
-	ErrorCode_INVALID_INPUT_JSON       ErrorCode = 2
-	ErrorCode_ROOT_REQUIRED            ErrorCode = 3
-	ErrorCode_WORKFLOW_REQUIRED        ErrorCode = 4
-	ErrorCode_ALREADY_INITIALIZED      ErrorCode = 5
-	ErrorCode_NOT_INITIALIZED          ErrorCode = 6
-	ErrorCode_STATE_CORRUPT            ErrorCode = 7
-	ErrorCode_STATE_SCHEMA_UNSUPPORTED ErrorCode = 8
-	ErrorCode_STATE_CONFLICT           ErrorCode = 9
-	ErrorCode_STEP_NOT_CURRENT         ErrorCode = 10
-	ErrorCode_REPORT_NOT_ALLOWED       ErrorCode = 11
-	ErrorCode_WORKFLOW_NOT_FOUND       ErrorCode = 12
-	ErrorCode_WORKFLOW_MISMATCH        ErrorCode = 13
-	ErrorCode_WORKFLOW_INVALID         ErrorCode = 14
-	ErrorCode_LOCAL_COMMIT_FAILED      ErrorCode = 15
-	ErrorCode_INTERNAL                 ErrorCode = 16
-	ErrorCode_CONDITION_NOT_ALLOWED    ErrorCode = 17
-	ErrorCode_CONDITION_CONFLICT       ErrorCode = 18
-	ErrorCode_OUTPUT_INVALID           ErrorCode = 19
-	ErrorCode_ROUTE_NOT_MATCHED        ErrorCode = 20
-	ErrorCode_ROUTE_AMBIGUOUS          ErrorCode = 21
-	ErrorCode_ROUTE_NOT_ALLOWED        ErrorCode = 22
-	ErrorCode_PROTECTED_DOCUMENT       ErrorCode = 23
-	ErrorCode_UPSTREAM_AUTH_FAILED     ErrorCode = 24
-	ErrorCode_NETWORK_FAILED           ErrorCode = 25
-	ErrorCode_TRACE_UPDATE_FAILED      ErrorCode = 26
-	ErrorCode_REGISTRY_UPDATE_FAILED   ErrorCode = 27
+	ErrorCode_unspecified                ErrorCode = 0
+	ErrorCode_INVALID_ARGUMENT           ErrorCode = 1
+	ErrorCode_INVALID_INPUT_JSON         ErrorCode = 2
+	ErrorCode_ROOT_REQUIRED              ErrorCode = 3
+	ErrorCode_WORKFLOW_REQUIRED          ErrorCode = 4
+	ErrorCode_ALREADY_INITIALIZED        ErrorCode = 5
+	ErrorCode_NOT_INITIALIZED            ErrorCode = 6
+	ErrorCode_STATE_CORRUPT              ErrorCode = 7
+	ErrorCode_STATE_SCHEMA_UNSUPPORTED   ErrorCode = 8
+	ErrorCode_STATE_CONFLICT             ErrorCode = 9
+	ErrorCode_STEP_NOT_CURRENT           ErrorCode = 10
+	ErrorCode_REPORT_NOT_ALLOWED         ErrorCode = 11
+	ErrorCode_WORKFLOW_NOT_FOUND         ErrorCode = 12
+	ErrorCode_WORKFLOW_MISMATCH          ErrorCode = 13
+	ErrorCode_WORKFLOW_INVALID           ErrorCode = 14
+	ErrorCode_LOCAL_COMMIT_FAILED        ErrorCode = 15
+	ErrorCode_INTERNAL                   ErrorCode = 16
+	ErrorCode_CONDITION_NOT_ALLOWED      ErrorCode = 17
+	ErrorCode_CONDITION_CONFLICT         ErrorCode = 18
+	ErrorCode_OUTPUT_INVALID             ErrorCode = 19
+	ErrorCode_ROUTE_NOT_MATCHED          ErrorCode = 20
+	ErrorCode_ROUTE_AMBIGUOUS            ErrorCode = 21
+	ErrorCode_ROUTE_NOT_ALLOWED          ErrorCode = 22
+	ErrorCode_PROTECTED_DOCUMENT         ErrorCode = 23
+	ErrorCode_UPSTREAM_AUTH_FAILED       ErrorCode = 24
+	ErrorCode_NETWORK_FAILED             ErrorCode = 25
+	ErrorCode_TRACE_UPDATE_FAILED        ErrorCode = 26
+	ErrorCode_REGISTRY_UPDATE_FAILED     ErrorCode = 27
+	ErrorCode_CONFIGURATION_FETCH_FAILED ErrorCode = 31
 )
 
 func (p ErrorCode) String() string {
@@ -371,6 +379,8 @@ func (p ErrorCode) String() string {
 		return "TRACE_UPDATE_FAILED"
 	case ErrorCode_REGISTRY_UPDATE_FAILED:
 		return "REGISTRY_UPDATE_FAILED"
+	case ErrorCode_CONFIGURATION_FETCH_FAILED:
+		return "CONFIGURATION_FETCH_FAILED"
 	}
 	return "<UNSET>"
 }
@@ -433,6 +443,8 @@ func ErrorCodeFromString(s string) (ErrorCode, error) {
 		return ErrorCode_TRACE_UPDATE_FAILED, nil
 	case "REGISTRY_UPDATE_FAILED":
 		return ErrorCode_REGISTRY_UPDATE_FAILED, nil
+	case "CONFIGURATION_FETCH_FAILED":
+		return ErrorCode_CONFIGURATION_FETCH_FAILED, nil
 	}
 	return ErrorCode(0), fmt.Errorf("not a valid ErrorCode string")
 }

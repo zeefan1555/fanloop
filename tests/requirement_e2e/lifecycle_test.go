@@ -50,7 +50,7 @@ func TestRequirementWorkflowE2E(t *testing.T) {
 		t.Fatal("locate repository root")
 	}
 	repo := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
-	bundleRoot := filepath.Join(dataHome, "source", "skills", "linear-runtime")
+	bundleRoot := filepath.Join(dataHome, "source", "skills", "fanloop-workflow", "linear-runtime")
 	if err := os.MkdirAll(bundleRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/zeefan1555/fanloop/errs"
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/doctor"
 	"github.com/zeefan1555/fanloop/internal/idl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
@@ -112,7 +113,7 @@ func runOperation[T any](
 			return fail(normalizePublicError(err))
 		}
 
-		needsConfiguration := true
+		needsConfiguration := id != "flow.init"
 		if _, ok := any(request).(*flowidl.FlowInitRequest); !ok && root != "" && spec.RequirementScope == commonidl.RequirementScope_existing {
 			local, failure := store.New(root)
 			if failure != nil {
@@ -124,7 +125,7 @@ func runOperation[T any](
 			}
 		}
 		if needsConfiguration {
-			unlock, err := workflow.PrepareConfiguration(ctx, dataRoot)
+			unlock, err := configuration.PrepareCurrent(ctx, dataRoot)
 			if err != nil {
 				return fail(normalizeConfigurationError(spec, err))
 			}

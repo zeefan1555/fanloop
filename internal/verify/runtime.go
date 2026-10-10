@@ -15,6 +15,7 @@ import (
 	"time"
 
 	clierrs "github.com/zeefan1555/fanloop/errs"
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/verifyidl"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -168,7 +169,7 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
 	}
 
-	unlock, err := workflow.PrepareConfiguration(ctx, runtime.DataRoot)
+	unlock, err := configuration.PrepareCurrent(ctx, runtime.DataRoot)
 	if err != nil {
 		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
 	}
@@ -212,7 +213,7 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 	if strings.TrimSpace(versionData.ReleaseVersion) == "" || strings.TrimSpace(versionData.CommitSHA) == "" {
 		return fail("version", "Version output omitted candidate identity.", "Repair the version output contract.", true)
 	}
-	definitions, err := workflow.ListFrom(filepath.Join(workRoot, "data", "source", "skills"))
+	definitions, err := workflow.ListFrom(filepath.Join(workRoot, "data", "source", "skills", "fanloop-workflow"))
 	if err != nil || len(definitions) == 0 {
 		return fail("workflows", "Local Workflow packages are unavailable.", "Repair the selected source repository.", true)
 	}
@@ -444,7 +445,7 @@ func (runtime Runtime) Snapshot(ctx context.Context, requirementRoot string, req
 	if containsPath(filepath.Join(root, ".fanloop"), destination) {
 		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "evidence_dir must be outside requirement .fanloop state")
 	}
-	unlock, err := workflow.PrepareConfiguration(ctx, runtime.DataRoot)
+	unlock, err := configuration.PrepareCurrent(ctx, runtime.DataRoot)
 	if err != nil {
 		return nil, publicError(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error())
 	}
@@ -453,7 +454,7 @@ func (runtime Runtime) Snapshot(ctx context.Context, requirementRoot string, req
 		var source string
 		source, err = workflow.ConfigurationRoot(runtime.DataRoot)
 		if err == nil {
-			err = copyTree(source, filepath.Join(frozenDataRoot, "source", "skills"))
+			err = copyTree(source, filepath.Join(frozenDataRoot, "source", "skills", "fanloop-workflow"))
 		}
 	}
 	unlock()
@@ -587,7 +588,7 @@ func (runtime Runtime) isolatedEnvironment(workRoot string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.CopyFS(filepath.Join(dataRoot, "source", "skills"), os.DirFS(source)); err != nil {
+	if err := os.CopyFS(filepath.Join(dataRoot, "source", "skills", "fanloop-workflow"), os.DirFS(source)); err != nil {
 		return nil, err
 	}
 	skillRoot := filepath.Join(workRoot, "skills")

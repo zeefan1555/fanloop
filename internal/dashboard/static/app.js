@@ -161,7 +161,7 @@ async function loadFiles() {
   save.hidden = !editable;
   document.querySelector('#editorActions').hidden = !editable;
   document.querySelector('#sourceKind').textContent = editable ? 'Editable local source' : 'Local source';
-  document.querySelector('#sourceRoot').textContent = editable ? 'FANLOOP_CONFIG_SOURCE/skills' : 'config/current -> repository/skills';
+  document.querySelector('#sourceRoot').textContent = editable ? 'FANLOOP_CONFIG_SOURCE/skills/fanloop-workflow' : 'config/current -> snapshot/skills/fanloop-workflow';
   const workflowIDs = [...new Set(fileItems.map(item => item.path.split('/')[0]))];
   workflowSelect.replaceChildren(...workflowIDs.map(id => {
     const option = document.createElement('option');

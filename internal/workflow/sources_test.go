@@ -10,8 +10,8 @@ import (
 
 func TestLocalSourceBindingAndOverride(t *testing.T) {
 	dataRoot, source, override := t.TempDir(), t.TempDir(), t.TempDir()
-	writeValidWorkflow(t, filepath.Join(source, "skills"), "bound-loop")
-	writeValidWorkflow(t, filepath.Join(override, "skills"), "override-loop")
+	writeValidWorkflow(t, filepath.Join(source, "skills", "fanloop-workflow"), "bound-loop")
+	writeValidWorkflow(t, filepath.Join(override, "skills", "fanloop-workflow"), "override-loop")
 	if err := os.MkdirAll(filepath.Join(dataRoot, "config"), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -72,5 +72,17 @@ func TestPackageSourceLockAndResourceValidation(t *testing.T) {
 	}
 	if _, err := LoadFrom(root, "local-loop"); err == nil {
 		t.Fatal("package accepted a missing root SKILL.md")
+	}
+}
+
+func TestExplicitSourceRejectsSymlinkWithTrailingSeparator(t *testing.T) {
+	source := t.TempDir()
+	writeValidWorkflow(t, filepath.Join(source, "skills", "fanloop-workflow"), "local-loop")
+	link := filepath.Join(t.TempDir(), "linked")
+	if err := os.Symlink(source, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := SourceRoot(link + string(filepath.Separator)); err == nil {
+		t.Fatal("accepted symlinked author root")
 	}
 }

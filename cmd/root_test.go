@@ -33,7 +33,7 @@ func TestMain(main *testing.M) {
 		panic(err)
 	}
 	if err := os.CopyFS(
-		filepath.Join(dataRoot, "skills", syntheticWorkflowID),
+		filepath.Join(dataRoot, "skills", "fanloop-workflow", syntheticWorkflowID),
 		os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", syntheticWorkflowID)),
 	); err != nil {
 		panic(err)

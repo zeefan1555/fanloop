@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 	"golang.org/x/sys/unix"
 )
@@ -54,16 +55,23 @@ type apiError struct {
 }
 
 type handler struct {
-	root      string
-	rootInfo  os.FileInfo
-	editable  bool
-	ui        http.Handler
-	saveMu    sync.Mutex
-	allowedMu sync.RWMutex
-	allowed   []string
+	snapshotSource string
+	root           string
+	rootInfo       os.FileInfo
+	editable       bool
+	ui             http.Handler
+	saveMu         sync.Mutex
+	allowedMu      sync.RWMutex
+	allowed        []string
 }
 
-func NewHandler(root string, editable bool) (http.Handler, error) {
+func NewHandler(root string, editable bool, snapshotSource string) (http.Handler, error) {
+	if snapshotSource != "" {
+		if _, err := configuration.Read(snapshotSource); err != nil {
+			return nil, err
+		}
+		editable = false
+	}
 	if !filepath.IsAbs(root) {
 		return nil, fmt.Errorf("Workflow root must be absolute")
 	}
@@ -83,7 +91,8 @@ func NewHandler(root string, editable bool) (http.Handler, error) {
 		return nil, err
 	}
 	return &handler{
-		root: filepath.Clean(root), rootInfo: info, editable: editable,
+		snapshotSource: snapshotSource,
+		root:           filepath.Clean(root), rootInfo: info, editable: editable,
 		ui: http.FileServer(http.FS(static)), allowed: allowedPathsFrom(definitions),
 	}, nil
 }
@@ -100,6 +109,12 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 		defer unlock()
+		if h.snapshotSource != "" {
+			if _, err := configuration.Read(h.snapshotSource); err != nil {
+				h.writeError(writer, http.StatusConflict, "invalid_configuration", err.Error(), "")
+				return
+			}
+		}
 	}
 
 	switch request.URL.Path {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -16,7 +17,10 @@ func newInstallCommand(stdout, stderr io.Writer) *cobra.Command {
 		Use:    "__install",
 		Hidden: true,
 		Args:   cobra.NoArgs,
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(command *cobra.Command, _ []string) error {
+			if command.Flags().Changed("config-source") && request.ConfigSource == "" {
+				return fmt.Errorf("config-source must not be empty")
+			}
 			result, err := releaseinstall.Run(request)
 			if err != nil {
 				_ = writeInstallFailure(stderr, err)
@@ -29,7 +33,7 @@ func newInstallCommand(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&request.Source, "source", "", "local build directory")
-	command.Flags().StringVar(&request.ConfigSource, "config-source", "", "absolute repository root containing Workflow Skill packages in skills/")
+	command.Flags().StringVar(&request.ConfigSource, "config-source", "", "optional clean Git repository root containing skills/fanloop-workflow")
 	command.Flags().StringVar(&request.DataRoot, "data-root", "", "Fanloop user data directory")
 	command.Flags().StringVar(&request.SkillRoots.Codex, "codex-skills-root", "", "Codex Skills directory")
 	command.Flags().StringVar(&request.SkillRoots.Agent, "agent-skills-root", "", "Agent Skills directory")
