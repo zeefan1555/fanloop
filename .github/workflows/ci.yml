@@ -102,9 +102,9 @@ jobs:
           export FANLOOP_TRAE_SKILLS_ROOT="$verify_root/skills/trae"
           export FANLOOP_CLAUDE_SKILLS_ROOT="$verify_root/skills/claude"
           export FANLOOP_CONFIG_SOURCE="$verify_root/config"
-          mkdir -p "$FANLOOP_CONFIG_SOURCE/skills/fanloop-workflow"
-          cp -R internal/workflow/testdata/linear-runtime "$FANLOOP_CONFIG_SOURCE/skills/fanloop-workflow/"
-          cp -R internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/skills/fanloop-workflow/"
+          mkdir -p "$FANLOOP_CONFIG_SOURCE/fanloop-workflow"
+          cp -R internal/workflow/testdata/linear-runtime "$FANLOOP_CONFIG_SOURCE/fanloop-workflow/"
+          cp -R internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/fanloop-workflow/"
           git -C "$FANLOOP_CONFIG_SOURCE" init -b main
           git -C "$FANLOOP_CONFIG_SOURCE" add .
           git -C "$FANLOOP_CONFIG_SOURCE" -c user.name=CI -c user.email=ci@example.invalid commit -m 'Synthetic configuration'

@@ -9,7 +9,7 @@ This is the single code-owned verification procedure. `features/README.md` index
 
 ## Launch
 
-From a clean candidate, use isolated data and four Skill roots. The production source is second-brain-agent main. Generic runtime verification uses a fresh Git repository containing only tracked synthetic fixtures in skills/fanloop-workflow. Commit the fixture before offline installation.
+From a clean candidate, use isolated data and four Skill roots. The production source is second-brain-skills main. Generic runtime verification uses a fresh Git repository containing only tracked synthetic fixtures in fanloop-workflow. Commit the fixture before offline installation.
 
 ```bash
 export FANLOOP_DATA_HOME="$(mktemp -d)"
@@ -18,8 +18,8 @@ export FANLOOP_AGENT_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/agent"
 export FANLOOP_TRAE_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/trae"
 export FANLOOP_CLAUDE_SKILLS_ROOT="$FANLOOP_DATA_HOME/skill-roots/claude"
 export FANLOOP_CONFIG_SOURCE="$(mktemp -d)"
-mkdir -p "$FANLOOP_CONFIG_SOURCE/skills/fanloop-workflow"
-cp -R internal/workflow/testdata/linear-runtime internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/skills/fanloop-workflow/"
+mkdir -p "$FANLOOP_CONFIG_SOURCE/fanloop-workflow"
+cp -R internal/workflow/testdata/linear-runtime internal/workflow/testdata/runtime-controls "$FANLOOP_CONFIG_SOURCE/fanloop-workflow/"
 git -C "$FANLOOP_CONFIG_SOURCE" init -b main
 git -C "$FANLOOP_CONFIG_SOURCE" add .
 git -C "$FANLOOP_CONFIG_SOURCE" -c user.name=Verification -c user.email=verification@example.invalid commit -m 'Synthetic configuration'

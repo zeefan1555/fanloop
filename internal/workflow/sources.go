@@ -42,7 +42,7 @@ func SourceRoot(source string) (string, error) {
 	if err := requireRealDirectory(source); err != nil {
 		return "", fmt.Errorf("local configuration source: %w", err)
 	}
-	root := filepath.Join(source, "skills", "fanloop-workflow")
+	root := filepath.Join(source, "fanloop-workflow")
 	if err := requireRealWorkflowRoot(root); err != nil {
 		return "", fmt.Errorf("local configuration source: %w", err)
 	}

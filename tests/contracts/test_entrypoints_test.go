@@ -284,7 +284,7 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"<repo>/skills/fanloop-workflow/<workflow-id>/", "SKILL.md", "FANLOOP_CONFIG_SOURCE"} {
+	for _, required := range []string{"<repo>/fanloop-workflow/<workflow-id>/", "SKILL.md", "FANLOOP_CONFIG_SOURCE"} {
 		if !strings.Contains(string(skill), required) {
 			t.Errorf("Workflow authoring Skill is missing %q", required)
 		}
@@ -302,7 +302,7 @@ func TestProductionConfigurationUsesCompleteLocalPackages(t *testing.T) {
 		t.Fatal("Workflow packages must not have an extra workflows wrapper")
 	}
 	if _, err := os.Stat(filepath.Join(repo, "skills")); !os.IsNotExist(err) {
-		t.Fatal("production packages must live only in second-brain-agent")
+		t.Fatal("production packages must live only in second-brain-skills")
 	}
 	for _, name := range []string{"entrypoints/fanloop-workflow/SKILL.md", ".cursor/skills/verify-fanloop/SKILL.md", "scripts/pin-controller-release.sh"} {
 		if _, err := os.Stat(filepath.Join(repo, name)); err != nil {

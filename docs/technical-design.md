@@ -12,21 +12,22 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-second-brain-agent main 的 skills/fanloop-workflow/ 托管四套生产配置：
+second-brain-skills main 的 fanloop-workflow/ 托管四套生产配置：
 
 - `fanloop-maintainer`：Fanloop 的 4 Stage / 4 Job / 4 Step 维护闭环；Define、Build、Certify 与 Deliver 依次完成验收契约、自主验证、独立认证和 PR/本地交付。
 - `pstack-native`：六步剧本交付，保留完整脚本与资源。
 - `remnote-direct-maintainer`：RemNote Direct 的受管维护流程。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 
-完整包目录为 `skills/fanloop-workflow/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
+完整包目录为 `fanloop-workflow/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
 `fanloop-workflow` 与 `create-fanloop-workflow` 两个公共 Skill；安装、Runtime 和 Doctor 从同一 live Workflow 根加载，并拒绝缺失或
 额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `fanloop-maintenance` 对应
-`fanloop-maintainer`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产清单及
-`technical-solution-design` 退役决策见 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
+`fanloop-maintainer`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
+清单见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)；`technical-solution-design` 的历史退役决策见
+[ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
 可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 endpoint、远端字段名、
@@ -95,16 +96,16 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
 复用目录安装，离线切换 CLI Release；显式配置源导入干净提交快照，否则保留已有配置。
 
-`$FANLOOP_DATA_HOME/config/current` 指向不可变 Git 配置快照。flow init 在稳定锁内拉取 main、校验整集、记录配置身份并原子激活；dry-run 只校验。已有 flow status/report/skills 离线读取。显式 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。完整包目录是 skills/fanloop-workflow/<id>。配置失败不创建 Requirement，也不替换 current。
+`$FANLOOP_DATA_HOME/config/current` 指向不可变 Git 配置快照。flow init 在稳定锁内拉取 main、校验整集、记录配置身份并原子激活；dry-run 只校验。已有 flow status/report/skills 离线读取。显式 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。完整包目录是 fanloop-workflow/<id>。配置失败不创建 Requirement，也不替换 current。
 
 `fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认绑定源只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启该仓库保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；可编辑当前绑定仓库，不调用远端配置服务。
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。
 本地源绑定、完整包与 Dashboard 边界见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-GitHub 只托管源码、PR 和 CI；不构建或发布 npm、跨平台归档或其他分发制品。合并后从精确 merge commit 本地构建、安装并回读版本、Doctor 与 smoke。生产 Workflow 随仓库维护，下一次调用直接读取。完整决定见
+GitHub 只托管源码、PR 和 CI；不构建或发布 npm、跨平台归档或其他分发制品。合并后从精确 merge commit 本地构建、安装并回读版本、Doctor 与 smoke。生产 Workflow 在 second-brain-skills 独立维护；只有新的 `flow init` 才会拉取、校验并激活远端更新，已有 `flow status/report/skills` 继续离线读取当前不可变快照。完整决定见
 [ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-新增生产 Workflow 直接增加 skills/fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
+新增生产 Workflow 直接增加 fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 
 仓库级本地门禁只有一个：
 
@@ -118,4 +119,4 @@ Route Matrix 由 CI 的 `requirement-e2e` 执行；固定生产发布的矩阵�
 `run-unit` 先完成格式与生成物检查，再并发执行互不共享可写状态的 vet、Go test 和本地 Route Matrix；
 它等待所有已启动检查并聚合失败。脚本显式使用 Go 自动工具链选择，避免宿主 `GOTOOLCHAIN=local` 让仓库门禁在运行前失败。
 
-`flow skills` exposes the complete current Workflow Skill catalog for dynamic reading; membership does not make a Skill mandatory. The active package retirement is recorded in [ADR-0128](./adr/0128-discover-workflow-skills-and-retire-pstack-native.md).
+`flow skills` exposes the complete current Workflow Skill catalog for dynamic reading; membership does not make a Skill mandatory. The catalog decision is recorded in [ADR-0128](./adr/0128-discover-workflow-skills-and-retire-pstack-native.md); the current four-package inventory and the `pstack-native` restoration override are recorded in [ADR-0132](./adr/0132-git-workflow-configuration-center.md).

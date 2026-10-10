@@ -397,7 +397,7 @@ func committedWorkflow(t *testing.T, root string) (*Store, state.State) {
 func loadRuntimeControls(t *testing.T) (workflow.Loaded, error) {
 	t.Helper()
 	dataRoot := t.TempDir()
-	workflowsRoot := filepath.Join(dataRoot, "source", "skills", "fanloop-workflow")
+	workflowsRoot := filepath.Join(dataRoot, "source", "fanloop-workflow")
 	if err := os.CopyFS(filepath.Join(workflowsRoot, "linear-runtime"), os.DirFS(filepath.Join("..", "workflow", "testdata", "linear-runtime"))); err != nil {
 		return workflow.Loaded{}, err
 	}

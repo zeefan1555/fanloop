@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-- second-brain-agent main is the single source, with complete skills/fanloop-workflow packages.
+- second-brain-skills main is the single source, with complete fanloop-workflow packages.
 - New flow init fetches, validates and activates an immutable commit snapshot.
 - Existing status/report/skills are offline; explicit repository source bypasses refresh.
 - Complete path/content/executable-bit identity, shared locking, no partial activation.

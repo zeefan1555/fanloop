@@ -10,7 +10,7 @@
 
 触发条件：需求经过 `/grill-with-docs`、飞书评审或对话澄清。
 
-1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约随仓库 skills/fanloop-workflow/<workflow-id>/ 完整包提交，并记录 Git 基线与文件摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
+1. 编码前，把已确认的决策整理为决策、约束和验收条件。代码行为契约落在现有 Thrift IDL 或契约测试；生产配置契约随仓库 `fanloop-workflow/<workflow-id>/` 完整包提交，并记录 Git 基线与文件摘要；长期且难以逆转的架构选择进入 `docs/adr/`。研究与任务拆分留在仓库外或上述本地临时目录中。
 2. 只沉淀用户明确确认的结论，或用户授权范围内经主 Agent 完整审阅并记录明确决定的结论。开放问题继续保留为开放问题，未审阅的推荐项不自动成为决策。
 3. 让代码契约真值与实现处于同一分支，并在实现提交之前或同一提交中纳入 Git；外部文档、聊天记录和未跟踪文件不能作为唯一事实源。
 
@@ -18,14 +18,14 @@
 
 ## 代码与配置分离
 
-先按实际改动区分配置与代码：纯配置读取 `.agents/skills/edit-fanloop-skills/SKILL.md` 直接维护；代码和混合实现进入 `fanloop-maintainer`。配置改变业务流程，不等于修改执行引擎。
+先按实际改动区分配置与代码：外部纯配置读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md` 直接维护；代码和混合实现进入 `fanloop-maintainer`。配置改变业务流程，不等于修改执行引擎。
 
-1. 纯配置变更包括五份 Workflow YAML、`skills/` 与 `.agents/skills/` 下非可执行 Skill 指令与参考材料，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
+1. 纯配置变更包括 `fanloop-workflow/<workflow-id>/` 的五份 Workflow YAML、包内非可执行 Skill 指令与参考材料、`<category>/<skill-id>/` 下的仓库级 Skill，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置按语义验证：错字/排版检查 diff 和引用并有据免测；普通模板、说明和 Prompt 由当前 Agent 实际自检，加载受影响完整包并检查代表性结果；Step、Condition、Route、绑定变化才跑受影响 Workflow 矩阵。路由、绑定、权限、安全、审批或外部写入规则变化仍需全新独立 Agent 实际试用并回读原始产物。解析器错误回归留在代码测试，不为文案重跑全产品或手造错误集。证据标明 self_check、independent 或 not_applicable，不要求新 binary 或代码 manifest。
-3. 纯配置变更由 `edit-fanloop-skills` 完成修改、相应校验、提交推送、唯一 PR 合并和实际配置源回读；用户指定停止位置时服从该边界。不初始化维护 Workflow 或 Requirement，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 纯配置变更由 second-brain-skills 的 `manage-fanloop-workflow` 完成修改、相应校验、提交推送 `main` 和实际配置源回读；用户指定停止位置时服从该边界。不初始化维护 Workflow 或 Requirement，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
 5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 按用户保留的具体人工门禁执行；IDL 按下方主 Agent 契约审核执行。
-6. 普通配置由同一 Agent 连续完成，不增加维护阶段、Panorama、飞书报告、实现子 Agent或重复检查。保留原始工具结果，在 PR 和最终回复中给出校验、提交、合并与本地回读证据；不额外要求阶段文档。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
+6. 普通配置由同一 Agent 连续完成，不增加维护阶段、Panorama、飞书报告、实现子 Agent或重复检查。保留原始工具结果，在提交记录和最终回复中给出校验、提交、推送与本地回读证据；不额外要求阶段文档。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
 7. CI 用完整 Git diff 的轻量 changes 任务分流，纯配置可跳过引擎任务；仅 `skills/`、`.agents/skills/<skill>/` 下普通非可执行 Skill Markdown、包根五 YAML、普通 docs Markdown、根 AGENTS.md/README.md 可豁免。脚本、验证资产、可执行位、符号链接、未知或混合改动走完整代码 CI；重命名检查前后路径和 mode，基线缺失不能判配置，分流失败阻止交付。本地材料禁入库检查始终保留。授权 PR 合并须核对同 HEAD 分流结果和适用 required checks，不能绕过保护；代码通道门禁不变。
 
 完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、本地配置提交及公开 CLI 回读。
@@ -58,11 +58,11 @@
 
 ## Workflow 配置中心
 
-1. 生产真值为 `zeefan1555/second-brain-agent` 的 `main`，完整包位于 `skills/fanloop-workflow/<workflow-id>/`。本代码仓库只保留通用 fixture 和作者工具。
+1. 生产真值为 `zeefan1555/second-brain-skills` 的 `main`，完整包位于 `fanloop-workflow/<workflow-id>/`。本代码仓库只保留通用 fixture 和作者工具。
 2. `flow init` 用系统 Git/SSH 拉取并验证完整集合，成功才原子激活 `$FANLOOP_DATA_HOME/config/snapshots/<commit-sha>/`。`config/current` 指向不可变快照；拉取、校验或激活失败不修改 current、不创建 Requirement。dry-run 只校验临时内容。
 3. 已有 Requirement 的 status/report/skills 离线读取当前快照。显式绝对 `FANLOOP_CONFIG_SOURCE` 指向配置仓库根，跳过远端刷新，用于作者和测试。Dashboard 默认只读快照，仅显式作者源可编辑；共享源锁、摘要检查和完整包校验不变。
 4. 本地安装器离线；显式 `--config-source` 导入干净 Git 提交，否则保留 current。首次安装无配置时由后续 init 拉取。configuration.json 记录提交、Workflow IDs 和路径/内容/executable bit 的完整摘要。
-5. 配置在 second-brain 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
+5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
 
 ## YAML 架构真值与自动校验
 
@@ -91,7 +91,7 @@
 | 进入 Step 先展示完整 renderer 内容，成功后才上报 snapshot path | 各 Workflow 的 `workflow-panorama` / `fanloop-dev-panorama` Skill。Runtime 只校验回执类型与路由，不证明宿主已展示（ADR-0119）。 |
 | 无用户可见通道时 blocked；不得把写入 `artifacts/panorama-*` 当成已展示 | Skill 必须包含 `report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`。`scripts/validate-configuration.py --check-panorama-skills` 拒绝缺少该句或把写文件当成投递的 Skill，并指出路径和应补的句子。`--reject-file-save-evidence` 拒绝 `content saved artifacts/panorama-` 这类证据。 |
 | 父 Agent 能发消息时，headless 子 Agent 不得上报 `panorama_presented`；子 Agent 交还 `data.content` 与 `snapshot_path`，父 Agent 原样发送后再上报同一路径 | 提到 `local_agent` 的全景图 Skill 必须包含 `The child must not submit panorama_presented.`、`After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.`、`The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.`、`Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.`。`--check-panorama-skills` 拒绝缺少这些句子的 Skill。CLI 不证明用户看见了消息。 |
-| 成功终止 Route 之后再投递一次 Done `100%` 全景图；复盘步骤里的 75% 不是这次投递 | 提到 `local_agent` 的全景图 Skill，以及 `skills/fanloop-workflow/remnote-flashcards/prompt.yaml`，必须包含 `after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.`。`--check-panorama-skills` 拒绝缺少该句，或仍写「最终回复不得重复 Panorama」的 Skill。`--reject-missing-done-panorama` 拒绝复盘 75% 之后 workflow completed、却没有后续 Done 100% 全景图标题的转录。CLI 不证明用户看见了消息。 |
+| 成功终止 Route 之后再投递一次 Done `100%` 全景图；复盘步骤里的 75% 不是这次投递 | 提到 `local_agent` 的全景图 Skill，以及 `fanloop-workflow/remnote-flashcards/prompt.yaml`，必须包含 `after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.`。`--check-panorama-skills` 拒绝缺少该句，或仍写「最终回复不得重复 Panorama」的 Skill。`--reject-missing-done-panorama` 拒绝复盘 75% 之后 workflow completed、却没有后续 Done 100% 全景图标题的转录。CLI 不证明用户看见了消息。 |
 
 完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。全景图 Skill 通过 `--check-panorama-skills`。必要时用已有 CLI 检查回执缺失的拒绝行为。不把 CLI 说成能证明用户看见卡片。
 
@@ -123,7 +123,7 @@
 1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、bnpm、Luban 或手工 `npm publish` 入口。
 2. `npm run build` 与 `npm run install:local` 只是本地 Shell 入口的快捷方式，不生成或发布 npm 包。
 3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装离线导入显式配置提交，未指定时保留已有快照。
-4. 生产配置在 second-brain main 维护，下次 flow init 自动拉取；显式作者源编辑在下一次调用生效。
+4. 生产配置在 second-brain-skills main 维护，下次 flow init 自动拉取；显式作者源编辑在下一次调用生效。
 
 ## ADR 一致性
 

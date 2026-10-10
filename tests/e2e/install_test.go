@@ -136,7 +136,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatalf("initialize old Requirement: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 
-	pinner := filepath.Join(oldRelease.ConfigSource, "skills", "fanloop-workflow", "sample-custom", "skills", "controller-tools", "scripts", "pin-controller-release.sh")
+	pinner := filepath.Join(oldRelease.ConfigSource, "fanloop-workflow", "sample-custom", "skills", "controller-tools", "scripts", "pin-controller-release.sh")
 	pinned := exec.Command(pinner, oldRoot)
 	pinned.Env = append(withoutBotmuxBinding(os.Environ()), "HOME="+home, "FANLOOP_DATA_HOME="+dataRoot)
 	if output, err := pinned.CombinedOutput(); err != nil {
@@ -299,14 +299,14 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
 	binding, _ := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	liveRoot := filepath.Join(binding, "skills", "fanloop-workflow")
+	liveRoot := filepath.Join(binding, "fanloop-workflow")
 	assertFlowSkillPaths(t, initialized.stdout, liveRoot)
 	liveSkill := firstSkillPath(t, filepath.Join(liveRoot, "sample-custom", "skills"))
 	content, err := os.ReadFile(liveSkill)
 	if err != nil {
 		t.Fatal(err)
 	}
-	authorSkill := firstSkillPath(t, filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow", "sample-custom", "skills"))
+	authorSkill := firstSkillPath(t, filepath.Join(fixture.ConfigSource, "fanloop-workflow", "sample-custom", "skills"))
 	if err := os.WriteFile(authorSkill, append(content, []byte("\nlive config marker\n")...), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -488,7 +488,7 @@ func TestDoctorRejectsBrokenLiveSkillConfiguration(t *testing.T) {
 		t.Fatalf("install: %v\n%s", result.err, result.stderr)
 	}
 	binding, _ := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	path := firstSkillPath(t, filepath.Join(binding, "skills", "fanloop-workflow", "sample-custom", "skills"))
+	path := firstSkillPath(t, filepath.Join(binding, "fanloop-workflow", "sample-custom", "skills"))
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
 	}
@@ -762,12 +762,12 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 	if _, err := os.Lstat(filepath.Join(dataRoot, "current", "workflows")); !os.IsNotExist(err) {
 		t.Fatalf("install created a configuration copy: %v", err)
 	}
-	liveRoot := filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow")
+	liveRoot := filepath.Join(fixture.ConfigSource, "fanloop-workflow")
 	info, err := os.Lstat(liveRoot)
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		t.Fatalf("live Workflow root is not a real directory: %#v, %v", info, err)
 	}
-	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow")) {
+	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "fanloop-workflow")) {
 		t.Fatal("first install did not seed the source Workflow tree byte-for-byte")
 	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "releases", version, "skills")); !os.IsNotExist(err) {
@@ -832,7 +832,7 @@ func makeReleaseFixture(t *testing.T, repository, releaseVersion, compiledVersio
 func makeSyntheticConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
 	root := t.TempDir()
-	bundle := filepath.Join(root, "skills", "fanloop-workflow", workflowID)
+	bundle := filepath.Join(root, "fanloop-workflow", workflowID)
 	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(repository, "examples", "workflows", "example"))); err != nil {
 		t.Fatal(err)
 	}
@@ -852,7 +852,7 @@ func makeSyntheticConfigSource(t *testing.T, repository, workflowID string) stri
 func makeLinearRuntimeConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
 	root := t.TempDir()
-	bundle := filepath.Join(root, "skills", "fanloop-workflow", workflowID)
+	bundle := filepath.Join(root, "fanloop-workflow", workflowID)
 	if err := os.CopyFS(bundle, os.DirFS(filepath.Join(repository, "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
 		t.Fatal(err)
 	}
@@ -888,7 +888,7 @@ func makeReleaseFixtureWithChangedSyntheticPrompt(t *testing.T, repository, rele
 	t.Helper()
 	fixture := makeReleaseFixture(t, repository, releaseVersion, compiledVersion)
 	fixture.ConfigSource = makeSyntheticControllerConfigSource(t, repository, "sample-custom")
-	path := filepath.Join(fixture.ConfigSource, "skills", "fanloop-workflow", "sample-custom", "prompt.yaml")
+	path := filepath.Join(fixture.ConfigSource, "fanloop-workflow", "sample-custom", "prompt.yaml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -907,7 +907,7 @@ func makeReleaseFixtureWithChangedSyntheticPrompt(t *testing.T, repository, rele
 func makeSyntheticControllerConfigSource(t *testing.T, repository, workflowID string) string {
 	t.Helper()
 	root := makeSyntheticConfigSource(t, repository, workflowID)
-	target := filepath.Join(root, "skills", "fanloop-workflow", workflowID, "skills", "controller-tools", "scripts", "pin-controller-release.sh")
+	target := filepath.Join(root, "fanloop-workflow", workflowID, "skills", "controller-tools", "scripts", "pin-controller-release.sh")
 	copyTreeFile(t, filepath.Join(repository, "tests", "e2e", "testdata", "pin-controller-release.sh"), target)
 	if err := os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(target)), "SKILL.md"), []byte("---\nname: controller-tools\ndescription: Synthetic controller pinning fixture.\n---\n"), 0o600); err != nil {
 		t.Fatal(err)

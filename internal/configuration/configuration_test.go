@@ -27,7 +27,7 @@ func sourceRepository(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	fixture := filepath.Join("..", "workflow", "testdata", "linear-runtime")
-	target := filepath.Join(root, Category, "linear-runtime")
+	target := filepath.Join(root, "fanloop-workflow", "linear-runtime")
 	err := filepath.WalkDir(fixture, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -46,7 +46,7 @@ func sourceRepository(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.CopyFS(filepath.Join(root, Category, "runtime-controls"), os.DirFS(filepath.Join("..", "workflow", "testdata", "runtime-controls"))); err != nil {
+	if err := os.CopyFS(filepath.Join(root, "fanloop-workflow", "runtime-controls"), os.DirFS(filepath.Join("..", "workflow", "testdata", "runtime-controls"))); err != nil {
 		t.Fatal(err)
 	}
 	command(t, root, "init", "-b", "main")
@@ -88,17 +88,25 @@ func TestSnapshotRefreshDryRunAndFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first := filepath.Dir(filepath.Dir(root))
+	first := filepath.Dir(root)
 	done()
 	initial, err := Read(first)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if initial.Repository != "git@github.com:zeefan1555/second-brain-skills.git" || initial.Ref != "refs/heads/main" {
+		t.Fatalf("configuration identity = %s %s", initial.Repository, initial.Ref)
+	}
+	for _, file := range initial.Files {
+		if !strings.HasPrefix(file.Path, "fanloop-workflow/") {
+			t.Fatalf("configuration file escaped category: %s", file.Path)
+		}
+	}
 	root, done, err = Prepare(ctx, data, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filepath.Dir(filepath.Dir(root)) != first {
+	if filepath.Dir(root) != first {
 		t.Fatal("same commit did not reuse snapshot")
 	}
 	done()
@@ -112,7 +120,7 @@ func TestSnapshotRefreshDryRunAndFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	second := filepath.Dir(filepath.Dir(root))
+	second := filepath.Dir(root)
 	done()
 	updated, err := Read(second)
 	if err != nil {
@@ -268,7 +276,7 @@ func TestExplicitManagedSnapshotCannotLoseItsIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 	done()
-	source := filepath.Dir(filepath.Dir(root))
+	source := filepath.Dir(root)
 	t.Setenv("FANLOOP_CONFIG_SOURCE", source)
 	if err = os.Remove(filepath.Join(source, "configuration.json")); err != nil {
 		t.Fatal(err)

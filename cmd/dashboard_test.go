@@ -19,7 +19,7 @@ import (
 
 func TestDashboardInitialReadUsesConfigurationLock(t *testing.T) {
 	dataRoot := t.TempDir()
-	workflowRoot := filepath.Join(dataRoot, "skills", "fanloop-workflow")
+	workflowRoot := filepath.Join(dataRoot, "fanloop-workflow")
 	if err := os.CopyFS(filepath.Join(workflowRoot, "runtime-controls"), os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", "runtime-controls"))); err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestDashboardInitialReadUsesConfigurationLock(t *testing.T) {
 func dashboardSnapshot(t *testing.T) string {
 	t.Helper()
 	source := t.TempDir()
-	if err := os.CopyFS(filepath.Join(source, "skills", "fanloop-workflow", "runtime-controls"), os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", "runtime-controls"))); err != nil {
+	if err := os.CopyFS(filepath.Join(source, "fanloop-workflow", "runtime-controls"), os.DirFS(filepath.Join("..", "internal", "workflow", "testdata", "runtime-controls"))); err != nil {
 		t.Fatal(err)
 	}
 	for _, args := range [][]string{{"init", "-b", "main"}, {"add", "."}, {"-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"}} {
@@ -67,7 +67,7 @@ func dashboardSnapshot(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(snapshot, "skills", "fanloop-workflow")
+	return filepath.Join(snapshot, "fanloop-workflow")
 }
 
 func TestDashboardSnapshotsRemainReadOnlyWithExplicitSource(t *testing.T) {
@@ -98,11 +98,11 @@ func TestDashboardSnapshotIdentityAcrossRequestLifetime(t *testing.T) {
 						}
 					}
 					if damage == "missing" {
-						if err := os.Remove(filepath.Join(filepath.Dir(filepath.Dir(root)), "configuration.json")); err != nil {
+						if err := os.Remove(filepath.Join(filepath.Dir(root), "configuration.json")); err != nil {
 							t.Fatal(err)
 						}
 					} else if damage == "wrong_commit" {
-						source := filepath.Dir(filepath.Dir(root))
+						source := filepath.Dir(root)
 						identity, err := configuration.Read(source)
 						if err != nil {
 							t.Fatal(err)

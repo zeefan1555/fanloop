@@ -55,7 +55,7 @@ func DefaultRuntime() Runtime {
 	}
 	workflowRoot, configurationErr := workflow.DefaultRoot()
 	_, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE")
-	if source := filepath.Dir(filepath.Dir(workflowRoot)); configurationErr == nil && (!explicit || configuration.IsSnapshotSource(source)) {
+	if source := filepath.Dir(workflowRoot); configurationErr == nil && (!explicit || configuration.IsSnapshotSource(source)) {
 		_, configurationErr = os.Lstat(filepath.Join(source, "configuration.json"))
 	}
 	if configurationErr != nil {
@@ -158,10 +158,10 @@ func (runtime Runtime) workflowCheck() *idl.DoctorCheck {
 		return check("workflows", statusFail, "Local Workflow source is invalid: "+err.Error(), "Repair the bound repository or set FANLOOP_CONFIG_SOURCE.")
 	}
 	if len(definitions) == 0 {
-		return check("workflows", statusFail, "Local Workflow source is empty.", "Add complete Workflow packages under the source repository's skills/ directory.")
+		return check("workflows", statusFail, "Local Workflow source is empty.", "Add complete Workflow packages under the source repository's fanloop-workflow/ directory.")
 	}
 	message := "Workflow packages are valid: " + root
-	source := filepath.Dir(filepath.Dir(root))
+	source := filepath.Dir(root)
 	if configuration.IsSnapshotSource(source) {
 		identity, err := configuration.Read(source)
 		if err != nil {

@@ -267,12 +267,12 @@ def combo_markdown_ref_errors(text):
 
 
 COMBO_REF_TEACHING_FILES = (
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/remnote-import-format.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/SKILL.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-cli/SKILL.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-verify/SKILL.md',
-    'skills/fanloop-workflow/remnote-flashcards/prompt.yaml',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/remnote-import-format.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/SKILL.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-cli/SKILL.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-verify/SKILL.md',
+    'fanloop-workflow/remnote-flashcards/prompt.yaml',
 )
 
 
@@ -294,7 +294,7 @@ def combo_id_teaching_errors(text):
 def remnote_done_prompt_errors(source, workflows):
     if workflows is not None and 'remnote-flashcards' not in workflows:
         return []
-    prompt = source / 'skills' / 'fanloop-workflow' / 'remnote-flashcards' / 'prompt.yaml'
+    prompt = source / 'fanloop-workflow' / 'remnote-flashcards' / 'prompt.yaml'
     if not prompt.is_file():
         return []
     if REQUIRED_DONE_PANORAMA_SENTENCE in prompt.read_text():
@@ -339,14 +339,14 @@ NOTION_EXPERIENCE_SENTENCES = (
     REQUIRED_NOTION_CONFIG_SENTENCE,
 )
 NOTION_EXPERIENCE_SENTENCE_FILES = (
-    'skills/fanloop-workflow/remnote-flashcards/prompt.yaml',
-    'skills/fanloop-workflow/remnote-flashcards/SKILL.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/SKILL.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md',
+    'fanloop-workflow/remnote-flashcards/prompt.yaml',
+    'fanloop-workflow/remnote-flashcards/SKILL.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/SKILL.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md',
 )
 NOTION_EXPERIENCE_REFERENCE = (
-    'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md'
+    'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md'
 )
 NOTION_EXPERIENCE_DATABASE_ID = '80b2f42e-0e34-4d21-ab84-245bd4404f13'
 NOTION_EXPERIENCE_DATA_SOURCE_ID = 'ac9ebbdb-47b5-4f87-b821-df8a3eba5509'
@@ -389,15 +389,15 @@ def learning_card_gate_errors(source):
     slang_why = 'combo kid_clarity plain_words/one_pass must reject the 2026-10-07 trading slang.'
     ref_why = 'combo rem-refs must name flashcards apply TextSegments and object-set-text, not create --content-file.'
     for relative in (
-        'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
-        'skills/fanloop-workflow/remnote-flashcards/skills/remnote-verify/SKILL.md',
-        'skills/fanloop-workflow/remnote-flashcards/prompt.yaml',
+        'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+        'fanloop-workflow/remnote-flashcards/skills/remnote-verify/SKILL.md',
+        'fanloop-workflow/remnote-flashcards/prompt.yaml',
     ):
         errors.extend(_require_sentence(source, relative, REQUIRED_COMBO_SLANG_SENTENCE, slang_why))
     for relative in (
-        'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
-        'skills/fanloop-workflow/remnote-flashcards/skills/remnote-cli/SKILL.md',
-        'skills/fanloop-workflow/remnote-flashcards/prompt.yaml',
+        'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+        'fanloop-workflow/remnote-flashcards/skills/remnote-cli/SKILL.md',
+        'fanloop-workflow/remnote-flashcards/prompt.yaml',
     ):
         errors.extend(_require_sentence(source, relative, REQUIRED_COMBO_REF_SENTENCE, ref_why))
     live_why = '2026-10-09 live-run gates stay in the prompt, contract, and CLI skill.'
@@ -415,8 +415,8 @@ def learning_card_gate_errors(source):
         REQUIRED_REVIEWER_USER,
     )
     for relative in (
-        'skills/fanloop-workflow/remnote-flashcards/prompt.yaml',
-        'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
+        'fanloop-workflow/remnote-flashcards/prompt.yaml',
+        'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md',
     ):
         for sentence in live_sentences:
             errors.extend(_require_sentence(source, relative, sentence, live_why))
@@ -436,7 +436,7 @@ def learning_card_gate_errors(source):
     ):
         errors.extend(_require_sentence(
             source,
-            'skills/fanloop-workflow/remnote-flashcards/skills/remnote-cli/SKILL.md',
+            'fanloop-workflow/remnote-flashcards/skills/remnote-cli/SKILL.md',
             sentence,
             live_why,
         ))
@@ -447,22 +447,22 @@ def learning_card_gate_errors(source):
     ):
         errors.extend(_require_sentence(
             source,
-            'skills/fanloop-workflow/remnote-flashcards/skills/remnote-verify/SKILL.md',
+            'fanloop-workflow/remnote-flashcards/skills/remnote-verify/SKILL.md',
             sentence,
             live_why,
         ))
-    flow = source / 'skills/fanloop-workflow/remnote-flashcards/flow.yaml'
+    flow = source / 'fanloop-workflow/remnote-flashcards/flow.yaml'
     if flow.is_file():
         flow_text = flow.read_text()
         for condition_id in LIVE_RUN_ROUTE_CONDITIONS:
             if condition_id not in flow_text:
                 errors.append(
-                    f'skills/fanloop-workflow/remnote-flashcards/flow.yaml: missing route condition {condition_id}. '
+                    f'fanloop-workflow/remnote-flashcards/flow.yaml: missing route condition {condition_id}. '
                     'The engine only advances when the forward route lists it.'
                 )
         if 'panorama_presented' not in flow_text:
-            errors.append('skills/fanloop-workflow/remnote-flashcards/flow.yaml: panorama_presented must stay on every forward route.')
-    package = source / 'skills' / 'fanloop-workflow' / 'remnote-flashcards'
+            errors.append('fanloop-workflow/remnote-flashcards/flow.yaml: panorama_presented must stay on every forward route.')
+    package = source / 'fanloop-workflow' / 'remnote-flashcards'
     if not package.is_dir():
         return errors
     for path in sorted(package.rglob('*')):
@@ -495,7 +495,7 @@ def _skill_dirs(root):
 def panorama_skill_files(source, workflows, include_examples):
     found = []
     selected = None if workflows is None else set(workflows)
-    skills_root = source / 'skills' / 'fanloop-workflow'
+    skills_root = source / 'fanloop-workflow'
     if skills_root.is_dir() and not skills_root.is_symlink():
         for workflow_dir in _skill_dirs(skills_root):
             if selected is not None and workflow_dir.name not in selected:
@@ -554,7 +554,7 @@ def reject_file_save_evidence(path):
 
 
 def select_workflows(source, requested):
-    directories = sorted((source / 'skills' / 'fanloop-workflow').iterdir())
+    directories = sorted((source / 'fanloop-workflow').iterdir())
     if any(not item.is_dir() or item.is_symlink() for item in directories):
         raise ValueError('invalid Workflow package root')
     available = {item.name for item in directories}
@@ -634,7 +634,7 @@ def main():
     binary = args.binary.resolve(strict=True)
     output = args.output_root.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    files = snapshot(source / 'skills' / 'fanloop-workflow')
+    files = snapshot(source / 'fanloop-workflow')
     data = output / 'data'
     fake = output / 'bin'
     fake.mkdir()
@@ -655,7 +655,7 @@ def main():
             result = subprocess.run(argv, env=env, stdout=stdout, stderr=stderr)
         outcomes.append({'workflow': workflow, 'argv': argv, 'exit_code': result.returncode})
         print(f'{workflow}: {result.returncode}', flush=True)
-    unchanged = files == snapshot(source / 'skills' / 'fanloop-workflow')
+    unchanged = files == snapshot(source / 'fanloop-workflow')
     passed = unchanged and bool(outcomes) and all(item['exit_code'] == 0 for item in outcomes)
     manifest = {'source': str(source), 'files': files}
     (output / 'configuration-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

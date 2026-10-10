@@ -157,22 +157,22 @@ class MaintenanceChecks(unittest.TestCase):
 
     def test_matrix_selection_and_snapshot(self):
         for name in ('alpha', 'beta'):
-            self.write(f'skills/fanloop-workflow/{name}/SKILL.md')
+            self.write(f'fanloop-workflow/{name}/SKILL.md')
         self.assertEqual(['alpha', 'beta'], configuration.select_workflows(self.root, None))
         self.assertEqual(['beta'], configuration.select_workflows(self.root, ['beta', 'beta']))
         with self.assertRaisesRegex(ValueError, 'unknown Workflow'):
             configuration.select_workflows(self.root, ['alpha', 'missing'])
-        before = configuration.snapshot(self.root / 'skills')
-        self.write('skills/fanloop-workflow/alpha/SKILL.md', 'changed\n')
-        self.assertNotEqual(before, configuration.snapshot(self.root / 'skills'))
-        (self.root / 'skills/fanloop-workflow/escape').symlink_to(self.root / 'skills/fanloop-workflow/alpha')
+        before = configuration.snapshot(self.root / 'fanloop-workflow')
+        self.write('fanloop-workflow/alpha/SKILL.md', 'changed\n')
+        self.assertNotEqual(before, configuration.snapshot(self.root / 'fanloop-workflow'))
+        (self.root / 'fanloop-workflow/escape').symlink_to(self.root / 'fanloop-workflow/alpha')
         with self.assertRaises(ValueError):
             configuration.select_workflows(self.root, None)
         with self.assertRaises(ValueError):
-            configuration.snapshot(self.root / 'skills')
+            configuration.snapshot(self.root / 'fanloop-workflow')
 
     def test_unknown_workflow_has_no_matrix_side_effect(self):
-        self.write('skills/fanloop-workflow/alpha/SKILL.md')
+        self.write('fanloop-workflow/alpha/SKILL.md')
         output = self.root / 'output'
         result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--config-source', str(self.root), '--binary', sys.executable,
@@ -198,7 +198,7 @@ class MaintenanceChecks(unittest.TestCase):
                                  '--check-panorama-skills', '--config-source', str(source)],
                                 capture_output=True, text=True)
         self.assertNotEqual(0, result.returncode)
-        self.assertIn('skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md', result.stderr)
+        self.assertIn('fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md', result.stderr)
         self.assertIn(configuration.REQUIRED_BLOCKED_SENTENCE, result.stderr)
         self.assertIn('content saved artifacts/panorama-', result.stderr)
         self.assertIn('writing a file', result.stderr)
@@ -209,16 +209,16 @@ class MaintenanceChecks(unittest.TestCase):
                                  '--check-panorama-skills', '--config-source', str(source)],
                                 capture_output=True, text=True)
         self.assertNotEqual(0, failed.returncode)
-        self.assertIn('skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md', failed.stderr)
+        self.assertIn('fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md', failed.stderr)
         self.assertIn('parent/child handoff', failed.stderr)
         for sentence in configuration.REQUIRED_HANDOFF_SENTENCES:
             self.assertIn(sentence, failed.stderr)
         self.assertNotIn('missing the blocked-when-headless rule', failed.stderr)
         self.assertNotIn('writing a file', failed.stderr)
 
-        text = (source / 'skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md').read_text()
+        text = (source / 'fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md').read_text()
         self.write(
-            'with-handoff/skills/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md',
+            'with-handoff/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md',
             text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
             + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n',
         )
@@ -329,12 +329,12 @@ class MaintenanceChecks(unittest.TestCase):
 
     def test_missing_live_run_sentence_names_the_prompt(self):
         source = self.root / 'live-run-gates'
-        relative = 'skills/fanloop-workflow/remnote-flashcards/prompt.yaml'
+        relative = 'fanloop-workflow/remnote-flashcards/prompt.yaml'
         path = source / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(synthetic_gate_text().replace(
             configuration.REQUIRED_FACTUAL_REVIEW_SENTENCE, ''))
-        contract = 'skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md'
+        contract = 'fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/learning-card-contract.md'
         (source / contract).parent.mkdir(parents=True, exist_ok=True)
         (source / contract).write_text(synthetic_gate_text())
         errors = configuration.learning_card_gate_errors(source)

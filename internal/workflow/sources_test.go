@@ -9,9 +9,10 @@ import (
 )
 
 func TestLocalSourceBindingAndOverride(t *testing.T) {
-	dataRoot, source, override := t.TempDir(), t.TempDir(), t.TempDir()
-	writeValidWorkflow(t, filepath.Join(source, "skills", "fanloop-workflow"), "bound-loop")
-	writeValidWorkflow(t, filepath.Join(override, "skills", "fanloop-workflow"), "override-loop")
+	dataRoot, source, override, legacy := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
+	writeValidWorkflow(t, filepath.Join(source, "fanloop-workflow"), "bound-loop")
+	writeValidWorkflow(t, filepath.Join(override, "fanloop-workflow"), "override-loop")
+	writeValidWorkflow(t, filepath.Join(legacy, "skills", "fanloop-workflow"), "legacy-loop")
 	if err := os.MkdirAll(filepath.Join(dataRoot, "config"), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -32,6 +33,10 @@ func TestLocalSourceBindingAndOverride(t *testing.T) {
 	}
 	if _, err := Load("bound-loop"); err == nil {
 		t.Fatal("explicit source fell back to installed binding")
+	}
+	t.Setenv("FANLOOP_CONFIG_SOURCE", legacy)
+	if _, err := Load("legacy-loop"); err == nil {
+		t.Fatal("accepted legacy nested Workflow root")
 	}
 	for _, invalid := range []string{"", " ", "relative", filepath.Join(override, "missing")} {
 		t.Setenv("FANLOOP_CONFIG_SOURCE", invalid)
@@ -77,7 +82,7 @@ func TestPackageSourceLockAndResourceValidation(t *testing.T) {
 
 func TestExplicitSourceRejectsSymlinkWithTrailingSeparator(t *testing.T) {
 	source := t.TempDir()
-	writeValidWorkflow(t, filepath.Join(source, "skills", "fanloop-workflow"), "local-loop")
+	writeValidWorkflow(t, filepath.Join(source, "fanloop-workflow"), "local-loop")
 	link := filepath.Join(t.TempDir(), "linked")
 	if err := os.Symlink(source, link); err != nil {
 		t.Fatal(err)

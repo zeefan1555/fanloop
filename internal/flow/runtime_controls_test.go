@@ -14,7 +14,7 @@ import (
 
 func TestRuntimeStartAndJumpControls(t *testing.T) {
 	dataRoot := t.TempDir()
-	workflowsRoot := filepath.Join(dataRoot, "source", "skills", "fanloop-workflow")
+	workflowsRoot := filepath.Join(dataRoot, "source", "fanloop-workflow")
 	if err := os.CopyFS(filepath.Join(workflowsRoot, "runtime-controls"), os.DirFS(filepath.Join("..", "workflow", "testdata", "runtime-controls"))); err != nil {
 		t.Fatal(err)
 	}

@@ -35,7 +35,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(fake, "lark-cli"), []byte("#!/bin/sh\nexit 1\n"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	environment := append(withoutEnvironment(os.Environ(), "FANLOOP_CONFIG_SOURCE", "FANLOOP_DATA_HOME", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "PATH"), "FANLOOP_DATA_HOME="+data, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=url."+source+".insteadOf", "GIT_CONFIG_VALUE_0=git@github.com:zeefan1555/second-brain-agent.git", "PATH="+fake+string(os.PathListSeparator)+os.Getenv("PATH"))
+	environment := append(withoutEnvironment(os.Environ(), "FANLOOP_CONFIG_SOURCE", "FANLOOP_DATA_HOME", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "PATH"), "FANLOOP_DATA_HOME="+data, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=url."+source+".insteadOf", "GIT_CONFIG_VALUE_0=git@github.com:zeefan1555/second-brain-skills.git", "PATH="+fake+string(os.PathListSeparator)+os.Getenv("PATH"))
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	command := func(args ...string) *exec.Cmd {
@@ -85,7 +85,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	paths, err := filepath.Glob(filepath.Join(source, "skills", "fanloop-workflow", "linear-runtime", "*.yaml"))
+	paths, err := filepath.Glob(filepath.Join(source, "fanloop-workflow", "linear-runtime", "*.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

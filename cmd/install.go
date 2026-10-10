@@ -33,7 +33,7 @@ func newInstallCommand(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&request.Source, "source", "", "local build directory")
-	command.Flags().StringVar(&request.ConfigSource, "config-source", "", "optional clean Git repository root containing skills/fanloop-workflow")
+	command.Flags().StringVar(&request.ConfigSource, "config-source", "", "optional clean Git repository root containing fanloop-workflow")
 	command.Flags().StringVar(&request.DataRoot, "data-root", "", "Fanloop user data directory")
 	command.Flags().StringVar(&request.SkillRoots.Codex, "codex-skills-root", "", "Codex Skills directory")
 	command.Flags().StringVar(&request.SkillRoots.Agent, "agent-skills-root", "", "Agent Skills directory")

@@ -10,14 +10,14 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-配置仓库 `zeefan1555/second-brain-agent` 的 `main` 托管四套生产 Workflow，不设置默认 Workflow：
+配置仓库 `zeefan1555/second-brain-skills` 的 `main` 托管四套生产 Workflow，不设置默认 Workflow：
 
 - `pstack-native`：六步剧本交付，完整包来自配置中心。
 - `fanloop-maintainer`：Fanloop 自迭代工作流。
-- `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `skills/fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
+- `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
 - `remnote-direct-maintainer`：按实际影响维护独立的 CLI/SDK 插件仓库，完成候选验证、推送与适用的本地接管。
 
-每套 Workflow 是仓库 `skills/fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
+每套 Workflow 是仓库 `fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
 
 新增一套流程可先使用仓库内 `.agents/skills/create-fanloop-workflow/` 与
 `examples/workflows/example/` 生成并校验完整五 YAML 候选；明确的包入口可直接使用 Workflow ID。
@@ -59,11 +59,11 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 安装保持离线。`./scripts/install-local.sh --config-source /absolute/config-repository` 可从干净 Git 提交导入配置快照；不指定时保留已有快照。首次安装无配置也可运行 version，随后 flow init 自动拉取。
 
-`flow init` 通过现有 SSH 凭据从 `git@github.com:zeefan1555/second-brain-agent.git` 的 main 拉取并验证完整集合，原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
+`flow init` 通过现有 SSH 凭据从 `git@github.com:zeefan1555/second-brain-skills.git` 的 main 拉取并验证完整集合，原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
 
-显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `skills/fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
+显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
 
-代码测试使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}`，在隔离源的 `skills/fanloop-workflow/` 下组装完整包。生产包验证入口为 `scripts/validate-configuration.py --help`。
+代码测试使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}`，在隔离源的 `fanloop-workflow/` 下组装完整包。生产包验证入口为 `scripts/validate-configuration.py --help`。
 
 ## 使用
 
@@ -74,7 +74,7 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 `entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
 RemNote Direct 的仓库维护入口明确选择 `remnote-direct-maintainer`，
-按其 [包入口](https://github.com/zeefan1555/second-brain-agent/blob/main/skills/fanloop-workflow/remnote-direct-maintainer/SKILL.md) 使用同一公开 CLI 初始化，不依赖新增公共场景别名。
+按其 [包入口](https://github.com/zeefan1555/second-brain-skills/blob/main/fanloop-workflow/remnote-direct-maintainer/SKILL.md) 使用同一公开 CLI 初始化，不依赖新增公共场景别名。
 选择维护场景后执行：
 
 ```bash
@@ -113,9 +113,9 @@ FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop dashboard
 ## 新增 Workflow
 
 ```text
-skills/fanloop-workflow/<workflow-id>/SKILL.md
-skills/fanloop-workflow/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
-skills/fanloop-workflow/<workflow-id>/skills/<skill-id>/**
+fanloop-workflow/<workflow-id>/SKILL.md
+fanloop-workflow/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
+fanloop-workflow/<workflow-id>/skills/<skill-id>/**
 entrypoints/fanloop-workflow/routes.yaml
 ```
 
@@ -159,7 +159,7 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 源码边界
 
-源码位于 GitHub 仓库 `zeefan1555/fanloop`。GitHub 负责代码托管、PR 与 CI，不发布 npm、平台归档或其他安装制品。合并后从精确 merge commit 执行本地构建和安装；Workflow 完整包随同一仓库维护，配置更新不要求重建 CLI。
+源码位于 GitHub 仓库 `zeefan1555/fanloop`。GitHub 负责代码托管、PR 与 CI，不发布 npm、平台归档或其他安装制品。合并后从精确 merge commit 执行本地构建和安装；生产 Workflow 完整包在 `zeefan1555/second-brain-skills` 独立维护，配置更新不要求重建 CLI。
 
 构建与安装边界见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，本地 Workflow Skill 包、源绑定与 Dashboard 边界见
 [ADR-0132](./docs/adr/0132-git-workflow-configuration-center.md)。代码授权仍为 `UNLICENSED`。

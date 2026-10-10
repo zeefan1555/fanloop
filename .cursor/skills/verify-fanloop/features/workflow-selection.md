@@ -10,7 +10,7 @@
 
 Create an empty absolute Requirement directory, choose a documented scenario through the `fanloop-workflow` Skill, then
 run `fanloop flow init --root ROOT --workflow ID --title TITLE`. Fanloop has no default Workflow and loads the selection
-from the bound local repository's `skills/` directory.
+from the bound local repository's `fanloop-workflow/` directory.
 
 ## Driving it with fanloop
 

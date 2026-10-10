@@ -5,10 +5,10 @@ supersedes_in_part: ADR-0124-load-local-workflow-skill-packages, ADR-0128
 amends: ADR-0099, ADR-0120, ADR-0122
 ---
 
-# Fetch immutable Workflow configuration from second-brain-agent
+# Fetch immutable Workflow configuration from second-brain-skills
 
-The only production source is git@github.com:zeefan1555/second-brain-agent.git,
-refs/heads/main, under skills/fanloop-workflow/<id>. New flow init calls fetch
+The only production source is git@github.com:zeefan1555/second-brain-skills.git,
+refs/heads/main, under fanloop-workflow/<id>. New flow init calls fetch
 that exact commit through system Git/SSH, validate the complete collection, and
 atomically activate config/snapshots/<sha> through config/current under the
 stable configuration lock. configuration.json records repository, ref, commit,
@@ -30,8 +30,8 @@ Production packages are removed from this code repository. Three packages use
 Fanloop 7833b38; pstack-native uses its last complete 0d4594f tree, unchanged.
 The user's 2026-10-10 explicit four-package migration instruction supersedes only
 ADR-0128's pstack retirement/inventory decision. Its flow skills catalog remains.
-The initial external configuration commit is
-473b8a6cfeb9152d31fbfe35f75556be0341e7d6.
+The accepted standalone configuration commit is
+5068777774ba1f1213e3b5a30bca8bce8ff3b3ac.
 
 Keep immutable CLI releases, precise merge installation, independent review and
 public CLI certification. Keep strict complete-package validation, source locks,
@@ -43,4 +43,4 @@ whole-collection deletion, offline existing flows, dry-run, invalid/missing and
 symlink package rejection, failed activation preservation, concurrent callers,
 offline seeded and fresh installation, author editing and default read-only view.
 Approved requirements SHA256:
-698d8b0387d94ed2ef007afe3d64fd82b436033f17f850f1d0dc3b7494844d98.
+01f1293f7237f70a689481366f9877514cf434d42d55084ab934ecae9a809c94.

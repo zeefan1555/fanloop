@@ -6,7 +6,7 @@
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
 **Live Workflow**
-second-brain-agent main 的 `skills/fanloop-workflow/<workflow-id>/` 完整包。默认读取 config/current 指向的提交快照，flow init 刷新；已有流程离线读取。显式 FANLOOP_CONFIG_SOURCE 为作者仓库根并跳过刷新。五 YAML、子 Skills 与资源独立于 CLI Release。
+second-brain-skills main 的 `fanloop-workflow/<workflow-id>/` 完整包。默认读取 config/current 指向的提交快照，flow init 刷新；已有流程离线读取。显式 FANLOOP_CONFIG_SOURCE 为作者仓库根并跳过刷新。五 YAML、子 Skills 与资源独立于 CLI Release。
 
 **Configuration Snapshot**
 config/snapshots/<commit-sha>/ 下的不可变配置集合。configuration.json 固定仓库、ref、commit、Workflow IDs 与文件路径、内容、可执行位摘要。完整校验后才原子切换 current。

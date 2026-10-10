@@ -213,7 +213,7 @@ func (runtime Runtime) Smoke(ctx context.Context, request *verifyidl.VerifySmoke
 	if strings.TrimSpace(versionData.ReleaseVersion) == "" || strings.TrimSpace(versionData.CommitSHA) == "" {
 		return fail("version", "Version output omitted candidate identity.", "Repair the version output contract.", true)
 	}
-	definitions, err := workflow.ListFrom(filepath.Join(workRoot, "data", "source", "skills", "fanloop-workflow"))
+	definitions, err := workflow.ListFrom(filepath.Join(workRoot, "data", "source", "fanloop-workflow"))
 	if err != nil || len(definitions) == 0 {
 		return fail("workflows", "Local Workflow packages are unavailable.", "Repair the selected source repository.", true)
 	}
@@ -454,7 +454,7 @@ func (runtime Runtime) Snapshot(ctx context.Context, requirementRoot string, req
 		var source string
 		source, err = workflow.ConfigurationRoot(runtime.DataRoot)
 		if err == nil {
-			err = copyTree(source, filepath.Join(frozenDataRoot, "source", "skills", "fanloop-workflow"))
+			err = copyTree(source, filepath.Join(frozenDataRoot, "source", "fanloop-workflow"))
 		}
 	}
 	unlock()
@@ -588,7 +588,7 @@ func (runtime Runtime) isolatedEnvironment(workRoot string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.CopyFS(filepath.Join(dataRoot, "source", "skills", "fanloop-workflow"), os.DirFS(source)); err != nil {
+	if err := os.CopyFS(filepath.Join(dataRoot, "source", "fanloop-workflow"), os.DirFS(source)); err != nil {
 		return nil, err
 	}
 	skillRoot := filepath.Join(workRoot, "skills")

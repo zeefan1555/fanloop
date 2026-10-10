@@ -36,7 +36,7 @@ func buildCLI(t *testing.T) string {
 
 func seedLiveWorkflows(t *testing.T, dataRoot string) {
 	t.Helper()
-	target := filepath.Join(dataRoot, "source", "skills", "fanloop-workflow")
+	target := filepath.Join(dataRoot, "source", "fanloop-workflow")
 	for _, id := range []string{"linear-runtime", "runtime-controls"} {
 		source := filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id)
 		if err := os.CopyFS(filepath.Join(target, id), os.DirFS(source)); err != nil {

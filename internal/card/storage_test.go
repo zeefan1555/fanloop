@@ -87,7 +87,7 @@ func TestTestRegistryProjectionKeepsSingleDocumentBinding(t *testing.T) {
 func loadInstalledLinearRuntime(t *testing.T) workflow.Loaded {
 	t.Helper()
 	dataRoot := t.TempDir()
-	bundleRoot := filepath.Join(dataRoot, "source", "skills", "fanloop-workflow", "linear-runtime")
+	bundleRoot := filepath.Join(dataRoot, "source", "fanloop-workflow", "linear-runtime")
 	if err := os.CopyFS(bundleRoot, os.DirFS(filepath.Join("..", "workflow", "testdata", "linear-runtime"))); err != nil {
 		t.Fatal(err)
 	}

@@ -36,7 +36,7 @@ Typed flags:
 
 Constraints:
   The business Request is empty. The command does not create, delete, or rename Workflows or Skills.
-  FANLOOP_CONFIG_SOURCE must be an absolute repository root containing complete Workflow packages in skills/fanloop-workflow/.
+  FANLOOP_CONFIG_SOURCE must be an absolute repository root containing complete Workflow packages in fanloop-workflow/.
 
 Controls:
   --input accepts {}, @file, or - for stdin and is not part of Request JSON.
@@ -102,7 +102,7 @@ func newDashboardHandler(root string, editable bool) (http.Handler, error) {
 		return nil, err
 	}
 	defer unlock()
-	source := filepath.Dir(filepath.Dir(root))
+	source := filepath.Dir(root)
 	snapshotSource := ""
 	if !editable || configuration.IsSnapshotSource(source) {
 		snapshotSource = source

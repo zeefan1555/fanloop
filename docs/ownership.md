@@ -5,7 +5,7 @@ orchestration directory.
 
 | Boundary | Paths | Owns |
 | --- | --- | --- |
-| Live Workflow configuration | `skills/fanloop-workflow/<workflow-id>/` complete local packages | Five-file Workflow definitions, bound Agent instructions, complete resources and local source validation |
+| Live Workflow configuration | `fanloop-workflow/<workflow-id>/` complete packages in second-brain-skills | Five-file Workflow definitions, bound Agent instructions, complete resources and local source validation |
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback read-only viewer and explicit source editor |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
@@ -26,7 +26,7 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Four production Workflow IDs live only in second-brain-agent main under `skills/fanloop-workflow/<id>/`: fanloop-maintainer, pstack-native, remnote-flashcards, remnote-direct-maintainer. Initial configuration commit: 473b8a6cfeb9152d31fbfe35f75556be0341e7d6. Three packages came from Fanloop 7833b38; pstack-native preserves 0d4594f. ADR-0132 supersedes ADR-0128's retirement inventory only.
+Four production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`: fanloop-maintainer, pstack-native, remnote-flashcards, remnote-direct-maintainer. Accepted source commit: 5068777774ba1f1213e3b5a30bca8bce8ff3b3ac. ADR-0132 supersedes ADR-0128's retirement inventory only.
 
 ## Verify entry
 

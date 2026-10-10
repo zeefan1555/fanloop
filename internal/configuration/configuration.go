@@ -17,9 +17,9 @@ import (
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
-const Repository = "git@github.com:zeefan1555/second-brain-agent.git"
+const Repository = "git@github.com:zeefan1555/second-brain-skills.git"
 const Ref = "refs/heads/main"
-const Category = "skills/fanloop-workflow"
+const Category = "fanloop-workflow"
 
 var ErrFetch = errors.New("configuration fetch failed")
 
@@ -64,7 +64,7 @@ func PrepareCurrent(_ context.Context, dataRoot string) (func(), error) {
 		unlockBinding()
 		return nil, err
 	}
-	source := filepath.Dir(filepath.Dir(root))
+	source := filepath.Dir(root)
 	if _, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE"); !explicit || IsSnapshotSource(source) {
 		_, err = Read(source)
 	} else {

@@ -17,7 +17,7 @@ Requirement keeps its Workflow ID while Status, Prompt, Skill paths and new Rout
 ## Driving it with fanloop
 
 Use one isolated install and a fresh Requirement Root. Copy the distributed packages or synthetic fixtures into a separate
-verifier-owned writable repository with complete packages under `skills/`, then set the absolute `FANLOOP_CONFIG_SOURCE`
+verifier-owned writable repository with complete packages under `fanloop-workflow/`, then set the absolute `FANLOOP_CONFIG_SOURCE`
 to that copy. Keep the frozen candidate and read-only verification inputs unchanged throughout the run.
 Run `flow init`, advance within the approved synthetic scope to create historical Events, and edit a Prompt and Skill only
 in the writable copy. Use the same candidate binary for `flow status`, a dry-run and real `flow report`, Card render,
