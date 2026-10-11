@@ -140,3 +140,9 @@
 ## 外层循环
 
 代码变更在 `.cursor/skills/verify-fanloop/SKILL.md` 留下 `outcome` 为 `passed` 的 schema-1 manifest 之前，不要为该变更启动云端 Agent 或并行 Agent。步骤见 `docs/outer-loop.md`。纯配置变更不要求代码验证 manifest。
+
+## 与 second-brain-agent 的关系
+
+本仓库是 second-brain-agent 的 `toolchain/fanloop` 子仓库。上文门禁照旧有效；在此之上，所有 bot 的通用交付步骤（读对应 skills 目录 → 分支 → 验证 → 自动 PR 附证据与中文描述 → CI 通过后 squash 合并 → 到主仓库自动 PR bump 指针）见
+[「Bot 工作流程（所有仓库通用）」](https://github.com/zeefan1555/second-brain-agent/blob/main/AGENTS.md#bot-工作流程所有仓库通用)。
+本仓库的验证 skill 是 [`.cursor/skills/verify-fanloop`](.cursor/skills/verify-fanloop/SKILL.md)（证据为 `fanloop verify smoke` 的 `manifest.json`）。
