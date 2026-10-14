@@ -110,7 +110,7 @@ func TestPanoramaMarkdownMatchesCompactCardHierarchy(t *testing.T) {
 
 	markdown := renderMarkdown(cardidl.CardView_panorama, current, loaded)
 	for _, want := range []string{
-		"# 后端研发交付 · Compact card `Ready` `0%`",
+		"# Compact card `Ready` `0%`",
 		"Runtime · First",
 		"## 状态全景",
 		"Runtime：**First（Ready）** → Second → Third",

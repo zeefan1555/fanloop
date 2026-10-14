@@ -90,7 +90,7 @@ func renderMarkdown(view cardidl.CardView, current state.State, loaded workflow.
 
 func renderMarkdownContent(content cardContent) string {
 	lines := []string{
-		fmt.Sprintf("# 后端研发交付 · %s `%s` `%d%%`", markdownTableCell(content.Title), content.Status, content.Progress),
+		fmt.Sprintf("# %s `%s` `%d%%`", markdownTableCell(content.Title), content.Status, content.Progress),
 		"",
 		content.StageName + " · " + content.StepName,
 		"",

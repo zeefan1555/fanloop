@@ -113,7 +113,7 @@ func renderLarkCardContent(content cardContent) larkCard {
 		Config: larkConfig{UpdateMulti: true},
 		Header: larkHeader{
 			Template: "default",
-			Title:    plainText("后端研发交付 · " + content.Title),
+			Title:    plainText(content.Title),
 			Subtitle: plainText(content.StageName + " · " + content.StepName),
 			TextTagList: []larkTextTag{
 				{Tag: "text_tag", Text: plainText(content.Status)},

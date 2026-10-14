@@ -266,7 +266,7 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertIn(configuration.REQUIRED_DONE_PANORAMA_SENTENCE, result.stderr)
         self.assertIn('`Done` `100%`', result.stderr)
         delivered = evidence.read_text() + (
-            '\n# 后端研发交付 · 制卡 `Done` `100%`\n整体进度：100%\n'
+            '\n# 制卡 `Done` `100%`\n整体进度：100%\n'
         )
         self.assertEqual([], configuration.missing_done_panorama_errors(delivered))
         in_progress = evidence.read_text().replace('workflow status completed', 'still on retrospect_run')
