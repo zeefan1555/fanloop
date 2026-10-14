@@ -425,9 +425,8 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 		t.Error("CONTEXT.md does not point at the Feature Map")
 	}
 	for _, suite := range []string{
-		"fanloop-maintainer",
+		"playbook-flow",
 		"remnote-flashcards",
-		"remnote-direct-maintainer",
 	} {
 		if !strings.Contains(ownership, suite) {
 			t.Errorf("docs/ownership.md missing production suite %s", suite)

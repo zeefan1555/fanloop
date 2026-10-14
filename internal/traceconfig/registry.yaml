@@ -7,9 +7,6 @@ profiles:
   production:
     default:
       provider: none
-    workflows:
-      fanloop-maintainer:
-        provider: none
   test:
     default:
       provider: lark

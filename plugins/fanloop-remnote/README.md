@@ -1,13 +1,14 @@
 # fanloop-remnote
 
-Cursor Agent Plugin for two RemNote jobs that used to run inside Fanloop:
+Cursor Agent Plugin for the RemNote flashcard job that used to run inside Fanloop:
 
 - **remnote-flashcards** — draft, review, write, and retrospect learning cards.
-- **remnote-direct-maintainer** — change the separate RemNote Direct CLI/plugin repository.
+
+Code changes to the separate RemNote Direct repository no longer live here. `remnote-direct-maintainer` was retired (ADR-0135); use playbook-flow's `code-change` playbook in second-brain-skills.
 
 The skills call the installed `remnote-cli` (local WebSocket to the RemNote plugin). They do not call `fanloop flow` and they do not ship an MCP server.
 
-`remnote-flashcards` follows four steps: locate the HOME Concept tag, draft and review, preview then apply, then a short retrospect. `remnote-direct-maintainer` follows define, build, verify, and deliver. Pass/fail checks from the Fanloop workflow files are checklists in those two skills.
+`remnote-flashcards` follows four steps: locate the HOME Concept tag, draft and review, preview then apply, then a short retrospect. Pass/fail checks from the Fanloop workflow files are checklists in that skill.
 
 ## Prerequisites
 
@@ -62,7 +63,7 @@ This folder is not published to a marketplace.
 6. A term-card plan's `title` creates the theme. The combo plan omits `title`. After that apply, `move-note` places the combo last inside the theme, and `object-remove-tag` clears the combo's own tag. The theme's HOME tag indexes it. Do not leave the combo on the daily note. Aliases are `remnote-cli sdk rem object-get-or-create-alias-with-text --target-id <ID> --args-json '[["<alias>"]]'`, one call per card. `update --add-aliases` depends on the SDK version and fails on SDK 0.0.46.
 7. Reads and writes stay on `remnote-cli`. Desktop control is only for a control the CLI cannot perform. On this path that control is the button 「重新加载搜索缓存」.
 
-For a Direct code change, name that repository and ask for `remnote-direct-maintainer`. Card creation does not go through that skill.
+For a Direct code change, use playbook-flow's `code-change` playbook. Card creation does not go through it.
 
 Wiki edits stay off unless you ask for them. Desktop control stays off unless the CLI has no command for that control.
 
@@ -91,11 +92,6 @@ plugins/fanloop-remnote/
     remnote-verify/              # draft review and readback
     remnote-wiki/                # only when you ask for the Wiki
     control-remnote/             # desktop fallback when the CLI cannot see UI state
-    remnote-direct-maintainer/   # define / build / verify / deliver checklist
-    remnote-direct-define/
-    remnote-direct-build/
-    remnote-direct-verify/
-    remnote-direct-deliver/
 ```
 
 Fanloop panorama cards are not in this plugin. They need `fanloop card render`. Each step instead sends a short status in chat. The production `skills/remnote-flashcards/` package keeps the same card rules. Its engine checks the new receipts on the forward routes.

@@ -18,7 +18,7 @@
 
 ## 代码与配置分离
 
-先按实际改动区分配置与代码：外部纯配置读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md` 直接维护；代码和混合实现进入 `fanloop-maintainer`。配置改变业务流程，不等于修改执行引擎。
+先按实际改动区分配置与代码：外部纯配置读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md` 直接维护；代码和混合实现走 second-brain-skills `fanloop-workflow/playbook-flow` 的 `code-change` playbook（`fanloop-maintainer` 已退役，见 ADR-0135）。配置改变业务流程，不等于修改执行引擎。
 
 1. 纯配置变更包括 `fanloop-workflow/<workflow-id>/` 的五份 Workflow YAML、包内非可执行 Skill 指令与参考材料、`<category>/<skill-id>/` 下的仓库级 Skill，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置按语义验证：错字/排版检查 diff 和引用并有据免测；普通模板、说明和 Prompt 由当前 Agent 实际自检，加载受影响完整包并检查代表性结果；Step、Condition、Route、绑定变化才跑受影响 Workflow 矩阵。路由、绑定、权限、安全、审批或外部写入规则变化仍需全新独立 Agent 实际试用并回读原始产物。解析器错误回归留在代码测试，不为文案重跑全产品或手造错误集。证据标明 self_check、independent 或 not_applicable，不要求新 binary 或代码 manifest。
@@ -32,7 +32,7 @@
 
 ## 主 Agent 监督自迭代
 
-触发条件：使用 `fanloop-maintainer` 维护 Fanloop 代码；纯配置由当前 Agent直接推进，普通配置不派发实现或验收子 Agent；风险配置的独立行为试用按上方规则派发。
+触发条件：使用 second-brain-skills `fanloop-workflow/playbook-flow` 的 `code-change` playbook 维护 Fanloop 代码；纯配置由当前 Agent直接推进，普通配置不派发实现或验收子 Agent；风险配置的独立行为试用按上方规则派发。
 
 1. 用户只与主 Agent 对齐仓库目录、目标、范围和验收标准。主 Agent 派生执行子 Agent、持续监督，并负责需求批准、最终候选验收和 main 集成确认；询问用户的边界以第 2 条为准。
 2. 在用户授权的目标、范围、副作用和停止位置内，主 Agent 默认自主决定需求批准、契约审核（包括 Thrift IDL）、最终候选验收和集成确认；先完整审阅具体材料，再记录明确决定，无需逐次向用户请示。执行子 Agent 仍须向主 Agent申请并等待决定。只有用户明确保留的具体人工门禁、超出授权范围的决策或仅人类能提供的信息才向用户确认；自主决定不扩大外部副作用或交付授权，也不替代自动 YAML 校验、独立 Code Review、公开 CLI 黑盒验收、CI、合并或安装证据。

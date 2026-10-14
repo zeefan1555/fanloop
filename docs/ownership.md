@@ -26,7 +26,7 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Four production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`: fanloop-maintainer, pstack-native, remnote-flashcards, remnote-direct-maintainer. Accepted source commit: 5068777774ba1f1213e3b5a30bca8bce8ff3b3ac. ADR-0132 supersedes ADR-0128's retirement inventory only.
+Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`, including playbook-flow, pstack-native and remnote-flashcards. ADR-0135 retired fanloop-maintainer and remnote-direct-maintainer; code changes use playbook-flow's `code-change` playbook. ADR-0132 supersedes ADR-0128's retirement inventory only.
 
 ## Verify entry
 

@@ -12,11 +12,10 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-second-brain-skills main 的 fanloop-workflow/ 托管四套生产配置：
+second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括：
 
-- `fanloop-maintainer`：Fanloop 的 4 Stage / 4 Job / 4 Step 维护闭环；Define、Build、Certify 与 Deliver 依次完成验收契约、自主验证、独立认证和 PR/本地交付。
+- `playbook-flow`：通用 8 节点入口；代码变更走 `code-change` playbook（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
 - `pstack-native`：六步剧本交付，保留完整脚本与资源。
-- `remnote-direct-maintainer`：RemNote Direct 的受管维护流程。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 
 完整包目录为 `fanloop-workflow/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
@@ -25,7 +24,7 @@ second-brain-skills main 的 fanloop-workflow/ 托管四套生产配置：
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `fanloop-maintenance` 对应
-`fanloop-maintainer`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
+`playbook-flow`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
 清单见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)；`technical-solution-design` 的历史退役决策见
 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
@@ -59,11 +58,11 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 进入 `skipped_step_ids`，目标及下游 Outputs 失效；Card 与 Trace 将 skipped 显示为“已跳过”。完整
 决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
-Human Step 的审核与 Panorama 由五份 YAML 驱动。`fanloop-maintainer` 的代码通道由主 Agent批准需求与最终候选，配置通道经独立行为试用后提交本地完整包并回读。Panorama Skill 按宿主原样展示 renderer 输出，并返回本次快照；CLI只校验类型与Route，不代替审批或证明业务事实。
+Human Step 的审核与 Panorama 由五份 YAML 驱动。代码通道（`code-change` playbook）由主 Agent批准需求与最终候选，配置通道经独立行为试用后提交本地完整包并回读。Panorama Skill 按宿主原样展示 renderer 输出，并返回本次快照；CLI只校验类型与Route，不代替审批或证明业务事实。
 
 ## 当前配置实例
 
-`fanloop-maintainer` 使用 4 Stage / 4 Job / 4 Step：Define 冻结目标与验收契约，Build 持续实现和自主验证，
+已退役的 `fanloop-maintainer`（ADR-0135）曾使用 4 Stage / 4 Job / 4 Step：Define 冻结目标与验收契约，Build 持续实现和自主验证，
 Certify 在 Pre-Certify 后并行执行独立 Review 与黑盒验收，等待两者结束再记录主 Agent决定及回执；Deliver 合并唯一 PR、校验 tree 并更新本地
 CLI。Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
 

@@ -3,8 +3,8 @@
 ## Sub-features
 
 - `remnote-flashcards` HOME classification, native RemNote flashcards, Wiki links and final readback.
-- `fanloop-maintainer` four-step Define, Build, Certify and Deliver loop.
-- `remnote-direct-maintainer` direct maintenance of the RemNote Skill package.
+- `playbook-flow` eight-node entry; code changes use its `code-change` playbook (it replaced the retired
+  `fanloop-maintainer` and `remnote-direct-maintainer`, ADR-0135).
 - Installed `create-fanloop-workflow` plus `examples/workflows/example/` as non-production authoring aids.
 
 ## How to get to it (user POV)
@@ -15,9 +15,7 @@ and Skill path. The product is the observable artifacts and governed transitions
 ## Driving it with fanloop
 
 Use a fresh Root per Workflow. Verify the first meaningful artifact, at least one forward transition, the relevant Panorama
-and the nearest governance boundary. For `fanloop-maintainer`, prove the exact candidate and four-step Panorama; check that
-`define_verification_contract`, `build_until_verified`, `certify_candidate` and `merge_and_update_local` exist in order and
-that retired nine-step IDs and human jump routes are absent. Do not fabricate the Main Agent decisions needed to pass Define
+and the nearest governance boundary. For `playbook-flow` with the `code-change` playbook, prove the exact candidate and that each node's receipt is recorded. Do not fabricate the Main Agent decisions needed to pass Define
 or Certify. Production Bundle contract tests verify Route/Condition semantics.
 
 For ordinary configuration, actually edit a Skill in a disposable source, self-check
@@ -64,7 +62,7 @@ Workflow Steps, Conditions and Routes evolve independently. Read the current fiv
 historical counts. Deliver must not modify a candidate when main advances; it returns to Build for a new candidate and full
 recertification. Workflow-specific behavior stays in YAML and Skills, not generic verify Runtime code.
 
-Complete packages under second-brain-skills main's `fanloop-workflow/` determine the production inventory: fanloop-maintainer, pstack-native, remnote-direct-maintainer and remnote-flashcards. New init activates a validated immutable commit snapshot; existing calls remain offline. Explicit author-source edits are immediately visible without rebuilding the CLI.
+Complete packages under second-brain-skills main's `fanloop-workflow/` determine the production inventory, including playbook-flow, pstack-native and remnote-flashcards. New init activates a validated immutable commit snapshot; existing calls remain offline. Explicit author-source edits are immediately visible without rebuilding the CLI.
 An invalid explicit source or missing bound source fails without searching other repositories or loading old copies.
 Never infer the active configuration from CLI version alone; read back the selected source and exact Status Skill paths.
 The example Bundle validates as an authoring candidate but is never selected, installed or loaded as production inventory.

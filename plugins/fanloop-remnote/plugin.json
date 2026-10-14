@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "fanloop-remnote",
-  "description": "RemNote flashcards and RemNote Direct maintenance for Cursor. Skills call the installed remnote-cli over the local WebSocket. No Fanloop engine and no MCP server.",
+  "description": "RemNote flashcards for Cursor. Skills call the installed remnote-cli over the local WebSocket. No Fanloop engine and no MCP server.",
   "version": "1.0.0",
   "author": {
     "name": "zeefan1555"

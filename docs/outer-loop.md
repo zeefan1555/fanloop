@@ -36,6 +36,6 @@ Sentry 或 Slack 叫醒之后，仍然从本页的取得证据开始。
 
 ## 维护验证地图
 
-定时维护使用 second-brain-skills 配置仓库 `fanloop-workflow/fanloop-maintainer/` 包内 `skills/fanloop-dev-maintain-verification/SKILL.md` 的 Scheduled maintenance。
+定时维护走 second-brain-skills 配置仓库 `fanloop-workflow/playbook-flow/` 的 `code-change` playbook（原 `fanloop-maintainer` 包已在 ADR-0135 退役）。
 
 `TestCursorVerifyEntryIsTheOnlyFeatureMap` 与 `TestAgentNavigationPointsAtThePavedVerifyPath` 已经挡住第二条 Cursor 入口和丢失的指针。
