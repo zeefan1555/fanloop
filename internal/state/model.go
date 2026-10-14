@@ -255,7 +255,7 @@ func (value State) Validate() error {
 		if !ValidTraceDocumentURL(binding.DocumentURL) || !registryOK ||
 			binding.CLILogDocumentURL != "" && !ValidTraceDocumentURL(binding.CLILogDocumentURL) ||
 			SameTraceDocumentURL(binding.DocumentURL, binding.CLILogDocumentURL) ||
-			registry.RequireCLILogDocument != (binding.CLILogDocumentURL != "") {
+			!registry.Disabled() && registry.RequireCLILogDocument != (binding.CLILogDocumentURL != "") {
 			return fmt.Errorf("invalid Trace binding")
 		}
 	}
@@ -384,7 +384,7 @@ func ValidateEventPayload(event Event) error {
 			value.CLILogDocumentURL != "" && !ValidTraceDocumentURL(value.CLILogDocumentURL) ||
 			value.PreviousCLILogDocumentURL != "" && !ValidTraceDocumentURL(value.PreviousCLILogDocumentURL) ||
 			SameTraceDocumentURL(value.DocumentURL, value.CLILogDocumentURL) ||
-			registry.RequireCLILogDocument != (value.CLILogDocumentURL != "") {
+			!registry.Disabled() && registry.RequireCLILogDocument != (value.CLILogDocumentURL != "") {
 			return fmt.Errorf("invalid Trace binding")
 		}
 	case TraceSyncStartedPayload:

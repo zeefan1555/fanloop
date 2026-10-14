@@ -1,49 +1,15 @@
 schema_version: 1
+# Trace 已迁移到 Notion「Fanloop 运行」表（由 playbook-flow 的 run-ledger 写入）。
+# 飞书 docx / 多维表格投影默认关闭；如需恢复，把 provider 改回 lark 并补回
+# url/base_token/table_id/view_id/fields（参见 git 历史 ee793e6）。
+# test profile 仍保留飞书测试表，仅供显式 `trace bind --registry test` 与测试使用。
 profiles:
   production:
     default:
-      provider: lark
-      url: https://example.invalid/redacted
-      base_token: EXAMPLEBASEID
-      table_id: tblAT0YSny5i6ffv
-      view_id: vew5zFcUtJ
-      require_cli_log_document: false
-      fields:
-        trace_key: trace_key
-        title: 需求
-        owner: 负责人
-        location: 阶段 / 子状态
-        status: 状态
-        loop_count: Loop
-        source_url: PRD
-        source_output: requirement_document_url
-        source_document_only: true
-        trace_url: Trace
-        updated_at: 更新时间
-        origin: 来源
+      provider: none
     workflows:
       fanloop-maintainer:
-        provider: lark
-        url: https://example.invalid/redacted
-        base_token: EXAMPLEBASEID
-        table_id: tblW1KFyrKtUeNF4
-        view_id: vew5zFcUtJ
-        require_cli_log_document: true
-        fields:
-          trace_key: trace_key
-          title: 需求
-          owner: 负责人
-          location: 阶段 / 子状态
-          status: 状态
-          loop_count: Loop
-          source_url: PRD
-          source_document_only: true
-          trace_url: Trace
-          updated_at: 更新时间
-          origin: 来源
-          cli_log_url: CLI 日志
-          outputs:
-            merge_request_urls: MR
+        provider: none
   test:
     default:
       provider: lark

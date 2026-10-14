@@ -127,7 +127,7 @@ func TestFlowReportKeepsCommittedUpdateWhenAutoSyncIsPartial(t *testing.T) {
 	t.Setenv("FAKE_FAIL_TARGET", "registry")
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Partial Auto Sync"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted"), "trace.bind")
+	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted", "--registry", "test"), "trace.bind")
 	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "first", "--status", "blocked", "--summary", "local fact wins")
 	assertSuccess(t, reported, "flow.report.progress")
 	if !strings.Contains(reported.stdout, `"effect": "status_updated"`) {

@@ -133,3 +133,15 @@ profiles:
       require_cli_log_document: false
       fields: *default_fields
 `
+
+func TestEmbeddedRegistryDisablesLarkProjection(t *testing.T) {
+	for _, workflowID := range []string{"", "fanloop-maintainer", "playbook-flow", "unconfigured-workflow"} {
+		registry, ok := Resolve(RegistryProduction, workflowID)
+		if !ok || !registry.Disabled() || registry.BaseToken != "" || registry.RequireCLILogDocument {
+			t.Fatalf("embedded production %q = %#v, ok=%t; want provider none", workflowID, registry, ok)
+		}
+	}
+	if registry, ok := Resolve(RegistryTest, "playbook-flow"); !ok || registry.Disabled() {
+		t.Fatalf("embedded test profile = %#v, ok=%t; want explicit Lark test Registry", registry, ok)
+	}
+}

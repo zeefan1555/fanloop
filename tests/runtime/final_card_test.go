@@ -18,43 +18,38 @@ type cardEnvelope struct {
 	} `json:"data"`
 }
 
-func TestFlowCommandsKeepTraceAndProjectionWithoutSendingPanorama(t *testing.T) {
+func TestFlowCommandsSkipTraceProvisionWhenProductionProviderIsNone(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	fakeBin := filepath.Dir(binary)
 	callLog := filepath.Join(t.TempDir(), "calls.log")
 	botmuxCalled := filepath.Join(t.TempDir(), "botmux-called")
-	const traceURL = "https://example.invalid/redacted"
 	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), `#!/bin/sh
 set -eu
 printf '%s\n' "$*" >> "$CALL_LOG"
-printf '%s\n' '{"ok":true,"data":{"document":{"url":"https://example.invalid/redacted"}}}'
+exit 9
 `)
 	writeExecutable(t, filepath.Join(fakeBin, "botmux"), `#!/bin/sh
 set -eu
 : > "$BOTMUX_CALLED"
 `)
 
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Bootstrap panorama")
+	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Provider none")
 	command.Env = append(command.Env,
 		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap",
 		"CALL_LOG="+callLog, "BOTMUX_CALLED="+botmuxCalled,
 	)
-	assertSuccess(t, collect(command), "flow.init")
-
+	initialized := collect(command)
+	assertSuccess(t, initialized, "flow.init")
+	if strings.Contains(initialized.stderr, "Trace document provisioning") {
+		t.Fatalf("flow init warned about Trace provisioning although provider is none:\n%s", initialized.stderr)
+	}
+	if _, err := os.Stat(callLog); !os.IsNotExist(err) {
+		t.Fatalf("flow init invoked lark-cli although production provider is none: %v\n%s", err, readFileIfExists(callLog))
+	}
 	status := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, status, "trace.status")
-	if !strings.Contains(status.stdout, `"document_url": "`+traceURL+`"`) {
-		t.Fatalf("flow init did not bind the provisioned Trace:\n%s", status.stdout)
-	}
-	if got := strings.TrimSpace(string(readFile(t, callLog))); !strings.HasPrefix(got, "docs +create --as bot ") || strings.Contains(got, "--as user") {
-		t.Fatalf("flow init external calls = %q, want Trace provisioning only", got)
-	}
-	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
-		t.Fatalf("flow init unexpectedly invoked botmux: %v", err)
-	}
-	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
-	if !strings.Contains(projection, `"trace_document_url": "`+traceURL+`"`) {
-		t.Fatalf("Card projection did not retain Trace binding:\n%s", projection)
+	if strings.Contains(status.stdout, `"document_url"`) {
+		t.Fatalf("flow init bound a Trace document although provider is none:\n%s", status.stdout)
 	}
 
 	assertSuccess(t, run(binary, "flow", "report", "progress", "--root", root,
@@ -63,37 +58,17 @@ set -eu
 		"--step-id", "first",
 		"--condition-result", conditionResult("first_completed", "path", `"first.md"`),
 		"--next-step-id", "second", "--summary", "first complete"), "flow.report.result")
+	if _, err := os.Stat(callLog); !os.IsNotExist(err) {
+		t.Fatalf("flow report invoked lark-cli although no Trace is bound: %v", err)
+	}
 	if _, err := os.Stat(botmuxCalled); !os.IsNotExist(err) {
-		t.Fatalf("flow report unexpectedly invoked botmux: %v", err)
+		t.Fatalf("flow commands unexpectedly invoked botmux: %v", err)
 	}
 }
 
-func TestFlowInitKeepsLocalFlowButDoesNotSendCardWhenTraceProvisionFails(t *testing.T) {
-	binary, root := buildCLI(t), t.TempDir()
-	fakeBin := filepath.Dir(binary)
-	botmuxCalled := filepath.Join(t.TempDir(), "botmux-called")
-	writeExecutable(t, filepath.Join(fakeBin, "lark-cli"), "#!/bin/sh\nexit 9\n")
-	writeExecutable(t, filepath.Join(fakeBin, "botmux"), "#!/bin/sh\n: > \"$BOTMUX_CALLED\"\n")
-
-	command := commandFor(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Provision failure")
-	command.Env = append(command.Env,
-		"BOTMUX_CHAT_ID=oc_bootstrap", "BOTMUX_SESSION_ID=session_bootstrap", "BOTMUX_CALLED="+botmuxCalled,
-	)
-	initialized := collect(command)
-	if initialized.exitCode != 0 || !strings.Contains(initialized.stdout, `"ok": true`) || !strings.Contains(initialized.stderr, "Trace document provisioning") {
-		t.Fatalf("flow init did not preserve success with a Trace warning: exit=%d\nstdout=%s\nstderr=%s", initialized.exitCode, initialized.stdout, initialized.stderr)
-	}
-	if _, err := os.Stat(filepath.Join(root, ".fanloop", "flow", "state.json")); err != nil {
-		t.Fatalf("flow init did not preserve the committed local Flow: %v", err)
-	}
-	for _, path := range []string{
-		filepath.Join(root, ".fanloop", "card", "projection.json"),
-		botmuxCalled,
-	} {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			t.Fatalf("Trace provisioning failure unexpectedly produced %s: %v", path, err)
-		}
-	}
+func readFileIfExists(path string) string {
+	content, _ := os.ReadFile(path)
+	return string(content)
 }
 
 func TestCardRenderKeepsDriverLayoutAndRawSnapshot(t *testing.T) {

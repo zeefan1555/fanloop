@@ -33,7 +33,9 @@ Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` �
 可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 provider、endpoint、远端字段名、
 CLI 日志要求和 Output 字段映射。完整通用化决策见
 [ADR-0080](./adr/0080-make-runtime-workflow-agnostic.md)。`provider: none` 时 `flow init` 不建 Trace 文档，
-Registry 投影跳过，见 [ADR-0133](./adr/0133-trace-registry-provider-switch.md)。
+Registry 投影跳过，见 [ADR-0133](./adr/0133-trace-registry-provider-switch.md)。production profile 现已全部为
+`provider: none`（飞书投影关闭，运行记录改由 Notion run-ledger 承担），test profile 保留飞书测试表，见
+[ADR-0134](./adr/0134-turn-off-lark-trace-projection.md)。
 
 ## 推进模型
 
