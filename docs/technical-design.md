@@ -30,9 +30,10 @@ second-brain-skills main 的 fanloop-workflow/ 托管四套生产配置：
 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
-可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 endpoint、远端字段名、
+可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 provider、endpoint、远端字段名、
 CLI 日志要求和 Output 字段映射。完整通用化决策见
-[ADR-0080](./adr/0080-make-runtime-workflow-agnostic.md)。
+[ADR-0080](./adr/0080-make-runtime-workflow-agnostic.md)。`provider: none` 时 `flow init` 不建 Trace 文档，
+Registry 投影跳过，见 [ADR-0133](./adr/0133-trace-registry-provider-switch.md)。
 
 ## 推进模型
 

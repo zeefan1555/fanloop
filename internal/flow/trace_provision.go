@@ -31,12 +31,15 @@ func provisionTraceDocument(ctx context.Context, root, title string) string {
 	if failure != nil {
 		return provisionWarning("load initialized Flow", failure)
 	}
+	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
+	if ok && registry.Disabled() {
+		return ""
+	}
 	documentURL, err := createTraceDocument(ctx, title)
 	if err != nil {
 		return provisionWarning("create Trace document", err)
 	}
 	request := &traceidl.TraceBindRequest{DocumentUrl: documentURL}
-	registry, ok := traceconfig.Resolve(traceconfig.RegistryProduction, current.Release.Workflow.ID)
 	if ok && registry.RequireCLILogDocument {
 		cliLogDocumentURL, err := createCLILogDocument(ctx, title)
 		if err != nil {

@@ -2,6 +2,7 @@ schema_version: 1
 profiles:
   production:
     default:
+      provider: lark
       url: https://example.invalid/redacted
       base_token: EXAMPLEBASEID
       table_id: tblAT0YSny5i6ffv
@@ -22,6 +23,7 @@ profiles:
         origin: 来源
     workflows:
       fanloop-maintainer:
+        provider: lark
         url: https://example.invalid/redacted
         base_token: EXAMPLEBASEID
         table_id: tblW1KFyrKtUeNF4
@@ -44,6 +46,7 @@ profiles:
             merge_request_urls: MR
   test:
     default:
+      provider: lark
       url: https://example.invalid/redacted
       base_token: EXAMPLEBASEID
       table_id: tblGrG1epTVE9tHs

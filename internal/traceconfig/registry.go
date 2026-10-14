@@ -18,6 +18,15 @@ const (
 	RegistryTest       RegistryProfile = "test"
 )
 
+// Provider selects where Trace projections are written. ProviderNone disables
+// automatic Trace documents and Registry rows for the resolved Workflow.
+type Provider string
+
+const (
+	ProviderLark Provider = "lark"
+	ProviderNone Provider = "none"
+)
+
 type RegistryFields struct {
 	TraceKey           string            `yaml:"trace_key"`
 	Title              string            `yaml:"title"`
@@ -37,6 +46,7 @@ type RegistryFields struct {
 
 type Registry struct {
 	Profile               RegistryProfile `yaml:"-"`
+	Provider              Provider        `yaml:"provider"`
 	URL                   string          `yaml:"url"`
 	BaseToken             string          `yaml:"base_token"`
 	TableID               string          `yaml:"table_id"`
@@ -75,6 +85,11 @@ func Resolve(profile RegistryProfile, workflowID string) (Registry, bool) {
 	}
 	registry, ok := endpoints[""]
 	return registry, ok
+}
+
+// Disabled reports whether the Registry turns off Trace projection.
+func (registry Registry) Disabled() bool {
+	return registry.Provider == ProviderNone
 }
 
 func Valid(profile RegistryProfile) bool {
@@ -138,6 +153,17 @@ func decodeRegistries(content []byte) (map[RegistryProfile]map[string]Registry, 
 }
 
 func validateRegistry(registry Registry) error {
+	switch registry.Provider {
+	case ProviderLark:
+	case ProviderNone:
+		if registry.URL != "" || registry.BaseToken != "" || registry.TableID != "" || registry.ViewID != "" ||
+			registry.RequireCLILogDocument || registry.Fields.TraceKey != "" || len(registry.Fields.Outputs) != 0 {
+			return fmt.Errorf("provider none must not configure Lark targets")
+		}
+		return nil
+	default:
+		return fmt.Errorf("provider must be %q or %q", ProviderLark, ProviderNone)
+	}
 	for name, value := range map[string]string{
 		"url": registry.URL, "base_token": registry.BaseToken, "table_id": registry.TableID, "view_id": registry.ViewID,
 		"fields.trace_key": registry.Fields.TraceKey, "fields.title": registry.Fields.Title, "fields.owner": registry.Fields.Owner,

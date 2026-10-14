@@ -221,6 +221,9 @@ func syncRegistry(ctx context.Context, current state.State, definition workflow.
 	if !ok {
 		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_REGISTRY_UPDATE_FAILED, Message: "Trace Registry profile is invalid"})
 	}
+	if registry.Disabled() {
+		return &traceidl.TraceTargetResult{Target: traceidl.TraceTarget_registry, Status: traceidl.TraceTargetStatus_skipped, Reason: stringPointer("Trace Registry provider is none")}
+	}
 	key := state.TraceDocumentKey(traceURL)
 	if key == "" {
 		return failedTarget(traceidl.TraceTarget_registry, &traceidl.TraceTargetError{Code: erroridl.ErrorCode_REGISTRY_UPDATE_FAILED, Message: "Trace URL cannot be converted to a registry key"})
