@@ -28,7 +28,7 @@ description: 直接维护 second-brain-skills 的 Workflow 包、仓库级 Skill
 
 ## 3. 提交并推送
 
-仅暂存已检查文件；`.scratch/`、`docs/research/`、`docs/specs/` 不得新增或修改入库，不使用 `git add -A`。提交消息最终 trailer block 中 `Co-Authored-By: Aiden` 恰好一次。单人维护模式直接提交并推送 `main`；用户只要求编辑或候选时停在该处，不推送。
+仅暂存已检查文件；`.scratch/`、`docs/research/`、`docs/specs/` 不得新增或修改入库，不使用 `git add -A`。单人维护模式直接提交并推送 `main`；用户只要求编辑或候选时停在该处，不推送。
 
 ## 4. 回读已交付配置
 

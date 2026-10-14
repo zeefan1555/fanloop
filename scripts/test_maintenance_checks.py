@@ -42,7 +42,7 @@ class MaintenanceChecks(unittest.TestCase):
 
     def commit(self):
         self.git('add', '-A')
-        self.git('commit', '-qm', 'fixture\n\nCo-Authored-By: Aiden')
+        self.git('commit', '-qm', 'fixture')
         return self.git('rev-parse', 'HEAD')
 
     def classify(self, expected, event='push', base=None):

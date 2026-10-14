@@ -51,7 +51,7 @@
 2. Build 按可独立验证的小批纵向切片推进。每批只关闭一个风险或验收缺口并立即跑最小聚焦检查；失败归类为 `product`、`test/harness`、`environment` 或 `contract drift`，没有新证据时不得重复同一尝试。
 3. 最后一次完整 `./tests/run-unit` 与公开 CLI 验证通过、提交并确认工作树 clean 后执行 **Pre-Certify**：复核完整 diff、ADR/契约、生成物、Feature Map、manifest、外部依赖和唯一 candidate identity；涉及生产配置时 identity 必须包含 `configuration_manifest_sha256`。任一项失败留在 Build。
 4. 只有 Pre-Certify 通过，才可启动外层 Agent。独立 Code Review 与黑盒验证可并行认证，但必须读取同一冻结 candidate identity，使用互不共享的可写目录，并等待两者全部结束；黑盒使用的验证 Skill/Feature Map 必须从该提交复制到隔离只读目录并核对摘要。任一候选文件变化使两者全部失效。
-5. 认证通过后才进行一次性交付：生产配置只交付一个已验证的 Git 候选，代码只维护一个 PR；合并使用显式 squash subject/body，最终 trailer block 中 `Co-Authored-By: Aiden` 恰好一次。
+5. 认证通过后才进行一次性交付：生产配置只交付一个已验证的 Git 候选，代码只维护一个 PR；合并使用显式 squash subject/body。
 6. `delivery-record.md` 记录 lead time、Build/Certify 次数、返工来源和对应改进。只把重复出现、可执行且能被验证的原因沉淀为新规则，避免为单次事件增加流程。
 
 完成标准：一个冻结候选对应一组本地证据、两份独立认证回执和一次交付；任何返工都回到最早责任阶段，而不是在 Review、CI 或发布时继续补丁。
