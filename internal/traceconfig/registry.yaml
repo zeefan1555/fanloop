@@ -1,8 +1,13 @@
 schema_version: 1
-# Trace 已迁移到 Notion「Fanloop 运行」表（由各 Workflow 包内的 run-ledger 写入）。
-# 飞书 docx / 多维表格投影默认关闭；如需恢复，把 provider 改回 lark 并补回
-# url/base_token/table_id/view_id/fields（参见 git 历史 ee793e6）。
-# test profile 仍保留飞书测试表，仅供显式 `trace bind --registry test` 与测试使用。
+# 生产 Trace 投影关闭（provider: none）。test profile 仍是 lark，供显式
+# `trace bind --registry test` 与测试使用。下面的 url、base_token、table_id、
+# view_id 是占位符，仓库不保存真实坐标。解析结果的 provider 为 lark 时，
+# 非空环境变量覆盖对应占位符：
+#   FANLOOP_TRACE_REGISTRY_URL
+#   FANLOOP_TRACE_REGISTRY_BASE_TOKEN
+#   FANLOOP_TRACE_REGISTRY_TABLE_ID
+#   FANLOOP_TRACE_REGISTRY_VIEW_ID
+# provider none 忽略这些变量。
 profiles:
   production:
     default:
@@ -10,10 +15,10 @@ profiles:
   test:
     default:
       provider: lark
-      url: https://example.invalid/redacted
-      base_token: EXAMPLEBASEID
-      table_id: tblGrG1epTVE9tHs
-      view_id: vew5zFcUtJ
+      url: https://base.example.invalid/wiki/example-base?table=example-table-id&view=example-view-id
+      base_token: example-base-token
+      table_id: example-table-id
+      view_id: example-view-id
       require_cli_log_document: false
       fields:
         trace_key: trace_key

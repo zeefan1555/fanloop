@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 
@@ -81,10 +82,36 @@ func Resolve(profile RegistryProfile, workflowID string) (Registry, bool) {
 		return Registry{}, false
 	}
 	if registry, ok := endpoints[workflowID]; ok {
-		return registry, true
+		return applyRuntimeOverrides(registry), true
 	}
 	registry, ok := endpoints[""]
-	return registry, ok
+	if !ok {
+		return Registry{}, false
+	}
+	return applyRuntimeOverrides(registry), true
+}
+
+// applyRuntimeOverrides replaces committed Lark coordinates when the operator
+// supplies them outside the repository. Provider none ignores the variables.
+// The retired TRACE_REGISTRY_BASE_TOKEN and TRACE_REGISTRY_TABLE_ID names are
+// not read.
+func applyRuntimeOverrides(registry Registry) Registry {
+	if registry.Provider != ProviderLark {
+		return registry
+	}
+	if value := strings.TrimSpace(os.Getenv("FANLOOP_TRACE_REGISTRY_URL")); value != "" {
+		registry.URL = value
+	}
+	if value := strings.TrimSpace(os.Getenv("FANLOOP_TRACE_REGISTRY_BASE_TOKEN")); value != "" {
+		registry.BaseToken = value
+	}
+	if value := strings.TrimSpace(os.Getenv("FANLOOP_TRACE_REGISTRY_TABLE_ID")); value != "" {
+		registry.TableID = value
+	}
+	if value := strings.TrimSpace(os.Getenv("FANLOOP_TRACE_REGISTRY_VIEW_ID")); value != "" {
+		registry.ViewID = value
+	}
+	return registry
 }
 
 // Disabled reports whether the Registry turns off Trace projection.

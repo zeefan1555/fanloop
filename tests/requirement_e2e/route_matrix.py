@@ -18,8 +18,8 @@ import traceback
 from typing import Any
 
 
-TRACE_DOCUMENT_URL = "https://example.invalid/redacted"
-CLI_LOG_DOCUMENT_URL = "https://example.invalid/redacted"
+TRACE_DOCUMENT_URL = "https://docs.example.invalid/docx/LoopRouteMatrixE2E"
+CLI_LOG_DOCUMENT_URL = "https://docs.example.invalid/docx/LoopRouteMatrixCLILogE2E"
 VERIFY_EVIDENCE_SOURCE = "verify.evidence.outcome"
 VERIFY_EVIDENCE_OUTCOMES = {"passed", "failed", "blocked"}
 
@@ -122,7 +122,7 @@ def mock_value(
         return relative.as_posix()
     if output_type == "url":
         token = hashlib.sha256(f"{scenario_id}:{condition_id}".encode()).hexdigest()[:20]
-        return f"https://example.invalid/redacted"
+        return f"https://docs.example.invalid/docx/E2EMock{token}"
     if output_type == "url_list":
         count = max(1, spec.get("min_items") or 0)
         maximum = spec.get("max_items")

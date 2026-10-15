@@ -28,6 +28,6 @@ Runtime、State/Storage/Output、公开 CLI、发布机制或测试入口。验�
 已确认公开 Seam 且不改变推进语义，使用 `targeted`。ADR-0071 的人工 MR 交接和 ADR-0072 的 Session
 复用不变。
 
-生产 YAML 前后示例、Test Seams、单一 Ticket 与验收条件由张菲帆在确认卡
-`om_x100b67fa3d9c04a0b1562aec8d6c230` 审阅，并通过消息
-`om_x100b67fa3417a484b4b3b462b7f74fd` 批准进入实现。
+生产 YAML 前后示例、Test Seams、单一 Ticket 与验收条件由审批人在确认卡
+`om_example_08` 审阅，并通过消息
+`om_example_09` 批准进入实现。

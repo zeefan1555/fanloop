@@ -93,7 +93,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 func TestLoadBoundRejectsTraceURLTamperedOutsideEvents(t *testing.T) {
 	root := t.TempDir()
 	local, current := committedWorkflow(t, root)
-	current.Integrations.Trace = &state.TraceBinding{DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction}
+	current.Integrations.Trace = &state.TraceBinding{DocumentURL: "https://docs.example.invalid/docx/forged", Registry: traceconfig.RegistryProduction}
 	content, err := state.Encode(current)
 	if err != nil {
 		t.Fatal(err)
@@ -109,7 +109,7 @@ func TestLoadBoundRejectsTraceURLTamperedOutsideEvents(t *testing.T) {
 func TestTraceConfigWritesStorageThriftSchema(t *testing.T) {
 	_, current := committedWorkflow(t, t.TempDir())
 	current.Integrations.Trace = &state.TraceBinding{
-		DocumentURL: "https://example.invalid/redacted",
+		DocumentURL: "https://docs.example.invalid/docx/Trace",
 		Registry:    traceconfig.RegistryProduction,
 	}
 	content, ok := RenderTraceConfig(current, nil)
@@ -141,8 +141,8 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 	current := state.State{
 		SchemaVersion: state.CurrentStateSchemaVersion,
 		Requirement: state.Requirement{
-			Title:     "Meego source",
-			SourceURL: "https://example.invalid/redacted",
+			Title:     "Work-item source",
+			SourceURL: "https://work-items.example.invalid/story/detail/example-1",
 		},
 		Release:           state.Release{Version: "dev", Workflow: state.WorkflowRefFrom(loaded.Ref)},
 		CurrentStepID:     &step,
@@ -154,8 +154,8 @@ func TestTraceProjectionUsesGenericRequirementAndWorkflowFacts(t *testing.T) {
 	projection := string(RenderEvents("/tmp/requirement", current, loaded.Workflow, nil))
 	for _, want := range []string{
 		"# Workflow Trace",
-		"- Requirement：Meego source",
-		"- 来源：https://example.invalid/redacted",
+		"- Requirement：Work-item source",
+		"- 来源：https://work-items.example.invalid/story/detail/example-1",
 		"- Requirement Root：/tmp/requirement",
 		"- Workflow：linear-runtime",
 		"- Release：dev",
@@ -220,8 +220,8 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 			"artifact_urls":   {Type: workflow.OutputURLList, Value: json.RawMessage(`["https://example.com/artifact/123"]`), ProducerStepID: "third"},
 		},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
-			DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction,
-			CLILogDocumentURL: "https://example.invalid/redacted",
+			DocumentURL: "https://docs.example.invalid/docx/Trace", Registry: traceconfig.RegistryProduction,
+			CLILogDocumentURL: "https://docs.example.invalid/docx/CLILog",
 		}},
 		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
 	}
@@ -230,7 +230,7 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 		"| first_artifact | path | first | first.md |",
 		"| second_artifact | path | second | second.md |",
 		"| artifact_urls | url_list | third | [\"https://example.com/artifact/123\"] |",
-		"📜 CLI 日志：[查看完整输入输出](https://example.invalid/redacted)",
+		"📜 CLI 日志：[查看完整输入输出](https://docs.example.invalid/docx/CLILog)",
 	} {
 		if !strings.Contains(projection, want) {
 			t.Fatalf("Trace projection does not contain %q:\n%s", want, projection)

@@ -9,16 +9,16 @@
 | 项 | 值 |
 | --- | --- |
 | 标题 | remnote workflow 经验表 |
-| Database ID | `80b2f42e-0e34-4d21-ab84-245bd4404f13` |
-| Data source ID | `ac9ebbdb-47b5-4f87-b821-df8a3eba5509` |
-| URL | https://example.invalid/redacted |
+| Database ID | `00000000-0000-4000-8000-000000000001` |
+| Data source ID | `00000000-0000-4000-8000-000000000002` |
+| URL | https://www.example.invalid/notion/remnote-workflow-experience |
 
-环境变量覆盖默认 ID，不覆盖属性名：
+上表是占位符，不是真实库。实写前设置环境变量；未设置时不要把占位符当成线上库。环境变量覆盖 ID，不覆盖属性名：
 
 - `FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID`：本次 POST 的 `parent.data_source_id`
 - `FANLOOP_REMN_EXPERIENCE_DATABASE_ID`：只用于写前核对 `ntn api v1/databases/<id>` 的 `data_sources[].id` 含有上面的数据源
 
-未设置时用上表。Workflow YAML 不增加配置字段。
+未设置时仍读取上表占位符，因此不会写到真实库。Workflow YAML 不增加配置字段。
 
 FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID overrides the data source id; FANLOOP_REMN_EXPERIENCE_DATABASE_ID overrides the database id. Defaults live in references/notion-experience.md.
 

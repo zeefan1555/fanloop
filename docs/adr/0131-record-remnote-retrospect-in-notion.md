@@ -8,9 +8,11 @@ amends: ADR-0127-review-drafts-and-prepare-wiki-concurrently
 
 ADR-0127 把 `retrospect_run` 的零或一条发现放进「共享维护清单」。那一句不再使用。可复用的复盘经验写到已经存在的 Notion 多维表「remnote workflow 经验表」。
 
-- Database ID：`80b2f42e-0e34-4d21-ab84-245bd4404f13`
-- Data source ID：`ac9ebbdb-47b5-4f87-b821-df8a3eba5509`
-- URL：https://example.invalid/redacted
+- Database ID：`00000000-0000-4000-8000-000000000001`
+- Data source ID：`00000000-0000-4000-8000-000000000002`
+- URL：https://www.example.invalid/notion/remnote-workflow-experience
+
+仓库中的 ID 与 URL 是占位符。真实库由 `FANLOOP_REMN_EXPERIENCE_DATABASE_ID` 与 `FANLOOP_REMN_EXPERIENCE_DATA_SOURCE_ID` 提供。
 
 写入工具是官方 Notion CLI `ntn`。操作者用 `ntn login`。没有钥匙串的机器设置 `NOTION_KEYRING=0`。Integration API key 不是主路径。不增加 Node SDK，不新建维护平台。
 

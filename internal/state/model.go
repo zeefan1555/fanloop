@@ -898,8 +898,11 @@ func ValidTraceDocumentURL(value string) bool {
 		return false
 	}
 	host := strings.ToLower(parsed.Host)
-	return (strings.HasSuffix(host, "https://example.invalid/redacted") || strings.HasSuffix(host, "https://example.invalid/redacted") || strings.HasSuffix(host, "https://example.invalid/redacted")) &&
-		(strings.Contains(parsed.Path, "/docx/") || strings.Contains(parsed.Path, "/wiki/"))
+	// example.invalid is the fixture host. The other suffixes are the public
+	// document hosts for docx and wiki URLs; they are not a tenant name.
+	example := host == "example.invalid" || strings.HasSuffix(host, ".example.invalid")
+	documentHost := example || strings.HasSuffix(host, "https://example.invalid/redacted") || strings.HasSuffix(host, "https://example.invalid/redacted") || strings.HasSuffix(host, "https://example.invalid/redacted")
+	return documentHost && (strings.Contains(parsed.Path, "/docx/") || strings.Contains(parsed.Path, "/wiki/"))
 }
 
 func SameTraceDocumentURL(left, right string) bool {

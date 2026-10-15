@@ -8,7 +8,7 @@
   },
   "commands": [
     {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "linear-runtime", "--title", "Synthetic trace sync"]},
-    {"args": ["trace", "bind", "--root", "{{ROOT}}", "--document-url", "https://example.invalid/redacted"]},
+    {"args": ["trace", "bind", "--root", "{{ROOT}}", "--document-url", "https://docs.example.invalid/docx/TraceDocument"]},
     {"args": ["trace", "render", "--root", "{{ROOT}}", "--dry-run"]},
     {"args": ["trace", "sync", "--root", "{{ROOT}}", "--dry-run"]},
     {"args": ["trace", "sync", "--root", "{{ROOT}}"]},

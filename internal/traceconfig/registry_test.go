@@ -145,3 +145,28 @@ func TestEmbeddedRegistryDisablesLarkProjection(t *testing.T) {
 		t.Fatalf("embedded test profile = %#v, ok=%t; want explicit Lark test Registry", registry, ok)
 	}
 }
+
+func TestEmbeddedRegistryUsesPlaceholdersUntilEnvOverride(t *testing.T) {
+	t.Setenv("TRACE_REGISTRY_BASE_TOKEN", "must_not_be_read")
+	t.Setenv("TRACE_REGISTRY_TABLE_ID", "must_not_be_read")
+	registry, ok := Resolve(RegistryTest, "code-change")
+	if !ok || registry.BaseToken != "example-base-token" || registry.TableID != "example-table-id" ||
+		registry.ViewID != "example-view-id" || !strings.Contains(registry.URL, "example.invalid") {
+		t.Fatalf("embedded placeholders = %#v, ok=%t", registry, ok)
+	}
+
+	t.Setenv("FANLOOP_TRACE_REGISTRY_URL", "https://base.example.invalid/wiki/from-env")
+	t.Setenv("FANLOOP_TRACE_REGISTRY_BASE_TOKEN", "example-base-from-env")
+	t.Setenv("FANLOOP_TRACE_REGISTRY_TABLE_ID", "example-table-from-env")
+	t.Setenv("FANLOOP_TRACE_REGISTRY_VIEW_ID", "example-view-from-env")
+	overridden, ok := Resolve(RegistryTest, "code-change")
+	if !ok || overridden.URL != "https://base.example.invalid/wiki/from-env" ||
+		overridden.BaseToken != "example-base-from-env" || overridden.TableID != "example-table-from-env" ||
+		overridden.ViewID != "example-view-from-env" {
+		t.Fatalf("env override = %#v, ok=%t", overridden, ok)
+	}
+	production, ok := Resolve(RegistryProduction, "code-change")
+	if !ok || !production.Disabled() || production.BaseToken != "" || production.URL != "" {
+		t.Fatalf("production must ignore Lark env overrides: %#v, ok=%t", production, ok)
+	}
+}

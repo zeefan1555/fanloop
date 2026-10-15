@@ -24,7 +24,7 @@ department 的全部目标，并与 Manifest 中的 Workflow ID 交叉校验；�
 `flow init --workflow`，State 继续固定 ID、version、digest。已初始化 Requirement 在
 任何 Release 更新和 selector 之前直接继续绑定 Workflow。
 
-新增正式 `douyin-game@1.0.0`，供配置部门使用。它复用普通 12 Step 与需求文档人工
+新增正式 `example-workflow@1.0.0`，供配置部门使用。它复用普通 12 Step 与需求文档人工
 审核门禁，检查并记录真实单测终态，但有意保留非阻断语义：`unit_tests_passed` 和
 `unit_tests_failed` 都进入代码评审。单测失败事实不会被隐藏，也不构成该 Workflow 的
 回实现 Route。
@@ -50,9 +50,9 @@ AI Code Review 和本地测试证据。维护方案默认保持 Thrift IDL 与 d
 的显式 `flow init` 绑定保持不变，只增加调用前的宿主选择。ADR-0019 的不可变运行中
 绑定、ADR-0038 的 YAML Route 真值和 ADR-0043 经 ADR-0060 修订后的默认 Workflow
 语义继续有效。各 Workflow 对通用或业务专用 Skill 的引用边界由 ADR-0058 定义。
-`douyin-game` 保留 ADR-0056 确立的需求文档人工审核门禁。
+`example-workflow` 保留 ADR-0056 确立的需求文档人工审核门禁。
 
-2026-08-19 follow-up 修订取代本 ADR 初版中“douyin strict、social 无专用差异”和
+2026-08-19 follow-up 修订取代本 ADR 初版中“example-workflow strict、social 无专用差异”和
 9 Step maintainer 的设计记录。后续终批又删除了尚未发布的 `social-game`，将其 strict
 单测语义收敛到 ADR-0060 定义的默认 `fanloop@14.0.0`，并把 selector 规则载体从独立
 `routes.yaml` 改为 `SKILL.md` 内联块。selector 优先级、默认 ID、运行中固定绑定及 Skill

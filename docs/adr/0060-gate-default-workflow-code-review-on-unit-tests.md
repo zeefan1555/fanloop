@@ -45,7 +45,7 @@ amends: ADR-0043
 | 11 | Test | `execute_test_cases` | 用例执行 | agent | 无变化 |
 | 12 | Test | `confirm_test_results` | 测试结果确认 | human | 无变化 |
 
-`douyin-game@1.0.0` 是明确的业务例外，仍记录真实 passed/failed，并允许两种结果进入
+`example-workflow@1.0.0` 是明确的业务例外，仍记录真实 passed/failed，并允许两种结果进入
 代码评审；其五份 YAML 不随本决策修改。MR 内尚未发布的 `social-game@1.0.0` 与新默认
 语义重复，直接删除且不进入 Release。`fanloop-maintainer@1.0.0` 的自维护 Route 也不变。
 

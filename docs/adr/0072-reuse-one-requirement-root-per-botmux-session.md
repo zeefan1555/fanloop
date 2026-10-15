@@ -25,4 +25,4 @@ MR 交接边界不变；ADR-0059 的 Workflow 选择与 ADR-0053 的“只在初
 
 本决策不保证跨 Session 自动找回 Requirement，也不合并已经分叉或有未提交产品变更的
 Worktree。当前 Session 内误建且源码 Worktree clean 的重复 Requirement 在需求事实合并后直接
-移除，不保留兼容或迁移层。张菲帆通过 `om_x100b678abaa41ca0b3018e94e33bb91` 批准本决策进入实现。
+移除，不保留兼容或迁移层。审批人通过 `om_example_06` 批准本决策进入实现。

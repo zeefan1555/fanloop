@@ -11,7 +11,7 @@ func TestTraceBindIsImmutableForRequirement(t *testing.T) {
 	binary, root := buildCLI(t), t.TempDir()
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "One Trace"), "flow.init")
 
-	const firstURL = "https://example.invalid/redacted"
+	const firstURL = "https://docs.example.invalid/docx/RequirementTraceA"
 	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", firstURL), "trace.bind")
 	statePath := filepath.Join(root, ".fanloop", "flow", "state.json")
 	eventsPath := filepath.Join(root, ".fanloop", "trace", "events.jsonl")
@@ -23,7 +23,7 @@ func TestTraceBindIsImmutableForRequirement(t *testing.T) {
 		t.Fatalf("same Trace document was not idempotent:\n%s", unchanged.stdout)
 	}
 
-	rebound := run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted")
+	rebound := run(binary, "trace", "bind", "--root", root, "--document-url", "https://docs.example.invalid/docx/RequirementTraceB")
 	assertError(t, rebound, 2, "INVALID_ARGUMENT")
 	registryChange := run(binary, "trace", "bind", "--root", root, "--document-url", firstURL, "--registry", "test")
 	assertError(t, registryChange, 2, "INVALID_ARGUMENT")

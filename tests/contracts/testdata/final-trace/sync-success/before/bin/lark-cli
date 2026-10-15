@@ -3,7 +3,7 @@ printf '%s\n' "$*" >> "$FAKE_LARK_LOG"
 case "$1 $2" in
   "docs +update")
     case " $* " in
-      *" --doc https://example.invalid/redacted "*)
+      *" --doc https://docs.example.invalid/docx/TraceDocument "*)
         cat > "$FAKE_TRACE_CONTENT"
         ;;
       *)

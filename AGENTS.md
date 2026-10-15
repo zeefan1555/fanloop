@@ -120,7 +120,7 @@
 
 ## 本地源码分发
 
-1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、bnpm、Luban 或手工 `npm publish` 入口。
+1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、私有 package registry 或手工 `npm publish` 入口。
 2. `npm run build` 与 `npm run install:local` 只是本地 Shell 入口的快捷方式，不生成或发布 npm 包。
 3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装离线导入显式配置提交，未指定时保留已有快照。
 4. 生产配置在 second-brain-skills main 维护，下次 flow init 自动拉取；显式作者源编辑在下一次调用生效。

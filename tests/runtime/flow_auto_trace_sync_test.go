@@ -46,7 +46,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	t.Setenv("TRACE_REGISTRY_TABLE_ID", "must_not_be_read")
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Auto Sync"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted", "--registry", "test"), "trace.bind")
+	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://docs.example.invalid/docx/AutoSyncTrace", "--registry", "test"), "trace.bind")
 	registry, ok := traceconfig.Resolve(traceconfig.RegistryTest, "linear-runtime")
 	if !ok {
 		t.Fatal("resolve synthetic Workflow test Registry")
@@ -127,7 +127,7 @@ func TestFlowReportKeepsCommittedUpdateWhenAutoSyncIsPartial(t *testing.T) {
 	t.Setenv("FAKE_FAIL_TARGET", "registry")
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Partial Auto Sync"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted", "--registry", "test"), "trace.bind")
+	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://docs.example.invalid/docx/AutoSyncTrace", "--registry", "test"), "trace.bind")
 	reported := run(binary, "flow", "report", "progress", "--root", root, "--step-id", "first", "--status", "blocked", "--summary", "local fact wins")
 	assertSuccess(t, reported, "flow.report.progress")
 	if !strings.Contains(reported.stdout, `"effect": "status_updated"`) {
@@ -159,7 +159,7 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	t.Setenv("FAKE_RECORD_EXISTS", filepath.Join(t.TempDir(), "record-exists"))
 
 	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "No Auto Sync"), "flow.init")
-	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted"), "trace.bind")
+	assertSuccess(t, run(binary, "trace", "bind", "--root", root, "--document-url", "https://docs.example.invalid/docx/AutoSyncTrace"), "trace.bind")
 	rejected := run(binary, "flow", "report", "result", "--root", root, "--step-id", "second", "--condition-result", conditionResult("second_completed", "path", `"second.md"`), "--condition-result", conditionResult("second_evidence", "path", `"evidence.md"`), "--next-step-id", "third", "--summary", "stale report")
 	if rejected.exitCode == 0 || !strings.Contains(rejected.stderr, `"code": "STEP_NOT_CURRENT"`) {
 		t.Fatalf("expected a rejected report:\nstdout=%s\nstderr=%s", rejected.stdout, rejected.stderr)

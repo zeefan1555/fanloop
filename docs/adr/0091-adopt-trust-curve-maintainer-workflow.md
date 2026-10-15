@@ -83,8 +83,8 @@ strict、squash、linear history，禁止 force push、删除和 bypass，人工
 run-e2e、隔离安装/Doctor、机器人身份隔离、本地材料禁入库和候选只读。该远端 CI Stage 补充而不
 替代 ADR-0063 的本地验证。
 
-机器人验收使用固定 driver `cli_aafadbc67e799cdc`、target `cli_a9245f0fddf8dbc8` 和群
-`oc_d532c3a5eda84c60728ab174b0ef671a`，通过外层 Botmux 在两个全新话题中并行派发两个冻结 Case 的
+机器人验收使用固定 driver `cli_example_driver`、target `cli_example_target` 和群
+`oc_example_group`，通过外层 Botmux 在两个全新话题中并行派发两个冻结 Case 的
 原始 brief。内层 Fanloop CLI
 必须清除 `BOTMUX_CHAT_ID`、`BOTMUX_SESSION_ID`，不得使用用户 token/身份，也不得创建 Card Binding、
 Trace Integration、远端 Trace Event、用户 Trace 文档或用户 CLI 日志文档。任一副作用为

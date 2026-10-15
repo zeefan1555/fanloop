@@ -130,7 +130,7 @@ class RouteMatrixTest(unittest.TestCase):
                 "condition_id": "code_review_document_published",
                 "output": {
                     "type": "url",
-                    "value": "https://example.invalid/redacted",
+                    "value": "https://docs.example.invalid/docx/Review",
                 },
             },
         ]

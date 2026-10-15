@@ -35,7 +35,7 @@ Output 修订和回流失效只由 `.fanloop/flow/state.json` 负责。
 以及公开前的内部资料审计是后续独立决策，本次不授权发布。
 
 本决策取代 ADR-0059 的旧默认值、部门路由和已删除 Workflow 清单，取代 ADR-0027 与
-ADR-0009 中 Codebase、字节 npm 和内部发布渠道的要求，并修订 ADR-0053/0065 的新 Requirement
+ADR-0009 中内部代码托管、私有 npm 和内部发布渠道的要求，并修订 ADR-0053/0065 的新 Requirement
 初始化前强制在线更新：源码或本地安装直接使用当前配套 Release。ADR-0062 的每 ID 一套当前
 Bundle、ADR-0006 的职责边界、ADR-0032 的单一数据目录、ADR-0036 的五文件架构真值、
 ADR-0057/0058 的 Release-bound Skill 分组以及未冲突的本地验证门禁继续有效。

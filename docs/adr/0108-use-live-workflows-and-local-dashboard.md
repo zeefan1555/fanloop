@@ -62,4 +62,4 @@ current/
 直接切换与 Dashboard `INVALID_INPUT_JSON` 注解补充；receipt 为
 `decision-f3b346ca790472604989e12c343e71c1a29950fe64672dee88c476db4921256a`。
 
-本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-fornax.md) 按其明确范围修订；其余门禁继续有效。
+本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-registry.md) 按其明确范围修订；其余门禁继续有效。

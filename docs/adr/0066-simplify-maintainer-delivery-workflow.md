@@ -15,8 +15,8 @@ MR 交接成功是实现型请求的 terminal，不等待 CI、CR、合并或发
 
 进入 `需求确认` 时，先等该 Human Step 的 Panorama Card 投递完成，再发送下文定义的完整改造计划
 确认卡，并以确认卡发送成功为 turn boundary。需要实现时，Agent 只接受此后到达、由当前
-`fanloop-dev` 应用 `cli_aaf6cd8160b89bda` 作用域下张菲帆
-`ou_3b0b9cf8364168c5eb999bd6c5a33b95` 发送且 `senderType=user`、去除首尾空白后精确等于
+`fanloop-dev` 应用 `cli_example_dev` 作用域下审批人
+`ou_example_approver` 发送且 `senderType=user`、去除首尾空白后精确等于
 “批准进入 需求实现”的全新用户消息；不得只校验显示名、复用其他应用作用域的 OpenID 或复用进入
 Human Step 前的消息，也不得把错误 sender、笼统同意、需求调整或混合了批准与修改的消息解释为开发授权。
 有效授权被 CLI 接受并进入需求实现前，不得修改源码、提交、推送或更新 MR。该规则只收紧
@@ -34,8 +34,8 @@ grilling 和 domain-modeling 三者。Agent 自查环境事实，按 design tree
 确认卡；不得只给摘要、文件链接或要求审批人回翻上下文。只有该计划卡发送成功后到达的全新消息
 才可作为实现授权。该约束复用现有 `requirements_grilled`、`requirements_approval_recorded` 与
 审批 Route，不新增 Step、Condition、Output、Runtime 或持久化字段。
-该补充计划及生产 YAML 前后示例由张菲帆在消息 `om_x100b678964a1a4bcb25236829136cf2`
-确认，进入实现授权为 `om_x100b678961cefcbcb306ab63ae0d4a3`。
+该补充计划及生产 YAML 前后示例由审批人在消息 `om_example_03`
+确认，进入实现授权为 `om_example_04`。
 
 方案设计顺序执行 To Spec 与 To Tickets。代码实现使用 Implement + TDD，只形成本地提交，
 不 push、不创建 MR。本地验证继续采用 ADR-0063 的 `targeted|e2e` 风险分档：纯文档、
@@ -66,12 +66,12 @@ ADR-0038 的五份 YAML、原子 Condition、OR-of-AND、显式 Route、Output �
 不变；ADR-0062 的当前 Bundle 与 digest 机制不变。不修改 Thrift IDL、durable storage、公开
 CLI 或其他 Workflow。精确 12→8 Step 对比、25 Conditions、Route/SkillBinding 和人工终批
 记录保存在 Issue Workspace 的 `tech-design.md` 与 `requirements.md`；最终授权消息为
-`om_x100b6743b53170a0b3100eaf256758a`。
+`om_example_05`。
 
 2026-08-24 修订：`confirm_requirements` 的两条成功 Route 都新增
 `requirements_evidence_written`，输出 Root 内的 `requirements_evidence_path:path`。Agent 在上报
 成功组合前，先把确认卡与批准消息回执写入 `requirements.md`，再把该文件路径作为
 Condition Output 提交。拒绝与需求变更 Loop 不增加该 Condition；CLI 继续只验证类型、
 相对路径、Condition 组合与 Route，不读取文件内容或认证消息。当前 Condition 总数由 25 变为 26。
-三项合并计划由张菲帆通过
-`om_x100b678abaa41ca0b3018e94e33bb91` 批准进入实现。
+三项合并计划由审批人通过
+`om_example_06` 批准进入实现。

@@ -8,7 +8,7 @@ amends: ADR-0009, ADR-0024, ADR-0040, ADR-0049, ADR-0050, ADR-0053
 
 Fanloop 的已安装用户只使用 `fanloop update` 更新到官方 latest。持久 npm
 launcher 在进入当前 Go payload 前拦截该无参数子命令，从唯一空临时目录在线解析
-`https://example.invalid/redacted` 的
+`https://npm.example.invalid` 的
 `fanloop-cli@latest`，并执行该候选包自身的 `fanloop install`。候选包
 继续通过 Manifest、平台归档摘要、staged Doctor、Skill 软链预检和原子 `current` 切换
 安装完整配套 Release；失败保留当前 Release。首次安装和旧版本恢复仍使用同一官方

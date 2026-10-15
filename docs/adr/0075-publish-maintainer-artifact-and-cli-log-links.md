@@ -39,5 +39,5 @@ Thrift 真值边界保持不变。
 不增加依赖、日志轮转、增量上传、清理、历史回填、自动合并或发布。真实 Base 的四列与默认视图只在
 交付验证阶段一次性创建并回读，不由每次 Runtime sync 自动修改 schema。
 
-需求范围由张菲帆在 `om_x100b67fae5f388a0b1a7dd47a659e9e` 批准进入实现；上述两份 Thrift 的
-精确 field ID、类型、可选性、枚举与消费者影响由 `om_x100b67fabd4fe8acb1f3d6d0141392f` 单独批准。
+需求范围由审批人在 `om_example_01` 批准进入实现；上述两份 Thrift 的
+精确 field ID、类型、可选性、枚举与消费者影响由 `om_example_02` 单独批准。

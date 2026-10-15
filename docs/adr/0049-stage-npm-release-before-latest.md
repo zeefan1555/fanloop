@@ -7,7 +7,7 @@ amended_by: ADR-0053, ADR-0061
 
 # 验证 npm 候选制品后再提升 latest
 
-Fanloop 的内部 npm 发布先把不可变版本写入 `candidate` dist-tag。Luban 的认证
+Fanloop 的内部 npm 发布先把不可变版本写入 `candidate` dist-tag。内部发布流水线的认证
 发布命令随后对该精确版本执行完整匿名安装冒烟；只有版本、commit、Manifest、
 Doctor、默认 Workflow、持久 launcher 和三套 Skill 根目录全部匹配，才把
 `latest` 原子指向候选版本，并用真实匿名 `@latest` selector 再执行同一冒烟。
@@ -23,7 +23,7 @@ Doctor、默认 Workflow、持久 launcher 和三套 Skill 根目录全部匹配
 修复入口；发布版本解析同样要求在线重校验完整版本列表。
 
 本决策修订 ADR-0009 中发布即更新 `latest` 的顺序，以及 ADR-0046 中每次 Workflow
-会话都调用 npx 的入口。ADR-0009 的 Luban 唯一发布边界与完整配套制品、
+会话都调用 npx 的入口。ADR-0009 的内部发布流水线唯一发布边界与完整配套制品、
 ADR-0024 的 Doctor 和整包切换、ADR-0026/0032 的目录和输出、ADR-0041 的同版本
 本地修复语义保持不变。不增加用户缓存清理、无限重试、后台更新、bootstrap 包、
 registry 代理或兼容路径。

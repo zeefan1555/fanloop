@@ -27,7 +27,7 @@ func TestEveryEventPayloadRoundTripsThroughStorageThriftUnion(t *testing.T) {
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: workflowRef, Payload: Payload(FlowInitializedPayload{StepID: "bootstrap_techdesign", StepStatus: StepReady})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now, Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e1", Payload: Payload(FlowProgressPayload{FromStepID: "bootstrap_techdesign", FromStepStatus: StepReady, ToStepStatus: StepInProgress, Summary: "working", Evidence: []Evidence{{Source: EvidenceSystem, Content: "git status"}}})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now, Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(result)},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: now, Kind: EventTraceDocumentBound, Command: "trace.bind", Workflow: workflowRef, CausedByEventID: "e3", Payload: Payload(TraceDocumentBoundPayload{DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: now, Kind: EventTraceDocumentBound, Command: "trace.bind", Workflow: workflowRef, CausedByEventID: "e3", Payload: Payload(TraceDocumentBoundPayload{DocumentURL: "https://docs.example.invalid/docx/Trace", Registry: traceconfig.RegistryProduction})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e5", OccurredAt: now, Kind: EventTraceSyncStarted, Command: "trace.sync", Workflow: workflowRef, CausedByEventID: "e4", Payload: Payload(TraceSyncStartedPayload{Targets: []string{"trace_document", "registry"}})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e6", OccurredAt: now, Kind: EventTraceSynced, Command: "trace.sync", Workflow: workflowRef, CausedByEventID: "e5", Payload: Payload(TraceSyncedPayload{Outcome: TraceSyncPartial, Targets: []TraceTargetResult{
 			{Name: "trace_document", Status: "succeeded"},
@@ -72,8 +72,8 @@ func TestMaintainerTraceBindingRoundTripsCLILogDocument(t *testing.T) {
 		CurrentStepID: &step, CurrentStepStatus: StepReady,
 		Outputs: map[string]RegisteredOutput{},
 		Integrations: Integrations{Trace: &TraceBinding{
-			DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction,
-			CLILogDocumentURL: "https://example.invalid/redacted",
+			DocumentURL: "https://docs.example.invalid/docx/Trace", Registry: traceconfig.RegistryProduction,
+			CLILogDocumentURL: "https://docs.example.invalid/docx/CLILog",
 		}},
 		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
 	}

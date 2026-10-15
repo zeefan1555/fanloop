@@ -11,7 +11,7 @@ amended_by: ADR-0049, ADR-0053
 Status 或执行其他业务命令前，只执行一次官方安装入口：
 
 ```bash
-NPM_CONFIG_REGISTRY=https://example.invalid/redacted \
+NPM_CONFIG_REGISTRY=https://npm.example.invalid \
   npx --yes --package=fanloop-cli@latest -- fanloop install
 ```
 

@@ -26,15 +26,15 @@ second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括
 `fanloop-maintenance` 对应
 `code-change`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
 清单见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)；`technical-solution-design` 的历史退役决策见
-[ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
+[ADR-0120](./adr/0120-host-production-workflows-in-registry.md)。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
 可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 provider、endpoint、远端字段名、
 CLI 日志要求和 Output 字段映射。完整通用化决策见
 [ADR-0080](./adr/0080-make-runtime-workflow-agnostic.md)。`provider: none` 时 `flow init` 不建 Trace 文档，
 Registry 投影跳过，见 [ADR-0133](./adr/0133-trace-registry-provider-switch.md)。production profile 现已全部为
-`provider: none`（飞书投影关闭，运行记录改由 Notion run-ledger 承担），test profile 保留飞书测试表，见
-[ADR-0134](./adr/0134-turn-off-lark-trace-projection.md)。
+`provider: none`（飞书投影关闭，运行记录改由 Notion run-ledger 承担），test profile 保留占位 Lark 表，见
+[ADR-0134](./adr/0134-turn-off-lark-trace-projection.md)。provider 为 lark 时，`FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID` 与 `FANLOOP_TRACE_REGISTRY_VIEW_ID` 覆盖仓库中的占位坐标。
 
 ## 推进模型
 

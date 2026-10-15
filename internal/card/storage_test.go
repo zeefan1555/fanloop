@@ -43,7 +43,7 @@ func TestProjectionWritesStorageThriftSchema(t *testing.T) {
 	if _, _, err := LoadProjection(root); err != nil {
 		t.Fatal(err)
 	}
-	document["cli_log_document_url"] = "https://example.invalid/redacted"
+	document["cli_log_document_url"] = "https://docs.example.invalid/docx/OrphanLog"
 	content, err = json.Marshal(document)
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestTestRegistryProjectionKeepsSingleDocumentBinding(t *testing.T) {
 		CurrentStepID: &step, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
-			DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryTest,
+			DocumentURL: "https://docs.example.invalid/docx/TestTrace", Registry: traceconfig.RegistryTest,
 		}},
 		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
 	}

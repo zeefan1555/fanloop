@@ -51,7 +51,7 @@ func TestLatestFlowAuditUsesConditionResultEvent(t *testing.T) {
 	}
 }
 
-func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
+func TestRegistryFieldsNeverProjectsWorkItemLocatorAsPRD(t *testing.T) {
 	registry := traceconfig.Registry{Fields: syntheticRegistryFields()}
 	registry.Fields.SourceDocumentOnly = true
 	tests := []struct {
@@ -60,29 +60,29 @@ func TestRegistryFieldsNeverProjectsMeegoAsPRD(t *testing.T) {
 		want    any
 	}{
 		{
-			name: "Meego locator only",
+			name: "work-item locator only",
 			current: state.State{Requirement: state.Requirement{
-				SourceURL: "https://example.invalid/redacted",
+				SourceURL: "https://work-items.example.invalid/story/detail/example-1",
 			}},
 		},
 		{
 			name: "direct PRD",
 			current: state.State{Requirement: state.Requirement{
-				SourceURL: "https://example.invalid/redacted",
+				SourceURL: "https://docs.example.invalid/docx/DirectPRD",
 			}},
-			want: "https://example.invalid/redacted",
+			want: "https://docs.example.invalid/docx/DirectPRD",
 		},
 		{
-			name: "clarified PRD overrides Meego locator",
+			name: "clarified PRD overrides work-item locator",
 			current: state.State{
-				Requirement: state.Requirement{SourceURL: "https://example.invalid/redacted"},
+				Requirement: state.Requirement{SourceURL: "https://work-items.example.invalid/story/detail/example-1"},
 				Outputs: map[string]state.RegisteredOutput{
 					"source_document_url": {
-						Type: workflow.OutputURL, Value: json.RawMessage(`"https://example.invalid/redacted"`),
+						Type: workflow.OutputURL, Value: json.RawMessage(`"https://docs.example.invalid/wiki/ClarifiedPRD"`),
 					},
 				},
 			},
-			want: "https://example.invalid/redacted",
+			want: "https://docs.example.invalid/wiki/ClarifiedPRD",
 		},
 	}
 	for _, test := range tests {
@@ -100,9 +100,9 @@ func TestRegistryFieldsProjectsConfiguredOutputsWithoutReusingSource(t *testing.
 		Requirement: state.Requirement{Title: "Custom flow"},
 		Release:     state.Release{Workflow: state.WorkflowRef{ID: "custom-flow"}},
 		Integrations: state.Integrations{Trace: &state.TraceBinding{
-			DocumentURL:       "https://example.invalid/redacted",
+			DocumentURL:       "https://docs.example.invalid/docx/Trace",
 			Registry:          traceconfig.RegistryProduction,
-			CLILogDocumentURL: "https://example.invalid/redacted",
+			CLILogDocumentURL: "https://docs.example.invalid/docx/CLILog",
 		}},
 		Outputs: map[string]state.RegisteredOutput{
 			"artifact_links": {Value: json.RawMessage(`["https://example.com/artifacts/123"]`)},
@@ -116,14 +116,14 @@ func TestRegistryFieldsProjectsConfiguredOutputsWithoutReusingSource(t *testing.
 	want := map[string]any{
 		"Source":   nil,
 		"Artifact": "https://example.com/artifacts/123",
-		"CLI log":  "https://example.invalid/redacted",
+		"CLI log":  "https://docs.example.invalid/docx/CLILog",
 	}
 	for key, value := range want {
 		if got := fields[key]; got != value {
 			t.Fatalf("Registry field %q = %#v, want %#v; fields=%#v", key, got, value, fields)
 		}
 	}
-	current.Requirement.SourceURL = "https://example.invalid/redacted"
+	current.Requirement.SourceURL = "https://docs.example.invalid/docx/RealPRD"
 	if got := registryFields(registry, current, workflow.Workflow{}, nil, current.Integrations.Trace.DocumentURL, "trace-key", "owner")["Source"]; got != current.Requirement.SourceURL {
 		t.Fatalf("real source document = %#v, want %q", got, current.Requirement.SourceURL)
 	}
@@ -207,7 +207,7 @@ func TestCLILogDocumentExecutionFailureUsesTraceUpdateError(t *testing.T) {
 	}
 	t.Cleanup(func() { larkexec.Execute = original })
 
-	result := syncDocument(context.Background(), traceidl.TraceTarget_cli_log_document, "https://example.invalid/redacted", nil)
+	result := syncDocument(context.Background(), traceidl.TraceTarget_cli_log_document, "https://docs.example.invalid/docx/CLILog", nil)
 	if result.Error == nil || result.Error.Code != erroridl.ErrorCode_TRACE_UPDATE_FAILED {
 		t.Fatalf("CLI log failure = %#v, want TRACE_UPDATE_FAILED", result)
 	}

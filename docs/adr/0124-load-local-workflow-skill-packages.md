@@ -9,7 +9,7 @@ amends: ADR-0099, ADR-0109, ADR-0123
 
 The repository is the only Workflow configuration source. Each `skills/<id>/`
 is a self-contained Skill package: `SKILL.md`, the five Workflow YAML files and
-its bound `skills/<child-id>/` resources. Remove the Fornax wrapper
+its bound `skills/<child-id>/` resources. Remove the workflow-registry wrapper
 `workflows/<id>/`, remote publication/synchronization and `fanloop update`.
 There is no provider, compatibility loader or fallback configuration copy.
 

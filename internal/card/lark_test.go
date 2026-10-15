@@ -224,8 +224,8 @@ func TestCardMarkdownShowsCLILogBesideTrace(t *testing.T) {
 	current := state.State{
 		Requirement: state.Requirement{Title: "Maintainer card"}, CurrentStepID: &stepID, CurrentStepStatus: state.StepReady,
 		Outputs: map[string]state.RegisteredOutput{}, Integrations: state.Integrations{Trace: &state.TraceBinding{
-			DocumentURL: "https://example.invalid/redacted", Registry: traceconfig.RegistryProduction,
-			CLILogDocumentURL: "https://example.invalid/redacted",
+			DocumentURL: "https://docs.example.invalid/docx/Trace", Registry: traceconfig.RegistryProduction,
+			CLILogDocumentURL: "https://docs.example.invalid/docx/CLILog",
 		}},
 	}
 	markdown := renderMarkdown(cardidl.CardView_current, current, loaded)

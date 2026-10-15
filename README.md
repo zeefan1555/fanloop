@@ -21,7 +21,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 新增一套流程可先使用仓库内 `.agents/skills/create-fanloop-workflow/` 与
 `examples/workflows/example/` 生成并校验完整五 YAML 候选；明确的包入口可直接使用 Workflow ID。
 公共场景别名属于独立入口 Skill 的安装范围，不为新增配置隐式重建 CLI 或更新已安装场景表。不注册 Go 代码。Trace Registry
-的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。
+的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。该文件里的 Lark 坐标是占位符；provider 为 lark 时用 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 提供真实值。
 
 ## 本地构建与安装
 

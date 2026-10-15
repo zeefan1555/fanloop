@@ -63,4 +63,4 @@ Route 加载，避免首条配置 Route 的 Skill 被代码任务无条件执行
 行为失败沿 configuration_needs_fix 回 Build，环境/授权不足保持 blocked。只使用已有兼容 CLI、隔离配置
 和授权测试对象，止于真实发布前；不新增 Step、Condition、Runtime 或代码验收安装链。
 
-本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-fornax.md) 按其明确范围修订；其余门禁继续有效。
+本决策的生产配置存储/发布、Dashboard编辑或代码验证地图位置条款由 [ADR-0120](0120-host-production-workflows-in-registry.md) 按其明确范围修订；其余门禁继续有效。

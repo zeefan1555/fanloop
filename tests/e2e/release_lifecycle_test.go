@@ -33,7 +33,7 @@ func TestInstalledReleaseUsesSyntheticConditionRoutingAcrossDomains(t *testing.T
 		return result
 	}
 	run("flow", "init", "--root", root, "--workflow", "sample-runtime", "--title", "Release E2E")
-	run("trace", "bind", "--root", root, "--document-url", "https://example.invalid/redacted", "--registry", "test")
+	run("trace", "bind", "--root", root, "--document-url", "https://docs.example.invalid/docx/TraceE2E", "--registry", "test")
 
 	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"first","condition_results":[{"condition_id":"first_completed","output":{"type":"path","value":"first.md"}}],"route":{"next_step_id":"second"},"summary":"first complete","evidence":[]}`)
 	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"second","condition_results":[{"condition_id":"second_completed","output":{"type":"path","value":"second.md"}}],"route":{"next_step_id":"third"},"summary":"missing evidence","evidence":[]}`)

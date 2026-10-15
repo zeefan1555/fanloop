@@ -19,9 +19,9 @@ MR 描述面向不了解需求和实现背景的评审者。背景、问题和�
 MR 存在后，handoff 使用当前 `fanloop-dev` 应用的 bot 身份调用 lark-cli，在固定群创建
 `interactive` Card 2.0 首帖。蓝色 header 显示 `MR Review 请求 · !编号`；正文依次展示安全的 MR
 标题、真实 `fanloop-cr` mention 与文字 MR 链接、`变更概要` 和 `验证`；footer 真实 mention
-张菲帆，并 cc 苏文钦和吴瑜明。`变更概要` 用一段短文压缩背景、问题、方法和影响范围，`验证`
+审批人，并 cc 关注人甲和关注人乙。`变更概要` 用一段短文压缩背景、问题、方法和影响范围，`验证`
 只给本地验证与 AI Code Review 的简短结论。不使用按钮、回调、图片或 HTML，也不重复详细测试、
-ADR、风险、非目标或上线时间。footer 如实说明 `fanloop-cr` 审查、张菲帆终批、终批后进入
+ADR、风险、非目标或上线时间。footer 如实说明 `fanloop-cr` 审查、审批人终批、终批后进入
 Codebase merge queue，且不自动发布。
 
 Card 2.0 的 body 不支持直接使用 `plain_text` 元素，因此动态 MR 标题、变更概要和验证摘要只进入

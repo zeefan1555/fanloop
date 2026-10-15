@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-14
-amends: ADR-0133
+amends: ADR-0080, ADR-0133
 ---
 
 # Turn off the Lark Trace projection in production
@@ -20,5 +20,10 @@ separate change once that happened. This is that change.
   still decodes even when it carries a CLI-log document. `trace sync` reports
   the Registry target as skipped.
 
-To turn Lark back on, set `provider: lark` and restore the endpoint and field
-mapping from commit `ee793e6`.
+The committed test-profile url, base token, table id, and view id are placeholders.
+`Resolve` still reads the embedded YAML. When the resolved provider is `lark`,
+non-empty `FANLOOP_TRACE_REGISTRY_URL`, `FANLOOP_TRACE_REGISTRY_BASE_TOKEN`,
+`FANLOOP_TRACE_REGISTRY_TABLE_ID`, and `FANLOOP_TRACE_REGISTRY_VIEW_ID` replace
+those placeholders. Provider `none` ignores the variables. This is the only
+deployment override outside the YAML, and it exists so real coordinates stay
+out of the tree. Do not copy coordinates out of Git history.
