@@ -38,6 +38,10 @@ func (client fakeClient) Releases(context.Context, string, string) ([]Release, e
 	return []Release{{Version: "1.0.0", UpdatedAt: 1}}, nil
 }
 
+func (client fakeClient) ListByPrefix(ctx context.Context, workspaceID, prefix string) ([]Skill, error) {
+	return client.Skills(ctx, workspaceID, prefix)
+}
+
 func (client fakeClient) Install(_ context.Context, _, key, version, directory string) (string, error) {
 	archive := filepath.Join(directory, "candidate.zip")
 	if _, err := BuildArchive(client.source, "linear-runtime", key, client.commit, version, archive); err != nil {

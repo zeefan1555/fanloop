@@ -43,7 +43,7 @@ fanloop update
 fanloop update config
 ```
 
-`fanloop update` 下载最新 GitHub Release 并切换 `current`。本机版本比 `latest` 新时保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步配置仓库；远端 commit 没变时不会重新 checkout，并发同步共用一把锁，并打印每个 Workflow 的 id 和同步到的 commit。
+`fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`，然后同步 Fornax 上已发布的 Workflow 包。本机版本比 `latest` 新时 CLI 保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步这些 Workflow 包；已发布集合和已安装树都没变时不会重新下载，并发同步共用一把锁，并打印每个 Workflow 的 `id@version`。
 
 ## 本地构建与安装
 

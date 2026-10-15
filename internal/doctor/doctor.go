@@ -210,7 +210,11 @@ func (runtime Runtime) workflowCheck() *idl.DoctorCheck {
 		if err != nil {
 			return check("workflows", statusFail, err.Error(), "Refresh a valid configuration snapshot.")
 		}
-		message += "; commit_sha=" + identity.CommitSHA + "; configuration_manifest_sha256=" + identity.SHA256
+		if identity.Origin == configuration.OriginFornax {
+			message += "; release_set_digest=" + identity.ReleaseSetDigest + "; configuration_manifest_sha256=" + identity.SHA256
+		} else {
+			message += "; commit_sha=" + identity.CommitSHA + "; configuration_manifest_sha256=" + identity.SHA256
+		}
 	}
 	return check("workflows", statusPass, message, "")
 }

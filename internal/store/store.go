@@ -105,7 +105,7 @@ func (s *Store) LoadBound() (state.State, workflow.Loaded, *erroridl.PublicError
 	if failure != nil {
 		return state.State{}, workflow.Loaded{}, failure
 	}
-	loaded, err := workflow.Load(current.Release.Workflow.ID)
+	loaded, err := s.loadWorkflow(current.Release.Workflow.ID)
 	if err != nil {
 		return state.State{}, workflow.Loaded{}, errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, err.Error(), nil)
 	}
@@ -173,7 +173,7 @@ func (s *Store) commitLocked(next state.State, event state.Event) *erroridl.Publ
 		return failure
 	}
 	events = append(events, event)
-	loaded, err := workflow.Load(next.Release.Workflow.ID)
+	loaded, err := s.loadWorkflow(next.Release.Workflow.ID)
 	if err != nil {
 		return corrupt(err.Error())
 	}
@@ -267,7 +267,7 @@ func (s *Store) validateCommit(events []state.Event, next state.State, event sta
 	if _, err := state.DecodeEvent(eventContent); err != nil {
 		return corrupt(err.Error())
 	}
-	loaded, err := workflow.Load(next.Release.Workflow.ID)
+	loaded, err := s.loadWorkflow(next.Release.Workflow.ID)
 	if err != nil {
 		return corrupt(err.Error())
 	}
@@ -364,6 +364,57 @@ func atomicWriteMode(path string, content []byte, mode os.FileMode) error {
 		return err
 	}
 	return os.Rename(temporaryPath, path)
+}
+
+// PinConfiguration records the snapshot directory this requirement keeps using
+// after config/current moves.
+func (s *Store) PinConfiguration(source string) error {
+	source = filepath.Clean(source)
+	if _, err := workflow.SourceRoot(source); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(s.directory, 0700); err != nil {
+		return err
+	}
+	return atomicWriteMode(filepath.Join(s.directory, "configuration-snapshot"), []byte(source+"\n"), 0600)
+}
+
+func (s *Store) loadWorkflow(id string) (workflow.Loaded, error) {
+	source, pinned, err := s.readPin()
+	if err != nil {
+		return workflow.Loaded{}, err
+	}
+	if !pinned {
+		return workflow.Load(id)
+	}
+	root, err := workflow.SourceRoot(source)
+	if err != nil {
+		return workflow.Loaded{}, err
+	}
+	return workflow.LoadFrom(root, id)
+}
+
+func (s *Store) readPin() (string, bool, error) {
+	path := filepath.Join(s.directory, "configuration-snapshot")
+	info, err := os.Lstat(path)
+	if os.IsNotExist(err) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return "", false, fmt.Errorf("configuration snapshot pin must be a regular file")
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", false, err
+	}
+	source := strings.TrimSuffix(string(content), "\n")
+	if strings.Contains(source, "\n") || source == "" || !filepath.IsAbs(source) || filepath.Clean(source) != source {
+		return "", false, fmt.Errorf("configuration snapshot pin must be one absolute path")
+	}
+	return source, true, nil
 }
 
 func commitError(err error) *erroridl.PublicError {
