@@ -65,7 +65,7 @@
 5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
 6. `fanloop update` 与 `fanloop update config` 通过用户已登录的 `fornax-cli` 拉取每个 source 的最新 Online/prod 发布，不内置 AK/SK。快照目录名是排序后 `key@version` 行的 sha256。失败保留原来的 `current`。镜像 ZIP 根只含包装 `SKILL.md` 与唯一 `<workflow-id>/`；内部含五 YAML、可选 `trace.yaml` 和完整 `skills/**`。`loop-workflow-<id>` 与 `fanloop-workflow-<id>` 都可以装入。
 7. `${FANLOOP_DATA_HOME:-$HOME/.fanloop}/fornax.json` 只存 source 列表。每一项是 `workspace_id`、`key_prefix` 和 `access`（`read_write` 或 `read_only`）。同一个 workflow id 同时出现在 `read_write` 和 `read_only` 源时，`read_write` 源胜出。同一源内重复，或两个源打成平局，整组拒绝。该文件不存 AK/SK、JWT、下载 token、Skill ID 或版本。Runtime 和安装器不创建或修改它。
-8. 从 Git 发布到 Fornax 的旧路径只作为恢复手段。Fornax `skill install` 不保留 Unix 文件模式；以 `#!` 开头的脚本安装为 `0555`。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
+8. 日常编辑走 `.agents/skills/update-fanloop-workflow`，只写唯一 `read_write` 源。把已发布快照写回 Git checkout 用 `scripts/mirror-fornax-to-git <snapshot-dir> <checkout-dir>`。从 Git 发布到 Fornax 的 `tools/workflow-package build` 只作为恢复手段。Fornax `skill install` 不保留 Unix 文件模式；以 `#!` 开头的脚本安装为 `0555`。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
 
 ## YAML 架构真值与自动校验
 

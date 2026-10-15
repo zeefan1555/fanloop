@@ -65,6 +65,12 @@ Diagnostics:
   Every real invocation with a valid --root best-effort appends execution metadata plus the complete unredacted arguments, stdin, stdout, and stderr to
   .fanloop/log/cli.jsonl. This also applies to read-only and --dry-run calls; the file may contain secrets, and logging never changes command output or exit status.`
 	}
+	if ok && len(spec.Errors) > 0 {
+		command.Long += "\n\nErrors:"
+		for _, item := range spec.Errors {
+			command.Long += fmt.Sprintf("\n  %s (type=%s, exit=%d, retryable=%t): %s", item.Code, item.Type, item.ExitCode, item.Retryable, item.Hint)
+		}
+	}
 }
 
 func runOperation[T any](
