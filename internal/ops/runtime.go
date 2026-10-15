@@ -89,8 +89,10 @@ func driftStatus(value fornaxmirror.DriftStatus) opsidl.ConfigDriftStatus {
 	switch value {
 	case fornaxmirror.DriftInSync:
 		return opsidl.ConfigDriftStatus_in_sync
-	case fornaxmirror.Drifted:
-		return opsidl.ConfigDriftStatus_drifted
+	case fornaxmirror.DriftLocalBehind:
+		return opsidl.ConfigDriftStatus_local_behind
+	case fornaxmirror.DriftLocalModified:
+		return opsidl.ConfigDriftStatus_local_modified
 	default:
 		return opsidl.ConfigDriftStatus_unavailable
 	}
@@ -100,12 +102,10 @@ func workflowStatus(value fornaxmirror.WorkflowStatus) opsidl.WorkflowMirrorStat
 	switch value {
 	case fornaxmirror.WorkflowInSync:
 		return opsidl.WorkflowMirrorStatus_in_sync
-	case fornaxmirror.WorkflowMissing:
-		return opsidl.WorkflowMirrorStatus_missing
-	case fornaxmirror.WorkflowUnreleased:
-		return opsidl.WorkflowMirrorStatus_unreleased
-	case fornaxmirror.WorkflowDrifted:
-		return opsidl.WorkflowMirrorStatus_drifted
+	case fornaxmirror.WorkflowLocalBehind:
+		return opsidl.WorkflowMirrorStatus_local_behind
+	case fornaxmirror.WorkflowLocalModified:
+		return opsidl.WorkflowMirrorStatus_local_modified
 	default:
 		return opsidl.WorkflowMirrorStatus_unavailable
 	}
