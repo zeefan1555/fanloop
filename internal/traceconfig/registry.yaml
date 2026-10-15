@@ -1,5 +1,5 @@
 schema_version: 1
-# Trace 已迁移到 Notion「Fanloop 运行」表（由 playbook-flow 的 run-ledger 写入）。
+# Trace 已迁移到 Notion「Fanloop 运行」表（由各 Workflow 包内的 run-ledger 写入）。
 # 飞书 docx / 多维表格投影默认关闭；如需恢复，把 provider 改回 lark 并补回
 # url/base_token/table_id/view_id/fields（参见 git 历史 ee793e6）。
 # test profile 仍保留飞书测试表，仅供显式 `trace bind --registry test` 与测试使用。

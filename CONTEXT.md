@@ -85,7 +85,7 @@ Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based 
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 已退役（ADR-0135），Fanloop 代码维护改走 playbook-flow 的 `code-change` playbook；下文记录原四阶段闭环的验收原则，仍适用于代码变更。配置由当前 Agent 连续执行，普通配置自检，风险配置独立试用；代码或混合变更采用以下监督方式。用户先与主 Agent 对齐目录、目标、
+`fanloop-maintainer` 已退役（ADR-0135），Fanloop 代码维护改走 `code-change` Workflow；下文记录原四阶段闭环的验收原则，仍适用于代码变更。配置由当前 Agent 连续执行，普通配置自检，风险配置独立试用；代码或混合变更采用以下监督方式。用户先与主 Agent 对齐目录、目标、
 范围和验收标准；执行子 Agent持有 Requirement Root、最新 Status、Route 与受管实现。Define 冻结 Acceptance
 Set 与 Feature Impact Set；Build 持续实现、运行、诊断和修复；Certify 冻结 HEAD/tree/binary 并完成独立
 Review、黑盒验证和主 Agent最终决定。

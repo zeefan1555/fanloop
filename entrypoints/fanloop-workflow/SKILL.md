@@ -30,7 +30,7 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
-纯 Workflow 配置维护直接读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md`，其他仓库级 Skill 内容维护按目标仓库 `AGENTS.md` 路由；两者都不初始化维护 Requirement。维护 Fanloop 代码或混合实现时使用 `playbook-flow` 的 `code-change` playbook，Define按实际范围选择通道。
+纯 Workflow 配置维护直接读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md`，其他仓库级 Skill 内容维护按目标仓库 `AGENTS.md` 路由；两者都不初始化维护 Requirement。维护 Fanloop 代码或混合实现时使用 `code-change` Workflow，Define按实际范围选择通道。
 生产配置真值是 second-brain-skills main 的 `fanloop-workflow/<workflow-id>/` 完整包。新 flow init 自动拉取并原子激活不可变提交快照；已有 flow status/report/skills 离线读取。显式绝对 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。Dashboard 默认只读快照，显式作者源可编辑。每次读取最新 Status 的精确 Skill 路径。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。

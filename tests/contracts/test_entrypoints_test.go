@@ -425,7 +425,7 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 		t.Error("CONTEXT.md does not point at the Feature Map")
 	}
 	for _, suite := range []string{
-		"playbook-flow",
+		"code-change",
 		"remnote-flashcards",
 	} {
 		if !strings.Contains(ownership, suite) {

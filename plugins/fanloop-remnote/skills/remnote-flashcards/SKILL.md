@@ -52,7 +52,7 @@ description: "Create, update, or review RemNote flashcards on today's daily note
 失败：
 
 - 缺来源、权限、范围歧义或工具故障：blocked。
-- 分类要改：`home_tag_needs_fix`，留在本步。维护 CLI 另走 playbook-flow 的 `code-change` playbook，不在制卡里升级工具。
+- 分类要改：`home_tag_needs_fix`，留在本步。维护 CLI 另走 `code-change` Workflow，不在制卡里升级工具。
 
 ### 2. `prepare_cards_and_wiki`
 

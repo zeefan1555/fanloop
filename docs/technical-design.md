@@ -14,7 +14,7 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 
 second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括：
 
-- `playbook-flow`：通用 8 节点入口；代码变更走 `code-change` playbook（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
+- `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow，由 second-brain-skills 的 `select-workflow` Skill 选择；代码变更走 `code-change`（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
 - `pstack-native`：六步剧本交付，保留完整脚本与资源。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 
@@ -24,7 +24,7 @@ second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `fanloop-maintenance` 对应
-`playbook-flow`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
+`code-change`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
 清单见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)；`technical-solution-design` 的历史退役决策见
 [ADR-0120](./adr/0120-host-production-workflows-in-fornax.md)。
 

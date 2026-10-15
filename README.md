@@ -13,7 +13,7 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 配置仓库 `zeefan1555/second-brain-skills` 的 `main` 托管生产 Workflow，不设置默认 Workflow：
 
 - `pstack-native`：六步剧本交付，完整包来自配置中心。
-- `playbook-flow`：通用 8 节点入口；Fanloop、RemNote Direct 等仓库的代码变更走其 `code-change` playbook（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
+- `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow（由 second-brain-skills 的 `select-workflow` Skill 选择）；Fanloop、RemNote Direct 等仓库的代码变更走 `code-change`（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
 
 每套 Workflow 是仓库 `fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
@@ -68,18 +68,18 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 新 Requirement 必须先显式选择场景：
 
-- `fanloop-maintenance` → `playbook-flow`（选 `code-change` playbook）
+- `fanloop-maintenance` → `code-change`
 - `remnote-flashcards` → `remnote-flashcards`
 
 `entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
-RemNote Direct 的仓库维护同样走 `playbook-flow` 的 `code-change` playbook。
+RemNote Direct 的仓库维护同样走 `code-change` Workflow。
 选择维护场景后执行：
 
 ```bash
 mkdir -p /absolute/path/to/requirement
 fanloop flow init \
   --root /absolute/path/to/requirement \
-  --workflow playbook-flow \
+  --workflow code-change \
   --title "Maintain Fanloop"
 fanloop flow status --root /absolute/path/to/requirement
 ```
@@ -130,7 +130,7 @@ Human Step 的审批 Skill 展示审核材料，Panorama Skill 按当前宿主�
 ```bash
 fanloop flow init \
   --root /absolute/path/to/maintenance-requirement \
-  --workflow playbook-flow \
+  --workflow code-change \
   --title "Maintain Fanloop"
 ```
 
