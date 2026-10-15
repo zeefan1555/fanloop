@@ -22,8 +22,10 @@ if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "VERSION must contain a semantic version such as 1.2.3" >&2
   exit 1
 fi
-if [[ -n "${GITHUB_REF_NAME:-}" && "$GITHUB_REF_NAME" != "v$version" ]]; then
-  echo "tag $GITHUB_REF_NAME does not match VERSION $version" >&2
+# GITHUB_REF_NAME is the branch name on push and pull_request jobs. Only a tag
+# workflow publishes a release, so compare VERSION only for refs/tags/*.
+if [[ "${GITHUB_REF:-}" == refs/tags/* && "${GITHUB_REF_NAME:-}" != "v$version" ]]; then
+  echo "tag ${GITHUB_REF_NAME:-} does not match VERSION $version" >&2
   exit 1
 fi
 

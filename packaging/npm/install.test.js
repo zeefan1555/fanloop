@@ -311,9 +311,17 @@ test('build-release accepts an existing empty directory', () => {
   const fakeBin = path.join(scratch, 'bin');
   fs.mkdirSync(fakeBin);
   fs.writeFileSync(path.join(fakeBin, 'go'), '#!/bin/sh\nif [ "$1" = "build" ]; then echo reached-build >&2; exit 1; fi\necho "unexpected go $*" >&2\nexit 1\n', {mode: 0o755});
-  const run = (output) => spawnSync(path.join(repo, 'scripts', 'build-release.sh'), [output], {
+  const version = fs.readFileSync(path.join(repo, 'VERSION'), 'utf8').trim();
+  const run = (output, ref = {}) => spawnSync(path.join(repo, 'scripts', 'build-release.sh'), [output], {
     cwd: repo,
-    env: {...process.env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`},
+    env: {
+      ...process.env,
+      PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+      // Branch jobs set these; they must not be treated as a release tag.
+      GITHUB_REF: 'refs/heads/master',
+      GITHUB_REF_NAME: 'master',
+      ...ref,
+    },
     encoding: 'utf8',
   });
   const empty = fs.mkdtempSync(path.join(scratch, 'empty-'));
@@ -323,6 +331,7 @@ test('build-release accepts an existing empty directory', () => {
   for (const result of [accepted, fresh]) {
     assert.match(result.stderr, /reached-build/);
     assert.doesNotMatch(result.stderr, /File exists/);
+    assert.doesNotMatch(result.stderr, /does not match VERSION/);
   }
   assert.deepEqual(fs.readdirSync(empty), []);
   assert.deepEqual(fs.readdirSync(created), []);
@@ -331,6 +340,20 @@ test('build-release accepts an existing empty directory', () => {
   assert.notEqual(rejected.status, 0);
   assert.match(rejected.stderr, /not empty/);
   assert.equal(fs.readFileSync(path.join(empty, 'leftover'), 'utf8'), 'x');
+
+  const mismatched = run(fs.mkdtempSync(path.join(scratch, 'tag-')), {
+    GITHUB_REF: 'refs/tags/v9.9.9',
+    GITHUB_REF_NAME: 'v9.9.9',
+  });
+  assert.notEqual(mismatched.status, 0);
+  assert.match(mismatched.stderr, new RegExp(`tag v9\\.9\\.9 does not match VERSION ${version.replaceAll('.', '\\.')}`));
+  assert.doesNotMatch(mismatched.stderr, /reached-build/);
+
+  const matched = run(fs.mkdtempSync(path.join(scratch, 'match-')), {
+    GITHUB_REF: `refs/tags/v${version}`,
+    GITHUB_REF_NAME: `v${version}`,
+  });
+  assert.match(matched.stderr, /reached-build/);
 });
 
 test('rejects symlink archive entries before switching current', async () => {
