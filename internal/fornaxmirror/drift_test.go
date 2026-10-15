@@ -61,6 +61,7 @@ func (client fakeClient) Install(_ context.Context, _, key, version, directory s
 }
 
 func TestCheckUsesReleasedPackageAsReference(t *testing.T) {
+	unsetConfigSource(t)
 	dataRoot := t.TempDir()
 	writeFornaxSources(t, dataRoot)
 	client := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2"}
@@ -123,6 +124,7 @@ func (client lockProbeClient) ListByPrefix(ctx context.Context, workspaceID, pre
 }
 
 func TestCheckReleasesConfigurationLockBeforeFornaxQuery(t *testing.T) {
+	unsetConfigSource(t)
 	dataRoot := t.TempDir()
 	writeFornaxSources(t, dataRoot)
 	inner := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2"}
