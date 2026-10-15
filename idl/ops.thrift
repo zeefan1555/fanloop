@@ -67,6 +67,45 @@ struct DoctorResponse {
   3: required list<DoctorCheck> checks,
 }
 
+enum ConfigDriftStatus {
+  unspecified = 0,
+  in_sync     = 1,
+  drifted     = 2,
+  unavailable = 3,
+}
+
+enum WorkflowMirrorStatus {
+  unspecified = 0,
+  in_sync     = 1,
+  missing     = 2,
+  unreleased  = 3,
+  drifted     = 4,
+  unavailable = 5,
+}
+
+struct ConfigDriftRequest {}
+
+struct WorkflowMirrorCheck {
+  1: required string workflow_id (vt.min_size = "1"),
+  2: required string skill_key   (vt.min_size = "1"),
+  3: required WorkflowMirrorStatus status (
+    vt.defined_only = "true",
+    vt.not_in = "WorkflowMirrorStatus.unspecified",
+  ),
+  4: optional string skill_id         (vt.min_size = "1"),
+  5: optional string released_version (vt.min_size = "1"),
+  6: optional string detail           (vt.min_size = "1"),
+}
+
+struct ConfigDriftResponse {
+  1: required ConfigDriftStatus status (
+    vt.defined_only = "true",
+    vt.not_in = "ConfigDriftStatus.unspecified",
+  ),
+  2: optional string configuration_commit (vt.min_size = "1"),
+  3: required list<WorkflowMirrorCheck> workflows (vt.min_size = "1"),
+}
+
 service OpsService {
   VersionResponse Version(
     1: required VersionRequest request,
@@ -89,5 +128,16 @@ service OpsService {
     cli.requirement_scope = "optional",
     cli.supports_dry_run = "false",
     cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON",
+  )
+
+  ConfigDriftResponse ConfigDrift(
+    1: required ConfigDriftRequest request,
+  ) throws (1: error.PublicError error) (
+    cli.id = "config.drift",
+    cli.summary = "Compare the active Git Workflow snapshot with its Fornax mirror",
+    cli.risk = "read",
+    cli.requirement_scope = "none",
+    cli.supports_dry_run = "false",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,INTERNAL",
   )
 }

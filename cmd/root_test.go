@@ -114,6 +114,7 @@ func TestRootOwnsRealDomainSubcommands(t *testing.T) {
 		"flow":   {"init", "report", "skills", "status"},
 		"trace":  {"bind", "render", "status", "sync"},
 		"card":   {"render"},
+		"config": {"drift"},
 		"verify": {"cleanup", "doctor", "smoke", "snapshot"},
 	}
 	for domain, operations := range want {
@@ -189,6 +190,7 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		"flow":      true,
 		"trace":     true,
 		"card":      true,
+		"config":    true,
 		"verify":    true,
 		"version":   true,
 		"doctor":    true,
@@ -439,6 +441,18 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"current or panorama",
 				"markdown or lark_json",
 				"view and format are required",
+			},
+		},
+		{
+			name:      "config drift",
+			commandID: "config.drift",
+			args:      []string{"config", "drift", "--help"},
+			want: []string{
+				"Request JSON:\n  {}",
+				"Read only",
+				"managed config/current snapshot",
+				"credential-free fornax.json",
+				"does not require --root",
 			},
 		},
 		{

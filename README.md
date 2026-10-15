@@ -14,6 +14,8 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 
 - `pstack-native`：六步剧本交付，完整包来自配置中心。
 - `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow（由 second-brain-skills 的 `select-workflow` Skill 选择）；Fanloop、RemNote Direct 等仓库的代码变更走 `code-change`（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
+- `ai-daily-brief`：采集公开 X 原创帖并生成中文 AI 日报。
+- `second-brain-skills-maintainer`：维护 Skills 仓库候选、验证与交付。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
 
 每套 Workflow 是仓库 `fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
@@ -81,6 +83,12 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 `flow init` 通过现有 SSH 凭据从 `git@github.com:zeefan1555/second-brain-skills.git` 的 main 拉取并验证完整集合，原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
 
 显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
+
+Fornax 是 Git 配置的个人空间镜像，不是运行时来源。`fanloop config drift` 使用用户已经登录的 `fornax-cli`，把 active `config/current` Git 快照与 `~/.fanloop/fornax.json` 中的 exact snake keys 对应的 Online/prod released 包逐文件比较。该配置只保存 workspace 与 key，不保存凭证、Skill ID 或版本；Runtime 和安装器不创建它。发布顺序和 Loop 兼容 ZIP 格式见 [ADR-0136](./docs/adr/0136-mirror-git-workflows-to-fornax.md)。
+
+```bash
+fanloop config drift
+```
 
 代码测试使用 `internal/workflow/testdata/{linear-runtime,runtime-controls}`，在隔离源的 `fanloop-workflow/` 下组装完整包。生产包验证入口为 `scripts/validate-configuration.py --help`。
 
@@ -179,8 +187,8 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 源码位于 GitHub 仓库 `zeefan1555/fanloop`。用户安装的 CLI 来自 GitHub Release；仓库不向 npm registry 发布。开发机仍可从精确 merge commit 执行 `./scripts/install-local.sh`。生产 Workflow 完整包在 `zeefan1555/second-brain-skills` 独立维护，配置更新不要求重建 CLI。
 
-发布与安装边界见 [ADR-0136](./docs/adr/0136-distribute-cli-from-github-releases.md)。本地开发构建见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，Workflow 配置、源绑定与 Dashboard 边界见
-[ADR-0132](./docs/adr/0132-git-workflow-configuration-center.md)。代码授权仍为 `UNLICENSED`。
+发布与安装边界见 [ADR-0136](./docs/adr/0136-distribute-cli-from-github-releases.md)。本地开发构建见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，Workflow Git 真值、源绑定与 Dashboard 边界见
+[ADR-0132](./docs/adr/0132-git-workflow-configuration-center.md)，个人空间镜像见 [ADR-0136](./docs/adr/0136-mirror-git-workflows-to-fornax.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)
 和 [docs/adr/](./docs/adr/)。

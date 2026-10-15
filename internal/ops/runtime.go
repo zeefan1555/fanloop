@@ -2,10 +2,12 @@ package ops
 
 import (
 	"context"
+	"errors"
 
 	"github.com/zeefan1555/fanloop/errs"
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	"github.com/zeefan1555/fanloop/internal/doctor"
+	"github.com/zeefan1555/fanloop/internal/fornaxmirror"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -43,4 +45,68 @@ func (Runtime) Doctor(_ context.Context, root string, request *opsidl.DoctorRequ
 	}
 	defer unlock()
 	return doctor.DefaultRuntime().Run(root), nil
+}
+
+func (Runtime) ConfigDrift(ctx context.Context, request *opsidl.ConfigDriftRequest) (*opsidl.ConfigDriftResponse, error) {
+	if request == nil {
+		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "request is required", nil)
+	}
+	dataRoot, err := release.DefaultDataRoot()
+	if err != nil {
+		return nil, err
+	}
+	report, err := fornaxmirror.Check(ctx, dataRoot, fornaxmirror.DefaultClient())
+	if err != nil {
+		code := erroridl.ErrorCode_INTERNAL
+		if errors.Is(err, fornaxmirror.ErrInvalidInput) {
+			code = erroridl.ErrorCode_INVALID_ARGUMENT
+		}
+		return nil, errs.NewCode(code, err.Error(), nil)
+	}
+	response := &opsidl.ConfigDriftResponse{Status: driftStatus(report.Status), Workflows: make([]*opsidl.WorkflowMirrorCheck, 0, len(report.Workflows))}
+	if report.ConfigurationCommit != "" {
+		response.ConfigurationCommit = stringPointer(report.ConfigurationCommit)
+	}
+	for _, item := range report.Workflows {
+		check := &opsidl.WorkflowMirrorCheck{WorkflowId: item.WorkflowID, SkillKey: item.SkillKey, Status: workflowStatus(item.Status)}
+		if item.SkillID != "" {
+			check.SkillId = stringPointer(item.SkillID)
+		}
+		if item.ReleasedVersion != "" {
+			check.ReleasedVersion = stringPointer(item.ReleasedVersion)
+		}
+		if item.Detail != "" {
+			check.Detail = stringPointer(item.Detail)
+		}
+		response.Workflows = append(response.Workflows, check)
+	}
+	return response, nil
+}
+
+func stringPointer(value string) *string { return &value }
+
+func driftStatus(value fornaxmirror.DriftStatus) opsidl.ConfigDriftStatus {
+	switch value {
+	case fornaxmirror.DriftInSync:
+		return opsidl.ConfigDriftStatus_in_sync
+	case fornaxmirror.Drifted:
+		return opsidl.ConfigDriftStatus_drifted
+	default:
+		return opsidl.ConfigDriftStatus_unavailable
+	}
+}
+
+func workflowStatus(value fornaxmirror.WorkflowStatus) opsidl.WorkflowMirrorStatus {
+	switch value {
+	case fornaxmirror.WorkflowInSync:
+		return opsidl.WorkflowMirrorStatus_in_sync
+	case fornaxmirror.WorkflowMissing:
+		return opsidl.WorkflowMirrorStatus_missing
+	case fornaxmirror.WorkflowUnreleased:
+		return opsidl.WorkflowMirrorStatus_unreleased
+	case fornaxmirror.WorkflowDrifted:
+		return opsidl.WorkflowMirrorStatus_drifted
+	default:
+		return opsidl.WorkflowMirrorStatus_unavailable
+	}
 }

@@ -75,3 +75,59 @@ func (p *DoctorResponse) IsValid() error {
 	}
 	return nil
 }
+func (p *ConfigDriftRequest) IsValid() error {
+	return nil
+}
+func (p *WorkflowMirrorCheck) IsValid() error {
+	if len(p.WorkflowId) < int(1) {
+		return fmt.Errorf("field WorkflowId min_len rule failed, current value: %d", len(p.WorkflowId))
+	}
+	if len(p.SkillKey) < int(1) {
+		return fmt.Errorf("field SkillKey min_len rule failed, current value: %d", len(p.SkillKey))
+	}
+	if p.Status.String() == "<UNSET>" {
+		return fmt.Errorf("field Status defined_only rule failed")
+	}
+	_src := []WorkflowMirrorStatus{WorkflowMirrorStatus_unspecified}
+	for _, src := range _src {
+		if p.Status == src {
+			return fmt.Errorf("field Status not_in rule failed, current value: %v", p.Status)
+		}
+	}
+	if p.SkillId != nil {
+		if len(*p.SkillId) < int(1) {
+			return fmt.Errorf("field SkillId min_len rule failed, current value: %d", len(*p.SkillId))
+		}
+	}
+	if p.ReleasedVersion != nil {
+		if len(*p.ReleasedVersion) < int(1) {
+			return fmt.Errorf("field ReleasedVersion min_len rule failed, current value: %d", len(*p.ReleasedVersion))
+		}
+	}
+	if p.Detail != nil {
+		if len(*p.Detail) < int(1) {
+			return fmt.Errorf("field Detail min_len rule failed, current value: %d", len(*p.Detail))
+		}
+	}
+	return nil
+}
+func (p *ConfigDriftResponse) IsValid() error {
+	if p.Status.String() == "<UNSET>" {
+		return fmt.Errorf("field Status defined_only rule failed")
+	}
+	_src := []ConfigDriftStatus{ConfigDriftStatus_unspecified}
+	for _, src := range _src {
+		if p.Status == src {
+			return fmt.Errorf("field Status not_in rule failed, current value: %v", p.Status)
+		}
+	}
+	if p.ConfigurationCommit != nil {
+		if len(*p.ConfigurationCommit) < int(1) {
+			return fmt.Errorf("field ConfigurationCommit min_len rule failed, current value: %d", len(*p.ConfigurationCommit))
+		}
+	}
+	if len(p.Workflows) < int(1) {
+		return fmt.Errorf("field Workflows MinLen rule failed, current value: %v", p.Workflows)
+	}
+	return nil
+}

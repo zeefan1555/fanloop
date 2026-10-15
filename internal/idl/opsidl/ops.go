@@ -209,6 +209,148 @@ func (p *DoctorCheckStatus) Value() (driver.Value, error) {
 	return int64(*p), nil
 }
 
+type ConfigDriftStatus int64
+
+const (
+	ConfigDriftStatus_unspecified ConfigDriftStatus = 0
+	ConfigDriftStatus_in_sync     ConfigDriftStatus = 1
+	ConfigDriftStatus_drifted     ConfigDriftStatus = 2
+	ConfigDriftStatus_unavailable ConfigDriftStatus = 3
+)
+
+func (p ConfigDriftStatus) String() string {
+	switch p {
+	case ConfigDriftStatus_unspecified:
+		return "unspecified"
+	case ConfigDriftStatus_in_sync:
+		return "in_sync"
+	case ConfigDriftStatus_drifted:
+		return "drifted"
+	case ConfigDriftStatus_unavailable:
+		return "unavailable"
+	}
+	return "<UNSET>"
+}
+
+func ConfigDriftStatusFromString(s string) (ConfigDriftStatus, error) {
+	switch s {
+	case "unspecified":
+		return ConfigDriftStatus_unspecified, nil
+	case "in_sync":
+		return ConfigDriftStatus_in_sync, nil
+	case "drifted":
+		return ConfigDriftStatus_drifted, nil
+	case "unavailable":
+		return ConfigDriftStatus_unavailable, nil
+	}
+	return ConfigDriftStatus(0), fmt.Errorf("not a valid ConfigDriftStatus string")
+}
+
+func ConfigDriftStatusPtr(v ConfigDriftStatus) *ConfigDriftStatus { return &v }
+
+func (p ConfigDriftStatus) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+func (p *ConfigDriftStatus) UnmarshalText(text []byte) error {
+	q, err := ConfigDriftStatusFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*p = q
+	return nil
+}
+
+func (p *ConfigDriftStatus) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = ConfigDriftStatus(result.Int64)
+	return
+}
+
+func (p *ConfigDriftStatus) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
+type WorkflowMirrorStatus int64
+
+const (
+	WorkflowMirrorStatus_unspecified WorkflowMirrorStatus = 0
+	WorkflowMirrorStatus_in_sync     WorkflowMirrorStatus = 1
+	WorkflowMirrorStatus_missing     WorkflowMirrorStatus = 2
+	WorkflowMirrorStatus_unreleased  WorkflowMirrorStatus = 3
+	WorkflowMirrorStatus_drifted     WorkflowMirrorStatus = 4
+	WorkflowMirrorStatus_unavailable WorkflowMirrorStatus = 5
+)
+
+func (p WorkflowMirrorStatus) String() string {
+	switch p {
+	case WorkflowMirrorStatus_unspecified:
+		return "unspecified"
+	case WorkflowMirrorStatus_in_sync:
+		return "in_sync"
+	case WorkflowMirrorStatus_missing:
+		return "missing"
+	case WorkflowMirrorStatus_unreleased:
+		return "unreleased"
+	case WorkflowMirrorStatus_drifted:
+		return "drifted"
+	case WorkflowMirrorStatus_unavailable:
+		return "unavailable"
+	}
+	return "<UNSET>"
+}
+
+func WorkflowMirrorStatusFromString(s string) (WorkflowMirrorStatus, error) {
+	switch s {
+	case "unspecified":
+		return WorkflowMirrorStatus_unspecified, nil
+	case "in_sync":
+		return WorkflowMirrorStatus_in_sync, nil
+	case "missing":
+		return WorkflowMirrorStatus_missing, nil
+	case "unreleased":
+		return WorkflowMirrorStatus_unreleased, nil
+	case "drifted":
+		return WorkflowMirrorStatus_drifted, nil
+	case "unavailable":
+		return WorkflowMirrorStatus_unavailable, nil
+	}
+	return WorkflowMirrorStatus(0), fmt.Errorf("not a valid WorkflowMirrorStatus string")
+}
+
+func WorkflowMirrorStatusPtr(v WorkflowMirrorStatus) *WorkflowMirrorStatus { return &v }
+
+func (p WorkflowMirrorStatus) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+func (p *WorkflowMirrorStatus) UnmarshalText(text []byte) error {
+	q, err := WorkflowMirrorStatusFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*p = q
+	return nil
+}
+
+func (p *WorkflowMirrorStatus) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = WorkflowMirrorStatus(result.Int64)
+	return
+}
+
+func (p *WorkflowMirrorStatus) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
 type VersionRequest struct {
 }
 
@@ -696,10 +838,306 @@ var fieldIDToName_DoctorResponse = map[int16]string{
 	3: "checks",
 }
 
+type ConfigDriftRequest struct {
+}
+
+func NewConfigDriftRequest() *ConfigDriftRequest {
+	return &ConfigDriftRequest{}
+}
+
+func (p *ConfigDriftRequest) InitDefault() {
+}
+
+func (p *ConfigDriftRequest) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ConfigDriftRequest(%+v)", *p)
+}
+
+func (p *ConfigDriftRequest) DeepEqual(ano *ConfigDriftRequest) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_ConfigDriftRequest = map[int16]string{}
+
+type WorkflowMirrorCheck struct {
+	WorkflowId      string               `thrift:"workflow_id,1,required" json:"workflow_id"`
+	SkillKey        string               `thrift:"skill_key,2,required" json:"skill_key"`
+	Status          WorkflowMirrorStatus `thrift:"status,3,required,WorkflowMirrorStatus" json:"status"`
+	SkillId         *string              `thrift:"skill_id,4,optional" json:"skill_id,omitempty"`
+	ReleasedVersion *string              `thrift:"released_version,5,optional" json:"released_version,omitempty"`
+	Detail          *string              `thrift:"detail,6,optional" json:"detail,omitempty"`
+}
+
+func NewWorkflowMirrorCheck() *WorkflowMirrorCheck {
+	return &WorkflowMirrorCheck{}
+}
+
+func (p *WorkflowMirrorCheck) InitDefault() {
+}
+
+func (p *WorkflowMirrorCheck) GetWorkflowId() (v string) {
+	return p.WorkflowId
+}
+
+func (p *WorkflowMirrorCheck) GetSkillKey() (v string) {
+	return p.SkillKey
+}
+
+func (p *WorkflowMirrorCheck) GetStatus() (v WorkflowMirrorStatus) {
+	return p.Status
+}
+
+var WorkflowMirrorCheck_SkillId_DEFAULT string
+
+func (p *WorkflowMirrorCheck) GetSkillId() (v string) {
+	if !p.IsSetSkillId() {
+		return WorkflowMirrorCheck_SkillId_DEFAULT
+	}
+	return *p.SkillId
+}
+
+var WorkflowMirrorCheck_ReleasedVersion_DEFAULT string
+
+func (p *WorkflowMirrorCheck) GetReleasedVersion() (v string) {
+	if !p.IsSetReleasedVersion() {
+		return WorkflowMirrorCheck_ReleasedVersion_DEFAULT
+	}
+	return *p.ReleasedVersion
+}
+
+var WorkflowMirrorCheck_Detail_DEFAULT string
+
+func (p *WorkflowMirrorCheck) GetDetail() (v string) {
+	if !p.IsSetDetail() {
+		return WorkflowMirrorCheck_Detail_DEFAULT
+	}
+	return *p.Detail
+}
+
+func (p *WorkflowMirrorCheck) IsSetSkillId() bool {
+	return p.SkillId != nil
+}
+
+func (p *WorkflowMirrorCheck) IsSetReleasedVersion() bool {
+	return p.ReleasedVersion != nil
+}
+
+func (p *WorkflowMirrorCheck) IsSetDetail() bool {
+	return p.Detail != nil
+}
+
+func (p *WorkflowMirrorCheck) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("WorkflowMirrorCheck(%+v)", *p)
+}
+
+func (p *WorkflowMirrorCheck) DeepEqual(ano *WorkflowMirrorCheck) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.WorkflowId) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.SkillKey) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.Status) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.SkillId) {
+		return false
+	}
+	if !p.Field5DeepEqual(ano.ReleasedVersion) {
+		return false
+	}
+	if !p.Field6DeepEqual(ano.Detail) {
+		return false
+	}
+	return true
+}
+
+func (p *WorkflowMirrorCheck) Field1DeepEqual(src string) bool {
+
+	if strings.Compare(p.WorkflowId, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *WorkflowMirrorCheck) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.SkillKey, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *WorkflowMirrorCheck) Field3DeepEqual(src WorkflowMirrorStatus) bool {
+
+	if p.Status != src {
+		return false
+	}
+	return true
+}
+func (p *WorkflowMirrorCheck) Field4DeepEqual(src *string) bool {
+
+	if p.SkillId == src {
+		return true
+	} else if p.SkillId == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.SkillId, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *WorkflowMirrorCheck) Field5DeepEqual(src *string) bool {
+
+	if p.ReleasedVersion == src {
+		return true
+	} else if p.ReleasedVersion == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.ReleasedVersion, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *WorkflowMirrorCheck) Field6DeepEqual(src *string) bool {
+
+	if p.Detail == src {
+		return true
+	} else if p.Detail == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.Detail, *src) != 0 {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_WorkflowMirrorCheck = map[int16]string{
+	1: "workflow_id",
+	2: "skill_key",
+	3: "status",
+	4: "skill_id",
+	5: "released_version",
+	6: "detail",
+}
+
+type ConfigDriftResponse struct {
+	Status              ConfigDriftStatus      `thrift:"status,1,required,ConfigDriftStatus" json:"status"`
+	ConfigurationCommit *string                `thrift:"configuration_commit,2,optional" json:"configuration_commit,omitempty"`
+	Workflows           []*WorkflowMirrorCheck `thrift:"workflows,3,required,list<WorkflowMirrorCheck>" json:"workflows"`
+}
+
+func NewConfigDriftResponse() *ConfigDriftResponse {
+	return &ConfigDriftResponse{}
+}
+
+func (p *ConfigDriftResponse) InitDefault() {
+}
+
+func (p *ConfigDriftResponse) GetStatus() (v ConfigDriftStatus) {
+	return p.Status
+}
+
+var ConfigDriftResponse_ConfigurationCommit_DEFAULT string
+
+func (p *ConfigDriftResponse) GetConfigurationCommit() (v string) {
+	if !p.IsSetConfigurationCommit() {
+		return ConfigDriftResponse_ConfigurationCommit_DEFAULT
+	}
+	return *p.ConfigurationCommit
+}
+
+func (p *ConfigDriftResponse) GetWorkflows() (v []*WorkflowMirrorCheck) {
+	return p.Workflows
+}
+
+func (p *ConfigDriftResponse) IsSetConfigurationCommit() bool {
+	return p.ConfigurationCommit != nil
+}
+
+func (p *ConfigDriftResponse) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ConfigDriftResponse(%+v)", *p)
+}
+
+func (p *ConfigDriftResponse) DeepEqual(ano *ConfigDriftResponse) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Status) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.ConfigurationCommit) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.Workflows) {
+		return false
+	}
+	return true
+}
+
+func (p *ConfigDriftResponse) Field1DeepEqual(src ConfigDriftStatus) bool {
+
+	if p.Status != src {
+		return false
+	}
+	return true
+}
+func (p *ConfigDriftResponse) Field2DeepEqual(src *string) bool {
+
+	if p.ConfigurationCommit == src {
+		return true
+	} else if p.ConfigurationCommit == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.ConfigurationCommit, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ConfigDriftResponse) Field3DeepEqual(src []*WorkflowMirrorCheck) bool {
+
+	if len(p.Workflows) != len(src) {
+		return false
+	}
+	for i, v := range p.Workflows {
+		_src := src[i]
+		if !v.DeepEqual(_src) {
+			return false
+		}
+	}
+	return true
+}
+
+var fieldIDToName_ConfigDriftResponse = map[int16]string{
+	1: "status",
+	2: "configuration_commit",
+	3: "workflows",
+}
+
 type OpsService interface {
 	Version(ctx context.Context, request *VersionRequest) (r *VersionResponse, err error)
 
 	Doctor(ctx context.Context, requirementRoot string, request *DoctorRequest) (r *DoctorResponse, err error)
+
+	ConfigDrift(ctx context.Context, request *ConfigDriftRequest) (r *ConfigDriftResponse, err error)
 }
 
 type OpsServiceVersionArgs struct {
@@ -984,6 +1422,141 @@ func (p *OpsServiceDoctorResult) Field1DeepEqual(src *erroridl.PublicError) bool
 }
 
 var fieldIDToName_OpsServiceDoctorResult = map[int16]string{
+	0: "success",
+	1: "error",
+}
+
+type OpsServiceConfigDriftArgs struct {
+	Request *ConfigDriftRequest `thrift:"request,1,required" json:"request"`
+}
+
+func NewOpsServiceConfigDriftArgs() *OpsServiceConfigDriftArgs {
+	return &OpsServiceConfigDriftArgs{}
+}
+
+func (p *OpsServiceConfigDriftArgs) InitDefault() {
+}
+
+var OpsServiceConfigDriftArgs_Request_DEFAULT *ConfigDriftRequest
+
+func (p *OpsServiceConfigDriftArgs) GetRequest() (v *ConfigDriftRequest) {
+	if !p.IsSetRequest() {
+		return OpsServiceConfigDriftArgs_Request_DEFAULT
+	}
+	return p.Request
+}
+
+func (p *OpsServiceConfigDriftArgs) IsSetRequest() bool {
+	return p.Request != nil
+}
+
+func (p *OpsServiceConfigDriftArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OpsServiceConfigDriftArgs(%+v)", *p)
+}
+
+func (p *OpsServiceConfigDriftArgs) DeepEqual(ano *OpsServiceConfigDriftArgs) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Request) {
+		return false
+	}
+	return true
+}
+
+func (p *OpsServiceConfigDriftArgs) Field1DeepEqual(src *ConfigDriftRequest) bool {
+
+	if !p.Request.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_OpsServiceConfigDriftArgs = map[int16]string{
+	1: "request",
+}
+
+type OpsServiceConfigDriftResult struct {
+	Success *ConfigDriftResponse  `thrift:"success,0,optional" json:"success,omitempty"`
+	Error   *erroridl.PublicError `thrift:"error,1,optional" json:"error,omitempty"`
+}
+
+func NewOpsServiceConfigDriftResult() *OpsServiceConfigDriftResult {
+	return &OpsServiceConfigDriftResult{}
+}
+
+func (p *OpsServiceConfigDriftResult) InitDefault() {
+}
+
+var OpsServiceConfigDriftResult_Success_DEFAULT *ConfigDriftResponse
+
+func (p *OpsServiceConfigDriftResult) GetSuccess() (v *ConfigDriftResponse) {
+	if !p.IsSetSuccess() {
+		return OpsServiceConfigDriftResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var OpsServiceConfigDriftResult_Error_DEFAULT *erroridl.PublicError
+
+func (p *OpsServiceConfigDriftResult) GetError() (v *erroridl.PublicError) {
+	if !p.IsSetError() {
+		return OpsServiceConfigDriftResult_Error_DEFAULT
+	}
+	return p.Error
+}
+
+func (p *OpsServiceConfigDriftResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *OpsServiceConfigDriftResult) IsSetError() bool {
+	return p.Error != nil
+}
+
+func (p *OpsServiceConfigDriftResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OpsServiceConfigDriftResult(%+v)", *p)
+}
+
+func (p *OpsServiceConfigDriftResult) DeepEqual(ano *OpsServiceConfigDriftResult) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field0DeepEqual(ano.Success) {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Error) {
+		return false
+	}
+	return true
+}
+
+func (p *OpsServiceConfigDriftResult) Field0DeepEqual(src *ConfigDriftResponse) bool {
+
+	if !p.Success.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *OpsServiceConfigDriftResult) Field1DeepEqual(src *erroridl.PublicError) bool {
+
+	if !p.Error.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_OpsServiceConfigDriftResult = map[int16]string{
 	0: "success",
 	1: "error",
 }

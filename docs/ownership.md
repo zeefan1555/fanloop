@@ -10,6 +10,7 @@ orchestration directory.
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback read-only viewer and explicit source editor |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
 | Configuration source | `internal/configuration/`, `internal/workflow/{sources,configuration}.go` | Git main snapshots, explicit author source, complete validation and atomic activation |
+| Fornax mirror | `internal/fornaxmirror/`, `tools/workflow-package/`, `cmd/config.go`, `idl/ops.thrift` ConfigDrift symbols | Loop-compatible archives, credential-free mirror mapping, released-package readback and read-only drift |
 | Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh`, `package.json` | Immutable local CLI builds, offline installation, diagnosis and nested Release switching |
 | Distribution | `internal/distribution/`, `cmd/update.go`, `packaging/npm/`, `scripts/{build-release.sh,verify-release-assets.js}`, `.github/workflows/release.yml` | GitHub Release assets, checksum verification, the npm launcher, and `fanloop update` / `fanloop update config` |
 
@@ -27,7 +28,7 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`, including code-change, write-skill, daily-journal, general, pstack-native and remnote-flashcards. ADR-0135 retired fanloop-maintainer and remnote-direct-maintainer; code changes use the `code-change` Workflow. ADR-0132 supersedes ADR-0128's retirement inventory only.
+Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`. The current set is ai-daily-brief, code-change, daily-journal, general, pstack-native, remnote-flashcards, second-brain-skills-maintainer and write-skill. ADR-0135 retired fanloop-maintainer and remnote-direct-maintainer; code changes use the `code-change` Workflow. ADR-0132 supersedes ADR-0128's retirement inventory only.
 
 ## Verify entry
 

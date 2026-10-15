@@ -210,6 +210,7 @@ func TestContractCommandParserCoversTopLevelOperations(t *testing.T) {
 	}{
 		{id: "version", args: []string{"version"}},
 		{id: "doctor", args: []string{"doctor"}},
+		{id: "config.drift", args: []string{"config", "drift"}},
 		{id: "flow.report.progress", args: []string{"flow", "report", "progress"}},
 		{id: "flow.report.result", args: []string{"flow", "report", "result"}},
 	} {

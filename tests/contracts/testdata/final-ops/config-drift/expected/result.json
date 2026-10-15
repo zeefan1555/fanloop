@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "final-ops-config-drift",
+  "commands": [
+    {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"validation\",\n    \"code\": \"INVALID_INPUT_JSON\",\n    \"message\": \"json: unknown field \\\"unexpected\\\"\",\n    \"hint\": \"Pass one JSON object matching the command Request.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"config.drift\"\n  },\n  \"_notice\": {}\n}\n"
+    }
+  ],
+  "files": {}
+}

@@ -15,6 +15,8 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括：
 
 - `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow，由 second-brain-skills 的 `select-workflow` Skill 选择；代码变更走 `code-change`（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
+- `ai-daily-brief`：公开 X 来源的中文 AI 日报流程。
+- `second-brain-skills-maintainer`：Skills 仓库的隔离候选、验证与交付流程。
 - `pstack-native`：六步剧本交付，保留完整脚本与资源。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 
@@ -100,6 +102,8 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 
 `$FANLOOP_DATA_HOME/config/current` 指向不可变 Git 配置快照。flow init 在稳定锁内拉取 main、校验整集、记录配置身份并原子激活；dry-run 只校验。已有 flow status/report/skills 离线读取。显式 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。完整包目录是 fanloop-workflow/<id>。配置失败不创建 Requirement，也不替换 current。
 
+Fornax 是 Git main 的发布后镜像。`internal/fornaxmirror` 复用同一 Workflow loader 生成和验证 Loop 格式 ZIP，并通过用户已登录的 `fornax-cli` 做只读 discovery/download。`fanloop config drift` 只比较 managed snapshot 与 credential-free `fornax.json` 中的个人空间 exact keys；它不改变 current、Requirement 或远端。Doctor 继续保持离线。发布必须先合入 Git main 并完成本地 flow-init 回读，见 [ADR-0136](./adr/0136-mirror-git-workflows-to-fornax.md)。
+
 `fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认绑定源只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启该仓库保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；可编辑当前绑定仓库，不调用远端配置服务。
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。
 本地源绑定、完整包与 Dashboard 边界见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
@@ -121,4 +125,4 @@ Route Matrix 由 CI 的 `requirement-e2e` 执行；固定生产发布的矩阵�
 `run-unit` 先完成格式与生成物检查，再并发执行互不共享可写状态的 vet、Go test 和本地 Route Matrix；
 它等待所有已启动检查并聚合失败。脚本显式使用 Go 自动工具链选择，避免宿主 `GOTOOLCHAIN=local` 让仓库门禁在运行前失败。
 
-`flow skills` exposes the complete current Workflow Skill catalog for dynamic reading; membership does not make a Skill mandatory. The catalog decision is recorded in [ADR-0128](./adr/0128-discover-workflow-skills-and-retire-pstack-native.md); the current four-package inventory and the `pstack-native` restoration override are recorded in [ADR-0132](./adr/0132-git-workflow-configuration-center.md).
+`flow skills` exposes the complete current Workflow Skill catalog for dynamic reading; membership does not make a Skill mandatory. The catalog decision is recorded in [ADR-0128](./adr/0128-discover-workflow-skills-and-retire-pstack-native.md); current inventory is read from second-brain-skills main rather than a code-owned list.

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "id": "final-ops-config-drift",
+  "commands": [
+    {"args": ["config", "drift", "--input", "{\"unexpected\":true}"]}
+  ]
+}

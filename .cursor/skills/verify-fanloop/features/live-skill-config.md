@@ -6,6 +6,7 @@
 - New flow init fetches, validates and activates an immutable commit snapshot.
 - Existing status/report/skills are offline; explicit repository source bypasses refresh.
 - Complete path/content/executable-bit identity, shared locking, no partial activation.
+- Optional personal Fornax mirror with Git-first publication and read-only drift; never a runtime provider.
 
 ## How to get to it (user POV)
 
@@ -17,6 +18,8 @@ Use a local Git fixture through Git's url.insteadOf for repeatable remote-main t
 
 Use an explicit author source to prove immediate edit visibility and invalid-source rejection. scripts/validate-configuration.py validates the fixed full collection, records its complete manifest, supports affected --workflow selection and checks unchanged source. Unknown IDs fail before matrices.
 
+For mirror coverage, install the candidate into an isolated data home with a committed configuration snapshot and a credential-free `fornax.json`. Put a fake `fornax-cli` on isolated PATH that exposes exact Skill list, Online/prod releases and downloaded package bytes. Run `fanloop config drift`: identical wrapper, source commit, files and executable bits return `in_sync` and exit 0; missing or unreleased keys and byte/mode changes return explicit drift with exit 1; CLI failure or unsafe download returns unavailable without copying credentials or diagnostics. Confirm Runtime/installer never creates `fornax.json` and ordinary Doctor/Flow calls never invoke the fake CLI.
+
 ## Gotchas
 
-Snapshots are immutable; edit and commit the source repository. Default Dashboard is read-only. Author roots use the same category layout. No manual update, tag or provider selector exists. Capture configuration_manifest_sha256 with the frozen code candidate.
+Snapshots are immutable; edit and commit the source repository. Default Dashboard is read-only. Author roots use the same category layout. No runtime provider selector exists. The Fornax mirror is checked only by explicit `config drift`; publication occurs only after Git main and local init readback. Capture configuration_manifest_sha256 with the frozen code candidate.

@@ -63,6 +63,9 @@
 3. 已有 Requirement 的 status/report/skills 离线读取当前快照。显式绝对 `FANLOOP_CONFIG_SOURCE` 指向配置仓库根，跳过远端刷新，用于作者和测试。Dashboard 默认只读快照，仅显式作者源可编辑；共享源锁、摘要检查和完整包校验不变。
 4. 本地安装器离线；显式 `--config-source` 导入干净 Git 提交，否则保留 current。首次安装无配置时由后续 init 拉取。configuration.json 记录提交、Workflow IDs 和路径/内容/executable bit 的完整摘要。
 5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
+6. Fornax 只镜像已经合入 second-brain-skills main 并被本地 `flow init` 回读的精确 Git 提交，不参与 Runtime、安装、Doctor、Dashboard、配置刷新或 fallback。镜像 ZIP 根只含包装 `SKILL.md` 与唯一 `<workflow-id>/`；内部含五 YAML、可选 `trace.yaml` 和完整 `skills/**`。
+7. 镜像 key 固定为 `fanloop.workflow.<snake_id>`。`${FANLOOP_DATA_HOME:-$HOME/.fanloop}/fornax.json` 只存 workspace 与 Workflow/key 映射；Runtime 和安装器不创建或修改它，也不得写入凭证、Skill ID 或版本。
+8. 发布严格按本地校验、PR 合入 main、本地 `flow init` 回读、Fornax create/commit/release、released 回读、下载逐字节与 executable bit 比对、`fanloop config drift` in_sync 的顺序执行。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
 
 ## YAML 架构真值与自动校验
 
