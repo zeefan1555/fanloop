@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -62,5 +63,36 @@ func TestUpdateAndUpdateConfigPrintReleasedWorkflows(t *testing.T) {
 	want = "fanloop configuration is already up to date: linear-runtime@1.0.0, pstack-native@1.0.2\n"
 	if stdout.String() != want || releaseCalls != 1 || configCalls != 2 {
 		t.Fatalf("update config stdout=%q release=%d config=%d", stdout.String(), releaseCalls, configCalls)
+	}
+}
+
+func TestFailedUpdateAndUpdateConfigExitNonZero(t *testing.T) {
+	t.Setenv("FANLOOP_DATA_HOME", t.TempDir())
+	previousRelease := applyReleaseUpdate
+	previousConfig := applyConfigSync
+	t.Cleanup(func() {
+		applyReleaseUpdate = previousRelease
+		applyConfigSync = previousConfig
+	})
+	applyReleaseUpdate = func(context.Context, string) (distribution.Result, error) {
+		return distribution.Result{Version: "1.2.3"}, nil
+	}
+	applyConfigSync = func(context.Context, string) (fornaxmirror.SyncResult, error) {
+		return fornaxmirror.SyncResult{}, fmt.Errorf("discover Fornax workflows: boom")
+	}
+	var stdout, stderr bytes.Buffer
+	if code := Execute(context.Background(), []string{"update"}, strings.NewReader(""), &stdout, &stderr); code != 1 {
+		t.Fatalf("update exit=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	if stdout.String() != "updated 1.2.3\n" || stderr.String() != "fanloop update: discover Fornax workflows: boom\n" {
+		t.Fatalf("update stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	if code := Execute(context.Background(), []string{"update", "config"}, strings.NewReader(""), &stdout, &stderr); code != 1 {
+		t.Fatalf("update config exit=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	if stdout.Len() != 0 || stderr.String() != "fanloop update: discover Fornax workflows: boom\n" {
+		t.Fatalf("update config stdout=%q stderr=%q", stdout.String(), stderr.String())
 	}
 }

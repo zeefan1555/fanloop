@@ -16,6 +16,10 @@ import (
 
 var keySuffixPattern = regexp.MustCompile(`^[a-z0-9_]+$`)
 
+var warnSkippedKey = func(key string) {
+	fmt.Fprintf(os.Stderr, "warning: skipping Fornax Skill key %s\n", key)
+}
+
 type Skill struct {
 	ID  string
 	Key string
@@ -72,7 +76,11 @@ func (client CLIClient) ListByPrefix(ctx context.Context, workspaceID, prefix st
 			continue
 		}
 		suffix := strings.TrimPrefix(skill.Key, prefix)
-		if skill.ID == "" || !keySuffixPattern.MatchString(suffix) {
+		if !keySuffixPattern.MatchString(suffix) {
+			warnSkippedKey(skill.Key)
+			continue
+		}
+		if skill.ID == "" {
 			return nil, fmt.Errorf("invalid Fornax Skill key %s", skill.Key)
 		}
 		if seen[skill.Key] {
