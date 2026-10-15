@@ -4,11 +4,11 @@ import (
 	"archive/zip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/configuration"
@@ -38,6 +38,10 @@ func (client fakeClient) Releases(context.Context, string, string) ([]Release, e
 	return []Release{{Version: "1.0.0", UpdatedAt: 1}}, nil
 }
 
+func (client fakeClient) ListByPrefix(ctx context.Context, workspaceID, prefix string) ([]Skill, error) {
+	return client.Skills(ctx, workspaceID, prefix)
+}
+
 func (client fakeClient) Install(_ context.Context, _, key, version, directory string) (string, error) {
 	archive := filepath.Join(directory, "candidate.zip")
 	if _, err := BuildArchive(client.source, "linear-runtime", key, client.commit, version, archive); err != nil {
@@ -57,57 +61,56 @@ func (client fakeClient) Install(_ context.Context, _, key, version, directory s
 	return root, nil
 }
 
-func TestCheckReportsInSyncAndDrift(t *testing.T) {
-	dataRoot, source, commit := activeSnapshot(t)
-	client := fakeClient{source: source, commit: commit}
+func TestCheckUsesReleasedPackageAsReference(t *testing.T) {
+	unsetConfigSource(t)
+	dataRoot := t.TempDir()
+	writeFornaxSources(t, dataRoot)
+	client := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2"}
+	if _, err := Sync(context.Background(), dataRoot, client); err != nil {
+		t.Fatal(err)
+	}
 	report, err := Check(context.Background(), dataRoot, client)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != DriftInSync || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowInSync || report.ConfigurationCommit != commit {
+	if report.Status != DriftInSync || report.ConfigurationCommit != "" || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowInSync || report.Workflows[0].WorkflowID != "linear-runtime" || report.Workflows[0].ReleasedVersion != "1.0.0" || report.Workflows[0].SkillKey != "fanloop.workflow.linear_runtime" {
 		t.Fatalf("in-sync report = %#v", report)
 	}
-	client.drift = true
+	client.personalVersion = "1.0.1"
+	client.mutate = true
 	report, err = Check(context.Background(), dataRoot, client)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != Drifted || report.Workflows[0].Status != WorkflowDrifted || report.Workflows[0].Detail != "package content differs" {
-		t.Fatalf("drift report = %#v", report)
+	if report.Status != DriftLocalBehind || report.Workflows[0].Status != WorkflowLocalBehind || report.Workflows[0].Detail != "released version is 1.0.1" {
+		t.Fatalf("behind report = %#v", report)
 	}
-	client = fakeClient{source: source, commit: commit, modeOnly: true}
+	client.personalVersion = "1.0.0"
 	report, err = Check(context.Background(), dataRoot, client)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != DriftInSync || report.Workflows[0].Status != WorkflowInSync || !strings.Contains(report.Workflows[0].Detail, "file mode differs for linear-runtime/skills/test-guide/SKILL.md") {
-		t.Fatalf("mode-only report = %#v", report)
+	if report.Status != DriftLocalModified || report.Workflows[0].Status != WorkflowLocalModified || report.Workflows[0].Detail != "package content differs" {
+		t.Fatalf("modified report = %#v", report)
 	}
-	client = fakeClient{source: source, commit: commit, missing: true}
+	client.mutate = false
+	client.failInstall = true
 	report, err = Check(context.Background(), dataRoot, client)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != Drifted || report.Workflows[0].Status != WorkflowMissing {
-		t.Fatalf("missing report = %#v", report)
-	}
-	client = fakeClient{source: source, commit: commit, failure: true}
-	report, err = Check(context.Background(), dataRoot, client)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if report.Status != DriftUnavailable || report.Workflows[0].Status != WorkflowUnavailable {
+	if report.Status != DriftUnavailable || report.Workflows[0].Status != WorkflowUnavailable || report.Workflows[0].Detail != "Fornax package download failed" {
 		t.Fatalf("unavailable report = %#v", report)
 	}
 }
 
 type lockProbeClient struct {
-	fakeClient
+	*syncClient
 	lockPath string
 	checked  *bool
 }
 
-func (client lockProbeClient) Skills(ctx context.Context, workspaceID, key string) ([]Skill, error) {
+func (client lockProbeClient) ListByPrefix(ctx context.Context, workspaceID, prefix string) ([]Skill, error) {
 	lock, err := os.OpenFile(client.lockPath, os.O_RDWR, 0)
 	if err != nil {
 		return nil, err
@@ -118,13 +121,55 @@ func (client lockProbeClient) Skills(ctx context.Context, workspaceID, key strin
 	}
 	_ = unix.Flock(int(lock.Fd()), unix.LOCK_UN)
 	*client.checked = true
-	return client.fakeClient.Skills(ctx, workspaceID, key)
+	return client.syncClient.ListByPrefix(ctx, workspaceID, prefix)
+}
+
+func TestCheckSkipsInvalidReadOnlyPackage(t *testing.T) {
+	unsetConfigSource(t)
+	dataRoot := t.TempDir()
+	writeFornaxSources(t, dataRoot)
+	var warnings []string
+	previous := warnSkippedPackage
+	warnSkippedPackage = func(key, version string, err error) {
+		warnings = append(warnings, fmt.Sprintf("warning: skipping read-only package %s@%s: %s", key, version, err))
+	}
+	t.Cleanup(func() { warnSkippedPackage = previous })
+	client := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2", badReadOnly: true}
+	if _, err := Sync(context.Background(), dataRoot, client); err != nil {
+		t.Fatal(err)
+	}
+	warnings = nil
+	report, err := Check(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != DriftInSync || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowInSync || report.Workflows[0].WorkflowID != "linear-runtime" || report.Workflows[0].SkillKey != "fanloop.workflow.linear_runtime" {
+		t.Fatalf("in-sync report = %#v", report)
+	}
+	if len(warnings) != 1 || warnings[0] != `warning: skipping read-only package loop.workflow.linear_runtime@1.0.2: package name "other" does not match workflow id "linear-runtime"` {
+		t.Fatalf("warnings = %#v", warnings)
+	}
+	client.badReadOnly = false
+	client.badReadWrite = true
+	report, err = Check(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != DriftUnavailable || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowUnavailable || report.Workflows[0].Detail != "Fornax package is invalid" {
+		t.Fatalf("unavailable report = %#v", report)
+	}
 }
 
 func TestCheckReleasesConfigurationLockBeforeFornaxQuery(t *testing.T) {
-	dataRoot, source, commit := activeSnapshot(t)
+	unsetConfigSource(t)
+	dataRoot := t.TempDir()
+	writeFornaxSources(t, dataRoot)
+	inner := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2"}
+	if _, err := Sync(context.Background(), dataRoot, inner); err != nil {
+		t.Fatal(err)
+	}
 	checked := false
-	client := lockProbeClient{fakeClient: fakeClient{source: source, commit: commit}, lockPath: filepath.Join(dataRoot, ".workflows.lock"), checked: &checked}
+	client := lockProbeClient{syncClient: inner, lockPath: filepath.Join(dataRoot, ".workflows.lock"), checked: &checked}
 	report, err := Check(context.Background(), dataRoot, client)
 	if err != nil {
 		t.Fatal(err)

@@ -185,3 +185,10 @@ func extractZip(t *testing.T, archive, destination string) {
 		}
 	}
 }
+
+func TestBuildWithoutFlagsNamesRecoveryPath(t *testing.T) {
+	err := build(nil)
+	if err == nil || err.Error() != "recovery-only build requires --source, --config, --version and --output" {
+		t.Fatalf("err = %v", err)
+	}
+}

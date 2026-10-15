@@ -39,6 +39,11 @@
       "sha256": "9b8afca230a90ac4852d7c32fce1942c53ecd4828d1acaf66900c36175a381fd",
       "content": "{\n  \"schema_version\": 7,\n  \"requirement\": {\n    \"title\": \"Synthetic Doctor Contract\"\n  },\n  \"release\": {\n    \"version\": \"dev\",\n    \"workflow\": {\n      \"id\": \"linear-runtime\"\n    }\n  },\n  \"current_step_id\": \"first\",\n  \"current_step_status\": \"ready\",\n  \"current_step_summary\": \"workflow initialized\",\n  \"outputs\": {},\n  \"source_event_id\": \"\u003cEVENT_ID\u003e\",\n  \"updated_at\": \"\u003cTIMESTAMP\u003e\",\n  \"skipped_step_ids\": []\n}\n"
     },
+    ".fanloop/configuration-snapshot": {
+      "mode": "0600",
+      "sha256": "3673a17c0199533448d2bb4a205d0bc5966731da9b0f1645ec913b7aba1a3ffc",
+      "content": "\u003cROOT\u003e/.fanloop-user/source\n"
+    },
     ".fanloop/flow/state.json": {
       "mode": "0600",
       "sha256": "aedc6ae3316848c17f60ac2c46415923d170a2ff9bfa445a95e0e3488819d55d",

@@ -67,20 +67,26 @@ struct DoctorResponse {
   3: required list<DoctorCheck> checks,
 }
 
+// drifted, missing, and unreleased remain so older values still decode.
+// config drift does not emit them. The released package is the reference.
 enum ConfigDriftStatus {
-  unspecified = 0,
-  in_sync     = 1,
-  drifted     = 2,
-  unavailable = 3,
+  unspecified    = 0,
+  in_sync        = 1,
+  drifted        = 2,
+  unavailable    = 3,
+  local_behind   = 4,
+  local_modified = 5,
 }
 
 enum WorkflowMirrorStatus {
-  unspecified = 0,
-  in_sync     = 1,
-  missing     = 2,
-  unreleased  = 3,
-  drifted     = 4,
-  unavailable = 5,
+  unspecified    = 0,
+  in_sync        = 1,
+  missing        = 2,
+  unreleased     = 3,
+  drifted        = 4,
+  unavailable    = 5,
+  local_behind   = 6,
+  local_modified = 7,
 }
 
 struct ConfigDriftRequest {}
@@ -134,7 +140,7 @@ service OpsService {
     1: required ConfigDriftRequest request,
   ) throws (1: error.PublicError error) (
     cli.id = "config.drift",
-    cli.summary = "Compare the active Git Workflow snapshot with its Fornax mirror",
+    cli.summary = "Compare the active Workflow snapshot with the latest Fornax release",
     cli.risk = "read",
     cli.requirement_scope = "none",
     cli.supports_dry_run = "false",

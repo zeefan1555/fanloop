@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/configuration"
 )
 
 func TestCommandPathCheckWarnsForDistributionInstall(t *testing.T) {
@@ -38,5 +40,22 @@ func TestCommandPathCheckWarnsForDistributionInstall(t *testing.T) {
 	}
 	if (Runtime{}).commandPathCheck() != nil {
 		t.Fatal("development current should not add a PATH check")
+	}
+}
+
+func TestWorkflowCheckNamesFornaxReleaseSet(t *testing.T) {
+	dataRoot := t.TempDir()
+	source := t.TempDir()
+	if err := os.CopyFS(filepath.Join(source, "fanloop-workflow", "linear-runtime"), os.DirFS(filepath.Join("..", "workflow", "testdata", "linear-runtime"))); err != nil {
+		t.Fatal(err)
+	}
+	releases := []configuration.ReleaseRef{{Key: "fanloop.workflow.linear_runtime", Version: "1.0.0", WorkflowID: "linear-runtime"}}
+	snapshot, err := configuration.PublishRelease(dataRoot, source, releases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := Runtime{WorkflowRoot: filepath.Join(snapshot, "fanloop-workflow")}.workflowCheck()
+	if check.Status != statusPass || !strings.Contains(check.Summary, "release_set_digest=8ad2b03e5cbf97096c3fa421c6ea9cd5a273e87cef72c330fff555a22119de99") || strings.Contains(check.Summary, "commit_sha=") {
+		t.Fatalf("summary = %q", check.Summary)
 	}
 }

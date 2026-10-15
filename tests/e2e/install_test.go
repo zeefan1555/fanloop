@@ -170,8 +170,8 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatal(err)
 	}
 	globalOldStatus := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", oldRoot)
-	if globalOldStatus.err != nil || !strings.Contains(globalOldStatus.stdout, "candidate prompt") {
-		t.Fatalf("upgraded CLI did not preserve and reload the existing live Workflow: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
+	if globalOldStatus.err != nil || strings.Contains(globalOldStatus.stdout, "candidate prompt") || !strings.Contains(globalOldStatus.stdout, "读取用户材料") {
+		t.Fatalf("upgraded CLI did not keep the requirement on its initialized snapshot: %v\nstdout: %s\nstderr: %s", globalOldStatus.err, globalOldStatus.stdout, globalOldStatus.stderr)
 	}
 	after, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
 	if err != nil {

@@ -4,6 +4,7 @@ date: 2026-10-15
 supersedes: ADR-0122
 supersedes_in_part: ADR-0095, ADR-0123, ADR-0132
 amends: ADR-0108
+amended_by: ADR-0137-take-workflow-configuration-from-fornax
 ---
 
 # 从 GitHub Release 分发 CLI

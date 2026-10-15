@@ -5,7 +5,7 @@
 - Offline source build and installation; optional clean Git configuration import.
 - GitHub Release install: platform archive, checksums.txt, release.json, the thin npm launcher, public Skill links, and `npm i -g --foreground-scripts --allow-scripts=fanloop`.
 - `fanloop update` keeps a newer installed release instead of downgrading to `latest`. `fanloop doctor` warns with `export PATH=...` when that distribution install is not on PATH.
-- `fanloop update` switches only the CLI. `fanloop update config` syncs Workflow snapshots, skips an unchanged commit, and prints each Workflow version.
+- `fanloop update` installs the CLI and then synchronizes released Fornax Workflow packages. `fanloop update config` synchronizes those packages, skips an unchanged released set, and prints each `id@version`.
 - Release version, commit, binary checksum and both public Skill entrypoints.
 - Stable `current/` and nested Release selector, separate from `config/current` source binding.
 - Failed installation preserves the active Release and previous source binding.
@@ -35,7 +35,7 @@ before and after; it must remain unchanged.
 ## Gotchas
 
 Source builds may warn about a missing Release manifest, and first installation warns before the first configuration fetch. Broken bindings and explicit sources fail. Installed versions use `VERSION-dev.<commit-or-content-digest>`. Configuration
-packages stay outside the immutable Release. Installation never fetches; flow init uses the Git configuration center.
+packages stay outside the immutable Release. Installation never fetches. With `fornax.json` and no `FANLOOP_CONFIG_SOURCE`, flow init reads the Fornax snapshot; otherwise it uses the Git configuration center.
 
 A no-source-context verifier validates the distributed install command receipt,
 binary digest, binding and public CLI readbacks. It must not claim it executed the

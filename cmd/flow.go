@@ -113,8 +113,8 @@ func newFlowInitCommand(ioStreams streams, root *string) *cobra.Command {
   Initialize a new Requirement with one Workflow, only after flow status reports NOT_INITIALIZED.
 
 Effect:
-  Fetch second-brain-skills main, validate and activate an immutable configuration snapshot, then create local Flow State.
-  Dry-run fetches and validates without activation or State. An explicit FANLOOP_CONFIG_SOURCE uses the local author repository.
+  When fornax.json is present, use the active Fornax snapshot. If none is installed, a non-dry-run init syncs the latest release. Otherwise fetch second-brain-skills main, validate and activate an immutable configuration snapshot, then create local Flow State.
+  Dry-run validates without activation or State. An explicit FANLOOP_CONFIG_SOURCE uses the local author repository and skips Fornax.
 
 Request JSON:
   {

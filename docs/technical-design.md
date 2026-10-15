@@ -100,16 +100,16 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
 复用目录安装，离线切换 CLI Release；显式配置源导入干净提交快照，否则保留已有配置。
 
-`$FANLOOP_DATA_HOME/config/current` 指向不可变 Git 配置快照。flow init 在稳定锁内拉取 main、校验整集、记录配置身份并原子激活；dry-run 只校验。已有 flow status/report/skills 离线读取。显式 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。完整包目录是 fanloop-workflow/<id>。配置失败不创建 Requirement，也不替换 current。
+存在 `fornax.json` 时，`$FANLOOP_DATA_HOME/config/current` 指向不可变 Fornax 快照，目录名是排序后 `key@version` 行的 sha256。`flow init` 使用这份快照，不用 Git 覆盖它。没有 `fornax.json` 时，`flow init` 仍在稳定锁内拉取 main。显式 `FANLOOP_CONFIG_SOURCE` 指向作者仓库根并跳过刷新。完整包目录是 `fanloop-workflow/<id>`。配置失败不创建 Requirement，也不替换 current。新 Requirement 把快照目录写到 `.fanloop/configuration-snapshot`。
 
-Fornax 是 Git main 的发布后镜像。`internal/fornaxmirror` 复用同一 Workflow loader 生成和验证 Loop 格式 ZIP，并通过用户已登录的 `fornax-cli` 做只读 discovery/download。`fanloop config drift` 与 `tools/workflow-package compare --archive --directory` 只比较相对路径和文件字节；Fornax 不保留 Unix 文件模式，仅模式不同不会失败。ZIP 构建仍记录可执行位。比较对象是 managed snapshot 与 credential-free `fornax.json` 中的个人空间 exact keys；它不改变 current、Requirement 或远端。Doctor 继续保持离线。发布必须先合入 Git main 并完成本地 flow-init 回读，见 [ADR-0136](./adr/0136-mirror-git-workflows-to-fornax.md)。
+`fanloop update` 和 `fanloop update config` 通过用户已登录的 `fornax-cli` 发现并安装每个 source 的最新 Online/prod 发布。个人 `read_write` 源在 workflow id 冲突时胜出。程序不内置 AK/SK。见 [ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)。`fanloop config drift` 以最新发布包为参照，报告 `in_sync`、`local_behind`、`local_modified` 或 `unavailable`。Doctor 对 Fornax 快照打印 `release_set_digest`。
 
 `fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认绑定源只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启该仓库保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；可编辑当前绑定仓库，不调用远端配置服务。
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。
 本地源绑定、完整包与 Dashboard 边界见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`；`fanloop update config` 只同步 Workflow 快照，commit 未变时跳过 checkout。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。生产 Workflow 在 second-brain-skills 独立维护；`update config` 与新的 `flow init` 才会拉取远端配置，已有 `flow status/report/skills` 继续离线读取当前不可变快照。完整决定见
-[ADR-0136](./adr/0136-distribute-cli-from-github-releases.md)、[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
+用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 CLI 的 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`，然后同步 Fornax Workflow 包。`fanloop update config` 只做这次同步；已发布集合和已安装树都没变时跳过下载。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。已有 `flow status/report/skills` 读取该 Requirement 固定的快照。完整决定见
+[ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)、[ADR-0136](./adr/0136-distribute-cli-from-github-releases.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
 新增生产 Workflow 直接增加 fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 

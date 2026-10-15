@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-18
 amends: ADR-0012, ADR-0040
+amended_by: ADR-0137-take-workflow-configuration-from-fornax
 ---
 
 # 用叶子命令 Help 取代公开 Schema 发现入口
@@ -24,7 +25,7 @@ Feature Flag 或双注册。
 删除 Schema 不改变 Thrift-first 真值。模块化 Thrift Service、生成 Request/Response、
 静态 validator、CommandSpec、公共 ErrorSpec、JsonValue、统一结果信封和领域 Runtime
 继续保留；Cobra 继续负责命令路径、typed flags、输入传输、运行控制与 Help。Help
-不复制完整 Response Schema 或 Error catalog。
+不复制完整 Response Schema。叶子 Help 列出该命令 CommandSpec 里的错误码、类型、退出码、是否可重试和 hint。
 
 本决策修订 ADR-0012 中“`schema list` 和 `schema describe` 是两个独立命令”的部分，
 保留一个逻辑命令一个强类型 Request、typed flags/`--input` 二选一以及运行控制不进入

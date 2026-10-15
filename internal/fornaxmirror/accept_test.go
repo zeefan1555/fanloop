@@ -71,6 +71,46 @@ func TestMaterializeFanloopWrapperAllowsMissingSourceCommit(t *testing.T) {
 	}
 }
 
+func TestMaterializeBarePackageName(t *testing.T) {
+	packageRoot := filepath.Join(t.TempDir(), "linear-runtime")
+	if err := copyFixtureWithoutPackageSkill(t, packageRoot); err != nil {
+		t.Fatal(err)
+	}
+	wrapper := "---\nname: linear-runtime\ndescription: Managed workflow bundle for linear-runtime.\n---\n\n# Workflow bundle\n"
+	if err := os.WriteFile(filepath.Join(packageRoot, "SKILL.md"), []byte(wrapper), 0644); err != nil {
+		t.Fatal(err)
+	}
+	accepted, err := MaterializePackage(packageRoot, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if accepted.WorkflowID != "linear-runtime" || accepted.WrapperName != "linear-runtime" {
+		t.Fatalf("accepted = %#v", accepted)
+	}
+}
+
+func TestMaterializeSkillKeyPackageName(t *testing.T) {
+	for _, name := range []string{"loop.workflow.linear_runtime", "fanloop.workflow.linear_runtime"} {
+		t.Run(name, func(t *testing.T) {
+			packageRoot := filepath.Join(t.TempDir(), name)
+			if err := copyFixtureWithoutPackageSkill(t, packageRoot); err != nil {
+				t.Fatal(err)
+			}
+			wrapper := "---\nname: " + name + "\ndescription: Managed workflow bundle for linear-runtime.\n---\n\n# Workflow bundle\n"
+			if err := os.WriteFile(filepath.Join(packageRoot, "SKILL.md"), []byte(wrapper), 0644); err != nil {
+				t.Fatal(err)
+			}
+			accepted, err := MaterializePackage(packageRoot, t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if accepted.WorkflowID != "linear-runtime" || accepted.WrapperName != name {
+				t.Fatalf("accepted = %#v", accepted)
+			}
+		})
+	}
+}
+
 func TestAcceptPackageRootRejectsSymlinkAndNameMismatch(t *testing.T) {
 	packageRoot := filepath.Join(t.TempDir(), "loop-workflow-linear-runtime")
 	if err := copyFixtureWithoutPackageSkill(t, packageRoot); err != nil {

@@ -44,7 +44,7 @@ fanloop update
 fanloop update config
 ```
 
-`fanloop update` 下载最新 GitHub Release 并切换 `current`。本机版本比 `latest` 新时保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步配置仓库；远端 commit 没变时不会重新 checkout，并发同步共用一把锁，并打印每个 Workflow 的 id 和同步到的 commit。
+`fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`，然后同步 Fornax 上已发布的 Workflow 包。本机版本比 `latest` 新时 CLI 保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步这些 Workflow 包；已发布集合和已安装树都没变时不会重新下载，并发同步共用一把锁，并打印每个 Workflow 的 `id@version`。
 
 ## 本地构建与安装
 
@@ -85,7 +85,7 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
 
-Fornax 是 Git 配置的个人空间镜像，不是运行时来源。`fanloop config drift` 使用用户已经登录的 `fornax-cli`，把 active `config/current` Git 快照与 `~/.fanloop/fornax.json` 中的 exact snake keys 对应的 Online/prod released 包按相对路径和文件字节比较。Fornax `skill install` 不保留 Unix 文件模式；仅模式不同不会判为 drift，最多作为说明。ZIP 构建仍记录可执行位。该配置只保存 workspace 与 key，不保存凭证、Skill ID 或版本；Runtime 和安装器不创建它。发布顺序和 Loop 兼容 ZIP 格式见 [ADR-0136](./docs/adr/0136-mirror-git-workflows-to-fornax.md)。
+存在 `fornax.json` 时，已发布的 Fornax 包是 Workflow 来源，Git 仓库是镜像。`fanloop config drift` 使用用户已经登录的 `fornax-cli`，以每个 source 的最新 Online/prod 发布包为参照。文件字节相同是 `in_sync`，已记录版本更旧且安装树仍与回执一致是 `local_behind`，其他字节差异是 `local_modified`，发现或下载失败是 `unavailable`。Unix 文件模式不参与比较。该配置只保存 workspace、key prefix 和 access，不保存凭证、Skill ID 或版本；Runtime 和安装器不创建它。见 [ADR-0137](./docs/adr/0137-take-workflow-configuration-from-fornax.md)。
 
 ```bash
 fanloop config drift
