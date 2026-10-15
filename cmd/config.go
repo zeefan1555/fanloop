@@ -29,6 +29,7 @@ func newConfigDriftCommand(ioStreams streams) *cobra.Command {
 Effect:
   Read only. It queries the configured personal Fornax workspace through the user's logged-in fornax-cli,
   downloads released packages into a private temporary directory, and does not change Git configuration, Fornax, or Requirements.
+  Comparison uses relative paths and file bytes. Fornax skill install does not preserve Unix file modes, so a mode-only difference stays in_sync and may be reported as an informational detail.
 
 Request JSON:
   {}

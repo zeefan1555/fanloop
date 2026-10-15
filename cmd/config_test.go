@@ -107,11 +107,24 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 	}{
 		{name: "missing key", mode: "missing", fragments: []string{`"status": "missing"`, `"detail": "Skill key is missing"`}},
 		{name: "unreleased", mode: "unreleased", fragments: []string{`"status": "unreleased"`, `"detail": "Online/prod has no released version"`}},
-		{name: "executable bit drift", mode: "executable-drift", fragments: []string{`"status": "drifted"`, `"detail": "package content differs"`}},
 		{name: "fornax failure", mode: "failure", fragments: []string{`"status": "unavailable"`, `"detail": "Fornax Skill discovery failed"`}},
 	} {
 		t.Run(test.name, func(t *testing.T) { run(t, test.mode, 1, test.fragments...) })
 	}
+
+	t.Run("mode-only difference", func(t *testing.T) {
+		t.Setenv("FAKE_FORNAX_MODE", "executable-drift")
+		before := configDataSnapshot(t, dataRoot)
+		var stdout, stderr bytes.Buffer
+		code := Execute(context.Background(), []string{"config", "drift"}, strings.NewReader(""), &stdout, &stderr)
+		combined := stdout.String() + stderr.String()
+		if code != 0 || strings.Contains(combined, `"drifted"`) || strings.Contains(combined, "package content differs") || !strings.Contains(combined, `"status": "in_sync"`) || !strings.Contains(combined, "file mode differs for linear-runtime/skills/test-guide/SKILL.md") {
+			t.Fatalf("exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+		}
+		if after := configDataSnapshot(t, dataRoot); !reflect.DeepEqual(before, after) {
+			t.Fatalf("config drift mutated FANLOOP_DATA_HOME\nbefore=%v\nafter=%v", before, after)
+		}
+	})
 
 	t.Run("fornax command unavailable", func(t *testing.T) {
 		t.Setenv("PATH", t.TempDir())

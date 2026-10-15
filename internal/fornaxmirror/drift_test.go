@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/zeefan1555/fanloop/internal/configuration"
@@ -15,11 +16,12 @@ import (
 )
 
 type fakeClient struct {
-	source  string
-	commit  string
-	missing bool
-	failure bool
-	drift   bool
+	source   string
+	commit   string
+	missing  bool
+	failure  bool
+	drift    bool
+	modeOnly bool
 }
 
 func (client fakeClient) Skills(_ context.Context, _, key string) ([]Skill, error) {
@@ -48,6 +50,10 @@ func (client fakeClient) Install(_ context.Context, _, key, version, directory s
 		content, _ := os.ReadFile(path)
 		_ = os.WriteFile(path, append(content, '\n'), 0644)
 	}
+	if client.modeOnly {
+		path := filepath.Join(root, "linear-runtime", "skills", "test-guide", "SKILL.md")
+		_ = os.Chmod(path, 0755)
+	}
 	return root, nil
 }
 
@@ -66,8 +72,16 @@ func TestCheckReportsInSyncAndDrift(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != Drifted || report.Workflows[0].Status != WorkflowDrifted {
+	if report.Status != Drifted || report.Workflows[0].Status != WorkflowDrifted || report.Workflows[0].Detail != "package content differs" {
 		t.Fatalf("drift report = %#v", report)
+	}
+	client = fakeClient{source: source, commit: commit, modeOnly: true}
+	report, err = Check(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != DriftInSync || report.Workflows[0].Status != WorkflowInSync || !strings.Contains(report.Workflows[0].Detail, "file mode differs for linear-runtime/skills/test-guide/SKILL.md") {
+		t.Fatalf("mode-only report = %#v", report)
 	}
 	client = fakeClient{source: source, commit: commit, missing: true}
 	report, err = Check(context.Background(), dataRoot, client)

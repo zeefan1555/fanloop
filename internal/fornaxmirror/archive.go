@@ -215,19 +215,49 @@ func ValidateArchive(filename string) (Archive, error) {
 	return Archive{Metadata: metadata, Entries: entries(contents, modes)}, nil
 }
 
-func CompareArchiveDirectory(archivePath, directory string) error {
+// ArchiveDirectoryComparison is the result of comparing a built ZIP with an
+// installed or downloaded directory. Notes are informational Unix-mode
+// differences. Fornax skill install does not preserve file modes, so those
+// differences do not fail the comparison.
+type ArchiveDirectoryComparison struct {
+	Notes []string
+}
+
+func CompareArchiveDirectory(archivePath, directory string) (ArchiveDirectoryComparison, error) {
 	archive, err := ValidateArchive(archivePath)
 	if err != nil {
-		return err
+		return ArchiveDirectoryComparison{}, err
 	}
 	directoryEntries, err := DirectoryEntries(directory)
 	if err != nil {
-		return err
+		return ArchiveDirectoryComparison{}, err
 	}
-	if !reflect.DeepEqual(archive.Entries, directoryEntries) {
-		return fmt.Errorf("package content differs")
+	if !samePackageContent(archive.Entries, directoryEntries) {
+		return ArchiveDirectoryComparison{}, fmt.Errorf("package content differs")
 	}
-	return nil
+	return ArchiveDirectoryComparison{Notes: modeNotes(archive.Entries, directoryEntries)}, nil
+}
+
+func samePackageContent(left, right []Entry) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index].Path != right[index].Path || left[index].SHA256 != right[index].SHA256 {
+			return false
+		}
+	}
+	return true
+}
+
+func modeNotes(left, right []Entry) []string {
+	var notes []string
+	for index := range left {
+		if left[index].Executable != right[index].Executable {
+			notes = append(notes, "file mode differs for "+left[index].Path)
+		}
+	}
+	return notes
 }
 
 func DirectoryEntries(root string) ([]Entry, error) {

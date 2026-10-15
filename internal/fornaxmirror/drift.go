@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/workflow"
@@ -151,9 +152,13 @@ func inspectWorkflow(ctx context.Context, source, commit string, config Config, 
 		check.Status, check.Detail = WorkflowUnavailable, "local Git package is invalid"
 		return check
 	}
-	if err = CompareArchiveDirectory(candidate, downloaded); err != nil {
+	comparison, err := CompareArchiveDirectory(candidate, downloaded)
+	if err != nil {
 		check.Status, check.Detail = WorkflowDrifted, "package content differs"
 		return check
+	}
+	if len(comparison.Notes) > 0 {
+		check.Detail = strings.Join(comparison.Notes, "; ")
 	}
 	check.Status = WorkflowInSync
 	return check

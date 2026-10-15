@@ -84,7 +84,7 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
 
-Fornax 是 Git 配置的个人空间镜像，不是运行时来源。`fanloop config drift` 使用用户已经登录的 `fornax-cli`，把 active `config/current` Git 快照与 `~/.fanloop/fornax.json` 中的 exact snake keys 对应的 Online/prod released 包逐文件比较。该配置只保存 workspace 与 key，不保存凭证、Skill ID 或版本；Runtime 和安装器不创建它。发布顺序和 Loop 兼容 ZIP 格式见 [ADR-0136](./docs/adr/0136-mirror-git-workflows-to-fornax.md)。
+Fornax 是 Git 配置的个人空间镜像，不是运行时来源。`fanloop config drift` 使用用户已经登录的 `fornax-cli`，把 active `config/current` Git 快照与 `~/.fanloop/fornax.json` 中的 exact snake keys 对应的 Online/prod released 包按相对路径和文件字节比较。Fornax `skill install` 不保留 Unix 文件模式；仅模式不同不会判为 drift，最多作为说明。ZIP 构建仍记录可执行位。该配置只保存 workspace 与 key，不保存凭证、Skill ID 或版本；Runtime 和安装器不创建它。发布顺序和 Loop 兼容 ZIP 格式见 [ADR-0136](./docs/adr/0136-mirror-git-workflows-to-fornax.md)。
 
 ```bash
 fanloop config drift

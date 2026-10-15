@@ -102,7 +102,7 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 
 `$FANLOOP_DATA_HOME/config/current` 指向不可变 Git 配置快照。flow init 在稳定锁内拉取 main、校验整集、记录配置身份并原子激活；dry-run 只校验。已有 flow status/report/skills 离线读取。显式 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新。完整包目录是 fanloop-workflow/<id>。配置失败不创建 Requirement，也不替换 current。
 
-Fornax 是 Git main 的发布后镜像。`internal/fornaxmirror` 复用同一 Workflow loader 生成和验证 Loop 格式 ZIP，并通过用户已登录的 `fornax-cli` 做只读 discovery/download。`fanloop config drift` 只比较 managed snapshot 与 credential-free `fornax.json` 中的个人空间 exact keys；它不改变 current、Requirement 或远端。Doctor 继续保持离线。发布必须先合入 Git main 并完成本地 flow-init 回读，见 [ADR-0136](./adr/0136-mirror-git-workflows-to-fornax.md)。
+Fornax 是 Git main 的发布后镜像。`internal/fornaxmirror` 复用同一 Workflow loader 生成和验证 Loop 格式 ZIP，并通过用户已登录的 `fornax-cli` 做只读 discovery/download。`fanloop config drift` 与 `tools/workflow-package compare --archive --directory` 只比较相对路径和文件字节；Fornax 不保留 Unix 文件模式，仅模式不同不会失败。ZIP 构建仍记录可执行位。比较对象是 managed snapshot 与 credential-free `fornax.json` 中的个人空间 exact keys；它不改变 current、Requirement 或远端。Doctor 继续保持离线。发布必须先合入 Git main 并完成本地 flow-init 回读，见 [ADR-0136](./adr/0136-mirror-git-workflows-to-fornax.md)。
 
 `fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认绑定源只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启该仓库保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；可编辑当前绑定仓库，不调用远端配置服务。
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。

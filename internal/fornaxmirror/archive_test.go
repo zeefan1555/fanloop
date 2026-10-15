@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -40,16 +41,103 @@ func TestBuildArchiveIsDeterministicAndComparable(t *testing.T) {
 	}
 	downloaded := filepath.Join(t.TempDir(), "package")
 	extract(t, first, downloaded)
-	if err = CompareArchiveDirectory(first, downloaded); err != nil {
+	comparison, err := CompareArchiveDirectory(first, downloaded)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if len(comparison.Notes) != 0 {
+		t.Fatalf("mode notes = %#v", comparison.Notes)
 	}
 	path := filepath.Join(downloaded, "linear-runtime", "workflow.yaml")
 	if err = os.WriteFile(path, append(mustRead(t, path), '\n'), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err = CompareArchiveDirectory(first, downloaded); err == nil {
-		t.Fatal("changed package compared equal")
+	if _, err = CompareArchiveDirectory(first, downloaded); err == nil || !strings.Contains(err.Error(), "package content differs") {
+		t.Fatalf("changed package error = %v", err)
 	}
+}
+
+func TestCompareArchiveDirectoryIgnoresModeAndRejectsPathOrByteChanges(t *testing.T) {
+	source := fixtureSource(t)
+	script := filepath.Join(source, "fanloop-workflow", "linear-runtime", "skills", "test-guide", "scripts", "run.sh")
+	if err := os.MkdirAll(filepath.Dir(script), 0755); err != nil {
+		t.Fatal(err)
+	}
+	const scriptBody = "#!/bin/sh\necho ok\n"
+	if err := os.WriteFile(script, []byte(scriptBody), 0755); err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(t.TempDir(), "package.zip")
+	key, err := SkillKey("linear-runtime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = BuildArchive(source, "linear-runtime", key, testCommit, "1.0.0", archive); err != nil {
+		t.Fatal(err)
+	}
+	const scriptPath = "linear-runtime/skills/test-guide/scripts/run.sh"
+	assertZipExecutable(t, archive, scriptPath)
+
+	directory := filepath.Join(t.TempDir(), "installed")
+	extract(t, archive, directory)
+	installedScript := filepath.Join(directory, filepath.FromSlash(scriptPath))
+	if err = os.Chmod(installedScript, 0644); err != nil {
+		t.Fatal(err)
+	}
+	comparison, err := CompareArchiveDirectory(archive, directory)
+	if err != nil {
+		t.Fatalf("mode-only difference failed: %v", err)
+	}
+	if len(comparison.Notes) != 1 || comparison.Notes[0] != "file mode differs for "+scriptPath {
+		t.Fatalf("notes = %#v", comparison.Notes)
+	}
+
+	if err = os.WriteFile(installedScript, []byte("#!/bin/sh\necho changed\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = CompareArchiveDirectory(archive, directory); err == nil || !strings.Contains(err.Error(), "package content differs") {
+		t.Fatalf("content difference error = %v", err)
+	}
+
+	if err = os.WriteFile(installedScript, []byte(scriptBody), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Remove(installedScript); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = CompareArchiveDirectory(archive, directory); err == nil || !strings.Contains(err.Error(), "package content differs") {
+		t.Fatalf("missing file error = %v", err)
+	}
+
+	if err = os.WriteFile(installedScript, []byte(scriptBody), 0644); err != nil {
+		t.Fatal(err)
+	}
+	extra := filepath.Join(directory, "linear-runtime", "skills", "test-guide", "scripts", "extra.sh")
+	if err = os.WriteFile(extra, []byte("#!/bin/sh\necho extra\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = CompareArchiveDirectory(archive, directory); err == nil || !strings.Contains(err.Error(), "package content differs") {
+		t.Fatalf("extra file error = %v", err)
+	}
+}
+
+func assertZipExecutable(t *testing.T, archive, name string) {
+	t.Helper()
+	reader, err := zip.OpenReader(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	for _, file := range reader.File {
+		if file.Name != name {
+			continue
+		}
+		if file.Mode().Perm()&0o111 == 0 {
+			t.Fatalf("ZIP mode for %s is %#o", name, file.Mode().Perm())
+		}
+		return
+	}
+	t.Fatalf("ZIP missing %s", name)
 }
 
 func TestValidateArchiveRejectsInnerPackageEntrySkill(t *testing.T) {

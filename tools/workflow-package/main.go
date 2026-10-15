@@ -96,10 +96,15 @@ func compare(args []string) error {
 	if *archive == "" || *directory == "" || flags.NArg() != 0 {
 		return fmt.Errorf("compare requires --archive and --directory")
 	}
-	if err := fornaxmirror.CompareArchiveDirectory(*archive, *directory); err != nil {
+	comparison, err := fornaxmirror.CompareArchiveDirectory(*archive, *directory)
+	if err != nil {
 		return err
 	}
-	return writeJSON(map[string]any{"outcome": "passed", "archive": *archive, "directory": *directory})
+	result := map[string]any{"outcome": "passed", "archive": *archive, "directory": *directory}
+	if len(comparison.Notes) > 0 {
+		result["notes"] = comparison.Notes
+	}
+	return writeJSON(result)
 }
 
 func cleanCommit(source string) (string, error) {
