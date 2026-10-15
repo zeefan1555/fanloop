@@ -3,6 +3,7 @@ package fornaxmirror
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +21,8 @@ type syncClient struct {
 	installs        int
 	failInstall     bool
 	mutate          bool
+	badReadOnly     bool
+	badReadWrite    bool
 	lockPath        string
 	lockChecked     bool
 }
@@ -61,11 +64,19 @@ func (client *syncClient) Install(_ context.Context, _, key, _, directory string
 		return "", errors.New("offline")
 	}
 	name := "loop-workflow-linear-runtime"
+	wrapperName := name
 	if strings.HasPrefix(key, "fanloop.workflow.") {
 		name = "fanloop-workflow-linear-runtime"
+		wrapperName = name
+	}
+	if strings.HasPrefix(key, "loop.workflow.") && client.badReadOnly {
+		wrapperName = "other"
+	}
+	if strings.HasPrefix(key, "fanloop.workflow.") && client.badReadWrite {
+		wrapperName = "other"
 	}
 	root := filepath.Join(directory, name)
-	if err := copyLinearPackage(root, name); err != nil {
+	if err := copyLinearPackage(root, wrapperName); err != nil {
 		return "", err
 	}
 	if client.mutate {
@@ -155,6 +166,64 @@ func TestSyncReceiptFailureRestoresCurrent(t *testing.T) {
 	t.Cleanup(func() { commitReceipt = previous })
 	client.personalVersion = "1.0.1"
 	if _, err := Sync(context.Background(), dataRoot, client); err == nil || !strings.Contains(err.Error(), "receipt failed") {
+		t.Fatalf("err = %v", err)
+	}
+	current, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(current) != personalReleaseDigest {
+		t.Fatalf("snapshot = %s", filepath.Base(current))
+	}
+}
+
+func TestSyncSkipsInvalidReadOnlyPackageAndRejectsInvalidReadWrite(t *testing.T) {
+	dataRoot := t.TempDir()
+	writeFornaxSources(t, dataRoot)
+	var warnings []string
+	previous := warnSkippedPackage
+	warnSkippedPackage = func(key, version string, err error) {
+		warnings = append(warnings, fmt.Sprintf("warning: skipping read-only package %s@%s: %s", key, version, err))
+	}
+	t.Cleanup(func() { warnSkippedPackage = previous })
+	client := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2", badReadOnly: true}
+	result, err := Sync(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outcome != OutcomeUpdated || result.Digest != personalReleaseDigest || len(result.Workflows) != 1 || result.Workflows[0].ID != "linear-runtime" || result.Workflows[0].Version != "1.0.0" {
+		t.Fatalf("result = %#v", result)
+	}
+	if len(warnings) != 1 || warnings[0] != `warning: skipping read-only package loop.workflow.linear_runtime@1.0.2: package name "other" does not match workflow id "linear-runtime"` {
+		t.Fatalf("warnings = %#v", warnings)
+	}
+	client.badReadOnly = false
+	client.badReadWrite = true
+	client.personalVersion = "1.0.1"
+	if _, err = Sync(context.Background(), dataRoot, client); err == nil || err.Error() != `validate fanloop.workflow.linear_runtime@1.0.1: package name "other" does not match workflow id "linear-runtime"` {
+		t.Fatalf("err = %v", err)
+	}
+	current, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(current) != personalReleaseDigest {
+		t.Fatalf("snapshot = %s", filepath.Base(current))
+	}
+}
+
+func TestSyncActivateFailureRestoresCurrent(t *testing.T) {
+	dataRoot := t.TempDir()
+	writeFornaxSources(t, dataRoot)
+	client := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2"}
+	if _, err := Sync(context.Background(), dataRoot, client); err != nil {
+		t.Fatal(err)
+	}
+	previous := activateSnapshot
+	activateSnapshot = func(string, string) error { return errors.New("activate failed") }
+	t.Cleanup(func() { activateSnapshot = previous })
+	client.personalVersion = "1.0.1"
+	if _, err := Sync(context.Background(), dataRoot, client); err == nil || err.Error() != "activate failed" {
 		t.Fatalf("err = %v", err)
 	}
 	current, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))

@@ -58,6 +58,12 @@ type syncReceipt struct {
 
 var commitReceipt = writeReceipt
 
+var activateSnapshot = configuration.Activate
+
+var warnSkippedPackage = func(key, version string, err error) {
+	fmt.Fprintf(os.Stderr, "warning: skipping read-only package %s@%s: %s\n", key, version, err)
+}
+
 // Sync installs the latest Online/prod release for every configured source.
 // A failed download or validation leaves config/current where it was.
 func Sync(ctx context.Context, dataRoot string, client Client) (SyncResult, error) {
@@ -103,11 +109,18 @@ func Sync(ctx context.Context, dataRoot string, client Client) (SyncResult, erro
 		parent := filepath.Join(temp, "validated", strconv.Itoa(index))
 		accepted, acceptErr := MaterializePackage(packageRoot, parent)
 		if acceptErr != nil {
+			if item.Access == AccessReadOnly {
+				warnSkippedPackage(item.Key, item.Version, acceptErr)
+				continue
+			}
 			return SyncResult{}, fmt.Errorf("validate %s@%s: %w", item.Key, item.Version, acceptErr)
 		}
 		claim := PackageClaim{WorkflowID: accepted.WorkflowID, Key: item.Key, Version: item.Version, Access: item.Access, SourceIndex: item.SourceIndex}
 		claims = append(claims, claim)
 		held = append(held, heldPackage{claim: claim, workflowDir: filepath.Join(parent, accepted.WorkflowID)})
+	}
+	if len(claims) == 0 {
+		return SyncResult{}, fmt.Errorf("Fornax released no workflows")
 	}
 	selected, err := SelectClaims(claims)
 	if err != nil {
@@ -146,7 +159,10 @@ func Sync(ctx context.Context, dataRoot string, client Client) (SyncResult, erro
 	if err != nil {
 		return SyncResult{}, err
 	}
-	if err = configuration.Activate(dataRoot, snapshot); err != nil {
+	if err = activateSnapshot(dataRoot, snapshot); err != nil {
+		if previous != "" {
+			_ = configuration.Activate(dataRoot, previous)
+		}
 		return SyncResult{}, err
 	}
 	identity, err := treeIdentity(filepath.Join(snapshot, "fanloop-workflow"))
