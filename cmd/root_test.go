@@ -322,6 +322,7 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				`"title": "<TITLE>"`,
 				`"source_url": "<SOURCE_URL>"`,
 				"--workflow <WORKFLOW_ID> --title <TITLE> --source-url <SOURCE_URL>",
+				"When fornax.json is present, use the active Fornax snapshot.",
 				"NOT_INITIALIZED",
 			},
 		},

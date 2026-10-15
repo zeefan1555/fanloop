@@ -90,7 +90,7 @@ func MaterializePackage(packageRoot, workflowParent string) (AcceptedPackage, er
 	if workflowDir != id {
 		return AcceptedPackage{}, fmt.Errorf("workflow directory %q does not match workflow.yaml id %q", workflowDir, id)
 	}
-	if header.Name != id && header.Name != "loop-workflow-"+id && header.Name != "fanloop-workflow-"+id {
+	if !packageNameMatches(header.Name, id) {
 		return AcceptedPackage{}, fmt.Errorf("package name %q does not match workflow id %q", header.Name, id)
 	}
 	accepted := AcceptedPackage{WorkflowID: id, WrapperName: header.Name}
@@ -196,6 +196,15 @@ func readWorkflowID(filename string) (string, error) {
 		return "", fmt.Errorf("invalid workflow id %q", document.ID)
 	}
 	return document.ID, nil
+}
+
+func packageNameMatches(name, id string) bool {
+	snake := strings.ReplaceAll(id, "-", "_")
+	return name == id ||
+		name == "loop-workflow-"+id ||
+		name == "fanloop-workflow-"+id ||
+		name == "loop.workflow."+snake ||
+		name == "fanloop.workflow."+snake
 }
 
 func checkOptionalSkillKey(workflowID, key string) error {
