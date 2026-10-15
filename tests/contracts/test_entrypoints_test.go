@@ -315,6 +315,12 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 		"examples/workflows/example/flow.yaml",
 		"examples/workflows/example/loop.yaml",
 		"examples/workflows/example/prompt.yaml",
+		"examples/workflows/manage-fanloop-workflow/SKILL.md",
+		"examples/workflows/manage-fanloop-workflow/workflow.yaml",
+		"examples/workflows/manage-fanloop-workflow/condition.yaml",
+		"examples/workflows/manage-fanloop-workflow/flow.yaml",
+		"examples/workflows/manage-fanloop-workflow/loop.yaml",
+		"examples/workflows/manage-fanloop-workflow/prompt.yaml",
 	} {
 		if info, err := os.Stat(filepath.Join(repo, relative)); err != nil || !info.Mode().IsRegular() {
 			t.Fatalf("authoring asset %s: %v", relative, err)

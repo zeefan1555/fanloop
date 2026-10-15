@@ -1,0 +1,108 @@
+schema_version: 3
+
+conditions:
+  workflow_document_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_document_ready_condition}
+    output: {key: workflow_document_url, type: url, description: Workflow 管理文档}
+  workflow_document_governance_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_document_governance_ready_condition}
+    output: {key: workflow_document_governance, type: object}
+  step_model_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: step_model_ready_condition}
+    output: {key: step_model_document_ref, type: object}
+    exclusive_group: analysis_outcome
+  workflow_analysis_incomplete:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_analysis_incomplete_condition}
+    output: {key: workflow_analysis_issue, type: string}
+    exclusive_group: analysis_outcome
+  condition_route_matrix_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: condition_route_matrix_ready_condition}
+    output: {key: condition_route_matrix_document_ref, type: object}
+  output_contract_plan_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: output_contract_plan_ready_condition}
+    output: {key: output_contract_document_ref, type: object}
+  skill_plan_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: skill_plan_ready_condition}
+    output: {key: skill_plan_document_ref, type: object}
+  workflow_design_visual_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_design_visual_ready_condition}
+    output: {key: workflow_design_visual_ref, type: object, description: Workflow 人话设计图}
+
+  workflow_candidate_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_candidate_ready_condition}
+    output: {key: candidate_document_ref, type: object}
+    exclusive_group: build_outcome
+  workflow_analysis_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_analysis_changed_condition}
+    output: {key: workflow_analysis_change, type: string}
+    exclusive_group: build_outcome
+  bundle_schema_validated:
+    prompt_ref: {file: prompt.yaml, prompt_id: bundle_schema_validated_condition}
+    output: {key: schema_validation_receipt, type: object}
+  route_model_validated:
+    prompt_ref: {file: prompt.yaml, prompt_id: route_model_validated_condition}
+    output: {key: route_validation_receipt, type: object}
+  skill_bindings_validated:
+    prompt_ref: {file: prompt.yaml, prompt_id: skill_bindings_validated_condition}
+    output: {key: skill_validation_receipt, type: object}
+  output_contract_validated:
+    prompt_ref: {file: prompt.yaml, prompt_id: output_contract_validated_condition}
+    output: {key: output_validation_receipt, type: object}
+  workflow_review_package_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_review_package_ready_condition}
+    output: {key: workflow_review_document_ref, type: object}
+  workflow_review_visual_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_review_visual_ready_condition}
+    output: {key: workflow_review_visual_ref, type: object, description: Workflow 候选审核图}
+
+  candidate_approved:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_approved_condition}
+    output: {key: candidate_decision, type: enum_value, values: [approved]}
+    exclusive_group: candidate_review_outcome
+  candidate_revision_requested:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_revision_requested_condition}
+    output: {key: candidate_decision, type: enum_value, values: [revision_requested]}
+    exclusive_group: candidate_review_outcome
+  candidate_cancelled:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_cancelled_condition}
+    output: {key: candidate_decision, type: enum_value, values: [cancelled]}
+    exclusive_group: candidate_review_outcome
+  candidate_review_recorded:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_review_recorded_condition}
+    output: {key: candidate_review_receipt, type: object}
+
+  publish_baseline_revalidated:
+    prompt_ref: {file: prompt.yaml, prompt_id: publish_baseline_revalidated_condition}
+    output: {key: publish_baseline_receipt, type: object}
+    exclusive_group: publish_baseline_outcome
+  publish_baseline_changed:
+    prompt_ref: {file: prompt.yaml, prompt_id: publish_baseline_changed_condition}
+    output: {key: publish_baseline_change, type: object}
+    exclusive_group: publish_baseline_outcome
+  fornax_release_published:
+    prompt_ref: {file: prompt.yaml, prompt_id: fornax_release_published_condition}
+    output: {key: fornax_release_receipt, type: object, description: Fornax 发布}
+  fornax_config_center_link_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: fornax_config_center_link_ready_condition}
+    output: {key: fornax_config_center_url, type: url, description: Fornax 配置中心}
+  workflow_version_diff_link_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_version_diff_link_ready_condition}
+    output: {key: workflow_version_diff_url, type: url, description: Workflow 版本 Diff}
+  published_bundle_matched:
+    prompt_ref: {file: prompt.yaml, prompt_id: published_bundle_matched_condition}
+    output: {key: published_bundle_comparison, type: object}
+  local_config_synchronized:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_config_synchronized_condition}
+    output: {key: local_sync_receipt, type: object, description: 本地配置同步}
+  local_doctor_healthy:
+    prompt_ref: {file: prompt.yaml, prompt_id: local_doctor_healthy_condition}
+    output: {key: local_doctor_result, type: enum_value, values: [passed]}
+  usage_prompt_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: usage_prompt_ready_condition}
+    output: {key: usage_prompt, type: string, description: 使用提示词}
+  user_local_update_instruction_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: user_local_update_instruction_ready_condition}
+    output: {key: user_local_update_instruction, type: string, description: 本机更新命令}
+  delivery_visualization_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: delivery_visualization_ready_condition}
+    output: {key: delivery_visualization_ref, type: object}

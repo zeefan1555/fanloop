@@ -1,0 +1,22 @@
+schema_version: 4
+
+loop:
+  analyze_workflow_change:
+    - prompt_ref: {file: prompt.yaml, prompt_id: complete_workflow_analysis}
+      when: {any_of: [[workflow_analysis_incomplete]]}
+      back_step_id: analyze_workflow_change
+
+  build_workflow_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: reanalyze_workflow_change}
+      when: {any_of: [[workflow_analysis_changed]]}
+      back_step_id: analyze_workflow_change
+
+  review_workflow_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: revise_workflow_candidate}
+      when: {any_of: [[candidate_revision_requested, candidate_review_recorded]]}
+      back_step_id: build_workflow_candidate
+
+  publish_workflow_candidate:
+    - prompt_ref: {file: prompt.yaml, prompt_id: refresh_workflow_baseline}
+      when: {any_of: [[publish_baseline_changed]]}
+      back_step_id: analyze_workflow_change

@@ -1,0 +1,138 @@
+schema_version: 2
+
+prompts:
+  analyze_workflow_change_flow:
+    prompt: 创建唯一的 L2 飞书管理文档，读取用户目标和 Fornax 当前基线，把设计压缩成文档内可直接阅读的人话 HTML 图。
+    skills:
+      - {id: manage-workflow-document, prompt: 创建或复用唯一飞书文档，设置 L2，并建立本次管理记录的章节。, optional: false}
+      - {id: analyze-workflow-change, prompt: 形成可直接驱动候选生成的 Workflow 分析。, optional: false}
+      - {id: explain-workflow-design, prompt: 把分析结果转换为零基础读者可审核的 HTML 设计图。, optional: false}
+  build_workflow_candidate_flow:
+    prompt: 依据飞书文档中的已确认分析生成完整候选并完成静态配置校验，把候选、diff 和验证回执做成同一文档内的 HTML 审核图。
+    skills:
+      - {id: build-workflow-candidate, prompt: 生成五份 YAML、绑定 Skills 和完整审核包。, optional: false}
+      - {id: manage-workflow-document, prompt: 把候选、完整 diff、校验结果和未验证边界更新到唯一飞书文档。, optional: false}
+      - {id: explain-workflow-design, prompt: 生成供 Human Step 直接审核的候选 HTML 图。, optional: false}
+  review_workflow_candidate_flow:
+    prompt: 展示唯一飞书文档中的候选 HTML 图并等待人明确批准、要求修改或取消；收到决定后记录原文和候选身份，不得代替人批准。
+    skills:
+      - {id: manage-workflow-document, prompt: 在人工回复后把决定、完整原文和候选身份追加到审核章节。, optional: false}
+  publish_workflow_candidate_flow:
+    prompt: 对已批准候选重新核验远端基线并发布，把全部发布回执写回同一飞书文档，嵌入最终 HTML 可视化，并提醒用户在实际使用机器执行 fanloop update config。
+    skills:
+      - {id: publish-workflow-candidate, prompt: 发布审核过的精确候选并完成远端与本地回读。, optional: false}
+      - {id: manage-workflow-document, prompt: 汇总改动点和全部节点状态，生成并嵌入最终 HTML5 Block。, optional: false}
+      - {id: explain-workflow-design, prompt: 用同一人话视觉规范更新最终交付 HTML。, optional: false}
+
+  workflow_document_ready_condition:
+    prompt: 已使用 user 身份创建或复用本 Requirement 的唯一飞书文档，并返回可访问 URL 时成立。
+    skills: []
+  workflow_document_governance_ready_condition:
+    prompt: 文档已设置为 L2-内部，并回读密级与权限设置；对象包含 label_id/name、identity、permission 摘要和访问限制时成立。
+    skills: []
+
+  step_model_ready_condition:
+    prompt: Step 设计已写入唯一飞书文档，覆盖目标、真实基线、id/name/顺序/executor、Human Gate、回流目标和 Step 身份映射时返回文档 block 引用。
+    skills: []
+  workflow_analysis_incomplete_condition:
+    prompt: 缺少会改变范围、责任、Step 拓扑或验收边界的材料时返回具体缺口，不猜测答案。
+    skills: []
+  condition_route_matrix_ready_condition:
+    prompt: Condition/Route 矩阵已写入唯一飞书文档，覆盖业务事实、Output、证据来源、AND 组和回流时返回文档 block 引用。
+    skills: []
+  output_contract_plan_ready_condition:
+    prompt: Output 契约已写入唯一飞书文档，稳定 key、最窄类型、description、生产 Step 和使用位置均明确时返回文档 block 引用。
+    skills: []
+  skill_plan_ready_condition:
+    prompt: Skill 计划已写入唯一飞书文档，绑定、optional、工具权限、输入输出、失败处理和非目标均明确时返回文档 block 引用。
+    skills: []
+  workflow_design_visual_ready_condition:
+    prompt: 同一 L2 飞书文档的主审核 HTML 已展示用户原始要求、目标与真实基线、一句话方案、计划中的改前/改后、风险、开放问题和需要人决定的问题时返回文档与 block 引用。
+    skills: []
+  workflow_candidate_ready_condition:
+    prompt: 临时候选包含完整五份 YAML 与绑定 Skills，且其完整内容和身份已写入唯一飞书文档时返回文档 block 引用。
+    skills: []
+  workflow_analysis_changed_condition:
+    prompt: 生成候选时发现目标、责任、Step 拓扑或验收边界已改变时返回具体变化并重新分析。
+    skills: []
+  bundle_schema_validated_condition:
+    prompt: 当前已安装的 fanloop 已成功加载候选完整树且 Doctor 未返回 unhealthy 时返回包含命令、退出码和结果的对象。
+    skills: []
+  route_model_validated_condition:
+    prompt: 每个 Condition 都被 Route 使用，正常、终止和回流目标闭合，互斥决定使用 exclusive_group 时返回检查对象。
+    skills: []
+  skill_bindings_validated_condition:
+    prompt: 每个 SkillBinding 都指向同 Bundle 的真实非空 SKILL.md 并显式声明 optional 时返回检查对象。
+    skills: []
+  output_contract_validated_condition:
+    prompt: 每个 Output 使用稳定 key 和最窄类型，可见 Output 具有确认过的 description，且不存在 Runtime 保留字段时返回检查对象。
+    skills: []
+  workflow_review_package_ready_condition:
+    prompt: 唯一飞书文档的候选 HTML 已包含分析、Step 表、Condition/Route 矩阵、绑定 Skill、完整 diff、静态校验结果和未验证范围时返回审核 block 引用。
+    skills: []
+  workflow_review_visual_ready_condition:
+    prompt: Human Step 将看到的主审核 HTML 已展示用户要求、精确候选身份、真实改前/改后拓扑、具体变化、影响与不变边界、风险、未验证内容和明确审核问题，并可展开完整 YAML、Diff、Step 映射和验证证据时返回文档与 block 引用。
+    skills: []
+
+  candidate_approved_condition:
+    prompt: 只接受人针对当前精确候选的全新明确发布批准。
+    skills: []
+  candidate_revision_requested_condition:
+    prompt: 人要求修改当前候选时返回 revision_requested，并把具体反馈写入同次审核回执。
+    skills: []
+  candidate_cancelled_condition:
+    prompt: 人明确取消本次发布时返回 cancelled。
+    skills: []
+  candidate_review_recorded_condition:
+    prompt: 返回包含提问、回复、决定、候选身份和完整原文的审核回执对象；旧候选的回执不得复用。
+    skills: []
+
+  publish_baseline_revalidated_condition:
+    prompt: 发布前重新读取 Fornax exact key、Skill ID、最新 commit 与 Online/prod release，结果仍等于审核基线时返回对象。
+    skills: []
+  publish_baseline_changed_condition:
+    prompt: 发布前远端基线已变化时返回新旧身份和变化原因，不覆盖并发更新。
+    skills: []
+  fornax_release_published_condition:
+    prompt: 目标版本在同一 Skill ID 的 Online/prod release 记录中为 released 时返回发布回执。
+    skills: []
+  fornax_config_center_link_ready_condition:
+    prompt: 已使用本次被创建或修改的目标 Workflow 的真实 workspace、目标 Skill ID 和目标 Workflow ID，生成并展示其可点击 Fornax workflow.yaml 链接时返回 URL；不得使用管理 Workflow 自身身份代替目标身份。
+    skills: []
+  workflow_version_diff_link_ready_condition:
+    prompt: 已把审核基线版本与本次 released 版本的完整 Diff 写入同一飞书文档和最终 HTML，并向用户返回可直接打开该 Diff 的 URL 时成立；Fornax 没有独立可分享 Diff 路由时返回该飞书文档 URL，不得猜测 Fornax 深链。
+    skills: []
+  published_bundle_matched_condition:
+    prompt: 下载目标精确版本，剥离平台 wrapper 后与审核候选逐字节一致时返回比较对象。
+    skills: []
+  local_config_synchronized_condition:
+    prompt: 已安装 CLI 的 fanloop update config 成功，且 live 目标目录与已发布候选一致时返回同步回执。
+    skills: []
+  local_doctor_healthy_condition:
+    prompt: 正式本地环境的 fanloop doctor 没有 unhealthy 时返回 passed。
+    skills: []
+  usage_prompt_ready_condition:
+    prompt: 返回“你是【角色】，使用 fanloop 中的【Workflow ID】Workflow。”格式的最短使用提示词。
+    skills: []
+  user_local_update_instruction_ready_condition:
+    prompt: 明确告知用户机器人机器上的同步不会更新用户机器，并返回要求每台实际使用机器执行 fanloop update config 的完整提示。
+    skills: []
+  delivery_visualization_ready_condition:
+    prompt: 同一主审核 HTML 保留已批准的用户要求、改前/改后、影响、风险和候选内容，仅追加四个管理节点终态、发布结果、Fornax 配置地址、版本 Diff 地址、Doctor 结果和用户下一步操作时返回文档与 block 引用。
+    skills: []
+
+  reanalyze_workflow_change:
+    prompt: 已确认范围发生变化，回到分析节点重建 Step、Condition 和 Route 方案。
+    skills: []
+  complete_workflow_analysis:
+    prompt: 补齐阻塞性材料后留在分析节点重新形成完整 Workflow 分析。
+    skills: []
+  revise_workflow_candidate:
+    prompt: 范围未变，按本次人工反馈返回构建节点修改候选并重新完成静态校验。
+    skills: []
+  refresh_workflow_baseline:
+    prompt: Fornax 基线已变化，回到分析节点，以最新 Online/prod 版本重新生成候选和审核包。
+    skills: []
+  candidate_cancelled_terminal:
+    prompt: 记录用户取消决定并结束，不发布、不同步配置。
+    skills: []
