@@ -31,6 +31,7 @@ func TestConfigDriftPublicCLIReportsInSyncAndDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 	configExtract(t, archive, packageRoot)
+	activateMaterializedPackage(t, dataRoot, packageRoot)
 	fakeDir := t.TempDir()
 	configWriteFakeFornax(t, filepath.Join(fakeDir, "fornax-cli"))
 	configUnsetSource(t)
@@ -53,7 +54,7 @@ func TestConfigDriftPublicCLIReportsInSyncAndDrift(t *testing.T) {
 	}
 	stdout.Reset()
 	stderr.Reset()
-	if code := Execute(context.Background(), []string{"config", "drift"}, strings.NewReader(""), &stdout, &stderr); code != 1 || !strings.Contains(stdout.String(), `"status": "drifted"`) || !strings.Contains(stdout.String(), `"detail": "package content differs"`) {
+	if code := Execute(context.Background(), []string{"config", "drift"}, strings.NewReader(""), &stdout, &stderr); code != 1 || !strings.Contains(stdout.String(), `"status": "local_modified"`) || !strings.Contains(stdout.String(), `"detail": "package content differs"`) {
 		t.Fatalf("drift exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 	}
 }
@@ -67,6 +68,7 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 	}
 	packageRoot := filepath.Join(t.TempDir(), "package")
 	configExtract(t, archive, packageRoot)
+	activateMaterializedPackage(t, dataRoot, packageRoot)
 	fakeDir := t.TempDir()
 	configWriteFakeFornax(t, filepath.Join(fakeDir, "fornax-cli"))
 	configUnsetSource(t)
@@ -105,8 +107,8 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 		mode      string
 		fragments []string
 	}{
-		{name: "missing key", mode: "missing", fragments: []string{`"status": "missing"`, `"detail": "Skill key is missing"`}},
-		{name: "unreleased", mode: "unreleased", fragments: []string{`"status": "unreleased"`, `"detail": "Online/prod has no released version"`}},
+		{name: "missing key", mode: "missing", fragments: []string{`"status": "unavailable"`, `"detail": "Skill key is missing"`}},
+		{name: "unreleased", mode: "unreleased", fragments: []string{`"status": "unavailable"`, `"detail": "Online/prod has no released version"`}},
 		{name: "fornax failure", mode: "failure", fragments: []string{`"status": "unavailable"`, `"detail": "Fornax Skill discovery failed"`}},
 	} {
 		t.Run(test.name, func(t *testing.T) { run(t, test.mode, 1, test.fragments...) })
@@ -118,7 +120,7 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		code := Execute(context.Background(), []string{"config", "drift"}, strings.NewReader(""), &stdout, &stderr)
 		combined := stdout.String() + stderr.String()
-		if code != 0 || strings.Contains(combined, `"drifted"`) || strings.Contains(combined, "package content differs") || !strings.Contains(combined, `"status": "in_sync"`) || !strings.Contains(combined, "file mode differs for linear-runtime/skills/test-guide/SKILL.md") {
+		if code != 0 || strings.Contains(combined, `"local_modified"`) || strings.Contains(combined, "package content differs") || !strings.Contains(combined, `"status": "in_sync"`) {
 			t.Fatalf("exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 		}
 		if after := configDataSnapshot(t, dataRoot); !reflect.DeepEqual(before, after) {
@@ -179,6 +181,32 @@ func configDriftSnapshot(t *testing.T) (string, string, string) {
 		t.Fatal(err)
 	}
 	return dataRoot, source, commit
+}
+
+func activateMaterializedPackage(t *testing.T, dataRoot, packageRoot string) {
+	t.Helper()
+	parent := t.TempDir()
+	accepted, err := fornaxmirror.MaterializePackage(packageRoot, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stage := filepath.Join(t.TempDir(), "stage")
+	workflowRoot := filepath.Join(stage, "fanloop-workflow")
+	if err = os.MkdirAll(workflowRoot, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Rename(filepath.Join(parent, accepted.WorkflowID), filepath.Join(workflowRoot, accepted.WorkflowID)); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := configuration.PublishRelease(dataRoot, stage, []configuration.ReleaseRef{{
+		Key: "fanloop.workflow.linear_runtime", Version: "1.0.0", WorkflowID: accepted.WorkflowID,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = configuration.Activate(dataRoot, snapshot); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func configWriteFakeFornax(t *testing.T, filename string) {

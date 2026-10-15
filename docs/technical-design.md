@@ -102,7 +102,7 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 
 存在 `fornax.json` 时，`$FANLOOP_DATA_HOME/config/current` 指向不可变 Fornax 快照，目录名是排序后 `key@version` 行的 sha256。`flow init` 使用这份快照，不用 Git 覆盖它。没有 `fornax.json` 时，`flow init` 仍在稳定锁内拉取 main。显式 `FANLOOP_CONFIG_SOURCE` 指向作者仓库根并跳过刷新。完整包目录是 `fanloop-workflow/<id>`。配置失败不创建 Requirement，也不替换 current。新 Requirement 把快照目录写到 `.fanloop/configuration-snapshot`。
 
-`fanloop update` 和 `fanloop update config` 通过用户已登录的 `fornax-cli` 发现并安装每个 source 的最新 Online/prod 发布。个人 `read_write` 源在 workflow id 冲突时胜出。程序不内置 AK/SK。见 [ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)。`fanloop config drift` 仍使用现有的 `in_sync` / `drifted` / `unavailable`。Doctor 对 Fornax 快照打印 `release_set_digest`。
+`fanloop update` 和 `fanloop update config` 通过用户已登录的 `fornax-cli` 发现并安装每个 source 的最新 Online/prod 发布。个人 `read_write` 源在 workflow id 冲突时胜出。程序不内置 AK/SK。见 [ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)。`fanloop config drift` 以最新发布包为参照，报告 `in_sync`、`local_behind`、`local_modified` 或 `unavailable`。Doctor 对 Fornax 快照打印 `release_set_digest`。
 
 `fanloop dashboard` 提供 loopback-only 文件与拓扑，保持源码锚点、缩放/聚焦/选择与轮询。默认绑定源只读；显式绝对 `FANLOOP_CONFIG_SOURCE` 才开启该仓库保存。写入只接受 allowlist 内完整文件，校验观察 SHA-256、无符号链接和整个候选 Bundle 后原子替换；可编辑当前绑定仓库，不调用远端配置服务。
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。

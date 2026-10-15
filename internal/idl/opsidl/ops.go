@@ -209,13 +209,17 @@ func (p *DoctorCheckStatus) Value() (driver.Value, error) {
 	return int64(*p), nil
 }
 
+// drifted, missing, and unreleased remain so older values still decode.
+// config drift does not emit them. The released package is the reference.
 type ConfigDriftStatus int64
 
 const (
-	ConfigDriftStatus_unspecified ConfigDriftStatus = 0
-	ConfigDriftStatus_in_sync     ConfigDriftStatus = 1
-	ConfigDriftStatus_drifted     ConfigDriftStatus = 2
-	ConfigDriftStatus_unavailable ConfigDriftStatus = 3
+	ConfigDriftStatus_unspecified    ConfigDriftStatus = 0
+	ConfigDriftStatus_in_sync        ConfigDriftStatus = 1
+	ConfigDriftStatus_drifted        ConfigDriftStatus = 2
+	ConfigDriftStatus_unavailable    ConfigDriftStatus = 3
+	ConfigDriftStatus_local_behind   ConfigDriftStatus = 4
+	ConfigDriftStatus_local_modified ConfigDriftStatus = 5
 )
 
 func (p ConfigDriftStatus) String() string {
@@ -228,6 +232,10 @@ func (p ConfigDriftStatus) String() string {
 		return "drifted"
 	case ConfigDriftStatus_unavailable:
 		return "unavailable"
+	case ConfigDriftStatus_local_behind:
+		return "local_behind"
+	case ConfigDriftStatus_local_modified:
+		return "local_modified"
 	}
 	return "<UNSET>"
 }
@@ -242,6 +250,10 @@ func ConfigDriftStatusFromString(s string) (ConfigDriftStatus, error) {
 		return ConfigDriftStatus_drifted, nil
 	case "unavailable":
 		return ConfigDriftStatus_unavailable, nil
+	case "local_behind":
+		return ConfigDriftStatus_local_behind, nil
+	case "local_modified":
+		return ConfigDriftStatus_local_modified, nil
 	}
 	return ConfigDriftStatus(0), fmt.Errorf("not a valid ConfigDriftStatus string")
 }
@@ -278,12 +290,14 @@ func (p *ConfigDriftStatus) Value() (driver.Value, error) {
 type WorkflowMirrorStatus int64
 
 const (
-	WorkflowMirrorStatus_unspecified WorkflowMirrorStatus = 0
-	WorkflowMirrorStatus_in_sync     WorkflowMirrorStatus = 1
-	WorkflowMirrorStatus_missing     WorkflowMirrorStatus = 2
-	WorkflowMirrorStatus_unreleased  WorkflowMirrorStatus = 3
-	WorkflowMirrorStatus_drifted     WorkflowMirrorStatus = 4
-	WorkflowMirrorStatus_unavailable WorkflowMirrorStatus = 5
+	WorkflowMirrorStatus_unspecified    WorkflowMirrorStatus = 0
+	WorkflowMirrorStatus_in_sync        WorkflowMirrorStatus = 1
+	WorkflowMirrorStatus_missing        WorkflowMirrorStatus = 2
+	WorkflowMirrorStatus_unreleased     WorkflowMirrorStatus = 3
+	WorkflowMirrorStatus_drifted        WorkflowMirrorStatus = 4
+	WorkflowMirrorStatus_unavailable    WorkflowMirrorStatus = 5
+	WorkflowMirrorStatus_local_behind   WorkflowMirrorStatus = 6
+	WorkflowMirrorStatus_local_modified WorkflowMirrorStatus = 7
 )
 
 func (p WorkflowMirrorStatus) String() string {
@@ -300,6 +314,10 @@ func (p WorkflowMirrorStatus) String() string {
 		return "drifted"
 	case WorkflowMirrorStatus_unavailable:
 		return "unavailable"
+	case WorkflowMirrorStatus_local_behind:
+		return "local_behind"
+	case WorkflowMirrorStatus_local_modified:
+		return "local_modified"
 	}
 	return "<UNSET>"
 }
@@ -318,6 +336,10 @@ func WorkflowMirrorStatusFromString(s string) (WorkflowMirrorStatus, error) {
 		return WorkflowMirrorStatus_drifted, nil
 	case "unavailable":
 		return WorkflowMirrorStatus_unavailable, nil
+	case "local_behind":
+		return WorkflowMirrorStatus_local_behind, nil
+	case "local_modified":
+		return WorkflowMirrorStatus_local_modified, nil
 	}
 	return WorkflowMirrorStatus(0), fmt.Errorf("not a valid WorkflowMirrorStatus string")
 }
