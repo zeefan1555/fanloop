@@ -3,18 +3,18 @@ schema_version: 4
 loop:
   analyze_materials:
     - prompt_ref: {file: prompt.yaml, prompt_id: retry_materials}
-      when: {any_of: [[materials_incomplete, panorama_presented]]}
+      when: {any_of: [[materials_incomplete]]}
       back_step_id: analyze_materials
 
   draft_result:
     - prompt_ref: {file: prompt.yaml, prompt_id: reanalyze_materials}
-      when: {any_of: [[materials_changed, panorama_presented]]}
+      when: {any_of: [[materials_changed]]}
       back_step_id: analyze_materials
     - prompt_ref: {file: prompt.yaml, prompt_id: revise_draft}
-      when: {any_of: [[draft_needs_revision, panorama_presented]]}
+      when: {any_of: [[draft_needs_revision]]}
       back_step_id: draft_result
 
   confirm_result:
     - prompt_ref: {file: prompt.yaml, prompt_id: revise_after_review}
-      when: {any_of: [[result_changes_requested, panorama_presented]]}
+      when: {any_of: [[result_changes_requested]]}
       back_step_id: draft_result

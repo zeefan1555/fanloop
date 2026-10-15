@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	cardruntime "github.com/zeefan1555/fanloop/internal/card"
+	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
@@ -26,6 +28,7 @@ func TestRuntimeStartAndJumpControls(t *testing.T) {
 		Clock:          func() time.Time { return time.Date(2026, 9, 17, 0, 0, nextID, 0, time.UTC) },
 		EventID:        func() string { nextID++; return "event-" + string(rune('0'+nextID)) },
 		ReleaseVersion: "test",
+		ProjectCard:    cardruntime.WriteProjection,
 	}
 	initialized, err := runtime.Init(context.Background(), root, &flowidl.FlowInitRequest{Workflow: "runtime-controls", Requirement: &flowidl.Requirement{Title: "controls"}}, false)
 	if err != nil {
@@ -34,6 +37,7 @@ func TestRuntimeStartAndJumpControls(t *testing.T) {
 	if initialized.State.Current.Execution.Status != flowidl.StepStatus_awaiting_confirmation {
 		t.Fatalf("initialized state = %#v", initialized.State)
 	}
+	acknowledgeRuntimePanorama(t, runtime, root, initialized.State.PendingActions[0].Id)
 	if _, err := runtime.Progress(context.Background(), root, &flowidl.FlowProgressRequest{StepId: "first", Status: flowidl.ProgressStatus_in_progress, Summary: "work", Evidence: []*flowidl.Evidence{}}, false); PublicError(err).Code != erroridl.ErrorCode_REPORT_NOT_ALLOWED {
 		t.Fatalf("progress while awaiting error = %v", err)
 	}
@@ -62,6 +66,21 @@ func TestRuntimeStartAndJumpControls(t *testing.T) {
 	jumpedStatus, err := runtime.Status(context.Background(), root, &flowidl.FlowStatusRequest{})
 	if err != nil || jumpedStatus.State.Current.Context.StepId != target || jumpedStatus.State.Current.Execution.Status != flowidl.StepStatus_awaiting_confirmation || len(jumpedStatus.State.SkippedStepIds) != 2 {
 		t.Fatalf("jumped replay = %#v, error = %v", jumpedStatus, err)
+	}
+}
+
+func acknowledgeRuntimePanorama(t *testing.T, runtime Runtime, root, actionID string) {
+	t.Helper()
+	rendered, err := (cardruntime.Runtime{}).Render(context.Background(), root, &cardidl.CardRenderRequest{
+		View: cardidl.CardView_panorama, Format: cardidl.CardFormat_markdown,
+	}, false)
+	if err != nil || rendered.GetSnapshotPath() == "" {
+		t.Fatalf("panorama render: %v", err)
+	}
+	if _, err = runtime.AcknowledgeAction(context.Background(), root, &flowidl.FlowActionAcknowledgeRequest{
+		ActionId: actionID, PanoramaSnapshotPath: rendered.GetSnapshotPath(),
+	}, false); err != nil {
+		t.Fatal(err)
 	}
 }
 

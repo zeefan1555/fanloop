@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
@@ -29,6 +30,9 @@ func TestEveryEventPayloadRoundTripsThroughStorageThriftUnion(t *testing.T) {
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now, Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(result)},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: now, Kind: EventTraceDocumentBound, Command: "trace.bind", Workflow: workflowRef, CausedByEventID: "e3", Payload: Payload(TraceDocumentBoundPayload{DocumentURL: "https://docs.example.invalid/docx/Trace", Registry: traceconfig.RegistryProduction})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e5", OccurredAt: now, Kind: EventTraceSyncStarted, Command: "trace.sync", Workflow: workflowRef, CausedByEventID: "e4", Payload: Payload(TraceSyncStartedPayload{Targets: []string{"trace_document", "registry"}})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e7", OccurredAt: now, Kind: EventFlowActionAcknowledged, Command: "flow.action.acknowledge", Workflow: workflowRef, CausedByEventID: "e6", Payload: Payload(FlowActionAcknowledgedPayload{
+			ActionID: "panorama-e1", ActionType: ActionPanoramaDeliveryRequired, TriggerEventID: "e1", PanoramaSnapshotPath: cardsnapshot.Path(now, "e1", 0),
+		})},
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e6", OccurredAt: now, Kind: EventTraceSynced, Command: "trace.sync", Workflow: workflowRef, CausedByEventID: "e5", Payload: Payload(TraceSyncedPayload{Outcome: TraceSyncPartial, Targets: []TraceTargetResult{
 			{Name: "trace_document", Status: "succeeded"},
 			{Name: "registry", Status: "failed", Error: &TraceTargetError{Code: "REGISTRY_UPDATE_FAILED", Message: "unavailable", Retryable: true}},
@@ -135,7 +139,7 @@ func TestRuntimeDomainModelsDoNotDefinePersistenceJSON(t *testing.T) {
 	values := []any{
 		State{}, Requirement{}, WorkflowRef{}, Release{}, Integrations{}, TraceBinding{}, Evidence{},
 		OutputValue{}, RegisteredOutput{}, ConditionResult{}, Transition{}, OutputChanges{}, Event{},
-		FlowInitializedPayload{}, FlowProgressPayload{}, FlowResultPayload{}, TraceDocumentBoundPayload{},
+		FlowInitializedPayload{}, FlowProgressPayload{}, FlowResultPayload{}, FlowActionAcknowledgedPayload{}, PendingAction{}, TraceDocumentBoundPayload{},
 		TraceSyncStartedPayload{}, TraceSyncedPayload{}, TraceTargetResult{}, TraceTargetError{}, OutputRegistry{},
 	}
 	for _, value := range values {

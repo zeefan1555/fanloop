@@ -34,8 +34,10 @@ func TestInstalledReleaseUsesSyntheticConditionRoutingAcrossDomains(t *testing.T
 	}
 	run("flow", "init", "--root", root, "--workflow", "sample-runtime", "--title", "Release E2E")
 	run("trace", "bind", "--root", root, "--document-url", "https://docs.example.invalid/docx/TraceE2E", "--registry", "test")
+	acknowledgePanorama(t, func(args ...string) string { return run(args...).stdout }, root)
 
 	run("flow", "report", "result", "--root", root, "--input", `{"step_id":"first","condition_results":[{"condition_id":"first_completed","output":{"type":"path","value":"first.md"}}],"route":{"next_step_id":"second"},"summary":"first complete","evidence":[]}`)
+	acknowledgePanorama(t, func(args ...string) string { return run(args...).stdout }, root)
 	incomplete := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "report", "result", "--root", root, "--input", `{"step_id":"second","condition_results":[{"condition_id":"second_completed","output":{"type":"path","value":"second.md"}}],"route":{"next_step_id":"third"},"summary":"missing evidence","evidence":[]}`)
 	if incomplete.err == nil || !strings.Contains(incomplete.stderr, `"code": "ROUTE_NOT_MATCHED"`) {
 		t.Fatalf("incomplete Condition set advanced:\nstdout: %s\nstderr: %s", incomplete.stdout, incomplete.stderr)
@@ -44,6 +46,7 @@ func TestInstalledReleaseUsesSyntheticConditionRoutingAcrossDomains(t *testing.T
 	if !strings.Contains(advanced.stdout, `"effect": "advanced"`) || !strings.Contains(advanced.stdout, `"step_id": "third"`) {
 		t.Fatalf("matching Conditions did not advance: %s", advanced.stdout)
 	}
+	acknowledgePanorama(t, func(args ...string) string { return run(args...).stdout }, root)
 	looped := run("flow", "report", "result", "--root", root, "--input", `{"step_id":"third","condition_results":[{"condition_id":"third_rework","output":{"type":"enum_value","value":"rework"}}],"route":{"back_step_id":"second"},"summary":"third needs rework","evidence":[]}`)
 	if !strings.Contains(looped.stdout, `"effect": "looped"`) || !strings.Contains(looped.stdout, `"step_id": "second"`) {
 		t.Fatalf("matching Loop Conditions did not return: %s", looped.stdout)

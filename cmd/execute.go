@@ -58,6 +58,15 @@ func addOperationControls(command *cobra.Command, controls *operationControls) {
 	if ok && spec.SupportsDryRun {
 		command.Flags().BoolVar(&controls.dryRun, "dry-run", false, "validate and plan without business side effects")
 	}
+	if ok && len(spec.Errors) > 0 {
+		var catalog strings.Builder
+		catalog.WriteString("\n\nErrors:\n")
+		for _, item := range spec.Errors {
+			fmt.Fprintf(&catalog, "  %s (type=%s, exit=%d, retryable=%t): %s\n",
+				item.Code.String(), item.Type.String(), item.ExitCode, item.Retryable, item.Hint)
+		}
+		command.Long += strings.TrimSuffix(catalog.String(), "\n")
+	}
 	if ok && spec.RequirementScope != commonidl.RequirementScope_none {
 		command.Long += `
 

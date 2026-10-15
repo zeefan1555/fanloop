@@ -139,6 +139,22 @@ struct Skill {
   4: required string path     (vt.min_size = "1"),
 }
 
+enum ActionType {
+  unspecified                = 0,
+  panorama_delivery_required = 1,
+}
+
+struct PendingAction {
+  1: required string     id               (vt.min_size = "1"),
+  2: required ActionType type             (
+    vt.defined_only = "true",
+    vt.not_in = "ActionType.unspecified",
+  ),
+  3: required Skill      skill            (vt.not_nil = "true"),
+  4: required string     trigger_event_id (vt.min_size = "1"),
+  5: optional string     step_id,
+}
+
 struct Prompt {
   1: required string      content (vt.min_size = "1"),
   2: required list<Skill> skills,
@@ -198,6 +214,7 @@ struct FlowState {
   2: optional CurrentTask                  current,
   3: required map<string,RegisteredOutput> outputs,
   4: required list<string>                 skipped_step_ids,
+  5: required list<PendingAction>          pending_actions,
 }
 
 enum InitEffect {
@@ -316,12 +333,32 @@ struct FlowResultResponse {
   5: required list<string> invalidated_outputs,
 }
 
+enum ActionAcknowledgeEffect {
+  unspecified  = 0,
+  acknowledged = 1,
+}
+
+struct FlowActionAcknowledgeRequest {
+  1: required string action_id              (vt.min_size = "1"),
+  2: required string panorama_snapshot_path (vt.min_size = "1"),
+}
+
+struct FlowActionAcknowledgeResponse {
+  1: required ActionAcknowledgeEffect effect (
+    vt.defined_only = "true",
+    vt.not_in = "ActionAcknowledgeEffect.unspecified",
+  ),
+  2: optional string                    event_id,
+  3: required FlowState                 state (vt.not_nil = "true"),
+}
+
 // One method maps to one public CLI command:
-// Init     -> fanloop flow init
-// Status   -> fanloop flow status
-// Skills   -> fanloop flow skills
-// Progress -> fanloop flow report progress
-// Result   -> fanloop flow report result
+// Init              -> fanloop flow init
+// Status            -> fanloop flow status
+// Skills            -> fanloop flow skills
+// Progress          -> fanloop flow report progress
+// Result            -> fanloop flow report result
+// AcknowledgeAction -> fanloop flow action acknowledge
 service FlowService {
   FlowInitResponse Init(
     1: required string          requirement_root,
@@ -333,7 +370,7 @@ service FlowService {
     cli.risk = "local_write",
     cli.requirement_scope = "new",
     cli.supports_dry_run = "true",
-    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,WORKFLOW_REQUIRED,ALREADY_INITIALIZED,WORKFLOW_NOT_FOUND,WORKFLOW_INVALID,LOCAL_COMMIT_FAILED,INTERNAL,CONFIGURATION_FETCH_FAILED",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,WORKFLOW_REQUIRED,ALREADY_INITIALIZED,WORKFLOW_NOT_FOUND,WORKFLOW_INVALID,CONDITION_RESERVED,LOCAL_COMMIT_FAILED,INTERNAL,CONFIGURATION_FETCH_FAILED",
   )
 
   FlowStatusResponse Status(
@@ -345,7 +382,7 @@ service FlowService {
     cli.risk = "read",
     cli.requirement_scope = "existing",
     cli.supports_dry_run = "false",
-    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,WORKFLOW_MISMATCH,INTERNAL",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,WORKFLOW_MISMATCH,CONDITION_RESERVED,INTERNAL",
   )
 
   FlowSkillsResponse Skills(
@@ -357,7 +394,7 @@ service FlowService {
     cli.risk = "read",
     cli.requirement_scope = "existing",
     cli.supports_dry_run = "false",
-    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,WORKFLOW_MISMATCH,INTERNAL",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,WORKFLOW_MISMATCH,CONDITION_RESERVED,INTERNAL",
   )
 
   FlowProgressResponse Progress(
@@ -370,7 +407,7 @@ service FlowService {
     cli.risk = "local_write",
     cli.requirement_scope = "existing",
     cli.supports_dry_run = "true",
-    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,STATE_CONFLICT,STEP_NOT_CURRENT,REPORT_NOT_ALLOWED,WORKFLOW_MISMATCH,WORKFLOW_INVALID,LOCAL_COMMIT_FAILED,INTERNAL",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,STATE_CONFLICT,STEP_NOT_CURRENT,REPORT_NOT_ALLOWED,WORKFLOW_MISMATCH,WORKFLOW_INVALID,CONDITION_RESERVED,LOCAL_COMMIT_FAILED,INTERNAL",
   )
 
   FlowResultResponse Result(
@@ -383,6 +420,19 @@ service FlowService {
     cli.risk = "local_write",
     cli.requirement_scope = "existing",
     cli.supports_dry_run = "true",
-    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,STATE_CONFLICT,STEP_NOT_CURRENT,REPORT_NOT_ALLOWED,WORKFLOW_MISMATCH,WORKFLOW_INVALID,LOCAL_COMMIT_FAILED,INTERNAL,CONDITION_NOT_ALLOWED,CONDITION_CONFLICT,OUTPUT_INVALID,ROUTE_NOT_MATCHED,ROUTE_AMBIGUOUS,ROUTE_NOT_ALLOWED",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,STATE_CONFLICT,STEP_NOT_CURRENT,REPORT_NOT_ALLOWED,WORKFLOW_MISMATCH,WORKFLOW_INVALID,CONDITION_RESERVED,LOCAL_COMMIT_FAILED,INTERNAL,CONDITION_NOT_ALLOWED,CONDITION_CONFLICT,OUTPUT_INVALID,ROUTE_NOT_MATCHED,ROUTE_AMBIGUOUS,ROUTE_NOT_ALLOWED",
+  )
+
+  FlowActionAcknowledgeResponse AcknowledgeAction(
+    1: required string                       requirement_root,
+    2: required FlowActionAcknowledgeRequest request,
+    3: required bool                         dry_run,
+  ) throws (1: error.PublicError error) (
+    cli.id = "flow.action.acknowledge",
+    cli.summary = "Acknowledge a required Flow action",
+    cli.risk = "local_write",
+    cli.requirement_scope = "existing",
+    cli.supports_dry_run = "true",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,STATE_CONFLICT,REPORT_NOT_ALLOWED,WORKFLOW_MISMATCH,WORKFLOW_INVALID,CONDITION_RESERVED,LOCAL_COMMIT_FAILED,INTERNAL",
   )
 }

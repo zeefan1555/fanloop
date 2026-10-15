@@ -8,12 +8,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
+	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/configuration"
 	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -468,25 +467,7 @@ func validateCardBinding(root string) *idl.DoctorCheck {
 }
 
 func validCardSnapshotPath(path string) bool {
-	const prefix = ".fanloop/card/"
-	if !strings.HasPrefix(path, prefix) || strings.Contains(strings.TrimPrefix(path, prefix), "/") || !strings.HasSuffix(path, ".json") {
-		return false
-	}
-	stem := strings.TrimSuffix(strings.TrimPrefix(path, prefix), ".json")
-	const stampLength = len("20260807T004805.880691+0800")
-	if len(stem) < stampLength {
-		return false
-	}
-	if _, err := time.Parse("20060102T150405.000000-0700", stem[:stampLength]); err != nil {
-		return false
-	}
-	if suffix := stem[stampLength:]; suffix != "" {
-		value, err := strconv.Atoi(strings.TrimPrefix(suffix, "-"))
-		if err != nil || !strings.HasPrefix(suffix, "-") || value < 1 {
-			return false
-		}
-	}
-	return true
+	return cardsnapshot.ValidPath(path)
 }
 
 func validateRenderedCardContent(content []byte) error {

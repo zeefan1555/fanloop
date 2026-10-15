@@ -187,6 +187,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 			t.Fatalf("candidate %s failed on old Requirement: %v\nstdout: %s\nstderr: %s", name, result.err, result.stdout, result.stderr)
 		}
 	}
+	acknowledgeInstalledPanorama(t, dataRoot, codexRoot, agentsRoot, oldRoot)
 	assertCandidate("progress", "flow", "report", "progress", "--root", oldRoot, "--step-id", "analyze_materials", "--status", "in_progress", "--summary", "continued by candidate")
 	assertCandidate("card", "card", "render", "--root", oldRoot, "--view", "current", "--format", "markdown")
 	assertCandidate("trace", "trace", "status", "--root", oldRoot)

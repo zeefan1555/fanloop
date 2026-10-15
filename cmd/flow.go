@@ -19,7 +19,8 @@ func newFlowCommand(ioStreams streams, root *string) *cobra.Command {
 		Long: `Initialize and report a requirement through its Workflow.
 
 Use init only after status reports NOT_INITIALIZED. Use status immediately before each action.
-Use report progress for execution facts, and report result for Conditions and routing.`,
+If state.pending_actions is non-empty, acknowledge each action before the business prompt.
+Only when pending_actions is empty. Use report progress for execution facts, and report result for Conditions and routing.`,
 		Args: cobra.NoArgs,
 		RunE: func(command *cobra.Command, _ []string) error {
 			return command.Help()
@@ -30,7 +31,75 @@ Use report progress for execution facts, and report result for Conditions and ro
 		newFlowStatusCommand(ioStreams, root),
 		newFlowSkillsCommand(ioStreams, root),
 		newFlowReportCommand(ioStreams, root),
+		newFlowActionCommand(ioStreams, root),
 	)
+	return command
+}
+
+func newFlowActionCommand(ioStreams streams, root *string) *cobra.Command {
+	command := &cobra.Command{
+		Use:   "action",
+		Short: "Acknowledge required Flow actions",
+		Long: `Acknowledge required Flow actions.
+
+Read flow status, execute the exact Skill attached to one pending action, then
+acknowledge that same action with its delivery snapshot.`,
+		Args: cobra.NoArgs,
+		RunE: func(command *cobra.Command, _ []string) error {
+			return command.Help()
+		},
+	}
+	command.AddCommand(newFlowActionAcknowledgeCommand(ioStreams, root))
+	return command
+}
+
+func newFlowActionAcknowledgeCommand(ioStreams streams, root *string) *cobra.Command {
+	var controls operationControls
+	request := flowidl.NewFlowActionAcknowledgeRequest()
+	command := operationCommand("flow.action.acknowledge")
+	command.Long = `Purpose:
+  Acknowledge the exact required Flow action returned by the latest flow status.
+
+Effect:
+  Local write. A non-dry-run call appends an acknowledgment Event and clears the pending action;
+  dry-run validates the same receipt without committing it.
+
+Request JSON:
+  {
+    "action_id": "<PENDING_ACTION_ID>",
+    "panorama_snapshot_path": ".fanloop/card/<SNAPSHOT>.json"
+  }
+
+Typed flags:
+  fanloop flow action acknowledge --root <ABSOLUTE_REQUIREMENT_ROOT> --action-id <PENDING_ACTION_ID> --panorama-snapshot-path .fanloop/card/<SNAPSHOT>.json
+
+Constraints:
+  action_id must equal the one pending action returned by the latest flow status.
+  panorama_snapshot_path must be the exact non-dry-run Panorama snapshot delivered by that action's Skill.
+  A stale action, missing pending action, symlink, non-snapshot path, or invalid snapshot is rejected atomically.
+
+Controls:
+  --root is required and is not part of Request JSON. --input accepts inline JSON, @file, or - for stdin.
+  JSON input rejects unknown fields, type errors, invalid enums, and trailing JSON.
+  --dry-run validates and projects the cleared State without writing an Event.
+
+Next step:
+  After a successful non-dry-run acknowledgment, run flow status again before business progress or result.`
+	command.Example = `  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>
+  fanloop flow action acknowledge --root <ABSOLUTE_REQUIREMENT_ROOT> --action-id <PENDING_ACTION_ID> --panorama-snapshot-path .fanloop/card/<SNAPSHOT>.json
+  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>`
+	command.RunE = func(command *cobra.Command, _ []string) error {
+		return runOperation(command.Context(), command, *root, controls, ioStreams,
+			func() (*flowidl.FlowActionAcknowledgeRequest, *erroridl.PublicError) { return request, nil },
+			func(ctx context.Context, request *flowidl.FlowActionAcknowledgeRequest, dryRun bool) (operationResult, *erroridl.PublicError) {
+				runtime, warnings := flowRuntime()
+				response, err := runtime.AcknowledgeAction(ctx, *root, request, dryRun)
+				return fromFlow(*root, response, warnings, err)
+			})
+	}
+	addOperationControls(command, &controls)
+	command.Flags().StringVar(&request.ActionId, "action-id", "", "pending Flow action id")
+	command.Flags().StringVar(&request.PanoramaSnapshotPath, "panorama-snapshot-path", "", "exact delivered Panorama snapshot path")
 	return command
 }
 
@@ -119,7 +188,9 @@ Controls:
   This command does not support --dry-run because its business operation is read-only.
 
 Next step:
-  Execute current.prompt and its required Skills from this Status, then read the target report command's --help.`
+  If state.pending_actions is non-empty, read each action.skill, complete it, acknowledge that same action with
+  flow action acknowledge, and reread Status. Only when pending_actions is empty may the Agent execute
+  current.prompt and its required Skills, then read the target report command's --help.`
 	command.Example = "  fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT>"
 	command.RunE = func(command *cobra.Command, _ []string) error {
 		return runOperation(command.Context(), command, *root, controls, ioStreams,
