@@ -3,6 +3,9 @@
 ## Sub-features
 
 - Offline source build and installation; optional clean Git configuration import.
+- GitHub Release install: platform archive, checksums.txt, release.json, the thin npm launcher, public Skill links, and `npm i -g --foreground-scripts --allow-scripts=fanloop`.
+- `fanloop update` keeps a newer installed release instead of downgrading to `latest`. `fanloop doctor` warns with `export PATH=...` when that distribution install is not on PATH.
+- `fanloop update` switches only the CLI. `fanloop update config` syncs Workflow snapshots, skips an unchanged commit, and prints each Workflow version.
 - Release version, commit, binary checksum and both public Skill entrypoints.
 - Stable `current/` and nested Release selector, separate from `config/current` source binding.
 - Failed installation preserves the active Release and previous source binding.

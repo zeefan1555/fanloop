@@ -104,8 +104,8 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。
 本地源绑定、完整包与 Dashboard 边界见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-GitHub 只托管源码、PR 和 CI；不构建或发布 npm、跨平台归档或其他分发制品。合并后从精确 merge commit 本地构建、安装并回读版本、Doctor 与 smoke。生产 Workflow 在 second-brain-skills 独立维护；只有新的 `flow init` 才会拉取、校验并激活远端更新，已有 `flow status/report/skills` 继续离线读取当前不可变快照。完整决定见
-[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
+用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`；`fanloop update config` 只同步 Workflow 快照，commit 未变时跳过 checkout。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。生产 Workflow 在 second-brain-skills 独立维护；`update config` 与新的 `flow init` 才会拉取远端配置，已有 `flow status/report/skills` 继续离线读取当前不可变快照。完整决定见
+[ADR-0136](./adr/0136-distribute-cli-from-github-releases.md)、[ADR-0095](./adr/0095-local-source-builds.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
 新增生产 Workflow 直接增加 fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 

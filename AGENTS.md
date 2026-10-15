@@ -118,12 +118,13 @@
 
 完成标准：聚焦命令与 `./tests/run-unit` 通过，本地验证和 AI Code Review 覆盖冻结的最终候选 HEAD；用户表面变化还要求隔离候选的真实公开 CLI 证据与 Sub-agent 黑盒验收。远端 Ruleset 与 required checks 在同一 `candidate_head` 上通过后自动 squash 合并唯一 PR；随后只更新本 Requirement 的源码 worktree，并从精确 merge commit 本地构建、安装和回读版本、Doctor 与 smoke。
 
-## 本地源码分发
+## 安装与分发
 
-1. GitHub 只托管源码和运行 CI；仓库不保留 npmjs.org、GitHub Packages、私有 package registry 或手工 `npm publish` 入口。
-2. `npm run build` 与 `npm run install:local` 只是本地 Shell 入口的快捷方式，不生成或发布 npm 包。
-3. 合并后从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke；安装离线导入显式配置提交，未指定时保留已有快照。
-4. 生产配置在 second-brain-skills main 维护，下次 flow init 自动拉取；显式作者源编辑在下一次调用生效。
+1. 用户安装来自 GitHub Release，不使用 npm registry，也不发布到 GitHub Packages 或私有 package registry。推送形如 `vX.Y.Z` 的 tag 后，Actions 只在 ubuntu 上交叉编译 darwin/linux 的 amd64 与 arm64，上传每个平台一个 tar.gz、`checksums.txt`、分发清单 `release.json`，以及 `npm pack` 生成的薄包装 tgz。
+2. 安装命令是 `npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1555/fanloop/releases/download/vX.Y.Z/fanloop-X.Y.Z.tgz`。`--allow-scripts=fanloop` 允许较新的 npm 运行 postinstall；`--foreground-scripts` 让安装程序打印的 `export PATH=...` 出现在终端里。安装程序校验 sha256 和完整的内部 release 清单，确认文件摘要后解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `current`。
+3. `fanloop update` 下载最新 GitHub Release 并切换 `current`。已安装版本比 `latest` 新时保持不变。同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步 Workflow 配置：配置未变化时跳过 checkout，并发运行共用配置锁，并打印每个 Workflow 的 id 和同步到的 commit。
+4. 开发仍用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。`npm run build` 与 `npm run install:local` 只是这两个脚本的快捷方式，不向 registry 发布。`go.mod` 要求 Go 1.23.0 或更高版本。
+5. 合并后的代码验证仍可从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke。生产配置在 second-brain-skills main 维护；`fanloop update config` 或下次 flow init 拉取。显式作者源编辑在下一次调用生效。分发安装的 `current` 是符号链接时，若 `fanloop` 不在 PATH 上，`fanloop doctor` 给出带 `export PATH=...` 的 warning。
 
 ## ADR 一致性
 

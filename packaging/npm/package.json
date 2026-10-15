@@ -1,0 +1,24 @@
+{
+  "name": "fanloop",
+  "version": "0.0.0",
+  "description": "Fanloop CLI launcher. The native binary is installed from a GitHub Release.",
+  "license": "UNLICENSED",
+  "bin": {
+    "fanloop": "scripts/run.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "files": [
+    "scripts/run.js",
+    "scripts/install.js",
+    "scripts/layout.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeefan1555/fanloop.git"
+  }
+}

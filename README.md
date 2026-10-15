@@ -23,9 +23,29 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 公共场景别名属于独立入口 Skill 的安装范围，不为新增配置隐式重建 CLI 或更新已安装场景表。不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。该文件里的 Lark 坐标是占位符；provider 为 lark 时用 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 提供真实值。
 
+## 安装发布版本
+
+发布由推送形如 `vX.Y.Z` 的 tag 触发。GitHub Actions 在 Ubuntu 上交叉编译 macOS 与 Linux 的 amd64、arm64，并把平台归档、`checksums.txt`、`release.json` 和薄 npm 包装上传到该 GitHub Release。不使用 npm registry。
+
+```bash
+npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1555/fanloop/releases/download/vX.Y.Z/fanloop-X.Y.Z.tgz
+fanloop --version
+```
+
+较新的 npm 可能拦截 postinstall，需要 `--allow-scripts=fanloop`。npm 默认不显示成功的 postinstall 输出，`--foreground-scripts` 让 `export PATH=...` 出现在终端里。安装程序先校验 sha256 和完整的内部 release 清单，再解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `~/.fanloop/current`。包装里的启动器会执行 `current/bin/fanloop`。如果这个命令还不在 `PATH` 上，安装程序会打印一条可以直接执行的 `export PATH=...`；之后 `fanloop doctor` 也会在 hint 里给出同一条命令。
+
+更新 CLI 与更新 Workflow 配置是两条命令：
+
+```bash
+fanloop update
+fanloop update config
+```
+
+`fanloop update` 下载最新 GitHub Release 并切换 `current`。本机版本比 `latest` 新时保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步配置仓库；远端 commit 没变时不会重新 checkout，并发同步共用一把锁，并打印每个 Workflow 的 id 和同步到的 commit。
+
 ## 本地构建与安装
 
-从源码使用，需要 Go 1.23+、Git 和 Bash。构建只针对本机，生成只包含 CLI、两个公共 Skill 和
+从源码使用，需要 Go 1.23 或更高版本（`go.mod` 要求 `go 1.23.0`）、Git 和 Bash。构建只针对本机，生成只包含 CLI、两个公共 Skill 和
 校验清单的不可变 Release；Workflow YAML 与其绑定 Skills 不进入 Release。
 根级 `VERSION` 是 CLI 基础版本真值；本地源码构建使用 `VERSION-dev.<提交或内容摘要>`，同一提交
 可幂等复用，不同提交不会覆盖同名不可变 Release。Workflow/Skill 与范文改动不改变未提交 CLI
@@ -157,9 +177,9 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 源码边界
 
-源码位于 GitHub 仓库 `zeefan1555/fanloop`。GitHub 负责代码托管、PR 与 CI，不发布 npm、平台归档或其他安装制品。合并后从精确 merge commit 执行本地构建和安装；生产 Workflow 完整包在 `zeefan1555/second-brain-skills` 独立维护，配置更新不要求重建 CLI。
+源码位于 GitHub 仓库 `zeefan1555/fanloop`。用户安装的 CLI 来自 GitHub Release；仓库不向 npm registry 发布。开发机仍可从精确 merge commit 执行 `./scripts/install-local.sh`。生产 Workflow 完整包在 `zeefan1555/second-brain-skills` 独立维护，配置更新不要求重建 CLI。
 
-构建与安装边界见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，本地 Workflow Skill 包、源绑定与 Dashboard 边界见
+发布与安装边界见 [ADR-0136](./docs/adr/0136-distribute-cli-from-github-releases.md)。本地开发构建见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，Workflow 配置、源绑定与 Dashboard 边界见
 [ADR-0132](./docs/adr/0132-git-workflow-configuration-center.md)。代码授权仍为 `UNLICENSED`。
 
 架构与契约说明见 [CONTEXT.md](./CONTEXT.md)、[docs/technical-design.md](./docs/technical-design.md)

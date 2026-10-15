@@ -96,8 +96,8 @@ Feature Map 和 Acceptance Set 做真实黑盒验收，不读源码、不使用�
 main 前进时只记录新 base 并回 Build，不能修改候选；重新认证后发布唯一 PR、等待 required checks、自动
 squash merge，校验 merge tree 等于认证 tree，再把本 Requirement 的源码 worktree 更新到 merge commit，并从该提交本地安装和回读。
 
-**Local Source Distribution**
-GitHub 只托管源码与 CI。`npm run build` 和 `npm run install:local` 是本地脚本快捷方式；不存在 npm registry、candidate/latest、跨平台归档或 launcher 发布。安装离线导入显式干净提交或保留当前快照；新 init 自动刷新远端 main。
+**Distribution**
+用户通过 GitHub Release 安装 CLI：形如 `vX.Y.Z` 的 tag 在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、`release.json` 和薄 npm 包装。安装命令是 `npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1555/fanloop/releases/download/vX.Y.Z/fanloop-X.Y.Z.tgz`。`fanloop update` 切换 CLI，且不会把较新的本机版本降级到 `latest`。`fanloop update config` 只同步 Workflow 配置。不使用 npm registry。`go.mod` 要求 Go 1.23.0 或更高版本。`npm run build` 和 `npm run install:local` 仍是本地开发脚本的快捷方式；开发安装离线导入显式干净提交或保留当前快照。
 
 **Maintainer Reports**
 代码通道固定产物为 `requirements.md`、`verification-report.md`、`certification-report.md` 和

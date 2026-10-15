@@ -90,6 +90,49 @@ func (runtime Runtime) Run(requirementRoot string) *idl.DoctorResponse {
 }
 
 func (runtime Runtime) installationChecks() []*idl.DoctorCheck {
+	checks := runtime.releaseChecks()
+	if pathCheck := runtime.commandPathCheck(); pathCheck != nil {
+		checks = append(checks, pathCheck)
+	}
+	return checks
+}
+
+func (runtime Runtime) commandPathCheck() *idl.DoctorCheck {
+	dataRoot, err := release.DefaultDataRoot()
+	if err != nil {
+		return nil
+	}
+	current := filepath.Join(dataRoot, "current")
+	info, err := os.Lstat(current)
+	if err != nil || info.Mode()&os.ModeSymlink == 0 {
+		return nil
+	}
+	bin := filepath.Join(current, "bin")
+	if commandReachable(bin) {
+		return check("command_path", statusPass, "fanloop is on PATH.", "")
+	}
+	hint := fmt.Sprintf("export PATH=\"%s:$PATH\"", bin)
+	return check("command_path", statusWarn, "fanloop is not on PATH. npm hides postinstall output unless --foreground-scripts is set.", hint)
+}
+
+func commandReachable(binDir string) bool {
+	for _, entry := range filepath.SplitList(os.Getenv("PATH")) {
+		if entry == "" {
+			continue
+		}
+		if filepath.Clean(entry) == filepath.Clean(binDir) {
+			return true
+		}
+		candidate := filepath.Join(entry, "fanloop")
+		info, err := os.Stat(candidate)
+		if err == nil && info.Mode().IsRegular() && info.Mode()&0o111 != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (runtime Runtime) releaseChecks() []*idl.DoctorCheck {
 	manifest, err := release.Load(runtime.ReleaseRoot)
 	if os.IsNotExist(err) {
 		return []*idl.DoctorCheck{

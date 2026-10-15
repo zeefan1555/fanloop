@@ -11,6 +11,7 @@ orchestration directory.
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
 | Configuration source | `internal/configuration/`, `internal/workflow/{sources,configuration}.go` | Git main snapshots, explicit author source, complete validation and atomic activation |
 | Local build | `internal/{buildinfo,doctor,release}/`, `tools/release-manifest/`, `scripts/{build-local,install-local}.sh`, `package.json` | Immutable local CLI builds, offline installation, diagnosis and nested Release switching |
+| Distribution | `internal/distribution/`, `cmd/update.go`, `packaging/npm/`, `scripts/{build-release.sh,verify-release-assets.js}`, `.github/workflows/release.yml` | GitHub Release assets, checksum verification, the npm launcher, and `fanloop update` / `fanloop update config` |
 
 Changes to `internal/idl/`, `internal/output/`, public Cobra
 flags, State or Event schemas, release manifests, or reviewed contract Goldens

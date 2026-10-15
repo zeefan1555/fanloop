@@ -87,15 +87,9 @@ func TestHiddenInstallFailureKeepsItsPrivateExitContract(t *testing.T) {
 	}
 }
 
-func TestConfigurationUpdateIsRemoved(t *testing.T) {
+func TestRetiredUpdateFlagIsRejected(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := Execute(context.Background(), []string{"update"}, strings.NewReader(""), &stdout, &stderr)
-	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "command is not supported") {
-		t.Fatalf("exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
-	}
-	stdout.Reset()
-	stderr.Reset()
-	code = Execute(context.Background(), []string{"--update"}, strings.NewReader(""), &stdout, &stderr)
+	code := Execute(context.Background(), []string{"--update"}, strings.NewReader(""), &stdout, &stderr)
 	if code != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "unknown flag --update") {
 		t.Fatalf("retired flag exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
@@ -199,6 +193,7 @@ func TestRootExposesOnlyFinalPublicDomains(t *testing.T) {
 		"version":   true,
 		"doctor":    true,
 		"dashboard": true,
+		"update":    true,
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("domains = %#v, want %#v", got, want)

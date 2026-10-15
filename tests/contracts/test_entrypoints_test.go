@@ -231,7 +231,7 @@ exit "$result"
 	}
 }
 
-func TestDistributionIsLocalOnly(t *testing.T) {
+func TestGitHubReleaseDistribution(t *testing.T) {
 	repo := repositoryRoot(t)
 	data, err := os.ReadFile(filepath.Join(repo, "package.json"))
 	if err != nil {
@@ -248,15 +248,55 @@ func TestDistributionIsLocalOnly(t *testing.T) {
 	if !pkg.Private || len(pkg.Scripts) != 2 || pkg.Scripts["build"] != "./scripts/build-local.sh" || pkg.Scripts["install:local"] != "./scripts/install-local.sh" {
 		t.Fatal("package.json must expose only the local build and install shortcuts")
 	}
-	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh"} {
+	for _, relative := range []string{"scripts/build-local.sh", "scripts/install-local.sh", "scripts/build-release.sh"} {
 		info, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative)))
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&0o111 == 0 {
-			t.Fatalf("local entrypoint %s is not executable: %v", relative, err)
+			t.Fatalf("entrypoint %s is not executable: %v", relative, err)
 		}
 	}
 	for _, relative := range []string{
-		".goreleaser.yml", ".github/workflows/release.yml",
-		"scripts/build-release.sh", "scripts/prepare-release.sh", "scripts/build-npm-release.sh",
+		".github/workflows/release.yml",
+		"scripts/verify-release-assets.js",
+		"packaging/npm/scripts/run.js",
+		"packaging/npm/scripts/install.js",
+		"docs/adr/0136-distribute-cli-from-github-releases.md",
+	} {
+		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(relative))); err != nil {
+			t.Errorf("distribution file missing: %s (%v)", relative, err)
+		}
+	}
+	workflow, err := os.ReadFile(filepath.Join(repo, ".github/workflows/release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(workflow), "ubuntu-latest") || strings.Contains(string(workflow), "macos-") {
+		t.Fatalf("release workflow must cross-compile on ubuntu runners only:\n%s", workflow)
+	}
+	if !strings.Contains(string(workflow), "v[0-9]+.[0-9]+.[0-9]+") || strings.Contains(string(workflow), `"v*"`) {
+		t.Fatalf("release workflow tag filter must match only vX.Y.Z:\n%s", workflow)
+	}
+	nodeTests := "node --test packaging/npm/install.test.js scripts/verify-release-assets.test.js"
+	if !strings.Contains(string(workflow), nodeTests) {
+		t.Fatal("release workflow does not run the Node distribution tests")
+	}
+	ci, err := os.ReadFile(filepath.Join(repo, ".github", "workflows", "ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(ci), nodeTests) {
+		t.Fatal("CI does not run the Node distribution tests")
+	}
+	readme, err := os.ReadFile(filepath.Join(repo, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"--allow-scripts=fanloop", "--foreground-scripts", "go 1.23.0"} {
+		if !strings.Contains(string(readme), required) {
+			t.Errorf("README is missing %q", required)
+		}
+	}
+	for _, relative := range []string{
+		".goreleaser.yml", "scripts/prepare-release.sh", "scripts/build-npm-release.sh",
 		"scripts/install.js", "scripts/package-release.js", "scripts/publish-npm-package.js",
 		"scripts/resolve-release-version.js", "scripts/run.js", "scripts/verify-published-package.js",
 	} {

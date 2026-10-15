@@ -48,6 +48,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test distribution installer
+        run: node --test packaging/npm/install.test.js scripts/verify-release-assets.test.js
       - name: Install pinned Thrift generators
         run: |
           go install github.com/cloudwego/thriftgo@v0.4.3
