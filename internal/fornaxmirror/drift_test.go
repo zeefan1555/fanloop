@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -121,6 +122,42 @@ func (client lockProbeClient) ListByPrefix(ctx context.Context, workspaceID, pre
 	_ = unix.Flock(int(lock.Fd()), unix.LOCK_UN)
 	*client.checked = true
 	return client.syncClient.ListByPrefix(ctx, workspaceID, prefix)
+}
+
+func TestCheckSkipsInvalidReadOnlyPackage(t *testing.T) {
+	unsetConfigSource(t)
+	dataRoot := t.TempDir()
+	writeFornaxSources(t, dataRoot)
+	var warnings []string
+	previous := warnSkippedPackage
+	warnSkippedPackage = func(key, version string, err error) {
+		warnings = append(warnings, fmt.Sprintf("warning: skipping read-only package %s@%s: %s", key, version, err))
+	}
+	t.Cleanup(func() { warnSkippedPackage = previous })
+	client := &syncClient{personalVersion: "1.0.0", loopVersion: "1.0.2", badReadOnly: true}
+	if _, err := Sync(context.Background(), dataRoot, client); err != nil {
+		t.Fatal(err)
+	}
+	warnings = nil
+	report, err := Check(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != DriftInSync || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowInSync || report.Workflows[0].WorkflowID != "linear-runtime" || report.Workflows[0].SkillKey != "fanloop.workflow.linear_runtime" {
+		t.Fatalf("in-sync report = %#v", report)
+	}
+	if len(warnings) != 1 || warnings[0] != `warning: skipping read-only package loop.workflow.linear_runtime@1.0.2: package name "other" does not match workflow id "linear-runtime"` {
+		t.Fatalf("warnings = %#v", warnings)
+	}
+	client.badReadOnly = false
+	client.badReadWrite = true
+	report, err = Check(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != DriftUnavailable || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowUnavailable || report.Workflows[0].Detail != "Fornax package is invalid" {
+		t.Fatalf("unavailable report = %#v", report)
+	}
 }
 
 func TestCheckReleasesConfigurationLockBeforeFornaxQuery(t *testing.T) {

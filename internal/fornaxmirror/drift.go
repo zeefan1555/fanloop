@@ -147,6 +147,10 @@ func compareReleased(ctx context.Context, dataRoot string, resolved snapshot, cl
 			parent := filepath.Join(temp, "validated", strconv.Itoa(len(held)))
 			accepted, err := MaterializePackage(packageRoot, parent)
 			if err != nil {
+				if source.Access == AccessReadOnly {
+					warnSkippedPackage(skill.Key, release.Version, err)
+					continue
+				}
 				return unavailableChecks(resolved, "Fornax package is invalid"), nil
 			}
 			claim := PackageClaim{WorkflowID: accepted.WorkflowID, Key: skill.Key, Version: release.Version, Access: source.Access, SourceIndex: index}
