@@ -432,7 +432,15 @@ func TestReservedPanoramaConditionIsRejected(t *testing.T) {
 	}
 	got := run(binary, "flow", "init", "--root", t.TempDir(), "--workflow", "linear-runtime", "--title", "Reserved")
 	assertError(t, got, 5, "CONDITION_RESERVED")
-	if !strings.Contains(got.stderr, `Condition "panorama_presented" is reserved for the Loop Runtime Panorama action`) {
-		t.Fatalf("reserved diagnostic = %s", got.stderr)
+	var envelope struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal([]byte(got.stderr), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	if envelope.Error.Message != `Condition "panorama_presented" is reserved for the Loop Runtime Panorama action` {
+		t.Fatalf("reserved diagnostic = %s", envelope.Error.Message)
 	}
 }

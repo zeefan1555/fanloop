@@ -303,6 +303,14 @@ func normalizePublicError(err error) *erroridl.PublicError {
 }
 
 func normalizeConfigurationError(spec idl.CommandSpec, err error) *erroridl.PublicError {
+	var reserved workflow.ReservedConditionError
+	if errors.As(err, &reserved) {
+		for _, allowed := range spec.Errors {
+			if allowed.Code == erroridl.ErrorCode_CONDITION_RESERVED {
+				return errs.NewCode(erroridl.ErrorCode_CONDITION_RESERVED, reserved.Error(), nil)
+			}
+		}
+	}
 	if errors.Is(err, workflow.ErrInvalidConfiguration) {
 		for _, allowed := range spec.Errors {
 			if allowed.Code == erroridl.ErrorCode_WORKFLOW_INVALID {

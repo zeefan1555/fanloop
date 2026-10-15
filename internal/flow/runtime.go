@@ -75,6 +75,10 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		if errors.Is(err, configuration.ErrFetch) {
 			return nil, newFlowError(erroridl.ErrorCode_CONFIGURATION_FETCH_FAILED, err.Error(), nil)
 		}
+		var reserved workflow.ReservedConditionError
+		if errors.As(err, &reserved) {
+			return nil, newFlowError(erroridl.ErrorCode_CONDITION_RESERVED, reserved.Error(), nil)
+		}
 		return nil, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 	}
 	defer unlock()

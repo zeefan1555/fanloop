@@ -702,6 +702,14 @@ func assertFlowSkillPaths(t *testing.T, output, configRoot string) {
 				path, ok := typed["path"].(string)
 				if !ok {
 					t.Errorf("Flow Skill %q has no path: %#v", id, typed)
+				} else if id == "fanloop-panorama-delivery" {
+					resolvedPath, err := filepath.EvalSymlinks(path)
+					wantSuffix := filepath.FromSlash(release.PanoramaDeliverySkillPath)
+					if err != nil || !strings.HasSuffix(resolvedPath, wantSuffix) {
+						t.Errorf("Flow Skill %q path = %q, want suffix %q", id, path, wantSuffix)
+					} else if _, err := os.Stat(path); err != nil {
+						t.Errorf("Flow Skill %q path: %v", id, err)
+					}
 				} else {
 					want := skillPaths[id]
 					resolvedPath, err := filepath.EvalSymlinks(path)
