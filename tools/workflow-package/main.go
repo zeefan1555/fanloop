@@ -32,6 +32,8 @@ func main() {
 	}
 }
 
+// build is the recovery path that packs a Git checkout into a Fornax ZIP.
+// Production edits start from the released package.
 func build(args []string) error {
 	flags := flag.NewFlagSet("build", flag.ContinueOnError)
 	source := flags.String("source", "", "clean second-brain-skills repository root")
@@ -42,7 +44,7 @@ func build(args []string) error {
 		return err
 	}
 	if *source == "" || *configPath == "" || *version == "" || *output == "" || flags.NArg() != 0 {
-		return fmt.Errorf("build requires --source, --config, --version and --output")
+		return fmt.Errorf("recovery-only build requires --source, --config, --version and --output")
 	}
 	commit, err := cleanCommit(*source)
 	if err != nil {
