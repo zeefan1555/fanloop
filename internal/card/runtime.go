@@ -1,15 +1,19 @@
 package card
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/zeefan1555/fanloop/errs"
+	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/idl/cardidl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
@@ -39,14 +43,32 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	if request.Format != cardidl.CardFormat_markdown && request.Format != cardidl.CardFormat_lark_json {
 		return nil, invalidArgument("format must be markdown or lark_json")
 	}
-	if _, failure := store.New(root); failure != nil {
+	local, failure := store.New(root)
+	if failure != nil {
 		return nil, failure
 	}
 	projection, loaded, err := LoadProjection(root)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
 	}
-	current := projection.State()
+	current, _, loadFailure := local.LoadBound()
+	if loadFailure != nil {
+		return nil, loadFailure
+	}
+	if !projectionMatchesState(projection.State(), current) {
+		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, "Card projection is stale", nil)
+	}
+	events, eventsFailure := local.Events()
+	if eventsFailure != nil {
+		return nil, eventsFailure
+	}
+	pending, pendingErr := state.PendingPanoramaAction(events)
+	if pendingErr != nil {
+		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, pendingErr.Error(), nil)
+	}
+	if pending != nil && projection.SourceEventID != pending.TriggerEventID {
+		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, "Card projection does not belong to the pending Flow action", nil)
+	}
 	content, snapshotContent, err := renderContent(request, current, loaded)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
@@ -57,7 +79,7 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	}
 
 	now := runtime.now()
-	snapshotPath, err := nextCardPath(root, now)
+	snapshotPath, err := nextCardPath(root, now, projection.SourceEventID)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
 	}
@@ -82,6 +104,79 @@ func renderContent(request *cardidl.CardRenderRequest, current state.State, load
 	lark := renderLarkCardContent(content)
 	value, err := commonidl.FromAny(lark)
 	return value, lark, err
+}
+
+func IsCurrentPanoramaSnapshot(root, relative string, current state.State, expectedSourceEventID string) (bool, error) {
+	actual, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
+	if err != nil {
+		return false, err
+	}
+	projection, loaded, err := LoadProjection(root)
+	if err != nil {
+		return false, err
+	}
+	if projection.SourceEventID != expectedSourceEventID || !projectionMatchesState(projection.State(), current) {
+		return false, nil
+	}
+	for _, format := range []cardidl.CardFormat{cardidl.CardFormat_markdown, cardidl.CardFormat_lark_json} {
+		_, snapshotContent, err := renderContent(&cardidl.CardRenderRequest{View: cardidl.CardView_panorama, Format: format}, current, loaded)
+		if err != nil {
+			return false, err
+		}
+		expected, err := json.MarshalIndent(snapshotContent, "", "  ")
+		if err != nil {
+			return false, err
+		}
+		if bytes.Equal(actual, append(expected, '\n')) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func RefreshProjectionForPendingAction(root string, current state.State) error {
+	if _, err := os.Stat(ProjectionPath(root)); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	local, failure := store.New(root)
+	if failure != nil {
+		return fmt.Errorf("%s", failure.Error())
+	}
+	events, failure := local.Events()
+	if failure != nil {
+		return fmt.Errorf("%s", failure.Error())
+	}
+	pending, err := state.PendingPanoramaAction(events)
+	if err != nil {
+		return err
+	}
+	projectionState := current
+	if pending != nil {
+		projectionState.LastEventID = pending.TriggerEventID
+	}
+	return WriteProjection(root, projectionState)
+}
+
+func projectionMatchesState(projected, current state.State) bool {
+	return reflect.DeepEqual(projected.Requirement, current.Requirement) &&
+		reflect.DeepEqual(projected.Release, current.Release) &&
+		reflect.DeepEqual(projected.CurrentStepID, current.CurrentStepID) &&
+		projected.CurrentStepStatus == current.CurrentStepStatus &&
+		projected.CurrentStepSummary == current.CurrentStepSummary &&
+		slices.Equal(projected.CurrentEvidence, current.CurrentEvidence) &&
+		reflect.DeepEqual(projected.Outputs, current.Outputs) &&
+		slices.Equal(projected.SkippedStepIDs, current.SkippedStepIDs) &&
+		projectionTraceMatchesState(projected.Integrations.Trace, current.Integrations.Trace)
+}
+
+func projectionTraceMatchesState(projected, current *state.TraceBinding) bool {
+	if projected == nil || current == nil {
+		return projected == nil && current == nil
+	}
+	return projected.DocumentURL == current.DocumentURL && projected.CLILogDocumentURL == current.CLILogDocumentURL
 }
 
 func renderMarkdown(view cardidl.CardView, current state.State, loaded workflow.Loaded) string {
@@ -138,14 +233,9 @@ func (runtime Runtime) now() time.Time {
 	return runtime.Clock().UTC()
 }
 
-func nextCardPath(root string, now time.Time) (string, error) {
-	stamp := now.In(time.FixedZone("UTC+8", 8*60*60)).Format("20060102T150405.000000-0700")
+func nextCardPath(root string, now time.Time, sourceEventID string) (string, error) {
 	for suffix := 0; ; suffix++ {
-		name := stamp + ".json"
-		if suffix > 0 {
-			name = fmt.Sprintf("%s-%d.json", stamp, suffix)
-		}
-		relative := filepath.ToSlash(filepath.Join(".fanloop", "card", name))
+		relative := cardsnapshot.Path(now, sourceEventID, suffix)
 		_, err := os.Stat(filepath.Join(root, filepath.FromSlash(relative)))
 		if os.IsNotExist(err) {
 			return relative, nil

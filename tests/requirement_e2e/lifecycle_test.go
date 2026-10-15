@@ -68,8 +68,36 @@ func TestRequirementWorkflowE2E(t *testing.T) {
 		}
 		return string(output)
 	}
+	acknowledgePanorama := func() {
+		t.Helper()
+		var before struct {
+			Data struct {
+				State struct {
+					PendingActions []struct {
+						ID string `json:"id"`
+					} `json:"pending_actions"`
+				} `json:"state"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(run("flow", "status", "--root", requirementRoot)), &before); err != nil {
+			t.Fatal(err)
+		}
+		if len(before.Data.State.PendingActions) == 0 {
+			return
+		}
+		var rendered struct {
+			Data struct {
+				SnapshotPath string `json:"snapshot_path"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(run("card", "render", "--root", requirementRoot, "--view", "panorama", "--format", "markdown")), &rendered); err != nil || rendered.Data.SnapshotPath == "" {
+			t.Fatalf("panorama render: %v", err)
+		}
+		run("flow", "action", "acknowledge", "--root", requirementRoot, "--action-id", before.Data.State.PendingActions[0].ID, "--panorama-snapshot-path", rendered.Data.SnapshotPath)
+	}
 	report := func(args ...string) {
 		t.Helper()
+		acknowledgePanorama()
 		run(append(args, "--dry-run")...)
 		run(args...)
 	}
@@ -83,6 +111,7 @@ func TestRequirementWorkflowE2E(t *testing.T) {
 	}
 
 	run("flow", "init", "--root", requirementRoot, "--workflow", "linear-runtime", "--title", "Synthetic lifecycle")
+	acknowledgePanorama()
 	run("flow", "report", "progress", "--root", requirementRoot, "--step-id", "first", "--status", "in_progress", "--summary", "first running")
 	report("flow", "report", "result", "--root", requirementRoot, "--step-id", "first", "--condition-result", `{"condition_id":"first_completed","output":{"type":"path","value":"first.md"}}`, "--summary", "first complete", "--next-step-id", "second")
 	report("flow", "report", "result", "--root", requirementRoot, "--step-id", "second", "--condition-result", `{"condition_id":"second_rework","output":{"type":"enum_value","value":"rework"}}`, "--summary", "second requests rework", "--back-step-id", "first")

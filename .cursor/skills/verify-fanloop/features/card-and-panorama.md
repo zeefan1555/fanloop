@@ -13,10 +13,12 @@ caller only needs presentation content and no local snapshot.
 
 ## Driving it with fanloop
 
-Render immediately after init and after a transition. Capture response content, projection and snapshot count. Verify the
-panorama identifies the current Stage/Job/Step and that a real render creates a new immutable snapshot while dry-run does
-not. Use returned content directly as the first user-visible message after entering a Step; any human question must follow
-below it, and the final reply must not repeat the panorama.
+Render immediately after init and after a transition while `pending_actions` contains `panorama_delivery_required`.
+Capture response content, projection and snapshot count. Verify the panorama identifies the current Stage/Job/Step and
+that a real render creates a new immutable snapshot while dry-run does not. Use returned content directly as the first
+user-visible message, then `fanloop flow action acknowledge` that same action id and snapshot path before any business
+progress or result. Any human question must follow below the panorama. The in-step retrospect panorama is not the Done
+100% delivery after a successful terminal route.
 
 ## Gotchas
 

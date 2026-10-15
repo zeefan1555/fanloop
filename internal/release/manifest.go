@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	WorkflowSkillName  = "fanloop-workflow"
-	WorkflowSkillPath  = "entrypoints/fanloop-workflow"
-	AuthoringSkillName = "create-fanloop-workflow"
-	AuthoringSkillPath = "entrypoints/create-fanloop-workflow"
+	WorkflowSkillName         = "fanloop-workflow"
+	WorkflowSkillPath         = "entrypoints/fanloop-workflow"
+	AuthoringSkillName        = "create-fanloop-workflow"
+	AuthoringSkillPath        = "entrypoints/create-fanloop-workflow"
+	PanoramaDeliverySkillPath = WorkflowSkillPath + "/skills/fanloop-panorama-delivery/SKILL.md"
 )
 
 type ExposedSkill struct {

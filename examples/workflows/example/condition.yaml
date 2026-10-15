@@ -1,10 +1,6 @@
 schema_version: 3
 
 conditions:
-  panorama_presented:
-    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}
-    output: {key: panorama_snapshot_path, type: path}
-
   materials_analyzed:
     prompt_ref: {file: prompt.yaml, prompt_id: materials_analyzed_condition}
     output: {key: material_summary_path, type: path}

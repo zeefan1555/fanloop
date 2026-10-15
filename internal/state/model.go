@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
@@ -164,13 +165,25 @@ type Event struct {
 type EventKind string
 
 const (
-	EventFlowInitialized    EventKind = "flow.initialized"
-	EventFlowProgressed     EventKind = "flow.progressed"
-	EventFlowResult         EventKind = "flow.result"
-	EventTraceDocumentBound EventKind = "trace.document_bound"
-	EventTraceSyncStarted   EventKind = "trace.sync_started"
-	EventTraceSynced        EventKind = "trace.synced"
+	EventFlowInitialized        EventKind = "flow.initialized"
+	EventFlowProgressed         EventKind = "flow.progressed"
+	EventFlowResult             EventKind = "flow.result"
+	EventTraceDocumentBound     EventKind = "trace.document_bound"
+	EventTraceSyncStarted       EventKind = "trace.sync_started"
+	EventTraceSynced            EventKind = "trace.synced"
+	EventFlowActionAcknowledged EventKind = "flow.action_acknowledged"
 )
+
+type ActionType string
+
+const ActionPanoramaDeliveryRequired ActionType = "panorama_delivery_required"
+
+type PendingAction struct {
+	ID             string
+	Type           ActionType
+	TriggerEventID string
+	StepID         string
+}
 
 type FlowInitializedPayload struct {
 	StepID     string
@@ -192,6 +205,13 @@ type FlowResultPayload struct {
 	Effect           ResultEffect
 	Transition       Transition
 	OutputChanges    OutputChanges
+}
+
+type FlowActionAcknowledgedPayload struct {
+	ActionID             string
+	ActionType           ActionType
+	TriggerEventID       string
+	PanoramaSnapshotPath string
 }
 
 type TraceDocumentBoundPayload struct {
@@ -335,6 +355,12 @@ func ValidateEventPayload(event Event) error {
 			return fmt.Errorf("invalid %s payload type", event.Kind)
 		}
 		destination, expectedCommand = value, "flow.report.result"
+	case EventFlowActionAcknowledged:
+		value, ok := EventPayloadAs[FlowActionAcknowledgedPayload](event)
+		if !ok {
+			return fmt.Errorf("invalid %s payload type", event.Kind)
+		}
+		destination, expectedCommand = value, "flow.action.acknowledge"
 	case EventTraceDocumentBound:
 		value, ok := EventPayloadAs[TraceDocumentBoundPayload](event)
 		if !ok {
@@ -376,6 +402,11 @@ func ValidateEventPayload(event Event) error {
 	case FlowResultPayload:
 		if err := validateResultPayload(value); err != nil {
 			return err
+		}
+	case FlowActionAcknowledgedPayload:
+		if value.ActionID == "" || value.ActionType != ActionPanoramaDeliveryRequired ||
+			value.TriggerEventID == "" || !cardsnapshot.MatchesSourceEvent(value.PanoramaSnapshotPath, value.TriggerEventID) {
+			return fmt.Errorf("invalid Flow action acknowledgment")
 		}
 	case TraceDocumentBoundPayload:
 		registry, registryOK := traceconfig.Resolve(value.Registry, event.Workflow.ID)
@@ -474,6 +505,7 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 	traceRegistry := traceconfig.RegistryProfile("")
 	cliLogDocumentURL := ""
 	seen := map[string]bool{}
+	var pendingAction *PendingAction
 
 	for index, event := range events {
 		if seen[event.ID] || event.Workflow != current.Release.Workflow {
@@ -487,6 +519,14 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 		}
 		if err := event.validateAgainst(definition, false); err != nil {
 			return fmt.Errorf("event %q: %w", event.ID, err)
+		}
+		if err := ValidateEventPayload(event); err != nil {
+			return fmt.Errorf("event %q: %w", event.ID, err)
+		}
+		var actionErr error
+		pendingAction, actionErr = advancePendingAction(pendingAction, event)
+		if actionErr != nil {
+			return fmt.Errorf("event %q: %w", event.ID, actionErr)
 		}
 		switch event.Kind {
 		case EventFlowInitialized:
@@ -545,6 +585,7 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 				return fmt.Errorf("event %q does not continue from previous Trace binding", event.ID)
 			}
 			traceDocumentURL, traceRegistry, cliLogDocumentURL = payload.DocumentURL, payload.Registry, payload.CLILogDocumentURL
+		case EventFlowActionAcknowledged:
 		}
 		seen[event.ID] = true
 	}
@@ -565,6 +606,60 @@ func ValidateHistory(events []Event, current State, loaded workflow.Loaded) erro
 		return fmt.Errorf("state last_event_id does not match event history")
 	}
 	return nil
+}
+
+func PendingPanoramaAction(events []Event) (*PendingAction, error) {
+	var pending *PendingAction
+	for _, event := range events {
+		var err error
+		pending, err = advancePendingAction(pending, event)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return pending, nil
+}
+
+func advancePendingAction(pending *PendingAction, event Event) (*PendingAction, error) {
+	switch event.Kind {
+	case EventFlowInitialized:
+		if pending != nil {
+			return nil, fmt.Errorf("Flow initialization occurred before the pending action was acknowledged")
+		}
+		payload, _ := EventPayloadAs[FlowInitializedPayload](event)
+		return newPanoramaAction(event.ID, payload.StepID), nil
+	case EventFlowProgressed:
+		if pending != nil {
+			return nil, fmt.Errorf("Flow progress occurred before pending action %q was acknowledged", pending.ID)
+		}
+	case EventFlowResult:
+		if pending != nil {
+			return nil, fmt.Errorf("Flow result occurred before pending action %q was acknowledged", pending.ID)
+		}
+		payload, _ := EventPayloadAs[FlowResultPayload](event)
+		if payload.Effect != ResultStarted {
+			return newPanoramaAction(event.ID, payload.Transition.ToStepID), nil
+		}
+	case EventFlowActionAcknowledged:
+		if pending == nil {
+			return nil, fmt.Errorf("Flow action acknowledgment has no pending action")
+		}
+		payload, _ := EventPayloadAs[FlowActionAcknowledgedPayload](event)
+		if payload.ActionID != pending.ID || payload.ActionType != pending.Type || payload.TriggerEventID != pending.TriggerEventID {
+			return nil, fmt.Errorf("Flow action acknowledgment does not match pending action %q", pending.ID)
+		}
+		return nil, nil
+	}
+	return pending, nil
+}
+
+func newPanoramaAction(triggerEventID, stepID string) *PendingAction {
+	return &PendingAction{
+		ID:             "panorama-" + triggerEventID,
+		Type:           ActionPanoramaDeliveryRequired,
+		TriggerEventID: triggerEventID,
+		StepID:         stepID,
+	}
 }
 
 func validateResultPayload(value FlowResultPayload) error {

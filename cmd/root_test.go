@@ -111,7 +111,7 @@ func TestTypedOptionalFlagsPreserveExplicitEmptyValues(t *testing.T) {
 func TestRootOwnsRealDomainSubcommands(t *testing.T) {
 	root := NewRoot(bytes.NewReader(nil), io.Discard, io.Discard)
 	want := map[string][]string{
-		"flow":   {"init", "report", "skills", "status"},
+		"flow":   {"action", "init", "report", "skills", "status"},
 		"trace":  {"bind", "render", "status", "sync"},
 		"card":   {"render"},
 		"config": {"drift"},
@@ -237,6 +237,9 @@ func TestAgentHelpProgressivelyDisclosesWorkflow(t *testing.T) {
 				"Agent workflow",
 				"fanloop-workflow Skill",
 				"loop flow status",
+				"state.pending_actions",
+				"flow action acknowledge",
+				"Only when pending_actions is empty",
 				"current.prompt and its required Skills",
 				"target leaf command --help",
 				"Report progress or a Condition result",
@@ -251,6 +254,8 @@ func TestAgentHelpProgressivelyDisclosesWorkflow(t *testing.T) {
 			want: []string{
 				"Use init only after status reports NOT_INITIALIZED",
 				"Use status immediately before each action",
+				"state.pending_actions is non-empty",
+				"Only when pending_actions is empty",
 				"Use report progress for execution facts",
 				"report result for Conditions and routing",
 			},
@@ -356,6 +361,17 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"in_progress, fixing, or blocked",
 				"step_id and status are required",
 				"evidence may be omitted or empty",
+			},
+		},
+		{
+			name:      "flow action acknowledge",
+			commandID: "flow.action.acknowledge",
+			args:      []string{"flow", "action", "acknowledge", "--help"},
+			want: []string{
+				`"action_id": "<PENDING_ACTION_ID>"`,
+				`"panorama_snapshot_path": ".fanloop/card/<SNAPSHOT>.json"`,
+				"--action-id <PENDING_ACTION_ID>",
+				"--panorama-snapshot-path",
 			},
 		},
 		{
@@ -550,6 +566,24 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 			}
 			validateHelpRequest(t, test.commandID, requestJSONFromHelp(t, help))
 		})
+	}
+}
+
+func TestLeafHelpPublishesCommandErrorCatalog(t *testing.T) {
+	for _, args := range [][]string{
+		{"flow", "init", "--help"},
+		{"flow", "action", "acknowledge", "--help"},
+		{"flow", "status", "--help"},
+		{"flow", "skills", "--help"},
+		{"flow", "report", "progress", "--help"},
+		{"flow", "report", "result", "--help"},
+	} {
+		help := renderHelp(t, args)
+		for _, want := range []string{"Errors:", "CONDITION_RESERVED", "type=workflow", "exit=5", "retryable=false"} {
+			if !strings.Contains(help, want) {
+				t.Fatalf("%v help does not contain %q:\n%s", args, want, help)
+			}
+		}
 	}
 }
 

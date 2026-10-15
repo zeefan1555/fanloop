@@ -3,6 +3,7 @@ package runtime_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +13,42 @@ import (
 
 	"golang.org/x/sys/unix"
 )
+
+func acknowledgeRacePanorama(t *testing.T, command func(args ...string) *exec.Cmd, root string) {
+	t.Helper()
+	statusOut, err := command("flow", "status", "--root", root).CombinedOutput()
+	if err != nil {
+		t.Fatalf("status before acknowledge: %v %s", err, statusOut)
+	}
+	var status struct {
+		Data struct {
+			State struct {
+				PendingActions []struct {
+					ID string `json:"id"`
+				} `json:"pending_actions"`
+			} `json:"state"`
+		} `json:"data"`
+	}
+	if err = json.Unmarshal(statusOut, &status); err != nil || len(status.Data.State.PendingActions) != 1 {
+		t.Fatalf("pending action: %v %s", err, statusOut)
+	}
+	renderedOut, err := command("card", "render", "--root", root, "--view", "panorama", "--format", "markdown").CombinedOutput()
+	if err != nil {
+		t.Fatalf("render before acknowledge: %v %s", err, renderedOut)
+	}
+	var rendered struct {
+		Data struct {
+			SnapshotPath string `json:"snapshot_path"`
+		} `json:"data"`
+	}
+	if err = json.Unmarshal(renderedOut, &rendered); err != nil || rendered.Data.SnapshotPath == "" {
+		t.Fatalf("snapshot: %v %s", err, renderedOut)
+	}
+	ackOut, err := command("flow", "action", "acknowledge", "--root", root, "--action-id", status.Data.State.PendingActions[0].ID, "--panorama-snapshot-path", rendered.Data.SnapshotPath).CombinedOutput()
+	if err != nil {
+		t.Fatalf("acknowledge: %v %s", err, ackOut)
+	}
+}
 
 func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	binary := buildCLI(t)
@@ -47,6 +84,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if out, err := command("flow", "init", "--root", first, "--workflow", "linear-runtime", "--title", "A").CombinedOutput(); err != nil {
 		t.Fatalf("init A: %v %s", err, out)
 	}
+	acknowledgeRacePanorama(t, command, first)
 	before, err := os.Readlink(filepath.Join(data, "config", "current"))
 	if err != nil {
 		t.Fatal(err)

@@ -289,6 +289,20 @@ func traceEventRow(definition workflow.Workflow, event state.Event) traceRow {
 		for _, result := range payload.ConditionResults {
 			row.evidence = append(row.evidence, "condition="+result.ConditionID+":"+compactRaw(result.Output.Value))
 		}
+	case state.EventFlowActionAcknowledged:
+		payload, ok := state.EventPayloadAs[state.FlowActionAcknowledgedPayload](event)
+		if !ok {
+			return row
+		}
+		row.event = "Panorama"
+		row.skill = "fanloop-panorama-delivery@CLI"
+		row.result = "acknowledged"
+		row.reason = "全景图已投递并确认"
+		row.evidence = []string{
+			"action=" + payload.ActionID,
+			"trigger_event_id=" + payload.TriggerEventID,
+			"snapshot=" + payload.PanoramaSnapshotPath,
+		}
 	case state.EventTraceDocumentBound:
 		payload, _ := state.EventPayloadAs[state.TraceDocumentBoundPayload](event)
 		row.event, row.result, row.reason = "Trace", "passed", "绑定独立 Trace 文档"

@@ -5,11 +5,24 @@ import (
 	"maps"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
+
+func panoramaAckEvent(id, cause, trigger string, at time.Time, workflow WorkflowRef) Event {
+	return Event{
+		SchemaVersion: CurrentEventSchemaVersion, ID: id, OccurredAt: at,
+		Kind: EventFlowActionAcknowledged, Command: "flow.action.acknowledge", Workflow: workflow, CausedByEventID: cause,
+		Payload: Payload(FlowActionAcknowledgedPayload{
+			ActionID: "panorama-" + trigger, ActionType: ActionPanoramaDeliveryRequired,
+			TriggerEventID: trigger, PanoramaSnapshotPath: cardsnapshot.Path(at, trigger, 0),
+		}),
+	}
+}
 
 func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	loaded, err := loadLinearRuntime()
@@ -44,15 +57,16 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 		FromStepID: first, FromStepStatus: StepReady, ToStepStatus: StepInProgress,
 		Summary: "checking repositories", Evidence: []Evidence{{Source: EvidenceSystem, Content: "git status"}},
 	}
+	events = append(events, panoramaAckEvent("e2", "e1", "e1", now.Add(time.Minute), current.Release.Workflow))
 	current.CurrentStepStatus = StepInProgress
 	current.CurrentStepSummary = progress.Summary
 	current.CurrentEvidence = progress.Evidence
-	current.LastEventID = "e2"
-	current.UpdatedAt = now.Add(time.Minute)
+	current.LastEventID = "e3"
+	current.UpdatedAt = now.Add(2 * time.Minute)
 	events = append(events, Event{
-		SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: current.UpdatedAt,
+		SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: current.UpdatedAt,
 		Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: current.Release.Workflow,
-		CausedByEventID: "e1", Payload: Payload(progress),
+		CausedByEventID: "e2", Payload: Payload(progress),
 	})
 
 	flowResult := FlowResultPayload{
@@ -70,12 +84,12 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	current.Outputs = map[string]RegisteredOutput{
 		"first_artifact": {Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`), ProducerStepID: first},
 	}
-	current.LastEventID = "e3"
-	current.UpdatedAt = now.Add(2 * time.Minute)
+	current.LastEventID = "e4"
+	current.UpdatedAt = now.Add(3 * time.Minute)
 	events = append(events, Event{
-		SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: current.UpdatedAt,
+		SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: current.UpdatedAt,
 		Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow,
-		CausedByEventID: "e2", Payload: Payload(flowResult),
+		CausedByEventID: "e3", Payload: Payload(flowResult),
 	})
 
 	loopResult := FlowResultPayload{
@@ -95,12 +109,13 @@ func TestHistoryReplaysProgressFlowResultAndLoopInvalidation(t *testing.T) {
 	current.Outputs = map[string]RegisteredOutput{
 		"second_revision": {Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`), ProducerStepID: second},
 	}
-	current.LastEventID = "e4"
-	current.UpdatedAt = now.Add(3 * time.Minute)
+	events = append(events, panoramaAckEvent("e5", "e4", "e4", now.Add(4*time.Minute), current.Release.Workflow))
+	current.LastEventID = "e6"
+	current.UpdatedAt = now.Add(5 * time.Minute)
 	events = append(events, Event{
-		SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: current.UpdatedAt,
+		SchemaVersion: CurrentEventSchemaVersion, ID: "e6", OccurredAt: current.UpdatedAt,
 		Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow,
-		CausedByEventID: "e3", Payload: Payload(loopResult),
+		CausedByEventID: "e5", Payload: Payload(loopResult),
 	})
 
 	if err := current.Validate(); err != nil {
@@ -141,15 +156,17 @@ func TestHistoryPreservesOutputsAcceptedByLoopResult(t *testing.T) {
 		CurrentStepID: &first, CurrentStepStatus: StepFixing, CurrentStepSummary: "second rework",
 		Outputs: map[string]RegisteredOutput{
 			"second_revision": {Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`), ProducerStepID: second},
-		}, Integrations: Integrations{}, LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
+		}, Integrations: Integrations{}, LastEventID: "e5", CreatedAt: now, UpdatedAt: now.Add(4 * time.Minute),
 	}
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: current.Release.Workflow, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
+		panoramaAckEvent("e2", "e1", "e1", now.Add(time.Minute), current.Release.Workflow),
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{{ConditionID: "first_completed", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)}}},
 			Summary:          "first complete", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: first, ToStepID: second}, OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}},
 		})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
+		panoramaAckEvent("e4", "e3", "e3", now.Add(3*time.Minute), current.Release.Workflow),
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e5", OccurredAt: now.Add(4 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: current.Release.Workflow, CausedByEventID: "e4", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{{
 				ConditionID: "second_rework", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`)},
 			}},
@@ -267,19 +284,22 @@ func TestHistoryDoesNotReinterpretIntermediateResultStatus(t *testing.T) {
 		SchemaVersion: CurrentStateSchemaVersion, Requirement: Requirement{Title: "historical loop status"},
 		Release: Release{Version: "dev", Workflow: workflowRef}, CurrentStepID: stringPointer("first"), CurrentStepStatus: StepInProgress,
 		CurrentStepSummary: "continued under historical status", Outputs: map[string]RegisteredOutput{"second_revision": {Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`), ProducerStepID: "second"}},
-		SkippedStepIDs: []string{}, Integrations: Integrations{}, LastEventID: "e4", CreatedAt: now, UpdatedAt: now.Add(3 * time.Minute),
+		SkippedStepIDs: []string{}, Integrations: Integrations{}, LastEventID: "e7", CreatedAt: now, UpdatedAt: now.Add(6 * time.Minute),
 	}
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: workflowRef, Payload: Payload(FlowInitializedPayload{StepID: "first", StepStatus: StepReady})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
+		panoramaAckEvent("e2", "e1", "e1", now.Add(time.Minute), workflowRef),
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{{ConditionID: "first_completed", Output: OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)}}},
 			Summary:          "advanced", Effect: ResultAdvanced, Transition: Transition{Direction: TransitionFlow, FromStepID: "first", ToStepID: "second"}, OutputChanges: OutputChanges{Accepted: []string{"first_artifact"}},
 		})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
+		panoramaAckEvent("e4", "e3", "e3", now.Add(3*time.Minute), workflowRef),
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e5", OccurredAt: now.Add(4 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e4", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{{ConditionID: "second_rework", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"rework"`)}}},
 			Summary:          "looped before fixing status existed", Effect: ResultLooped, Transition: Transition{Direction: TransitionLoop, FromStepID: "second", ToStepID: "first"}, OutputChanges: OutputChanges{Accepted: []string{"second_revision"}, Invalidated: []string{"first_artifact"}},
 		})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: now.Add(3 * time.Minute), Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e3", Payload: Payload(FlowProgressPayload{
+		panoramaAckEvent("e6", "e5", "e5", now.Add(5*time.Minute), workflowRef),
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e7", OccurredAt: now.Add(6 * time.Minute), Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e6", Payload: Payload(FlowProgressPayload{
 			FromStepID: "first", FromStepStatus: StepReady, ToStepStatus: StepInProgress, Summary: "continued under historical status",
 		})},
 	}
@@ -300,20 +320,46 @@ func TestHistoryPreservesStartedStatusBetweenEvents(t *testing.T) {
 		SchemaVersion: CurrentStateSchemaVersion, Requirement: Requirement{Title: "started status"},
 		Release: Release{Version: "dev", Workflow: workflowRef}, CurrentStepID: stringPointer("first"), CurrentStepStatus: StepInProgress,
 		CurrentStepSummary: "continued", Outputs: map[string]RegisteredOutput{}, SkippedStepIDs: []string{}, Integrations: Integrations{},
-		LastEventID: "e3", CreatedAt: now, UpdatedAt: now.Add(2 * time.Minute),
+		LastEventID: "e4", CreatedAt: now, UpdatedAt: now.Add(3 * time.Minute),
 	}
 	events := []Event{
 		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: workflowRef, Payload: Payload(FlowInitializedPayload{StepID: "first", StepStatus: StepAwaitingConfirmation})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e1", Payload: Payload(FlowResultPayload{
+		panoramaAckEvent("e2", "e1", "e1", now.Add(time.Minute), workflowRef),
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowResult, Command: "flow.report.result", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(FlowResultPayload{
 			ConditionResults: []ConditionResult{{ConditionID: "start_confirmed", Output: OutputValue{Type: workflow.OutputEnum, Value: json.RawMessage(`"confirmed"`)}}},
 			Summary:          "started", Evidence: evidence, Effect: ResultStarted, Transition: Transition{Direction: TransitionStart, FromStepID: "first", ToStepID: "first"}, OutputChanges: OutputChanges{},
 		})},
-		{SchemaVersion: CurrentEventSchemaVersion, ID: "e3", OccurredAt: now.Add(2 * time.Minute), Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e2", Payload: Payload(FlowProgressPayload{
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e4", OccurredAt: now.Add(3 * time.Minute), Kind: EventFlowProgressed, Command: "flow.report.progress", Workflow: workflowRef, CausedByEventID: "e3", Payload: Payload(FlowProgressPayload{
 			FromStepID: "first", FromStepStatus: StepReady, ToStepStatus: StepInProgress, Summary: "continued",
 		})},
 	}
-	if err := ValidateHistory(events, current, loaded); err == nil {
-		t.Fatal("history replay accepted Progress from a status that did not follow started")
+	if err := ValidateHistory(events, current, loaded); err == nil || !strings.Contains(err.Error(), "does not continue from current Step") {
+		t.Fatalf("history replay accepted Progress from a status that did not follow started: %v", err)
+	}
+}
+
+func TestHistoryRejectsAcknowledgmentWithoutSnapshotSourceIdentity(t *testing.T) {
+	loaded, err := loadLinearRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 9, 25, 0, 0, 0, 0, time.UTC)
+	workflowRef := WorkflowRefFrom(loaded.Ref)
+	first, _ := loaded.Workflow.FirstStepID()
+	current := State{
+		SchemaVersion: CurrentStateSchemaVersion, Requirement: Requirement{Title: "bad receipt"},
+		Release: Release{Version: "dev", Workflow: workflowRef}, CurrentStepID: &first, CurrentStepStatus: StepReady,
+		CurrentStepSummary: "workflow initialized", Outputs: map[string]RegisteredOutput{}, Integrations: Integrations{},
+		LastEventID: "e1", CreatedAt: now, UpdatedAt: now,
+	}
+	events := []Event{
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e1", OccurredAt: now, Kind: EventFlowInitialized, Command: "flow.init", Workflow: workflowRef, Payload: Payload(FlowInitializedPayload{StepID: first, StepStatus: StepReady})},
+		{SchemaVersion: CurrentEventSchemaVersion, ID: "e2", OccurredAt: now.Add(time.Minute), Kind: EventFlowActionAcknowledged, Command: "flow.action.acknowledge", Workflow: workflowRef, CausedByEventID: "e1", Payload: Payload(FlowActionAcknowledgedPayload{
+			ActionID: "panorama-e1", ActionType: ActionPanoramaDeliveryRequired, TriggerEventID: "e1", PanoramaSnapshotPath: ".fanloop/card/test.json",
+		})},
+	}
+	if err := ValidateHistory(events, current, loaded); err == nil || !strings.Contains(err.Error(), "invalid Flow action acknowledgment") {
+		t.Fatalf("invalid snapshot identity was accepted: %v", err)
 	}
 }
 

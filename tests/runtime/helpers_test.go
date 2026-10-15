@@ -30,6 +30,9 @@ func buildCLI(t *testing.T) string {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build fanloop: %v\n%s", err, output)
 	}
+	if err := os.CopyFS(filepath.Join(filepath.Dir(binary), "entrypoints"), os.DirFS(filepath.Join(repositoryRoot(t), "entrypoints"))); err != nil {
+		t.Fatalf("copy panorama skill: %v", err)
+	}
 	seedLiveWorkflows(t, filepath.Join(filepath.Dir(binary), ".fanloop-user"))
 	return binary
 }
@@ -46,7 +49,57 @@ func seedLiveWorkflows(t *testing.T, dataRoot string) {
 }
 
 func run(binary string, args ...string) result {
+	if os.Getenv("FANLOOP_TEST_KEEP_PENDING") != "1" && isBusinessReport(args) {
+		if failure := clearPendingPanorama(binary, requirementRootArg(args)); failure.exitCode != 0 {
+			return failure
+		}
+	}
 	return collect(commandFor(binary, args...))
+}
+
+func isBusinessReport(args []string) bool {
+	return len(args) >= 3 && args[0] == "flow" && args[1] == "report" && (args[2] == "progress" || args[2] == "result")
+}
+
+func requirementRootArg(args []string) string {
+	for index, arg := range args {
+		if arg == "--root" && index+1 < len(args) {
+			return args[index+1]
+		}
+		if strings.HasPrefix(arg, "--root=") {
+			return strings.TrimPrefix(arg, "--root=")
+		}
+	}
+	return ""
+}
+
+func clearPendingPanorama(binary, root string) result {
+	if root == "" {
+		return result{}
+	}
+	status := collect(commandFor(binary, "flow", "status", "--root", root))
+	if status.exitCode != 0 {
+		return result{}
+	}
+	var envelope flowActionEnvelope
+	if json.Unmarshal([]byte(status.stdout), &envelope) != nil || len(envelope.Data.State.PendingActions) == 0 {
+		return result{}
+	}
+	rendered := collect(commandFor(binary, "card", "render", "--root", root, "--view", "panorama", "--format", "markdown"))
+	if rendered.exitCode != 0 {
+		return rendered
+	}
+	var card struct {
+		Data struct {
+			SnapshotPath string `json:"snapshot_path"`
+		} `json:"data"`
+	}
+	if json.Unmarshal([]byte(rendered.stdout), &card) != nil || card.Data.SnapshotPath == "" {
+		return result{exitCode: -1, stderr: "panorama render returned no snapshot_path\n" + rendered.stdout}
+	}
+	action := envelope.Data.State.PendingActions[0]
+	return collect(commandFor(binary, "flow", "action", "acknowledge", "--root", root,
+		"--action-id", action.ID, "--panorama-snapshot-path", card.Data.SnapshotPath))
 }
 
 func commandFor(binary string, args ...string) *exec.Cmd {

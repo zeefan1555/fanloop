@@ -78,25 +78,26 @@
 
 完成标准：五份生产 YAML 能完整表达 Workflow；加载时稳定拒绝语法、结构、引用、Condition、Route、Step 与 Skill 绑定错误；验证记录包含公开 CLI 错误码、退出码和无业务副作用证据。
 
-## Workflow 全景图 Condition
+## Runtime 全景图 Action
 
-触发条件：新增或修改生产 Workflow。
+触发条件：新增或修改生产 Workflow，或修改 Panorama 投递。
 
-1. 每个 Workflow 必须在 `condition.yaml` 声明全景图 Condition，输出 `panorama_snapshot_path:path`，并通过 `prompt.yaml` 绑定同一 Workflow live 根中的必需展示 Skill。
-2. 全景图 Condition 必须接入实际 Route；需要展示的 Step，其正常、终止及回流 Route 的每个 `when.any_of` AND 组都必须包含该 Condition，不能只声明而允许路由绕过。
-3. 每次进入这些 Step（包括回流重入）先展示本次 renderer 的完整内容；宿主展示成功后才上报本次精确快照路径。失败或结果不明时报告 blocked；同一次 Step 内复用已展示回执，进入新 Step 后重新展示。
-4. `local_agent` 以及任何没有用户可见消息通道的 headless worker，不得把写入 `artifacts/panorama-*` 或任何仅保存文件当作 `panorama_presented`。投递只此一条：非 dry-run `fanloop card render --view panorama --format markdown`，把该次 `data.content` 原样作为该 Step 第一条用户可见消息，再上报该次 `data.snapshot_path`。进度或 evidence 中的 `content saved artifacts/panorama-` 与 `saved to artifacts` 不是投递证明。
-5. 能向用户聊天发消息的父 Agent 把 Step 交给 headless 子 Agent 时，子 Agent 不得提交 `panorama_presented`。子 Agent 在非 dry-run `fanloop card render --view panorama --format markdown` 之后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；渲染失败则 blocked。父 Agent 把该次 `data.content` 原样作为该 Step 第一条用户可见消息发出，再上报同一 `snapshot_path`，然后才继续业务 Prompt。不得把带全景图门禁的 Workflow 整段放进无法发送用户可见消息的子 Agent 里跑完。
+1. Workflow 不得声明 `panorama_presented`、`panorama_card_published` 或重复的 Panorama 展示 Skill。这两个 Condition ID 由 Loop Runtime Panorama action 保留；加载时拒绝，公开错误码 `CONDITION_RESERVED`。
+2. `flow init` 以及 accepted `advanced`、`looped`、`jumped`、`completed` 由 Runtime 创建持久 `panorama_delivery_required`；`progress`、`started`、rejected 和 dry-run 不创建。同 Step 回流或跳转重入仍创建新 action。completed 后 `current` 消失，最终 action 仍保留到 acknowledge。
+3. Agent 先执行 action 注入的唯一 CLI 内置 `fanloop-panorama-delivery` Skill。成功后用精确 action ID 与本次 snapshot path 调用 `fanloop flow action acknowledge`。pending 时业务 progress/result 返回 `REPORT_NOT_ALLOWED`。Runtime 不发送远端消息，也不自动重试。
+4. `local_agent` 以及任何没有用户可见消息通道的 headless worker，不得把写入 `artifacts/panorama-*` 或任何仅保存文件当作已投递。投递只此一条：非 dry-run `fanloop card render --view panorama --format markdown`，把该次 `data.content` 原样作为该 Step 第一条用户可见消息，再 `flow action acknowledge` 该次 `data.snapshot_path`。进度或 evidence 中的 `content saved artifacts/panorama-` 与 `saved to artifacts` 不是投递证明。
+5. 能向用户聊天发消息的父 Agent 把 Step 交给 headless 子 Agent 时，子 Agent 不得 acknowledge，也不得提交 `panorama_presented`。子 Agent 在非 dry-run `fanloop card render --view panorama --format markdown` 之后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；渲染失败则 blocked。父 Agent 把该次 `data.content` 原样作为该 Step 第一条用户可见消息发出，再用同一 `snapshot_path` acknowledge，然后才继续业务 Prompt。不得把带全景图门禁的 Workflow 整段放进无法发送用户可见消息的子 Agent 里跑完。
 6. 成功的终止 Route 使 Workflow 变为 completed 之后，local_agent 以及任何必须把 Panorama `data.content` 发给用户的父宿主再 render 一次，把该次精确 `data.content` 原样送出。那一次是 `Done` 与 `100%`。进入最后一步时的全景图（复盘步骤常见为 75%）不是这次投递。没有用户可见通道则 blocked。不得把写入文件当成这次投递。CLI 仍不证明用户看见了消息。
 
 | 规则 | 什么强制执行 |
 | --- | --- |
-| 进入 Step 先展示完整 renderer 内容，成功后才上报 snapshot path | 各 Workflow 的 `workflow-panorama` / `fanloop-dev-panorama` Skill。Runtime 只校验回执类型与路由，不证明宿主已展示（ADR-0119）。 |
-| 无用户可见通道时 blocked；不得把写入 `artifacts/panorama-*` 当成已展示 | Skill 必须包含 `report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`。`scripts/validate-configuration.py --check-panorama-skills` 拒绝缺少该句或把写文件当成投递的 Skill，并指出路径和应补的句子。`--reject-file-save-evidence` 拒绝 `content saved artifacts/panorama-` 这类证据。 |
-| 父 Agent 能发消息时，headless 子 Agent 不得上报 `panorama_presented`；子 Agent 交还 `data.content` 与 `snapshot_path`，父 Agent 原样发送后再上报同一路径 | 提到 `local_agent` 的全景图 Skill 必须包含 `The child must not submit panorama_presented.`、`After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.`、`The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.`、`Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.`。`--check-panorama-skills` 拒绝缺少这些句子的 Skill。CLI 不证明用户看见了消息。 |
+| 进入 Step 先展示完整 renderer 内容，成功后才 acknowledge snapshot path | CLI 内置 `entrypoints/fanloop-workflow/skills/fanloop-panorama-delivery/SKILL.md`。Runtime 校验 action、快照身份与当前 Panorama 字节，不证明宿主已展示（ADR-0137）。 |
+| 无用户可见通道时 blocked；不得把写入 `artifacts/panorama-*` 当成已展示 | 内置 Skill 必须包含 `report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`。`scripts/validate-configuration.py --check-panorama-skills` 拒绝缺少该句或把写文件当成投递的 Skill，并指出路径和应补的句子。`--reject-file-save-evidence` 拒绝 `content saved artifacts/panorama-` 这类证据。 |
+| 父 Agent 能发消息时，headless 子 Agent 不得上报 `panorama_presented`；子 Agent 交还 `data.content` 与 `snapshot_path`，父 Agent 原样发送后再 acknowledge 同一路径 | 提到 `local_agent` 的全景图 Skill 必须包含 `The child must not submit panorama_presented.`、`After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.`、`The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.`、`Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.`。`--check-panorama-skills` 拒绝缺少这些句子的 Skill。CLI 不证明用户看见了消息。 |
 | 成功终止 Route 之后再投递一次 Done `100%` 全景图；复盘步骤里的 75% 不是这次投递 | 提到 `local_agent` 的全景图 Skill，以及 `fanloop-workflow/remnote-flashcards/prompt.yaml`，必须包含 `after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.`。`--check-panorama-skills` 拒绝缺少该句，或仍写「最终回复不得重复 Panorama」的 Skill。`--reject-missing-done-panorama` 拒绝复盘 75% 之后 workflow completed、却没有后续 Done 100% 全景图标题的转录。CLI 不证明用户看见了消息。 |
+| Workflow 不得自定义保留 Condition | `condition.yaml` 与 Route 不得出现 `panorama_presented` 或 `panorama_card_published`。加载错误码为 `CONDITION_RESERVED`。 |
 
-完成标准：全部生产 Workflow 均有已绑定并实际使用的全景图 Condition；配置检查覆盖所需正常、终止和回流 Route 的全部 AND 组。全景图 Skill 通过 `--check-panorama-skills`。必要时用已有 CLI 检查回执缺失的拒绝行为。不把 CLI 说成能证明用户看见卡片。
+完成标准：生产 Workflow 与 Example 不含保留 Condition 或重复展示 Skill；公开 CLI 验证节点进入、回流、跳转和完成态 action，以及缺少 ack 时的拒绝。内置全景图 Skill 通过 `--check-panorama-skills` 所要求的宿主句子。不把 CLI 说成能证明用户看见卡片。
 
 ## Thrift IDL 契约主 Agent 审核
 

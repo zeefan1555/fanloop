@@ -253,6 +253,73 @@ def status(recorder: Recorder, scenario_id: str, root: pathlib.Path, label: str)
     )
 
 
+def acknowledge_pending_panorama(
+    recorder: Recorder,
+    scenario_id: str,
+    root: pathlib.Path,
+    status_value: dict[str, Any],
+    label: str,
+) -> dict[str, Any]:
+    actions = status_value["data"]["state"].get("pending_actions", [])
+    if len(actions) != 1:
+        raise AssertionError(f"{label} pending Panorama actions = {actions!r}, want one")
+    action = actions[0]
+    if action.get("type") != "panorama_delivery_required":
+        raise AssertionError(f"{label} exposed unexpected action {action!r}")
+    rendered = success(
+        recorder.run(
+            scenario_id,
+            f"{label}-card-render",
+            root,
+            ["card", "render", "--root", str(root), "--view", "panorama", "--format", "markdown"],
+        ),
+        f"{label} card render",
+    )
+    snapshot_path = rendered["data"].get("snapshot_path")
+    if not snapshot_path:
+        raise AssertionError(f"{label} card render returned no snapshot_path")
+    success(
+        recorder.run(
+            scenario_id,
+            f"{label}-action-acknowledge",
+            root,
+            [
+                "flow", "action", "acknowledge", "--root", str(root),
+                "--action-id", action["id"],
+                "--panorama-snapshot-path", snapshot_path,
+            ],
+        ),
+        f"{label} action acknowledge",
+    )
+    after = status(recorder, scenario_id, root, f"{label}-status-after-acknowledge")
+    if after["data"]["state"].get("pending_actions"):
+        raise AssertionError(f"{label} action remained after acknowledgment")
+    return after
+
+
+def comparable_result_data(
+    value: dict[str, Any], *, expect_action: bool
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    stable = json.loads(json.dumps(value))
+    stable.pop("event_id", None)
+    actions = stable["state"].pop("pending_actions", [])
+    expected_count = 1 if expect_action else 0
+    if len(actions) != expected_count:
+        raise AssertionError(
+            f"Result pending Panorama actions = {actions!r}, want {expected_count}"
+        )
+    if not expect_action:
+        return stable, None
+    action = actions[0]
+    if (
+        action.get("type") != "panorama_delivery_required"
+        or action.get("skill", {}).get("id") != "fanloop-panorama-delivery"
+        or action.get("id") != f"panorama-{action.get('trigger_event_id', '')}"
+    ):
+        raise AssertionError(f"Result exposed invalid Panorama action {action!r}")
+    return stable, action
+
+
 def start_current_step(
     recorder: Recorder,
     scenario_id: str,
@@ -502,10 +569,17 @@ def execute_dry_run(
             recorder.run(scenario_id, "real-result", real_root, real_args),
             "real Result",
         )
-        real_data = dict(real["data"])
-        real_data.pop("event_id", None)
-        if dry["data"] != real_data:
+        dry_data, _ = comparable_result_data(dry["data"], expect_action=False)
+        real_data, _ = comparable_result_data(real["data"], expect_action=True)
+        if dry_data != real_data:
             raise AssertionError("dry-run calculation differs from real Result")
+        acknowledge_pending_panorama(
+            recorder,
+            scenario_id,
+            real_root,
+            status(recorder, scenario_id, real_root, "real-status-before-acknowledge"),
+            "real-result",
+        )
         recorder.show(
             f"[Dry Run] {case['source_step_id']} -> {case['target_step_id']}",
             json.dumps(request, ensure_ascii=False, indent=2),
@@ -844,6 +918,10 @@ def main() -> int:
     try:
         while True:
             baseline_status = status(recorder, "setup", baseline, "flow-status")
+            if baseline_status["data"]["state"].get("pending_actions"):
+                baseline_status = acknowledge_pending_panorama(
+                    recorder, "setup", baseline, baseline_status, "baseline",
+                )
             current_state = current(baseline_status)
             if current_state is None:
                 break

@@ -8,7 +8,8 @@
 
 ## How to get to it (user POV)
 
-Read the latest Status and the target report leaf `--help`. Use only the current Step ID, listed Conditions and one listed
+Read the latest Status and the target report leaf `--help`. When `pending_actions` is non-empty, acknowledge that action
+before a business progress or result. Use only the current Step ID, listed Conditions and one listed
 Route. Prefer `--input @file` or stdin for complex requests.
 
 ## Driving it with fanloop
