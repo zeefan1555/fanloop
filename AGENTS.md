@@ -64,7 +64,7 @@
 4. 本地安装器离线；显式 `--config-source` 导入干净 Git 提交，否则保留 current。首次安装无配置时由后续 init 拉取。configuration.json 记录提交、Workflow IDs 和路径/内容/executable bit 的完整摘要。
 5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
 6. Fornax 只镜像已经合入 second-brain-skills main 并被本地 `flow init` 回读的精确 Git 提交，不参与 Runtime、安装、Doctor、Dashboard、配置刷新或 fallback。镜像 ZIP 根只含包装 `SKILL.md` 与唯一 `<workflow-id>/`；内部含五 YAML、可选 `trace.yaml` 和完整 `skills/**`。
-7. 镜像 key 固定为 `fanloop.workflow.<snake_id>`。`${FANLOOP_DATA_HOME:-$HOME/.fanloop}/fornax.json` 只存 workspace 与 Workflow/key 映射；Runtime 和安装器不创建或修改它，也不得写入凭证、Skill ID 或版本。
+7. `${FANLOOP_DATA_HOME:-$HOME/.fanloop}/fornax.json` 只存 source 列表。每一项是 `workspace_id`、`key_prefix` 和 `access`（`read_write` 或 `read_only`）。同一个 workflow id 同时出现在 `read_write` 和 `read_only` 源时，`read_write` 源胜出。同一源内重复，或两个源打成平局，整组拒绝。该文件不存 AK/SK、JWT、下载 token、Skill ID 或版本。Runtime 和安装器不创建或修改它。
 8. 发布严格按本地校验、PR 合入 main、本地 `flow init` 回读、Fornax create/commit/release、released 回读、按相对路径与文件字节比对、`fanloop config drift` in_sync 的顺序执行。Fornax `skill install` 不保留 Unix 文件模式；ZIP 仍记录可执行位，比对忽略仅模式差异，最多作为说明。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
 
 ## YAML 架构真值与自动校验
