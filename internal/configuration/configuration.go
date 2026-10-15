@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/zeefan1555/fanloop/internal/workflow"
@@ -20,6 +21,7 @@ import (
 const Repository = "git@github.com:zeefan1555/second-brain-skills.git"
 const Ref = "refs/heads/main"
 const Category = "fanloop-workflow"
+const OriginFornax = "fornax"
 
 var ErrFetch = errors.New("configuration fetch failed")
 
@@ -28,14 +30,25 @@ type File struct {
 	SHA256     string `json:"sha256"`
 	Executable bool   `json:"executable"`
 }
+
+// ReleaseRef is one released Fornax package that was activated into a snapshot.
+type ReleaseRef struct {
+	Key        string `json:"key"`
+	Version    string `json:"version"`
+	WorkflowID string `json:"workflow_id"`
+}
+
 type Manifest struct {
-	SchemaVersion int      `json:"schema_version"`
-	Repository    string   `json:"repository"`
-	Ref           string   `json:"ref"`
-	CommitSHA     string   `json:"commit_sha"`
-	WorkflowIDs   []string `json:"workflow_ids"`
-	Files         []File   `json:"files"`
-	SHA256        string   `json:"configuration_manifest_sha256"`
+	SchemaVersion    int          `json:"schema_version"`
+	Origin           string       `json:"origin,omitempty"`
+	Repository       string       `json:"repository,omitempty"`
+	Ref              string       `json:"ref,omitempty"`
+	CommitSHA        string       `json:"commit_sha,omitempty"`
+	ReleaseSetDigest string       `json:"release_set_digest,omitempty"`
+	Releases         []ReleaseRef `json:"releases,omitempty"`
+	WorkflowIDs      []string     `json:"workflow_ids"`
+	Files            []File       `json:"files"`
+	SHA256           string       `json:"configuration_manifest_sha256"`
 }
 
 // IsSnapshotSource preserves managed identity even if its manifest is missing.
@@ -276,6 +289,9 @@ func Read(source string) (Manifest, error) {
 	if err = json.Unmarshal(content, &recorded); err != nil {
 		return Manifest{}, err
 	}
+	if recorded.Origin == OriginFornax {
+		return readFornax(source, recorded)
+	}
 	if decoded, err := hex.DecodeString(recorded.CommitSHA); err != nil || len(decoded) != 20 || recorded.CommitSHA != strings.ToLower(recorded.CommitSHA) {
 		return Manifest{}, fmt.Errorf("invalid configuration commit")
 	}
@@ -292,12 +308,94 @@ func Read(source string) (Manifest, error) {
 	return recorded, nil
 }
 
-func publish(dataRoot, source string, manifest Manifest) (string, error) {
-	snapshots := filepath.Join(dataRoot, "config", "snapshots")
-	if err := os.MkdirAll(snapshots, 0700); err != nil {
+func snapshotDirectoryName(manifest Manifest) (string, error) {
+	if manifest.Origin == OriginFornax {
+		if manifest.ReleaseSetDigest == "" || manifest.ReleaseSetDigest != ReleaseSetDigest(manifest.Releases) {
+			return "", fmt.Errorf("invalid Fornax release set digest")
+		}
+		return manifest.ReleaseSetDigest, nil
+	}
+	if manifest.CommitSHA == "" {
+		return "", fmt.Errorf("invalid configuration commit")
+	}
+	return manifest.CommitSHA, nil
+}
+
+// ReleaseSetDigest is the sha256 hex of the sorted key@version lines.
+func ReleaseSetDigest(releases []ReleaseRef) string {
+	lines := make([]string, len(releases))
+	for index, release := range releases {
+		lines[index] = release.Key + "@" + release.Version
+	}
+	sort.Strings(lines)
+	sum := sha256.Sum256([]byte(strings.Join(lines, "\n") + "\n"))
+	return hex.EncodeToString(sum[:])
+}
+
+// PublishRelease stores an immutable snapshot of a materialized Fornax set.
+func PublishRelease(dataRoot, source string, releases []ReleaseRef) (string, error) {
+	manifest, err := inspectRelease(source, releases)
+	if err != nil {
 		return "", err
 	}
-	target := filepath.Join(snapshots, manifest.CommitSHA)
+	return publish(dataRoot, source, manifest)
+}
+
+func inspectRelease(source string, releases []ReleaseRef) (Manifest, error) {
+	manifest, err := inspect(source, "")
+	if err != nil {
+		return Manifest{}, err
+	}
+	copied := append([]ReleaseRef(nil), releases...)
+	sort.Slice(copied, func(i, j int) bool { return copied[i].Key < copied[j].Key })
+	present := map[string]bool{}
+	for _, id := range manifest.WorkflowIDs {
+		present[id] = true
+	}
+	if len(copied) != len(present) {
+		return Manifest{}, fmt.Errorf("release set does not match workflow packages")
+	}
+	for _, release := range copied {
+		if release.Key == "" || release.Version == "" || release.WorkflowID == "" || !present[release.WorkflowID] {
+			return Manifest{}, fmt.Errorf("release set does not match workflow packages")
+		}
+	}
+	manifest.Origin = OriginFornax
+	manifest.Repository = ""
+	manifest.Ref = ""
+	manifest.CommitSHA = ""
+	manifest.Releases = copied
+	manifest.ReleaseSetDigest = ReleaseSetDigest(copied)
+	return manifest, nil
+}
+
+func readFornax(source string, recorded Manifest) (Manifest, error) {
+	if recorded.SchemaVersion != 1 || recorded.Repository != "" || recorded.Ref != "" || recorded.CommitSHA != "" {
+		return Manifest{}, fmt.Errorf("invalid Fornax configuration snapshot")
+	}
+	if filepath.Base(filepath.Clean(source)) != recorded.ReleaseSetDigest || recorded.ReleaseSetDigest != ReleaseSetDigest(recorded.Releases) {
+		return Manifest{}, fmt.Errorf("configuration release set does not match snapshot directory")
+	}
+	actual, err := inspectRelease(source, recorded.Releases)
+	if err != nil {
+		return Manifest{}, err
+	}
+	if !reflect.DeepEqual(recorded, actual) {
+		return Manifest{}, fmt.Errorf("configuration manifest mismatch")
+	}
+	return recorded, nil
+}
+
+func publish(dataRoot, source string, manifest Manifest) (string, error) {
+	name, err := snapshotDirectoryName(manifest)
+	if err != nil {
+		return "", err
+	}
+	snapshots := filepath.Join(dataRoot, "config", "snapshots")
+	if err = os.MkdirAll(snapshots, 0700); err != nil {
+		return "", err
+	}
+	target := filepath.Join(snapshots, name)
 	if info, err := os.Lstat(target); err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return "", fmt.Errorf("invalid snapshot path")
@@ -318,7 +416,7 @@ func publish(dataRoot, source string, manifest Manifest) (string, error) {
 		return "", err
 	}
 	defer os.RemoveAll(stagingRoot)
-	staging := filepath.Join(stagingRoot, manifest.CommitSHA)
+	staging := filepath.Join(stagingRoot, name)
 	for _, file := range manifest.Files {
 		path := filepath.Join(staging, filepath.FromSlash(file.Path))
 		if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {

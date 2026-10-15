@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	"github.com/zeefan1555/fanloop/internal/configuration"
+	"github.com/zeefan1555/fanloop/internal/fornaxmirror"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
@@ -65,7 +68,7 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if err != nil {
 		return nil, internalError(err)
 	}
-	configurationRoot, unlock, err := configuration.Prepare(ctx, dataRoot, dryRun)
+	configurationRoot, unlock, err := prepareConfiguration(ctx, dataRoot, dryRun)
 	if err != nil {
 		if errors.Is(err, configuration.ErrFetch) {
 			return nil, newFlowError(erroridl.ErrorCode_CONFIGURATION_FETCH_FAILED, err.Error(), nil)
@@ -106,6 +109,9 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	}
 	if dryRun {
 		return response, nil
+	}
+	if err := local.PinConfiguration(filepath.Dir(configurationRoot)); err != nil {
+		return nil, internalError(err)
 	}
 	eventID := runtime.eventID()
 	next.LastEventID = eventID
@@ -319,6 +325,13 @@ func durableEvidenceSource(value flowidl.EvidenceSource) state.EvidenceSource {
 	default:
 		return state.EvidenceURL
 	}
+}
+
+func prepareConfiguration(ctx context.Context, dataRoot string, dryRun bool) (string, func(), error) {
+	if _, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE"); !explicit && fornaxmirror.Configured(dataRoot) {
+		return fornaxmirror.CurrentRoot(ctx, dataRoot, dryRun)
+	}
+	return configuration.Prepare(ctx, dataRoot, dryRun)
 }
 
 func validateAndCommit(local *store.Store, definition workflow.Workflow, next state.State, event state.Event) *erroridl.PublicError {

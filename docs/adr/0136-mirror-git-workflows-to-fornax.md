@@ -3,6 +3,7 @@ status: accepted
 date: 2026-10-15
 supersedes_in_part: ADR-0124-load-local-workflow-skill-packages
 amends: ADR-0132-git-workflow-configuration-center
+amended_by: ADR-0137-take-workflow-configuration-from-fornax
 preserves: ADR-0124-automate-workflow-yaml-validation, ADR-0125-make-ordinary-skill-maintenance-lightweight
 ---
 

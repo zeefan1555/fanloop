@@ -90,7 +90,7 @@ func MaterializePackage(packageRoot, workflowParent string) (AcceptedPackage, er
 	if workflowDir != id {
 		return AcceptedPackage{}, fmt.Errorf("workflow directory %q does not match workflow.yaml id %q", workflowDir, id)
 	}
-	if header.Name != "loop-workflow-"+id && header.Name != "fanloop-workflow-"+id {
+	if header.Name != id && header.Name != "loop-workflow-"+id && header.Name != "fanloop-workflow-"+id {
 		return AcceptedPackage{}, fmt.Errorf("package name %q does not match workflow id %q", header.Name, id)
 	}
 	accepted := AcceptedPackage{WorkflowID: id, WrapperName: header.Name}

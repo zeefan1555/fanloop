@@ -58,14 +58,14 @@
 
 ## Workflow 配置中心
 
-1. 生产真值为 `zeefan1555/second-brain-skills` 的 `main`，完整包位于 `fanloop-workflow/<workflow-id>/`。本代码仓库只保留通用 fixture 和作者工具。
-2. `flow init` 用系统 Git/SSH 拉取并验证完整集合，成功才原子激活 `$FANLOOP_DATA_HOME/config/snapshots/<commit-sha>/`。`config/current` 指向不可变快照；拉取、校验或激活失败不修改 current、不创建 Requirement。dry-run 只校验临时内容。
-3. 已有 Requirement 的 status/report/skills 离线读取当前快照。显式绝对 `FANLOOP_CONFIG_SOURCE` 指向配置仓库根，跳过远端刷新，用于作者和测试。Dashboard 默认只读快照，仅显式作者源可编辑；共享源锁、摘要检查和完整包校验不变。
+1. 存在 `fornax.json` 时，生产真值是已发布的 Fornax 包，Git 仓库是镜像。没有该文件，或设置了 `FANLOOP_CONFIG_SOURCE` 时，生产真值仍是 `zeefan1555/second-brain-skills` 的 `main`，完整包位于 `fanloop-workflow/<workflow-id>/`。本代码仓库只保留通用 fixture 和作者工具。
+2. 存在 `fornax.json` 且没有 `FANLOOP_CONFIG_SOURCE` 时，`flow init` 使用当前 Fornax 快照，不再用 Git 覆盖它。否则 `flow init` 用系统 Git/SSH 拉取并验证完整集合，成功才原子激活 `$FANLOOP_DATA_HOME/config/snapshots/<commit-sha>/`。`config/current` 指向不可变快照；拉取、校验或激活失败不修改 current、不创建 Requirement。dry-run 只校验临时内容。新 Requirement 在首次提交前把快照目录写到 `.fanloop/configuration-snapshot`，之后固定读取该目录。
+3. 已有 Requirement 离线读取它固定的快照；没有固定文件的旧 Requirement 仍跟随 `current`。显式绝对 `FANLOOP_CONFIG_SOURCE` 指向配置仓库根，跳过远端刷新，用于作者和测试。Dashboard 默认只读快照，仅显式作者源可编辑；共享源锁、摘要检查和完整包校验不变。
 4. 本地安装器离线；显式 `--config-source` 导入干净 Git 提交，否则保留 current。首次安装无配置时由后续 init 拉取。configuration.json 记录提交、Workflow IDs 和路径/内容/executable bit 的完整摘要。
 5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
-6. Fornax 只镜像已经合入 second-brain-skills main 并被本地 `flow init` 回读的精确 Git 提交，不参与 Runtime、安装、Doctor、Dashboard、配置刷新或 fallback。镜像 ZIP 根只含包装 `SKILL.md` 与唯一 `<workflow-id>/`；内部含五 YAML、可选 `trace.yaml` 和完整 `skills/**`。
+6. `fanloop update` 与 `fanloop update config` 通过用户已登录的 `fornax-cli` 拉取每个 source 的最新 Online/prod 发布，不内置 AK/SK。快照目录名是排序后 `key@version` 行的 sha256。失败保留原来的 `current`。镜像 ZIP 根只含包装 `SKILL.md` 与唯一 `<workflow-id>/`；内部含五 YAML、可选 `trace.yaml` 和完整 `skills/**`。`loop-workflow-<id>` 与 `fanloop-workflow-<id>` 都可以装入。
 7. `${FANLOOP_DATA_HOME:-$HOME/.fanloop}/fornax.json` 只存 source 列表。每一项是 `workspace_id`、`key_prefix` 和 `access`（`read_write` 或 `read_only`）。同一个 workflow id 同时出现在 `read_write` 和 `read_only` 源时，`read_write` 源胜出。同一源内重复，或两个源打成平局，整组拒绝。该文件不存 AK/SK、JWT、下载 token、Skill ID 或版本。Runtime 和安装器不创建或修改它。
-8. 发布严格按本地校验、PR 合入 main、本地 `flow init` 回读、Fornax create/commit/release、released 回读、按相对路径与文件字节比对、`fanloop config drift` in_sync 的顺序执行。Fornax `skill install` 不保留 Unix 文件模式；ZIP 仍记录可执行位，比对忽略仅模式差异，最多作为说明。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
+8. 从 Git 发布到 Fornax 的旧路径只作为恢复手段。Fornax `skill install` 不保留 Unix 文件模式；以 `#!` 开头的脚本安装为 `0555`。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
 
 ## YAML 架构真值与自动校验
 
@@ -125,7 +125,7 @@
 
 1. 用户安装来自 GitHub Release，不使用 npm registry，也不发布到 GitHub Packages 或私有 package registry。推送形如 `vX.Y.Z` 的 tag 后，Actions 只在 ubuntu 上交叉编译 darwin/linux 的 amd64 与 arm64，上传每个平台一个 tar.gz、`checksums.txt`、分发清单 `release.json`，以及 `npm pack` 生成的薄包装 tgz。
 2. 安装命令是 `npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1555/fanloop/releases/download/vX.Y.Z/fanloop-X.Y.Z.tgz`。`--allow-scripts=fanloop` 允许较新的 npm 运行 postinstall；`--foreground-scripts` 让安装程序打印的 `export PATH=...` 出现在终端里。安装程序校验 sha256 和完整的内部 release 清单，确认文件摘要后解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `current`。
-3. `fanloop update` 下载最新 GitHub Release 并切换 `current`。已安装版本比 `latest` 新时保持不变。同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步 Workflow 配置：配置未变化时跳过 checkout，并发运行共用配置锁，并打印每个 Workflow 的 id 和同步到的 commit。
+3. `fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`，然后同步 Fornax Workflow 配置。已安装版本比 `latest` 新时 CLI 保持不变。同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步 Fornax Workflow 配置：已发布集合和已安装树都没变时跳过下载，并发运行共用配置锁，并打印 `id@version`。
 4. 开发仍用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。`npm run build` 与 `npm run install:local` 只是这两个脚本的快捷方式，不向 registry 发布。`go.mod` 要求 Go 1.23.0 或更高版本。
 5. 合并后的代码验证仍可从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke。生产配置在 second-brain-skills main 维护；`fanloop update config` 或下次 flow init 拉取。显式作者源编辑在下一次调用生效。分发安装的 `current` 是符号链接时，若 `fanloop` 不在 PATH 上，`fanloop doctor` 给出带 `export PATH=...` 的 warning。
 

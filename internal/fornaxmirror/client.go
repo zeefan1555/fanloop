@@ -7,11 +7,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var keySuffixPattern = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+var warnSkippedKey = func(key string) {
+	fmt.Fprintf(os.Stderr, "warning: skipping Fornax Skill key %s\n", key)
+}
 
 type Skill struct {
 	ID  string
@@ -27,6 +34,7 @@ type Client interface {
 	Skills(context.Context, string, string) ([]Skill, error)
 	Releases(context.Context, string, string) ([]Release, error)
 	Install(context.Context, string, string, string, string) (string, error)
+	ListByPrefix(context.Context, string, string) ([]Skill, error)
 }
 
 type CLIClient struct {
@@ -39,8 +47,54 @@ const maxSkillPages = 100
 func DefaultClient() CLIClient { return CLIClient{Executable: "fornax-cli"} }
 
 func (client CLIClient) Skills(ctx context.Context, workspaceID, key string) ([]Skill, error) {
+	listed, err := client.allSkills(ctx, workspaceID, key)
+	if err != nil {
+		return nil, err
+	}
 	result := []Skill{}
-	exact := map[string]bool{}
+	for _, skill := range listed {
+		if skill.Key != key {
+			continue
+		}
+		if skill.ID == "" || len(result) > 0 {
+			return nil, fmt.Errorf("duplicate exact Fornax Skill key")
+		}
+		result = append(result, skill)
+	}
+	return result, nil
+}
+
+func (client CLIClient) ListByPrefix(ctx context.Context, workspaceID, prefix string) ([]Skill, error) {
+	listed, err := client.allSkills(ctx, workspaceID, prefix)
+	if err != nil {
+		return nil, err
+	}
+	result := []Skill{}
+	seen := map[string]bool{}
+	for _, skill := range listed {
+		if !strings.HasPrefix(skill.Key, prefix) || skill.Key == prefix {
+			continue
+		}
+		suffix := strings.TrimPrefix(skill.Key, prefix)
+		if !keySuffixPattern.MatchString(suffix) {
+			warnSkippedKey(skill.Key)
+			continue
+		}
+		if skill.ID == "" {
+			return nil, fmt.Errorf("invalid Fornax Skill key %s", skill.Key)
+		}
+		if seen[skill.Key] {
+			return nil, fmt.Errorf("duplicate Fornax Skill key %s", skill.Key)
+		}
+		seen[skill.Key] = true
+		result = append(result, skill)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Key < result[j].Key })
+	return result, nil
+}
+
+func (client CLIClient) allSkills(ctx context.Context, workspaceID, keyword string) ([]Skill, error) {
+	result := []Skill{}
 	total := -1
 	seen := 0
 	for page := 1; page <= maxSkillPages; page++ {
@@ -51,7 +105,7 @@ func (client CLIClient) Skills(ctx context.Context, workspaceID, key string) ([]
 			} `json:"skills"`
 			Total int `json:"total"`
 		}
-		if err := client.runJSON(ctx, workspaceID, &response, "skill", "list", "--keyword", key, "--page-no", strconv.Itoa(page), "--page-size", strconv.Itoa(skillPageSize)); err != nil {
+		if err := client.runJSON(ctx, workspaceID, &response, "skill", "list", "--keyword", keyword, "--page-no", strconv.Itoa(page), "--page-size", strconv.Itoa(skillPageSize)); err != nil {
 			return nil, err
 		}
 		if response.Total < 0 || response.Total > skillPageSize*maxSkillPages {
@@ -67,13 +121,6 @@ func (client CLIClient) Skills(ctx context.Context, workspaceID, key string) ([]
 			return nil, fmt.Errorf("invalid Fornax Skill total")
 		}
 		for _, skill := range response.Skills {
-			if skill.SkillKey != key {
-				continue
-			}
-			if skill.ID == "" || exact[skill.ID] || len(exact) > 0 {
-				return nil, fmt.Errorf("duplicate exact Fornax Skill key")
-			}
-			exact[skill.ID] = true
 			result = append(result, Skill{ID: skill.ID, Key: skill.SkillKey})
 		}
 		if seen >= total {
@@ -86,7 +133,6 @@ func (client CLIClient) Skills(ctx context.Context, workspaceID, key string) ([]
 	if seen < total {
 		return nil, fmt.Errorf("Fornax Skill pagination limit exceeded")
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result, nil
 }
 
