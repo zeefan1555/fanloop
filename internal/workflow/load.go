@@ -256,6 +256,16 @@ func requireExactBundleFiles(files fs.FS, root string) error {
 		if entry.Name() == "skills" && entry.IsDir() && entry.Type()&fs.ModeSymlink == 0 {
 			continue
 		}
+		if entry.Name() == "trace.yaml" {
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
+			if !info.Mode().IsRegular() {
+				return fmt.Errorf("Workflow Bundle entry %s is not a regular file", entry.Name())
+			}
+			continue
+		}
 		if !missing[entry.Name()] {
 			return invalidConfiguration(fmt.Errorf("unexpected Workflow Bundle entry %s", entry.Name()))
 		}

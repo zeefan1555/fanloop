@@ -134,6 +134,21 @@ func writeValidWorkflow(t *testing.T, root, id string) {
 	}
 }
 
+func TestOptionalTraceFileStillLoads(t *testing.T) {
+	root := t.TempDir()
+	writeValidWorkflow(t, root, "sample")
+	if err := os.WriteFile(filepath.Join(root, "sample", "trace.yaml"), []byte("schema_version: 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadFrom(root, "sample")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Ref.ID != "sample" || strings.Join(loaded.Workflow.OrderedStepIDs(), ",") != "write_note,confirm_note" {
+		t.Fatalf("loaded id=%s steps=%v", loaded.Ref.ID, loaded.Workflow.OrderedStepIDs())
+	}
+}
+
 func TestListFromRejectsSymlinkedLiveRootChain(t *testing.T) {
 	source := "testdata"
 	for _, test := range []struct {
