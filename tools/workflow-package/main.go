@@ -52,6 +52,10 @@ func build(args []string) error {
 	if err != nil {
 		return err
 	}
+	writable, err := config.ReadWriteSource()
+	if err != nil {
+		return err
+	}
 	workflowIDs, err := fornaxmirror.ValidateInventory(*source, config)
 	if err != nil {
 		return err
@@ -59,7 +63,11 @@ func build(args []string) error {
 	packages, err := buildPackageSet(*output, workflowIDs, func(workflowID string) string {
 		return workflowID + "-" + *version + ".zip"
 	}, func(workflowID, target string) (fornaxmirror.BuiltArchive, error) {
-		return fornaxmirror.BuildArchive(*source, workflowID, config.Workflows[workflowID], commit, *version, target)
+		key, keyErr := fornaxmirror.KeyForPrefix(writable.KeyPrefix, workflowID)
+		if keyErr != nil {
+			return fornaxmirror.BuiltArchive{}, keyErr
+		}
+		return fornaxmirror.BuildArchive(*source, workflowID, key, commit, *version, target)
 	})
 	if err != nil {
 		return err

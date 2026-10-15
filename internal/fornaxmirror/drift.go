@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -50,9 +49,10 @@ type Report struct {
 var ErrInvalidInput = errors.New("invalid config drift input")
 
 type snapshot struct {
-	config Config
-	source string
-	commit string
+	config      Config
+	source      string
+	commit      string
+	workflowIDs []string
 }
 
 func Check(ctx context.Context, dataRoot string, client Client) (Report, error) {
@@ -61,9 +61,16 @@ func Check(ctx context.Context, dataRoot string, client Client) (Report, error) 
 		return Report{}, err
 	}
 	config := resolved.config
-	report := Report{Status: DriftInSync, ConfigurationCommit: resolved.commit, Workflows: make([]WorkflowCheck, 0, len(config.Workflows))}
-	for _, workflowID := range config.WorkflowIDs() {
-		check := inspectWorkflow(ctx, resolved.source, resolved.commit, config, workflowID, client)
+	source, err := config.ReadWriteSource()
+	if err != nil {
+		return Report{}, invalidInputError(err.Error())
+	}
+	if source.KeyPrefix != SkillKeyPrefix {
+		return Report{}, invalidInputError("read_write source must use the fanloop.workflow. prefix")
+	}
+	report := Report{Status: DriftInSync, ConfigurationCommit: resolved.commit, Workflows: make([]WorkflowCheck, 0, len(resolved.workflowIDs))}
+	for _, workflowID := range resolved.workflowIDs {
+		check := inspectWorkflow(ctx, resolved.source, resolved.commit, source.WorkspaceID, workflowID, client)
 		report.Workflows = append(report.Workflows, check)
 		if check.Status == WorkflowUnavailable {
 			report.Status = DriftUnavailable
@@ -96,18 +103,18 @@ func resolveSnapshot(dataRoot string) (snapshot, error) {
 	if err != nil {
 		return snapshot{}, fmt.Errorf("active Git configuration is invalid: %w", err)
 	}
-	if !reflect.DeepEqual(identity.WorkflowIDs, config.WorkflowIDs()) {
-		return snapshot{}, invalidInputError("Fornax Workflow inventory does not match the active Git snapshot")
-	}
-	return snapshot{config: config, source: source, commit: identity.CommitSHA}, nil
+	return snapshot{config: config, source: source, commit: identity.CommitSHA, workflowIDs: identity.WorkflowIDs}, nil
 }
 
 func invalidInputError(message string) error { return fmt.Errorf("%w: %s", ErrInvalidInput, message) }
 
-func inspectWorkflow(ctx context.Context, source, commit string, config Config, workflowID string, client Client) WorkflowCheck {
-	key := config.Workflows[workflowID]
+func inspectWorkflow(ctx context.Context, source, commit, workspaceID, workflowID string, client Client) WorkflowCheck {
+	key, err := SkillKey(workflowID)
+	if err != nil {
+		return WorkflowCheck{WorkflowID: workflowID, Status: WorkflowUnavailable, Detail: err.Error()}
+	}
 	check := WorkflowCheck{WorkflowID: workflowID, SkillKey: key}
-	skills, err := client.Skills(ctx, config.WorkspaceID, key)
+	skills, err := client.Skills(ctx, workspaceID, key)
 	if err != nil {
 		check.Status, check.Detail = WorkflowUnavailable, "Fornax Skill discovery failed"
 		return check
@@ -121,7 +128,7 @@ func inspectWorkflow(ctx context.Context, source, commit string, config Config, 
 		return check
 	}
 	check.SkillID = skills[0].ID
-	releases, err := client.Releases(ctx, config.WorkspaceID, check.SkillID)
+	releases, err := client.Releases(ctx, workspaceID, check.SkillID)
 	if err != nil {
 		check.Status, check.Detail = WorkflowUnavailable, "Fornax release discovery failed"
 		return check
@@ -142,7 +149,7 @@ func inspectWorkflow(ctx context.Context, source, commit string, config Config, 
 		return check
 	}
 	defer os.RemoveAll(root)
-	downloaded, err := client.Install(ctx, config.WorkspaceID, key, release.Version, filepath.Join(root, "download"))
+	downloaded, err := client.Install(ctx, workspaceID, key, release.Version, filepath.Join(root, "download"))
 	if err != nil {
 		check.Status, check.Detail = WorkflowUnavailable, "Fornax package download failed"
 		return check

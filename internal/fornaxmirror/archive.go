@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -80,15 +79,10 @@ func Discover(source string) ([]string, error) {
 }
 
 func ValidateInventory(source string, config Config) ([]string, error) {
-	actual, err := Discover(source)
-	if err != nil {
+	if _, err := config.ReadWriteSource(); err != nil {
 		return nil, err
 	}
-	expected := config.WorkflowIDs()
-	if !reflect.DeepEqual(actual, expected) {
-		return nil, fmt.Errorf("Fornax Workflow inventory is %v, want %v", expected, actual)
-	}
-	return actual, nil
+	return Discover(source)
 }
 
 func BuildArchive(source, workflowID, skillKey, commit, version, target string) (BuiltArchive, error) {

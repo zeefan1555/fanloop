@@ -139,8 +139,8 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 	}{
 		{name: "invalid JSON", prepare: func() { _ = os.WriteFile(configPath, []byte(`{"workspace_id":`), 0600) }},
 		{name: "missing file", prepare: func() { _ = os.Remove(configPath) }},
-		{name: "inventory mismatch", prepare: func() {
-			_ = os.WriteFile(configPath, []byte(`{"workspace_id":"1","workflows":{"daily-journal":"fanloop.workflow.daily_journal"}}`), 0600)
+		{name: "invalid access", prepare: func() {
+			_ = os.WriteFile(configPath, []byte(`{"sources":[{"workspace_id":"1","key_prefix":"fanloop.workflow.","access":"write"}]}`), 0600)
 		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -174,7 +174,7 @@ func configDriftSnapshot(t *testing.T) (string, string, string) {
 	if err = configuration.Activate(dataRoot, snapshot); err != nil {
 		t.Fatal(err)
 	}
-	content := `{"workspace_id":"1","workflows":{"linear-runtime":"fanloop.workflow.linear_runtime"}}`
+	content := `{"sources":[{"workspace_id":"1","key_prefix":"fanloop.workflow.","access":"read_write"}]}`
 	if err = os.WriteFile(filepath.Join(dataRoot, "fornax.json"), []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}

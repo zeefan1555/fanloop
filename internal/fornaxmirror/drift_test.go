@@ -162,8 +162,7 @@ func activeSnapshot(t *testing.T) (string, string, string) {
 	if err = configuration.Activate(dataRoot, snapshot); err != nil {
 		t.Fatal(err)
 	}
-	key, _ := SkillKey("linear-runtime")
-	config := `{"workspace_id":"1","workflows":{"linear-runtime":"` + key + `"}}`
+	config := `{"sources":[{"workspace_id":"1","key_prefix":"fanloop.workflow.","access":"read_write"}]}`
 	if err = os.WriteFile(filepath.Join(dataRoot, "fornax.json"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
