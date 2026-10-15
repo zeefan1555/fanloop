@@ -1,0 +1,35 @@
+schema_version: 7
+id: manage-fanloop-workflow
+
+stages:
+  - id: analyze
+    name: 分析
+    jobs:
+      - id: analyze
+        name: 分析
+        steps:
+          - {id: analyze_workflow_change, name: 分析 Workflow 改动, executor: agent}
+
+  - id: build
+    name: 构建
+    jobs:
+      - id: build
+        name: 构建
+        steps:
+          - {id: build_workflow_candidate, name: 生成 Workflow 候选, executor: agent}
+
+  - id: review
+    name: 审核
+    jobs:
+      - id: review
+        name: 审核
+        steps:
+          - {id: review_workflow_candidate, name: 审核具体候选, executor: human}
+
+  - id: publish
+    name: 发布
+    jobs:
+      - id: publish
+        name: 发布
+        steps:
+          - {id: publish_workflow_candidate, name: 发布并同步配置, executor: agent}
