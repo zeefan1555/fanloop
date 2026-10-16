@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-18
 amends: ADR-0046, ADR-0049
+amended_by: ADR-0138-refresh-cli-and-git-config-on-fresh-init
 ---
 
 # 仅在新 Workflow 初始化前刷新 Release

@@ -100,7 +100,7 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
 复用目录安装，离线切换 CLI Release；显式配置源导入干净提交快照，否则保留已有配置。
 
-存在 `fornax.json` 时，`$FANLOOP_DATA_HOME/config/current` 指向不可变 Fornax 快照，目录名是排序后 `key@version` 行的 sha256。`flow init` 使用这份快照，不用 Git 覆盖它。没有 `fornax.json` 时，`flow init` 仍在稳定锁内拉取 main。显式 `FANLOOP_CONFIG_SOURCE` 指向作者仓库根并跳过刷新。完整包目录是 `fanloop-workflow/<id>`。配置失败不创建 Requirement，也不替换 current。新 Requirement 把快照目录写到 `.fanloop/configuration-snapshot`。
+`flow init` 默认在稳定锁内拉取 second-brain-skills `main`，即使存在 `fornax.json`。同一 commit 复用已安装快照。Git 或网络失败不替换 `config/current`；已有快照时继续使用它，没有快照时初始化失败。`FANLOOP_USE_FORNAX=1` 才让 init 使用 Fornax 快照，目录名是排序后 `key@version` 行的 sha256。显式 `FANLOOP_CONFIG_SOURCE` 指向作者仓库根并跳过刷新。完整包目录是 `fanloop-workflow/<id>`。配置校验失败不创建 Requirement，也不替换 current。新 Requirement 把快照目录写到 `.fanloop/configuration-snapshot`。
 
 `fanloop update` 和 `fanloop update config` 通过用户已登录的 `fornax-cli` 发现并安装每个 source 的最新 Online/prod 发布。个人 `read_write` 源在 workflow id 冲突时胜出。程序不内置 AK/SK。见 [ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)。`fanloop config drift` 以最新发布包为参照，报告 `in_sync`、`local_behind`、`local_modified` 或 `unavailable`。Doctor 对 Fornax 快照打印 `release_set_digest`。
 
