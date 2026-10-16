@@ -70,7 +70,16 @@ func TestFreshInitPullsGitEvenWhenFornaxConfigExists(t *testing.T) {
 
 func TestFreshInitKeepsSnapshotWhenGitPullFails(t *testing.T) {
 	source := gitWorkflowFixture(t)
-	dataRoot := t.TempDir()
+	base := t.TempDir()
+	real := filepath.Join(base, "real")
+	if err := os.Mkdir(real, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	linked := filepath.Join(base, "linked")
+	if err := os.Symlink(real, linked); err != nil {
+		t.Fatal(err)
+	}
+	dataRoot := filepath.Join(linked, "data")
 	useGitRemote(t, source)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
 	root, unlock, err := prepareConfiguration(context.Background(), dataRoot, false, nil)
@@ -78,6 +87,13 @@ func TestFreshInitKeepsSnapshotWhenGitPullFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	unlock()
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root != resolved || strings.Contains(root, string(filepath.Separator)+"linked"+string(filepath.Separator)) {
+		t.Fatalf("root = %s, canonical = %s", root, resolved)
+	}
 	installed, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
 	if err != nil {
 		t.Fatal(err)

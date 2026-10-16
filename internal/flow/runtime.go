@@ -422,17 +422,17 @@ func durableEvidenceSource(value flowidl.EvidenceSource) state.EvidenceSource {
 
 func prepareConfiguration(ctx context.Context, dataRoot string, dryRun bool, warn func(string)) (string, func(), error) {
 	if _, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE"); explicit {
-		return configuration.Prepare(ctx, dataRoot, dryRun)
+		return canonicalConfigurationRoot(configuration.Prepare(ctx, dataRoot, dryRun))
 	}
 	if envFlag(envUseFornax) && fornaxmirror.Configured(dataRoot) {
-		return fornaxmirror.CurrentRoot(ctx, dataRoot, dryRun)
+		return canonicalConfigurationRoot(fornaxmirror.CurrentRoot(ctx, dataRoot, dryRun))
 	}
 	if envFlag(envNoAutoConfig) {
-		return installedSnapshot(dataRoot)
+		return canonicalConfigurationRoot(installedSnapshot(dataRoot))
 	}
 	root, unlock, err := configuration.Prepare(ctx, dataRoot, dryRun)
 	if err == nil {
-		return root, unlock, nil
+		return canonicalConfigurationRoot(root, unlock, nil)
 	}
 	if !errors.Is(err, configuration.ErrFetch) {
 		return "", nil, err
@@ -444,7 +444,25 @@ func prepareConfiguration(ctx context.Context, dataRoot string, dryRun bool, war
 	if warn != nil {
 		warn("automatic configuration pull failed; continuing with the installed snapshot")
 	}
-	return fallback, fallbackUnlock, nil
+	return canonicalConfigurationRoot(fallback, fallbackUnlock, nil)
+}
+
+// canonicalConfigurationRoot resolves symlinks on every successful selection.
+// configuration.Prepare returns the snapshot path as constructed, while
+// installedSnapshot goes through workflow.SourceRoot and EvalSymlinks. On
+// macOS those differ as /var/folders and /private/var/folders.
+func canonicalConfigurationRoot(root string, unlock func(), err error) (string, func(), error) {
+	if err != nil {
+		return "", nil, err
+	}
+	canonical, evalErr := filepath.EvalSymlinks(root)
+	if evalErr != nil {
+		if unlock != nil {
+			unlock()
+		}
+		return "", nil, fmt.Errorf("canonicalize configuration root: %w", evalErr)
+	}
+	return canonical, unlock, nil
 }
 
 func installedSnapshot(dataRoot string) (string, func(), error) {
