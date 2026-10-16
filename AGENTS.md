@@ -59,7 +59,7 @@
 ## Workflow 配置中心
 
 1. 存在 `fornax.json` 时，生产真值是已发布的 Fornax 包，Git 仓库是镜像。没有该文件，或设置了 `FANLOOP_CONFIG_SOURCE` 时，生产真值仍是 `zeefan1555/second-brain-skills` 的 `main`，完整包位于 `fanloop-workflow/<workflow-id>/`。本代码仓库只保留通用 fixture 和作者工具。
-2. 存在 `fornax.json` 且没有 `FANLOOP_CONFIG_SOURCE` 时，`flow init` 使用当前 Fornax 快照，不再用 Git 覆盖它。否则 `flow init` 用系统 Git/SSH 拉取并验证完整集合，成功才原子激活 `$FANLOOP_DATA_HOME/config/snapshots/<commit-sha>/`。`config/current` 指向不可变快照；拉取、校验或激活失败不修改 current、不创建 Requirement。dry-run 只校验临时内容。新 Requirement 在首次提交前把快照目录写到 `.fanloop/configuration-snapshot`，之后固定读取该目录。
+2. 新的 `flow init` 默认用系统 Git/SSH 拉取 `second-brain-skills` 的 `main`，即使存在 `fornax.json`。成功才原子激活 `$FANLOOP_DATA_HOME/config/snapshots/<commit-sha>/`。同一 commit 复用已安装快照。`FANLOOP_NO_AUTO_CONFIG=1` 跳过拉取。Git 或网络失败不替换 `config/current`；已有快照时告警并继续使用它，没有快照时返回 `CONFIGURATION_FETCH_FAILED` 且不创建 Requirement。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时才改用已安装的 Fornax 快照。`config/current` 指向不可变快照；校验或激活失败不修改 current、不创建 Requirement。dry-run 只校验临时内容。新 Requirement 在首次提交前把快照目录写到 `.fanloop/configuration-snapshot`，之后固定读取该目录。
 3. 已有 Requirement 离线读取它固定的快照；没有固定文件的旧 Requirement 仍跟随 `current`。显式绝对 `FANLOOP_CONFIG_SOURCE` 指向配置仓库根，跳过远端刷新，用于作者和测试。Dashboard 默认只读快照，仅显式作者源可编辑；共享源锁、摘要检查和完整包校验不变。
 4. 本地安装器离线；显式 `--config-source` 导入干净 Git 提交，否则保留 current。首次安装无配置时由后续 init 拉取。configuration.json 记录提交、Workflow IDs 和路径/内容/executable bit 的完整摘要。
 5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
@@ -126,7 +126,7 @@
 
 1. 用户安装来自 GitHub Release，不使用 npm registry，也不发布到 GitHub Packages 或私有 package registry。推送形如 `vX.Y.Z` 的 tag 后，Actions 只在 ubuntu 上交叉编译 darwin/linux 的 amd64 与 arm64，上传每个平台一个 tar.gz、`checksums.txt`、分发清单 `release.json`，以及 `npm pack` 生成的薄包装 tgz。
 2. 安装命令是 `npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1555/fanloop/releases/download/vX.Y.Z/fanloop-X.Y.Z.tgz`。`--allow-scripts=fanloop` 允许较新的 npm 运行 postinstall；`--foreground-scripts` 让安装程序打印的 `export PATH=...` 出现在终端里。安装程序校验 sha256 和完整的内部 release 清单，确认文件摘要后解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `current`。
-3. `fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`，然后同步 Fornax Workflow 配置。已安装版本比 `latest` 新时 CLI 保持不变。同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步 Fornax Workflow 配置：已发布集合和已安装树都没变时跳过下载，并发运行共用配置锁，并打印 `id@version`。
+3. `fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`，然后同步 Fornax Workflow 配置。已安装版本比 `latest` 新时 CLI 保持不变。同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只同步 Fornax Workflow 配置：已发布集合和已安装树都没变时跳过下载，并发运行共用配置锁，并打印 `id@version`。新的非 dry-run `flow init` 在 `current` 是版本化 Release 符号链接时用同一套校验检查最新 Release；已是最新或更新则跳过下载。失败打印 `automatic update failed; checking for an installed fallback` 并继续。更新成功后重新执行新二进制。`FANLOOP_NO_AUTO_UPDATE=1` 关闭。开发目录形式的 `current` 不自动更新。
 4. 开发仍用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。`npm run build` 与 `npm run install:local` 只是这两个脚本的快捷方式，不向 registry 发布。`go.mod` 要求 Go 1.23.0 或更高版本。
 5. 合并后的代码验证仍可从精确 merge commit 执行 `./scripts/install-local.sh`，并回读 `fanloop version`、`fanloop doctor` 与必要 smoke。生产配置在 second-brain-skills main 维护；`fanloop update config` 或下次 flow init 拉取。显式作者源编辑在下一次调用生效。分发安装的 `current` 是符号链接时，若 `fanloop` 不在 PATH 上，`fanloop doctor` 给出带 `export PATH=...` 的 warning。
 

@@ -35,7 +35,7 @@ before and after; it must remain unchanged.
 ## Gotchas
 
 Source builds may warn about a missing Release manifest, and first installation warns before the first configuration fetch. Broken bindings and explicit sources fail. Installed versions use `VERSION-dev.<commit-or-content-digest>`. Configuration
-packages stay outside the immutable Release. Installation never fetches. With `fornax.json` and no `FANLOOP_CONFIG_SOURCE`, flow init reads the Fornax snapshot; otherwise it uses the Git configuration center.
+packages stay outside the immutable Release. Installation never fetches. Fresh flow init fetches the Git configuration center even when `fornax.json` exists. `FANLOOP_USE_FORNAX=1` selects the installed Fornax snapshot. A versioned `current` is checked against the latest GitHub Release on a fresh non-dry-run init; failure keeps the installed binary.
 
 A no-source-context verifier validates the distributed install command receipt,
 binary digest, binding and public CLI readbacks. It must not claim it executed the

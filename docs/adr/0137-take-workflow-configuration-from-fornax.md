@@ -3,6 +3,7 @@ status: accepted
 date: 2026-10-15
 supersedes_in_part: ADR-0136-mirror-git-workflows-to-fornax
 amends: ADR-0132-git-workflow-configuration-center, ADR-0136-distribute-cli-from-github-releases, ADR-0019-pin-running-requirements-to-workflow-versions, ADR-0050-use-leaf-help-as-command-input-contract
+amended_by: ADR-0138-refresh-cli-and-git-config-on-fresh-init
 ---
 
 # Take Workflow configuration from Fornax releases

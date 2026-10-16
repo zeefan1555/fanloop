@@ -71,7 +71,12 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if err != nil {
 		return nil, internalError(err)
 	}
-	configurationRoot, unlock, err := prepareConfiguration(ctx, dataRoot, dryRun)
+	if !dryRun {
+		if err := runtime.refreshCLI(ctx, dataRoot); err != nil {
+			return nil, err
+		}
+	}
+	configurationRoot, unlock, err := prepareConfiguration(ctx, dataRoot, dryRun, runtime.note)
 	if err != nil {
 		if errors.Is(err, configuration.ErrFetch) {
 			return nil, newFlowError(erroridl.ErrorCode_CONFIGURATION_FETCH_FAILED, err.Error(), nil)
@@ -415,11 +420,57 @@ func durableEvidenceSource(value flowidl.EvidenceSource) state.EvidenceSource {
 	}
 }
 
-func prepareConfiguration(ctx context.Context, dataRoot string, dryRun bool) (string, func(), error) {
-	if _, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE"); !explicit && fornaxmirror.Configured(dataRoot) {
+func prepareConfiguration(ctx context.Context, dataRoot string, dryRun bool, warn func(string)) (string, func(), error) {
+	if _, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE"); explicit {
+		return configuration.Prepare(ctx, dataRoot, dryRun)
+	}
+	if envFlag(envUseFornax) && fornaxmirror.Configured(dataRoot) {
 		return fornaxmirror.CurrentRoot(ctx, dataRoot, dryRun)
 	}
-	return configuration.Prepare(ctx, dataRoot, dryRun)
+	if envFlag(envNoAutoConfig) {
+		return installedSnapshot(dataRoot)
+	}
+	root, unlock, err := configuration.Prepare(ctx, dataRoot, dryRun)
+	if err == nil {
+		return root, unlock, nil
+	}
+	if !errors.Is(err, configuration.ErrFetch) {
+		return "", nil, err
+	}
+	fallback, fallbackUnlock, fallbackErr := installedSnapshot(dataRoot)
+	if fallbackErr != nil {
+		return "", nil, err
+	}
+	if warn != nil {
+		warn("automatic configuration pull failed; continuing with the installed snapshot")
+	}
+	return fallback, fallbackUnlock, nil
+}
+
+func installedSnapshot(dataRoot string) (string, func(), error) {
+	target, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
+	if err != nil {
+		return "", nil, fmt.Errorf("%w: no installed configuration snapshot", configuration.ErrFetch)
+	}
+	root, err := workflow.SourceRoot(target)
+	if err != nil {
+		return "", nil, err
+	}
+	unlockConfig, err := workflow.LockConfiguration(dataRoot, false)
+	if err != nil {
+		return "", nil, err
+	}
+	unlockSource, err := workflow.LockSource(root, false)
+	if err != nil {
+		unlockConfig()
+		return "", nil, err
+	}
+	if _, err = configuration.Read(target); err != nil {
+		unlockSource()
+		unlockConfig()
+		return "", nil, err
+	}
+	return root, func() { unlockSource(); unlockConfig() }, nil
 }
 
 func validateAndCommit(local *store.Store, definition workflow.Workflow, next state.State, event state.Event) *erroridl.PublicError {
