@@ -10,15 +10,15 @@ flow:
     - prompt_ref: {file: prompt.yaml, prompt_id: build_workflow_candidate_flow}
       when:
         any_of:
-          - [workflow_candidate_ready, bundle_schema_validated, route_model_validated, skill_bindings_validated, output_contract_validated, workflow_review_package_ready, workflow_review_visual_ready]
+          - [workflow_candidate_ready, workflow_candidate_link_ready, bundle_schema_validated, route_model_validated, skill_bindings_validated, output_contract_validated, workflow_review_package_ready, workflow_review_visual_ready]
       next_step_id: review_workflow_candidate
 
   review_workflow_candidate:
     - prompt_ref: {file: prompt.yaml, prompt_id: review_workflow_candidate_flow}
-      when: {any_of: [[candidate_approved, candidate_review_recorded]]}
+      when: {any_of: [[candidate_approved, candidate_review_recorded, candidate_review_link_ready]]}
       next_step_id: publish_workflow_candidate
     - prompt_ref: {file: prompt.yaml, prompt_id: candidate_cancelled_terminal}
-      when: {any_of: [[candidate_cancelled, candidate_review_recorded]]}
+      when: {any_of: [[candidate_cancelled, candidate_review_recorded, candidate_review_link_ready]]}
       terminal: true
 
   publish_workflow_candidate:

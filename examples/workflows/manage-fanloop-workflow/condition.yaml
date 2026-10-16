@@ -32,6 +32,9 @@ conditions:
     prompt_ref: {file: prompt.yaml, prompt_id: workflow_candidate_ready_condition}
     output: {key: candidate_document_ref, type: object}
     exclusive_group: build_outcome
+  workflow_candidate_link_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: workflow_candidate_link_ready_condition}
+    output: {key: workflow_candidate_url, type: url, description: Workflow 候选审核}
   workflow_analysis_changed:
     prompt_ref: {file: prompt.yaml, prompt_id: workflow_analysis_changed_condition}
     output: {key: workflow_analysis_change, type: string}
@@ -70,6 +73,9 @@ conditions:
   candidate_review_recorded:
     prompt_ref: {file: prompt.yaml, prompt_id: candidate_review_recorded_condition}
     output: {key: candidate_review_receipt, type: object}
+  candidate_review_link_ready:
+    prompt_ref: {file: prompt.yaml, prompt_id: candidate_review_link_ready_condition}
+    output: {key: candidate_review_url, type: url, description: 人工审核记录}
 
   publish_baseline_revalidated:
     prompt_ref: {file: prompt.yaml, prompt_id: publish_baseline_revalidated_condition}

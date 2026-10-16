@@ -1,15 +1,15 @@
 ---
 name: analyze-workflow-change
-description: 在 manage-fanloop-workflow 的分析节点中读取个人 Fornax 基线，并把用户目标建模为 Step、Condition、Route、Output 与 Skill 方案。
+description: 在 manage-fanloop-workflow 的分析节点中读取个人 Fornax 基线，并把已形成的 Workflow 设计整理为可构建、可审核的管理记录。
 ---
 
 # 分析 Workflow 改动
 
 只处理 Fanloop Workflow 配置。不要克隆或修改 `fanloop` 代码仓库，不要运行 Git 构建、PR 或代码维护流程。
 
-读取用户材料，整理输入、输出、执行者、人工决定、失败处理、工具权限和完成标准。区分已确认事实、建议与
-开放问题。只有缺口会改变范围、责任、Step 拓扑或验收边界时才返回
-`workflow_analysis_incomplete` 并提问。
+先执行同一 Prompt 绑定的 `workflow-design-principles`。本 Skill 不重复定义设计顺序，只负责读取真实基线，
+把设计结果整理成可构建、可审核的数据。区分已确认事实、建议与开放问题。只有缺口会改变范围、责任、
+Step 拓扑或验收边界时才返回 `workflow_analysis_incomplete` 并提问。
 
 只使用个人 Fornax CN workspace `7543941556223377409` 和 key 前缀 `fanloop.workflow.`。
 不得查询或写入团队空间 `7590123861772503042`。使用当前用户已登录的 `fornax-cli`，不传 AK/SK、JWT、签名或下载 token。
@@ -26,10 +26,6 @@ fornax-cli skill install --custom-region CN --workspace-id 7543941556223377409 -
 ```
 
 `<suffix>` 是 Workflow ID 中 `-` 换成 `_` 后的结果。exact key 是 `fanloop.workflow.<suffix>`。
-
-先为每条正常、终止和回流 Route 建模必须成立的业务事实，再设计 Prompt 和 Skill。一个 Condition 只表达
-一个可由真实文档、平台回执或人工回复验证的事实，使用最窄的 Output 类型。Evidence 只用于审计。
-人工决定使用 `enum_value`、`exclusive_group` 和绑定本次提问与回复的回执。
 
 全景图不是 Workflow Condition。不要设计 `panorama_presented` 或 `panorama_card_published`。进入、回流、跳转和完成由 Runtime `pending_actions` 要求投递，再用 `fanloop flow action acknowledge` 关闭。
 

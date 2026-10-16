@@ -13,7 +13,7 @@ loop:
 
   review_workflow_candidate:
     - prompt_ref: {file: prompt.yaml, prompt_id: revise_workflow_candidate}
-      when: {any_of: [[candidate_revision_requested, candidate_review_recorded]]}
+      when: {any_of: [[candidate_revision_requested, candidate_review_recorded, candidate_review_link_ready]]}
       back_step_id: build_workflow_candidate
 
   publish_workflow_candidate:

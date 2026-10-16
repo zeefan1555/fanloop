@@ -5,14 +5,16 @@ prompts:
     prompt: 创建唯一的 L2 飞书管理文档，读取用户目标和 Fornax 当前基线，把设计压缩成文档内可直接阅读的人话 HTML 图。
     skills:
       - {id: manage-workflow-document, prompt: 创建或复用唯一飞书文档，设置 L2，并建立本次管理记录的章节。, optional: false}
+      - {id: workflow-design-principles, prompt: 从可验证的 Output 与 Condition 反推 Route、Step、Prompt 和 Skill。, optional: false}
       - {id: analyze-workflow-change, prompt: 形成可直接驱动候选生成的 Workflow 分析。, optional: false}
-      - {id: explain-workflow-design, prompt: 把分析结果转换为零基础读者可审核的 HTML 设计图。, optional: false}
+      - {id: explain-workflow-design, prompt: 用结果、证明和开门三步图，把计划讲到儿童也能复述。, optional: false}
   build_workflow_candidate_flow:
     prompt: 依据飞书文档中的已确认分析生成完整候选并完成静态配置校验，把候选、diff 和验证回执做成同一文档内的 HTML 审核图。
     skills:
+      - {id: workflow-design-principles, prompt: 复核候选是否先闭合 Output、Condition、Route 和失败回流，再保留最少 Step。, optional: false}
       - {id: build-workflow-candidate, prompt: 生成五份 YAML、绑定 Skills 和完整审核包。, optional: false}
       - {id: manage-workflow-document, prompt: 把候选、完整 diff、校验结果和未验证边界更新到唯一飞书文档。, optional: false}
-      - {id: explain-workflow-design, prompt: 生成供 Human Step 直接审核的候选 HTML 图。, optional: false}
+      - {id: explain-workflow-design, prompt: 用短句和真实改前改后生成儿童可复述的候选审核页。, optional: false}
   review_workflow_candidate_flow:
     prompt: 展示唯一飞书文档中的候选 HTML 图并等待人明确批准、要求修改或取消；收到决定后记录原文和候选身份，不得代替人批准。
     skills:
@@ -22,7 +24,7 @@ prompts:
     skills:
       - {id: publish-workflow-candidate, prompt: 发布审核过的精确候选并完成远端与本地回读。, optional: false}
       - {id: manage-workflow-document, prompt: 汇总改动点和全部节点状态，生成并嵌入最终 HTML5 Block。, optional: false}
-      - {id: explain-workflow-design, prompt: 用同一人话视觉规范更新最终交付 HTML。, optional: false}
+      - {id: explain-workflow-design, prompt: 保留已批准的人话主线，只追加儿童也能找到的发布结果和下一步。, optional: false}
 
   workflow_document_ready_condition:
     prompt: 已使用 user 身份创建或复用本 Requirement 的唯一飞书文档，并返回可访问 URL 时成立。
@@ -52,6 +54,9 @@ prompts:
   workflow_candidate_ready_condition:
     prompt: 临时候选包含完整五份 YAML 与绑定 Skills，且其完整内容和身份已写入唯一飞书文档时返回文档 block 引用。
     skills: []
+  workflow_candidate_link_ready_condition:
+    prompt: 精确候选已写入唯一 L2 飞书文档，并返回该文档 URL 作为构建阶段可点击产物时成立。
+    skills: []
   workflow_analysis_changed_condition:
     prompt: 生成候选时发现目标、责任、Step 拓扑或验收边界已改变时返回具体变化并重新分析。
     skills: []
@@ -65,7 +70,7 @@ prompts:
     prompt: 每个 SkillBinding 都指向同 Bundle 的真实非空 SKILL.md 并显式声明 optional 时返回检查对象。
     skills: []
   output_contract_validated_condition:
-    prompt: 每个 Output 使用稳定 key 和最窄类型，可见 Output 具有确认过的 description，且不存在 Runtime 保留字段时返回检查对象。
+    prompt: 每个 Output 使用稳定 key 和最窄类型；每个阶段给人查看的产物使用带 description 的 url 或 url_list，结构化对象只作审计且不替代可点击链接；不存在 Runtime 保留字段时返回检查对象。
     skills: []
   workflow_review_package_ready_condition:
     prompt: 唯一飞书文档的候选 HTML 已包含分析、Step 表、Condition/Route 矩阵、绑定 Skill、完整 diff、静态校验结果和未验证范围时返回审核 block 引用。
@@ -85,6 +90,9 @@ prompts:
     skills: []
   candidate_review_recorded_condition:
     prompt: 返回包含提问、回复、决定、候选身份和完整原文的审核回执对象；旧候选的回执不得复用。
+    skills: []
+  candidate_review_link_ready_condition:
+    prompt: 本次人工决定已写入唯一 L2 飞书文档，并返回该文档 URL 作为审核阶段可点击产物时成立。
     skills: []
 
   publish_baseline_revalidated_condition:

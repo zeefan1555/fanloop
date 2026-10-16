@@ -9,6 +9,9 @@ description: 在 manage-fanloop-workflow 的构建节点中依据已确认分析
 缺失、互相矛盾，或目标、责任、Step 拓扑、验收边界已经变化时，只返回
 `workflow_analysis_changed`，不要用生成配置替代重新分析。
 
+同一 Prompt 绑定的 `workflow-design-principles` 负责设计判断。本 Skill 不重复设计规则，只把已确认分析
+转换成完整候选，并验证候选确实满足当前 Conditions。
+
 在临时目录生成候选。目录名必须等于 `workflow.yaml.id`，包含根 `SKILL.md`、五份 YAML 与所有绑定
 `skills/<skill-id>/SKILL.md`。使用当前已安装 CLI 接受的 Schema。不要修改 Runtime、IDL、仓库 seed，
 不要加入兼容字段或 fallback。
@@ -19,8 +22,9 @@ description: 在 manage-fanloop-workflow 的构建节点中依据已确认分析
 2. Step 职责与 `executor` 明确；正常、终止和回流 Route 目标闭合；每个 Condition 被至少一条 Route 使用。
 3. 每个 SkillBinding 指向同 Bundle 的真实非空 Skill，并显式声明 `optional`。
 4. Human Gate 保留；Agent 不替人批准；影响 Route 的事实不能只写入 Evidence 或 Skill 禁止语句。
-5. Output key 稳定且使用最窄类型；用户可见名称写在 `description`，不翻译 key。
+5. Output key、类型和 `description` 与已确认分析一致。
 6. 不声明、绑定或上报 Runtime 保留的全景图 Condition、Output 或本地投递 Skill。运行时动作只由 Status 的 `pending_actions` 处理，关闭动作为 `fanloop flow action acknowledge`。
+7. 每个阶段需要给人查看的产物使用带业务 `description` 的 `url` 或 `url_list`；结构化对象只保存审计细节，不能代替可点击链接。
 
 ## Step ID
 
@@ -46,7 +50,9 @@ description: 在 manage-fanloop-workflow 的构建节点中依据已确认分析
 
 返回的 `workflow_candidate_ready`、`workflow_review_package_ready` 和 `workflow_review_visual_ready` 都是对象，
 包含同一 `document_url`、主审核 HTML 的 `block_id`、`revision_id` 和候选身份；不得返回本地路径作为用户产物。
+同时返回 `workflow_candidate_link_ready`，其 URL 必须是该唯一 L2 飞书文档，让全景图的构建阶段显示可点击的
+“Workflow 候选审核”。
 
-候选完成时一次返回：`workflow_candidate_ready`、`bundle_schema_validated`、`route_model_validated`、
+候选完成时一次返回：`workflow_candidate_ready`、`workflow_candidate_link_ready`、`bundle_schema_validated`、`route_model_validated`、
 `skill_bindings_validated`、`output_contract_validated`、`workflow_review_package_ready` 和
 `workflow_review_visual_ready`。

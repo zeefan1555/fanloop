@@ -46,6 +46,11 @@ lark-cli drive +secure-label-update --as user --token <DOCUMENT_URL> --label-id 
 HTML Block 或极短决定区。
 本地文件仅用于临时打包或作为 `@file` 写入源，不得作为最终交付链接。
 
+每个阶段给人查看的主产物必须是可点击 URL，并指向真实网页或飞书文档：分析返回
+`workflow_document_url`，构建返回 `workflow_candidate_url`，审核返回 `candidate_review_url`，发布返回
+`fornax_config_center_url` 与 `workflow_version_diff_url`（个人空间 `7543941556223377409`）。前三个 URL 都指向本 Requirement 的唯一 L2 文档。
+对象 Output 继续保存 block、revision、候选身份和人工原文，但不能代替这些阶段链接。
+
 ## HTML5 Block
 
 HTML 的解释方式、视觉设计和内容层次全部由 `explain-workflow-design` 定义。本 Skill 只负责在分析、构建、
