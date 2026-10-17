@@ -24,14 +24,16 @@ func newConfigDriftCommand(ioStreams streams) *cobra.Command {
 	var controls operationControls
 	command := operationCommand("config.drift")
 	command.Long = `Purpose:
-  Compare the active Workflow snapshot with the latest released Fornax packages.
+  Compare the active Workflow snapshot with second-brain-skills main.
 
 Effect:
-  Read only. It queries every source in fornax.json through the user's logged-in fornax-cli,
-  downloads released packages into a private temporary directory, and does not change the snapshot, Fornax, or Requirements.
-  The released package is the reference. Equal file bytes are in_sync. An older recorded version whose tree still matches its receipt is local_behind.
-  Any other byte difference is local_modified. Discovery or download failure is unavailable.
-  Unix file modes are ignored.
+  Read only. It reads the managed config/current snapshot, checks every manifest file sha256, and runs git ls-remote on second-brain-skills main.
+  It does not change the snapshot or Requirements. Equal content and an equal commit are in_sync. A different remote commit is local_behind.
+  Any byte difference is local_modified with detail "package content differs". An ls-remote failure is unavailable.
+  A Fornax-origin snapshot is local_behind with detail "snapshot came from Fornax; run fanloop update config".
+  Unix file modes are ignored. A missing fornax.json is ignored.
+  FANLOOP_USE_FORNAX=1, true, or yes, together with a credential-free fornax.json, compares the snapshot with the latest Fornax release instead.
+  That path queries every source through the user's logged-in fornax-cli and downloads released packages into a private temporary directory.
 
 Request JSON:
   {}
@@ -40,7 +42,7 @@ Typed flags:
   fanloop config drift
 
 Constraints:
-  The business Request is empty. The command reads the managed config/current snapshot and the credential-free fornax.json.
+  The business Request is empty. The command reads the managed config/current snapshot. A credential-free fornax.json is used only with FANLOOP_USE_FORNAX.
   FANLOOP_CONFIG_SOURCE author overrides are not accepted.
 
 Controls:

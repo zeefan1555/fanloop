@@ -72,9 +72,9 @@ func TestUpdateSkillNamesReadWriteSourceOnly(t *testing.T) {
 	}
 	text := string(content)
 	for _, want := range []string{
-		"只使用 `access` 为 `read_write` 的那一项",
-		"scripts/mirror-fornax-to-git",
-		"tools/workflow-package build` 只用于恢复",
+		"已退役",
+		"second-brain-skills",
+		"fanloop update config",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("skill missing %q", want)

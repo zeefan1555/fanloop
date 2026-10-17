@@ -1,6 +1,10 @@
 package fornaxmirror
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestDecodeConfigAcceptsSourceList(t *testing.T) {
 	config, err := DecodeConfig([]byte(`{"sources":[{"workspace_id":"1","key_prefix":"fanloop.workflow.","access":"read_write"},{"workspace_id":"2","key_prefix":"loop.workflow.","access":"read_only"}]}`))
@@ -63,5 +67,26 @@ func TestSelectClaimsRejectsTiesAndSameSourceDuplicates(t *testing.T) {
 	})
 	if err == nil || err.Error() != "workflow id general appears twice in one source" {
 		t.Fatalf("duplicate error = %v", err)
+	}
+}
+
+func TestUseReleasedSnapshotRequiresFlagAndFile(t *testing.T) {
+	data := t.TempDir()
+	t.Setenv("FANLOOP_USE_FORNAX", "1")
+	if UseReleasedSnapshot(data) {
+		t.Fatal("missing fornax.json opted in")
+	}
+	if err := os.WriteFile(filepath.Join(data, "fornax.json"), []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range []string{"1", "true", "yes", "TRUE"} {
+		t.Setenv("FANLOOP_USE_FORNAX", value)
+		if !UseReleasedSnapshot(data) {
+			t.Fatalf("%s did not opt in", value)
+		}
+	}
+	t.Setenv("FANLOOP_USE_FORNAX", "")
+	if UseReleasedSnapshot(data) {
+		t.Fatal("empty flag opted in")
 	}
 }

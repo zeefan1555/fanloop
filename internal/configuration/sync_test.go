@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -123,5 +124,29 @@ func TestSyncSerializesConcurrentCalls(t *testing.T) {
 		case <-time.After(20 * time.Second):
 			t.Fatal("sync did not finish")
 		}
+	}
+}
+
+func TestSyncFetchFailureLeavesCurrentUnchanged(t *testing.T) {
+	remoteFixture(t)
+	data := t.TempDir()
+	if _, err := Sync(context.Background(), data); err != nil {
+		t.Fatal(err)
+	}
+	current := filepath.Join(data, "config", "current")
+	before, err := os.Readlink(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GIT_CONFIG_KEY_0", "url."+filepath.Join(t.TempDir(), "missing")+".insteadOf")
+	if _, err = Sync(context.Background(), data); err == nil || !errors.Is(err, ErrFetch) {
+		t.Fatalf("sync error = %v", err)
+	}
+	after, err := os.Readlink(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after != before {
+		t.Fatalf("current changed from %s to %s", before, after)
 	}
 }
