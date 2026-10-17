@@ -36,6 +36,7 @@ func TestConfigDriftPublicCLIReportsInSyncAndDrift(t *testing.T) {
 	configWriteFakeFornax(t, filepath.Join(fakeDir, "fornax-cli"))
 	configUnsetSource(t)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	t.Setenv("FANLOOP_USE_FORNAX", "1")
 	t.Setenv("FAKE_FORNAX_PACKAGE", packageRoot)
 	t.Setenv("PATH", fakeDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	unlock, err := workflow.LockConfiguration(dataRoot, false)
@@ -73,6 +74,7 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 	configWriteFakeFornax(t, filepath.Join(fakeDir, "fornax-cli"))
 	configUnsetSource(t)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
+	t.Setenv("FANLOOP_USE_FORNAX", "1")
 	t.Setenv("FAKE_FORNAX_PACKAGE", packageRoot)
 	t.Setenv("PATH", fakeDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	unlock, err := workflow.LockConfiguration(dataRoot, false)
@@ -140,7 +142,6 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 		prepare func()
 	}{
 		{name: "invalid JSON", prepare: func() { _ = os.WriteFile(configPath, []byte(`{"workspace_id":`), 0600) }},
-		{name: "missing file", prepare: func() { _ = os.Remove(configPath) }},
 		{name: "invalid access", prepare: func() {
 			_ = os.WriteFile(configPath, []byte(`{"sources":[{"workspace_id":"1","key_prefix":"fanloop.workflow.","access":"write"}]}`), 0600)
 		}},
@@ -156,6 +157,12 @@ func TestConfigDriftPublicCLICoversMirrorStatesAndInputErrors(t *testing.T) {
 	if err := os.WriteFile(configPath, original, 0600); err != nil {
 		t.Fatal(err)
 	}
+	t.Run("missing file falls back to Git", func(t *testing.T) {
+		if err := os.Remove(configPath); err != nil {
+			t.Fatal(err)
+		}
+		run(t, "good", 1, `"status": "local_behind"`, `snapshot came from Fornax; run fanloop update config`)
+	})
 }
 
 func configDriftSnapshot(t *testing.T) (string, string, string) {

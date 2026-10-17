@@ -82,8 +82,10 @@ func (p *WorkflowMirrorCheck) IsValid() error {
 	if len(p.WorkflowId) < int(1) {
 		return fmt.Errorf("field WorkflowId min_len rule failed, current value: %d", len(p.WorkflowId))
 	}
-	if len(p.SkillKey) < int(1) {
-		return fmt.Errorf("field SkillKey min_len rule failed, current value: %d", len(p.SkillKey))
+	if p.SkillKey != nil {
+		if len(*p.SkillKey) < int(1) {
+			return fmt.Errorf("field SkillKey min_len rule failed, current value: %d", len(*p.SkillKey))
+		}
 	}
 	if p.Status.String() == "<UNSET>" {
 		return fmt.Errorf("field Status defined_only rule failed")
@@ -128,6 +130,11 @@ func (p *ConfigDriftResponse) IsValid() error {
 	}
 	if len(p.Workflows) < int(1) {
 		return fmt.Errorf("field Workflows MinLen rule failed, current value: %v", p.Workflows)
+	}
+	if p.RemoteCommit != nil {
+		if len(*p.RemoteCommit) < int(1) {
+			return fmt.Errorf("field RemoteCommit min_len rule failed, current value: %d", len(*p.RemoteCommit))
+		}
 	}
 	return nil
 }

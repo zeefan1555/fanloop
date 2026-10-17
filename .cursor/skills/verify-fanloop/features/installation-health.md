@@ -5,7 +5,7 @@
 - Offline source build and installation; optional clean Git configuration import.
 - GitHub Release install: platform archive, checksums.txt, release.json, the thin npm launcher, public Skill links, and `npm i -g --foreground-scripts --allow-scripts=fanloop`.
 - `fanloop update` keeps a newer installed release instead of downgrading to `latest`. `fanloop doctor` warns with `export PATH=...` when that distribution install is not on PATH.
-- `fanloop update` installs the CLI and then synchronizes released Fornax Workflow packages. `fanloop update config` synchronizes those packages, skips an unchanged released set, and prints each `id@version`.
+- `fanloop update` installs the CLI and then synchronizes Workflow configuration from second-brain-skills main. `fanloop update config` does that Git sync, skips an unchanged commit, and prints the full sha plus workflow ids. `FANLOOP_USE_FORNAX=1` with `fornax.json` keeps the Fornax sync and its `id@version` output.
 - Release version, commit, binary checksum and both public Skill entrypoints.
 - Stable `current/` and nested Release selector, separate from `config/current` source binding.
 - Failed installation preserves the active Release and previous source binding.

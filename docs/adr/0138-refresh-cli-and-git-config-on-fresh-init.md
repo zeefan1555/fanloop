@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-10-16
 amends: ADR-0053-refresh-release-only-before-workflow-init, ADR-0132-git-workflow-configuration-center, ADR-0136-distribute-cli-from-github-releases, ADR-0137-take-workflow-configuration-from-fornax
+amended_by: ADR-0139-update-config-from-github
 ---
 
 # Refresh the CLI and Git configuration on a fresh init

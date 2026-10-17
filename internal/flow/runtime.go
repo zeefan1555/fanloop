@@ -424,7 +424,7 @@ func prepareConfiguration(ctx context.Context, dataRoot string, dryRun bool, war
 	if _, explicit := os.LookupEnv("FANLOOP_CONFIG_SOURCE"); explicit {
 		return canonicalConfigurationRoot(configuration.Prepare(ctx, dataRoot, dryRun))
 	}
-	if envFlag(envUseFornax) && fornaxmirror.Configured(dataRoot) {
+	if fornaxmirror.UseReleasedSnapshot(dataRoot) {
 		return canonicalConfigurationRoot(fornaxmirror.CurrentRoot(ctx, dataRoot, dryRun))
 	}
 	if envFlag(envNoAutoConfig) {

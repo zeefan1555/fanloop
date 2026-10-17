@@ -93,7 +93,7 @@ struct ConfigDriftRequest {}
 
 struct WorkflowMirrorCheck {
   1: required string workflow_id (vt.min_size = "1"),
-  2: required string skill_key   (vt.min_size = "1"),
+  2: optional string skill_key   (vt.min_size = "1"),
   3: required WorkflowMirrorStatus status (
     vt.defined_only = "true",
     vt.not_in = "WorkflowMirrorStatus.unspecified",
@@ -110,6 +110,7 @@ struct ConfigDriftResponse {
   ),
   2: optional string configuration_commit (vt.min_size = "1"),
   3: required list<WorkflowMirrorCheck> workflows (vt.min_size = "1"),
+  4: optional string remote_commit (vt.min_size = "1"),
 }
 
 service OpsService {
@@ -140,7 +141,7 @@ service OpsService {
     1: required ConfigDriftRequest request,
   ) throws (1: error.PublicError error) (
     cli.id = "config.drift",
-    cli.summary = "Compare the active Workflow snapshot with the latest Fornax release",
+    cli.summary = "Compare the active Workflow snapshot with second-brain-skills main",
     cli.risk = "read",
     cli.requirement_scope = "none",
     cli.supports_dry_run = "false",

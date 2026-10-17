@@ -890,7 +890,7 @@ var fieldIDToName_ConfigDriftRequest = map[int16]string{}
 
 type WorkflowMirrorCheck struct {
 	WorkflowId      string               `thrift:"workflow_id,1,required" json:"workflow_id"`
-	SkillKey        string               `thrift:"skill_key,2,required" json:"skill_key"`
+	SkillKey        *string              `thrift:"skill_key,2,optional" json:"skill_key,omitempty"`
 	Status          WorkflowMirrorStatus `thrift:"status,3,required,WorkflowMirrorStatus" json:"status"`
 	SkillId         *string              `thrift:"skill_id,4,optional" json:"skill_id,omitempty"`
 	ReleasedVersion *string              `thrift:"released_version,5,optional" json:"released_version,omitempty"`
@@ -908,8 +908,13 @@ func (p *WorkflowMirrorCheck) GetWorkflowId() (v string) {
 	return p.WorkflowId
 }
 
+var WorkflowMirrorCheck_SkillKey_DEFAULT string
+
 func (p *WorkflowMirrorCheck) GetSkillKey() (v string) {
-	return p.SkillKey
+	if !p.IsSetSkillKey() {
+		return WorkflowMirrorCheck_SkillKey_DEFAULT
+	}
+	return *p.SkillKey
 }
 
 func (p *WorkflowMirrorCheck) GetStatus() (v WorkflowMirrorStatus) {
@@ -941,6 +946,10 @@ func (p *WorkflowMirrorCheck) GetDetail() (v string) {
 		return WorkflowMirrorCheck_Detail_DEFAULT
 	}
 	return *p.Detail
+}
+
+func (p *WorkflowMirrorCheck) IsSetSkillKey() bool {
+	return p.SkillKey != nil
 }
 
 func (p *WorkflowMirrorCheck) IsSetSkillId() bool {
@@ -996,9 +1005,14 @@ func (p *WorkflowMirrorCheck) Field1DeepEqual(src string) bool {
 	}
 	return true
 }
-func (p *WorkflowMirrorCheck) Field2DeepEqual(src string) bool {
+func (p *WorkflowMirrorCheck) Field2DeepEqual(src *string) bool {
 
-	if strings.Compare(p.SkillKey, src) != 0 {
+	if p.SkillKey == src {
+		return true
+	} else if p.SkillKey == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.SkillKey, *src) != 0 {
 		return false
 	}
 	return true
@@ -1060,6 +1074,7 @@ type ConfigDriftResponse struct {
 	Status              ConfigDriftStatus      `thrift:"status,1,required,ConfigDriftStatus" json:"status"`
 	ConfigurationCommit *string                `thrift:"configuration_commit,2,optional" json:"configuration_commit,omitempty"`
 	Workflows           []*WorkflowMirrorCheck `thrift:"workflows,3,required,list<WorkflowMirrorCheck>" json:"workflows"`
+	RemoteCommit        *string                `thrift:"remote_commit,4,optional" json:"remote_commit,omitempty"`
 }
 
 func NewConfigDriftResponse() *ConfigDriftResponse {
@@ -1086,8 +1101,21 @@ func (p *ConfigDriftResponse) GetWorkflows() (v []*WorkflowMirrorCheck) {
 	return p.Workflows
 }
 
+var ConfigDriftResponse_RemoteCommit_DEFAULT string
+
+func (p *ConfigDriftResponse) GetRemoteCommit() (v string) {
+	if !p.IsSetRemoteCommit() {
+		return ConfigDriftResponse_RemoteCommit_DEFAULT
+	}
+	return *p.RemoteCommit
+}
+
 func (p *ConfigDriftResponse) IsSetConfigurationCommit() bool {
 	return p.ConfigurationCommit != nil
+}
+
+func (p *ConfigDriftResponse) IsSetRemoteCommit() bool {
+	return p.RemoteCommit != nil
 }
 
 func (p *ConfigDriftResponse) String() string {
@@ -1110,6 +1138,9 @@ func (p *ConfigDriftResponse) DeepEqual(ano *ConfigDriftResponse) bool {
 		return false
 	}
 	if !p.Field3DeepEqual(ano.Workflows) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.RemoteCommit) {
 		return false
 	}
 	return true
@@ -1147,11 +1178,24 @@ func (p *ConfigDriftResponse) Field3DeepEqual(src []*WorkflowMirrorCheck) bool {
 	}
 	return true
 }
+func (p *ConfigDriftResponse) Field4DeepEqual(src *string) bool {
+
+	if p.RemoteCommit == src {
+		return true
+	} else if p.RemoteCommit == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.RemoteCommit, *src) != 0 {
+		return false
+	}
+	return true
+}
 
 var fieldIDToName_ConfigDriftResponse = map[int16]string{
 	1: "status",
 	2: "configuration_commit",
 	3: "workflows",
+	4: "remote_commit",
 }
 
 type OpsService interface {

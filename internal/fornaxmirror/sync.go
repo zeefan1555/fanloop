@@ -193,6 +193,17 @@ func Configured(dataRoot string) bool {
 	return err == nil && info.Mode().IsRegular()
 }
 
+// UseReleasedSnapshot is the same opt-in flow init uses: FANLOOP_USE_FORNAX
+// is 1, true, or yes, and fornax.json is a regular file.
+func UseReleasedSnapshot(dataRoot string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("FANLOOP_USE_FORNAX"))) {
+	case "1", "true", "yes":
+		return Configured(dataRoot)
+	default:
+		return false
+	}
+}
+
 // CurrentRoot returns the active snapshot, syncing once when none is installed.
 func CurrentRoot(ctx context.Context, dataRoot string, dryRun bool) (string, func(), error) {
 	current := filepath.Join(dataRoot, "config", "current")
