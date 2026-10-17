@@ -121,12 +121,12 @@ func compareReleased(ctx context.Context, dataRoot string, resolved snapshot, cl
 	held := []heldRelease{}
 	claims := []PackageClaim{}
 	unreleased := map[string]bool{}
-	for index, source := range resolved.config.Sources {
+	for sourceIndex, source := range resolved.config.Sources {
 		skills, err := client.ListByPrefix(ctx, source.WorkspaceID, source.KeyPrefix)
 		if err != nil {
 			return unavailableChecks(resolved, "Fornax Skill discovery failed"), nil
 		}
-		for _, skill := range skills {
+		for skillIndex, skill := range skills {
 			releases, err := client.Releases(ctx, source.WorkspaceID, skill.ID)
 			if err != nil {
 				return unavailableChecks(resolved, "Fornax release discovery failed"), nil
@@ -139,12 +139,13 @@ func compareReleased(ctx context.Context, dataRoot string, resolved snapshot, cl
 				unreleased[skill.Key] = true
 				continue
 			}
-			destination := filepath.Join(temp, "download", strconv.Itoa(len(held)))
+			folder := fmt.Sprintf("%d-%d", sourceIndex, skillIndex)
+			destination := filepath.Join(temp, "download", folder)
 			packageRoot, err := client.Install(ctx, source.WorkspaceID, skill.Key, release.Version, destination)
 			if err != nil {
 				return unavailableChecks(resolved, "Fornax package download failed"), nil
 			}
-			parent := filepath.Join(temp, "validated", strconv.Itoa(len(held)))
+			parent := filepath.Join(temp, "validated", folder)
 			accepted, err := MaterializePackage(packageRoot, parent)
 			if err != nil {
 				if source.Access == AccessReadOnly {
@@ -153,7 +154,7 @@ func compareReleased(ctx context.Context, dataRoot string, resolved snapshot, cl
 				}
 				return unavailableChecks(resolved, "Fornax package is invalid"), nil
 			}
-			claim := PackageClaim{WorkflowID: accepted.WorkflowID, Key: skill.Key, Version: release.Version, Access: source.Access, SourceIndex: index}
+			claim := PackageClaim{WorkflowID: accepted.WorkflowID, Key: skill.Key, Version: release.Version, Access: source.Access, SourceIndex: sourceIndex}
 			claims = append(claims, claim)
 			held = append(held, heldRelease{claim: claim, skillID: skill.ID, workflowDir: filepath.Join(parent, accepted.WorkflowID)})
 		}
