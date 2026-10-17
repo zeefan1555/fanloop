@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+const {spawnSync} = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -158,7 +159,31 @@ async function installRelease(options) {
     }
     throw err;
   }
+  synchronizeInstalledConfiguration(dataHome, options.env || process.env);
   return {version, dataHome};
+}
+
+function configurationSyncSkipped(env) {
+  const flag = String(env.FANLOOP_NO_AUTO_CONFIG ?? '').trim().toLowerCase();
+  if (flag === '1' || flag === 'true' || flag === 'yes') {
+    return true;
+  }
+  return Object.prototype.hasOwnProperty.call(env, 'FANLOOP_CONFIG_SOURCE');
+}
+
+function synchronizeInstalledConfiguration(dataHome, env) {
+  if (configurationSyncSkipped(env)) {
+    return;
+  }
+  const binary = path.join(dataHome, 'current', 'bin', 'fanloop');
+  const result = spawnSync(binary, ['update', 'config'], {
+    stdio: 'inherit',
+    timeout: 120000,
+    env,
+  });
+  if (result.error || result.status !== 0) {
+    console.error('fanloop install: configuration sync failed; run "fanloop update config"');
+  }
 }
 
 function reportInstall(dataHome, version, env = process.env) {

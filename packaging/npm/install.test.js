@@ -396,6 +396,84 @@ test('caps downloads and explains a private repository 404', async () => {
   }
 });
 
+function replaceReleaseBinary(stage, version, script) {
+  fs.writeFileSync(path.join(stage, 'bin', 'fanloop'), script, {mode: 0o755});
+  const manifest = JSON.parse(fs.readFileSync(path.join(stage, 'release.json'), 'utf8'));
+  manifest.cli.binary_sha256 = layout.fileDigest(path.join(stage, 'bin', 'fanloop'));
+  fs.writeFileSync(path.join(stage, 'release.json'), `${JSON.stringify(manifest)}\n`);
+}
+
+function configSyncEnv(overrides = {}) {
+  const env = {...process.env, ...overrides};
+  if (!Object.prototype.hasOwnProperty.call(overrides, 'FANLOOP_CONFIG_SOURCE')) {
+    delete env.FANLOOP_CONFIG_SOURCE;
+  }
+  if (!Object.prototype.hasOwnProperty.call(overrides, 'FANLOOP_NO_AUTO_CONFIG')) {
+    delete env.FANLOOP_NO_AUTO_CONFIG;
+  }
+  return env;
+}
+
+function stubFanloop(record, status) {
+  return `#!/bin/sh\nprintf '%s\\n' "$0" "$@" > ${JSON.stringify(record)}\nexit ${status}\n`;
+}
+
+async function installWithStub(script, env) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-config-sync-'));
+  const version = '1.2.3';
+  const {release} = releaseAssets(version, (stage) => {
+    replaceReleaseBinary(stage, version, script);
+  });
+  await installRelease({
+    version,
+    dataHome: root,
+    platform: {os: 'linux', arch: 'amd64'},
+    releaseDir: release,
+    skillRoots: skillRoots(root),
+    env,
+  });
+  return root;
+}
+
+test('synchronizes configuration with update config after switching current', async () => {
+  const record = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-sync-record-')), 'argv');
+  const root = await installWithStub(stubFanloop(record, 0), configSyncEnv());
+  assert.equal(fs.readlinkSync(path.join(root, 'current')), path.join('releases', '1.2.3'));
+  assert.equal(
+    fs.readFileSync(record, 'utf8'),
+    `${path.join(root, 'current', 'bin', 'fanloop')}\nupdate\nconfig\n`,
+  );
+});
+
+test('skips configuration sync when FANLOOP_NO_AUTO_CONFIG=1', async () => {
+  const record = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-sync-record-')), 'argv');
+  await installWithStub(stubFanloop(record, 0), configSyncEnv({FANLOOP_NO_AUTO_CONFIG: '1'}));
+  assert.equal(fs.existsSync(record), false);
+});
+
+test('skips configuration sync when FANLOOP_CONFIG_SOURCE is set', async () => {
+  const record = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-sync-record-')), 'argv');
+  await installWithStub(stubFanloop(record, 0), configSyncEnv({FANLOOP_CONFIG_SOURCE: '/tmp/fanloop-author-source'}));
+  assert.equal(fs.existsSync(record), false);
+});
+
+test('configuration sync failure does not fail install', async () => {
+  const record = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-sync-record-')), 'argv');
+  const errors = [];
+  const original = console.error;
+  console.error = (...args) => {
+    errors.push(args.map(String).join(' '));
+  };
+  try {
+    const root = await installWithStub(stubFanloop(record, 1), configSyncEnv());
+    assert.equal(fs.readlinkSync(path.join(root, 'current')), path.join('releases', '1.2.3'));
+  } finally {
+    console.error = original;
+  }
+  assert.equal(errors.includes('fanloop install: configuration sync failed; run "fanloop update config"'), true);
+  assert.equal(fs.readFileSync(record, 'utf8').endsWith('update\nconfig\n'), true);
+});
+
 test('prints an exact PATH instruction only when the binary is not already reachable', () => {
   const root = '/tmp/fanloop-home';
   const bin = path.join(root, 'current', 'bin');

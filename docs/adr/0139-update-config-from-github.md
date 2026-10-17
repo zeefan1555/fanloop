@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-10-17
 amends: ADR-0137-take-workflow-configuration-from-fornax, ADR-0138-refresh-cli-and-git-config-on-fresh-init
+amended_by: ADR-0140-update-reexecs-new-release-for-config-sync
 ---
 
 # Sync Workflow configuration from GitHub by default

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	clierrs "github.com/zeefan1555/fanloop/errs"
@@ -25,7 +26,14 @@ var (
 	applyFornaxConfigSync = func(ctx context.Context, dataRoot string) (fornaxmirror.SyncResult, error) {
 		return fornaxmirror.Sync(ctx, dataRoot, fornaxmirror.DefaultClient())
 	}
+	// execUpdatedBinary replaces this process with the release that current
+	// now points at. Tests inject a fake; the default is syscall.Exec.
+	execUpdatedBinary = syscall.Exec
 )
+
+// envUpdateReexec is set on the process image that performs configuration
+// sync after a release switch, so that image does not switch again.
+const envUpdateReexec = "FANLOOP_UPDATE_REEXEC"
 
 func newUpdateCommand(stdout, stderr io.Writer) *cobra.Command {
 	command := &cobra.Command{
@@ -34,9 +42,11 @@ func newUpdateCommand(stdout, stderr io.Writer) *cobra.Command {
 		Long: `Install the latest GitHub Release and synchronize Workflow configuration from second-brain-skills main.
 
 fanloop update downloads the latest release, verifies checksums.txt, and switches
-~/.fanloop/current. It then runs git ls-remote on second-brain-skills main. When
-config/current already has that commit it skips checkout. Otherwise it checks out,
-validates, publishes config/snapshots/<sha>, and activates it under the configuration lock.
+~/.fanloop/current. After it switches to a different release, that new release
+performs the configuration sync. It runs git ls-remote on second-brain-skills main.
+When config/current already has that commit it skips checkout. Otherwise it checks
+out, validates, publishes config/snapshots/<sha>, and activates it under the
+configuration lock.
 
 fanloop update config synchronizes that Git snapshot without downloading a CLI
 release. It prints the full commit and the workflow ids. A missing fornax.json is
@@ -86,6 +96,16 @@ func runReleaseUpdate(ctx context.Context, stdout, stderr io.Writer) error {
 	}
 	if _, err = fmt.Fprintf(stdout, "%s %s\n", state, result.Version); err != nil {
 		return reportUpdate(stderr, err)
+	}
+	if !result.Unchanged && os.Getenv(envUpdateReexec) != "1" {
+		binary := filepath.Join(dataRoot, "current", "bin", "fanloop")
+		argv := []string{binary, "update", "config"}
+		env := append(os.Environ(), envUpdateReexec+"=1")
+		if err = execUpdatedBinary(binary, argv, env); err != nil {
+			fmt.Fprintf(stderr, "warning: could not start the updated binary (%v); synchronizing with the running binary\n", err)
+		} else {
+			return nil
+		}
 	}
 	return synchronizeConfiguration(ctx, dataRoot, stdout, stderr)
 }
