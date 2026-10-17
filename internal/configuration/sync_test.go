@@ -139,7 +139,8 @@ func TestSyncFetchFailureLeavesCurrentUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	denyProductionRemotes(t)
-	if _, err = Sync(context.Background(), data); err == nil || !errors.Is(err, ErrFetch) {
+	_, err = Sync(context.Background(), data)
+	if err == nil || !errors.Is(err, ErrFetch) || !strings.Contains(err.Error(), "HTTPS Git credentials") || !strings.Contains(err.Error(), "SSH") {
 		t.Fatalf("sync error = %v", err)
 	}
 	after, err := os.Readlink(current)

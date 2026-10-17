@@ -54,7 +54,7 @@ func Sync(ctx context.Context, dataRoot string) (SyncResult, error) {
 	defer os.RemoveAll(staging)
 	candidate, remote, err := checkout(ctx, staging, Repository, Ref)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("%w: check Git network connectivity and SSH permissions", ErrFetch)
+		return SyncResult{}, fetchFailed()
 	}
 	manifest, err := inspect(filepath.Join(staging, "checkout"), candidate)
 	if err == nil {
@@ -99,7 +99,7 @@ func remoteCommit(ctx context.Context, dataRoot string) (string, error) {
 		return callErr
 	})
 	if err != nil {
-		return "", fmt.Errorf("%w: check Git network connectivity and SSH permissions", ErrFetch)
+		return "", fetchFailed()
 	}
 	fields := strings.Fields(out)
 	if len(fields) < 2 || fields[1] != Ref {

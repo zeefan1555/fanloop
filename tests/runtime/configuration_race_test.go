@@ -73,7 +73,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(fake, "lark-cli"), []byte("#!/bin/sh\nexit 1\n"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	environment := append(withoutEnvironment(os.Environ(), "FANLOOP_CONFIG_SOURCE", "FANLOOP_DATA_HOME", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "PATH"), "FANLOOP_DATA_HOME="+data, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=url."+source+".insteadOf", "GIT_CONFIG_VALUE_0="+configuration.Repository, "PATH="+fake+string(os.PathListSeparator)+os.Getenv("PATH"))
+	environment := append(withoutEnvironment(os.Environ(), "FANLOOP_CONFIG_SOURCE", "FANLOOP_DATA_HOME", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_KEY_1", "GIT_CONFIG_VALUE_1", "PATH"), "FANLOOP_DATA_HOME="+data, "GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=url."+source+".insteadOf", "GIT_CONFIG_VALUE_0="+configuration.Repository, "GIT_CONFIG_KEY_1=url."+source+".insteadOf", "GIT_CONFIG_VALUE_1="+configuration.RepositorySSH, "PATH="+fake+string(os.PathListSeparator)+os.Getenv("PATH"))
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	command := func(args ...string) *exec.Cmd {

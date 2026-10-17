@@ -25,6 +25,10 @@ const OriginFornax = "fornax"
 
 var ErrFetch = errors.New("configuration fetch failed")
 
+func fetchFailed() error {
+	return fmt.Errorf("%w over HTTPS (%s) and SSH (%s): check network connectivity, HTTPS Git credentials (e.g. gh auth setup-git / credential helper), and SSH key access", ErrFetch, Repository, RepositorySSH)
+}
+
 type File struct {
 	Path       string `json:"path"`
 	SHA256     string `json:"sha256"`
@@ -129,7 +133,7 @@ func Prepare(ctx context.Context, dataRoot string, dryRun bool) (string, func(),
 	candidate, remote, err := checkout(ctx, staging, Repository, Ref)
 	if err != nil {
 		cleanup()
-		return "", nil, fmt.Errorf("%w: check Git network connectivity and SSH permissions", ErrFetch)
+		return "", nil, fetchFailed()
 	}
 	root := filepath.Join(staging, "checkout")
 	manifest, err := inspect(root, candidate)

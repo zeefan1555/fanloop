@@ -202,7 +202,7 @@ func TestUpdateConfigGitFailureLeavesCurrentUnchanged(t *testing.T) {
 	if code := Execute(context.Background(), []string{"update", "config"}, strings.NewReader(""), &stdout, &stderr); code != 1 {
 		t.Fatalf("exit=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
-	if stdout.Len() != 0 || !strings.HasPrefix(stderr.String(), "fanloop update: configuration fetch failed:") {
+	if stdout.Len() != 0 || !strings.Contains(stderr.String(), "HTTPS Git credentials") || !strings.Contains(stderr.String(), "SSH") {
 		t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
 	}
 	if notice.String() != "notice: HTTPS configuration fetch failed; falling back to "+configuration.RepositorySSH+"\n" {
@@ -230,9 +230,11 @@ func updateGitFixture(t *testing.T) string {
 	updateGit(t, source, "config", "user.email", "update@example.test")
 	updateGit(t, source, "add", ".")
 	updateGit(t, source, "commit", "-m", "fixture")
-	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_COUNT", "2")
 	t.Setenv("GIT_CONFIG_KEY_0", "url."+source+".insteadOf")
 	t.Setenv("GIT_CONFIG_VALUE_0", configuration.Repository)
+	t.Setenv("GIT_CONFIG_KEY_1", "url."+source+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_1", configuration.RepositorySSH)
 	t.Setenv("FANLOOP_USE_FORNAX", "")
 	unsetUpdateConfigSource(t)
 	dataRoot := t.TempDir()

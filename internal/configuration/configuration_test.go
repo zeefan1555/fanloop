@@ -60,7 +60,7 @@ func sourceRepository(t *testing.T) string {
 func remoteFixture(t *testing.T) string {
 	t.Helper()
 	root := sourceRepository(t)
-	writeGitInsteadOf(t, [2]string{root, Repository})
+	writeGitInsteadOf(t, [2]string{root, Repository}, [2]string{root, RepositorySSH})
 	unsetConfigSource(t)
 	return root
 }

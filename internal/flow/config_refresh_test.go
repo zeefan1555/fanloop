@@ -181,9 +181,11 @@ func gitWorkflowFixture(t *testing.T) string {
 
 func useGitRemote(t *testing.T, source string) {
 	t.Helper()
-	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_COUNT", "2")
 	t.Setenv("GIT_CONFIG_KEY_0", "url."+source+".insteadOf")
 	t.Setenv("GIT_CONFIG_VALUE_0", configuration.Repository)
+	t.Setenv("GIT_CONFIG_KEY_1", "url."+source+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_1", configuration.RepositorySSH)
 	t.Setenv("FANLOOP_CONFIG_SOURCE", "unset")
 	if err := os.Unsetenv("FANLOOP_CONFIG_SOURCE"); err != nil {
 		t.Fatal(err)
