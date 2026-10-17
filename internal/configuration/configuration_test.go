@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -59,14 +60,58 @@ func sourceRepository(t *testing.T) string {
 func remoteFixture(t *testing.T) string {
 	t.Helper()
 	root := sourceRepository(t)
-	t.Setenv("GIT_CONFIG_COUNT", "1")
-	t.Setenv("GIT_CONFIG_KEY_0", "url."+root+".insteadOf")
-	t.Setenv("GIT_CONFIG_VALUE_0", Repository)
+	writeGitInsteadOf(t, [2]string{root, Repository})
+	unsetConfigSource(t)
+	return root
+}
+
+// writeGitInsteadOf replaces the process Git config so a user global insteadOf
+// cannot rewrite both production URLs back to HTTPS.
+func writeGitInsteadOf(t *testing.T, pairs ...[2]string) {
+	t.Helper()
+	var builder strings.Builder
+	for _, pair := range pairs {
+		builder.WriteString("[url \"")
+		builder.WriteString(pair[0])
+		builder.WriteString("\"]\n\tinsteadOf = ")
+		builder.WriteString(pair[1])
+		builder.WriteString("\n")
+	}
+	path := filepath.Join(t.TempDir(), "gitconfig")
+	if err := os.WriteFile(path, []byte(builder.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", path)
+	t.Setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+	t.Setenv("GIT_CONFIG_COUNT", "0")
+}
+
+func unsetConfigSource(t *testing.T) {
+	t.Helper()
 	t.Setenv("FANLOOP_CONFIG_SOURCE", "")
 	if err := os.Unsetenv("FANLOOP_CONFIG_SOURCE"); err != nil {
 		t.Fatal(err)
 	}
-	return root
+}
+
+func denyProductionRemotes(t *testing.T) {
+	t.Helper()
+	missingHTTPS := filepath.Join(t.TempDir(), "missing-https")
+	missingSSH := filepath.Join(t.TempDir(), "missing-ssh")
+	writeGitInsteadOf(t, [2]string{missingHTTPS, Repository}, [2]string{missingSSH, RepositorySSH})
+}
+
+func captureNotice(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	previous := RemoteNotice
+	var buf bytes.Buffer
+	RemoteNotice = &buf
+	t.Cleanup(func() { RemoteNotice = previous })
+	return &buf
+}
+
+func fileRemote(path string) string {
+	return "file://" + path
 }
 func TestSnapshotRefreshDryRunAndFailure(t *testing.T) {
 	source := remoteFixture(t)
@@ -94,7 +139,7 @@ func TestSnapshotRefreshDryRunAndFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if initial.Repository != "git@github.com:zeefan1555/second-brain-skills.git" || initial.Ref != "refs/heads/main" {
+	if initial.Repository != Repository || initial.Ref != Ref {
 		t.Fatalf("configuration identity = %s %s", initial.Repository, initial.Ref)
 	}
 	for _, file := range initial.Files {
@@ -160,7 +205,7 @@ func TestSnapshotRefreshDryRunAndFailure(t *testing.T) {
 	if after != prior {
 		t.Fatal("invalid candidate replaced current")
 	}
-	t.Setenv("GIT_CONFIG_KEY_0", "url."+filepath.Join(t.TempDir(), "missing")+".insteadOf")
+	denyProductionRemotes(t)
 	if _, _, err = Prepare(ctx, data, false); err == nil {
 		t.Fatal("fetch failure accepted")
 	}

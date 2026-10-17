@@ -18,7 +18,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
-const Repository = "git@github.com:zeefan1555/second-brain-skills.git"
+const Repository = "https://github.com/zeefan1555/second-brain-skills.git"
 const Ref = "refs/heads/main"
 const Category = "fanloop-workflow"
 const OriginFornax = "fornax"
@@ -113,6 +113,7 @@ func Prepare(ctx context.Context, dataRoot string, dryRun bool) (string, func(),
 		}
 		return root, unlock, nil
 	}
+	ctx = withRemoteSession(ctx)
 	if !filepath.IsAbs(dataRoot) {
 		return "", nil, fmt.Errorf("configuration data root must be absolute")
 	}
@@ -125,13 +126,16 @@ func Prepare(ctx context.Context, dataRoot string, dryRun bool) (string, func(),
 	}
 	unlock := func() {}
 	cleanup := func() { _ = os.RemoveAll(staging); unlock() }
-	candidate, err := checkout(ctx, staging, Repository, Ref)
+	candidate, remote, err := checkout(ctx, staging, Repository, Ref)
 	if err != nil {
 		cleanup()
 		return "", nil, fmt.Errorf("%w: check Git network connectivity and SSH permissions", ErrFetch)
 	}
 	root := filepath.Join(staging, "checkout")
 	manifest, err := inspect(root, candidate)
+	if err == nil {
+		manifest.Repository = remote
+	}
 	if err != nil {
 		cleanup()
 		return "", nil, err
@@ -180,7 +184,7 @@ func Import(ctx context.Context, dataRoot, source string) (string, error) {
 		return "", err
 	}
 	defer os.RemoveAll(staging)
-	got, err := checkout(ctx, staging, source, commit)
+	got, _, err := checkout(ctx, staging, source, commit)
 	if err != nil {
 		return "", fmt.Errorf("read committed configuration: %w", err)
 	}
@@ -192,22 +196,34 @@ func Import(ctx context.Context, dataRoot, source string) (string, error) {
 	return publish(dataRoot, root, manifest)
 }
 
-func checkout(ctx context.Context, staging, repository, ref string) (string, error) {
+func checkout(ctx context.Context, staging, repository, ref string) (string, string, error) {
 	root := filepath.Join(staging, "checkout")
 	if err := os.Mkdir(root, 0700); err != nil {
-		return "", err
+		return "", "", err
 	}
-	for _, args := range [][]string{{"init", "--quiet"}, {"sparse-checkout", "set", "--no-cone", "/" + Category + "/"}, {"fetch", "--quiet", "--depth=1", "--no-tags", repository, ref}, {"checkout", "--quiet", "--detach", "FETCH_HEAD"}} {
+	for _, args := range [][]string{{"init", "--quiet"}, {"sparse-checkout", "set", "--no-cone", "/" + Category + "/"}} {
 		if _, err := git(ctx, root, args...); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
-	return git(ctx, root, "rev-parse", "HEAD")
+	remote, err := fetchRemote(ctx, root, repository, ref)
+	if err != nil {
+		return "", "", err
+	}
+	if _, err := git(ctx, root, "checkout", "--quiet", "--detach", "FETCH_HEAD"); err != nil {
+		return "", "", err
+	}
+	commit, err := git(ctx, root, "rev-parse", "HEAD")
+	if err != nil {
+		return "", "", err
+	}
+	return commit, remote, nil
 }
 
 func git(ctx context.Context, dir string, args ...string) (string, error) {
 	command := exec.CommandContext(ctx, "git", args...)
 	command.Dir = dir
+	// GIT_TERMINAL_PROMPT=0 keeps the HTTPS attempt from waiting on a credential prompt.
 	command.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=15")
 	// Git diagnostics may contain credential-bearing URLs from local configuration.
 	data, err := command.Output()
@@ -302,7 +318,7 @@ func Read(source string) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	if !reflect.DeepEqual(recorded, actual) {
+	if !manifestsMatch(recorded, actual) {
 		return Manifest{}, fmt.Errorf("configuration manifest mismatch")
 	}
 	return recorded, nil
@@ -404,7 +420,7 @@ func publish(dataRoot, source string, manifest Manifest) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if !reflect.DeepEqual(recorded, manifest) {
+		if !manifestsMatch(recorded, manifest) {
 			return "", fmt.Errorf("immutable configuration snapshot differs")
 		}
 		return target, nil

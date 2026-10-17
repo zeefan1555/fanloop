@@ -98,7 +98,13 @@ func TestFreshInitKeepsSnapshotWhenGitPullFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("GIT_CONFIG_KEY_0", "url."+filepath.Join(t.TempDir(), "missing")+".insteadOf")
+	missingHTTPS := filepath.Join(t.TempDir(), "missing-https")
+	missingSSH := filepath.Join(t.TempDir(), "missing-ssh")
+	t.Setenv("GIT_CONFIG_COUNT", "2")
+	t.Setenv("GIT_CONFIG_KEY_0", "url."+missingHTTPS+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_0", configuration.Repository)
+	t.Setenv("GIT_CONFIG_KEY_1", "url."+missingSSH+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_1", configuration.RepositorySSH)
 	warnings := []string{}
 	fallback, unlock, err := prepareConfiguration(context.Background(), dataRoot, false, func(message string) {
 		warnings = append(warnings, message)

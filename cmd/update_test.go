@@ -186,7 +186,17 @@ func TestUpdateConfigGitFailureLeavesCurrentUnchanged(t *testing.T) {
 		t.Fatalf("setup exit=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
 	current := updateReadlink(t, filepath.Join(dataRoot, "config", "current"))
-	t.Setenv("GIT_CONFIG_KEY_0", "url."+filepath.Join(t.TempDir(), "missing")+".insteadOf")
+	missingHTTPS := filepath.Join(t.TempDir(), "missing-https")
+	missingSSH := filepath.Join(t.TempDir(), "missing-ssh")
+	t.Setenv("GIT_CONFIG_COUNT", "2")
+	t.Setenv("GIT_CONFIG_KEY_0", "url."+missingHTTPS+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_0", configuration.Repository)
+	t.Setenv("GIT_CONFIG_KEY_1", "url."+missingSSH+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_1", configuration.RepositorySSH)
+	previousNotice := configuration.RemoteNotice
+	var notice bytes.Buffer
+	configuration.RemoteNotice = &notice
+	t.Cleanup(func() { configuration.RemoteNotice = previousNotice })
 	stdout.Reset()
 	stderr.Reset()
 	if code := Execute(context.Background(), []string{"update", "config"}, strings.NewReader(""), &stdout, &stderr); code != 1 {
@@ -194,6 +204,9 @@ func TestUpdateConfigGitFailureLeavesCurrentUnchanged(t *testing.T) {
 	}
 	if stdout.Len() != 0 || !strings.HasPrefix(stderr.String(), "fanloop update: configuration fetch failed:") {
 		t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+	if notice.String() != "notice: HTTPS configuration fetch failed; falling back to "+configuration.RepositorySSH+"\n" {
+		t.Fatalf("notice=%q", notice.String())
 	}
 	if again := updateReadlink(t, filepath.Join(dataRoot, "config", "current")); again != current {
 		t.Fatalf("current changed from %s to %s", current, again)

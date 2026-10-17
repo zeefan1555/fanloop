@@ -66,6 +66,7 @@ func Drift(ctx context.Context, dataRoot string) (DriftReport, error) {
 	if len(recorded.WorkflowIDs) == 0 {
 		return DriftReport{}, fmt.Errorf("drift report contains no Workflows")
 	}
+	ctx = withRemoteSession(ctx)
 	remote, remoteErr := remoteCommit(ctx, dataRoot)
 	if remoteErr != nil {
 		remote = ""
