@@ -10,7 +10,7 @@ amends: ADR-0139-update-config-from-github, ADR-0138-refresh-cli-and-git-config-
 
 ## Release switch
 
-After printing `updated <version>`, a changed release (`!Unchanged`) whose process does not already have `FANLOOP_UPDATE_REEXEC=1` executes `<DATA>/current/bin/fanloop` with argv `update config` and environment `FANLOOP_UPDATE_REEXEC=1` via `syscall.Exec`. The new process's exit code is the command's exit code. `execUpdatedBinary` is the injected function; production uses `syscall.Exec`.
+After printing `updated <version>`, a changed release (`!Unchanged`) whose process does not already have `FANLOOP_UPDATE_REEXEC=1` executes `<DATA>/current/bin/fanloop` with argv `update config` and environment `FANLOOP_UPDATE_REEXEC=1` via `syscall.Exec`. The new process's exit code is the command's exit code. `execUpdatedBinary` is the injected function; production uses `syscall.Exec`. `main` calls `runtime.LockOSThread` before running a command so that exec runs on the thread-group leader and the process id stays the same.
 
 A same-version repair (`Unchanged`) and a process that already has `FANLOOP_UPDATE_REEXEC=1` keep the in-process sync. `fanloop update config` never re-executes. `FANLOOP_CONFIG_SOURCE` is still refused by whichever process performs the sync.
 
