@@ -1119,7 +1119,9 @@ func commitConfigurationFixture(t *testing.T, root string) {
 			t.Fatalf("fixture Git %v: %v %s", args, err, output)
 		}
 	}
-	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_COUNT", "2")
 	t.Setenv("GIT_CONFIG_KEY_0", "url."+root+".insteadOf")
 	t.Setenv("GIT_CONFIG_VALUE_0", configuration.Repository)
+	t.Setenv("GIT_CONFIG_KEY_1", "url."+root+".insteadOf")
+	t.Setenv("GIT_CONFIG_VALUE_1", configuration.RepositorySSH)
 }

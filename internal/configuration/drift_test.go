@@ -72,7 +72,7 @@ func TestGitDriftInSyncLocalBehindModifiedAndUnavailable(t *testing.T) {
 		}
 	}
 
-	t.Setenv("GIT_CONFIG_KEY_0", "url."+filepath.Join(t.TempDir(), "missing")+".insteadOf")
+	denyProductionRemotes(t)
 	if err = os.WriteFile(edited, content, 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -37,6 +37,7 @@ func Sync(ctx context.Context, dataRoot string) (SyncResult, error) {
 	}
 	defer unlock()
 	afterConfigurationLock()
+	ctx = withRemoteSession(ctx)
 
 	sha, err := remoteCommit(ctx, dataRoot)
 	if err != nil {
@@ -51,11 +52,14 @@ func Sync(ctx context.Context, dataRoot string) (SyncResult, error) {
 		return SyncResult{}, err
 	}
 	defer os.RemoveAll(staging)
-	candidate, err := checkout(ctx, staging, Repository, Ref)
+	candidate, remote, err := checkout(ctx, staging, Repository, Ref)
 	if err != nil {
-		return SyncResult{}, fmt.Errorf("%w: check Git network connectivity and SSH permissions", ErrFetch)
+		return SyncResult{}, fetchFailed()
 	}
 	manifest, err := inspect(filepath.Join(staging, "checkout"), candidate)
+	if err == nil {
+		manifest.Repository = remote
+	}
 	if err != nil {
 		return SyncResult{}, err
 	}
@@ -88,9 +92,14 @@ func currentManifest(dataRoot string) (Manifest, bool) {
 }
 
 func remoteCommit(ctx context.Context, dataRoot string) (string, error) {
-	out, err := git(ctx, dataRoot, "ls-remote", Repository, Ref)
+	var out string
+	_, err := runProduction(ctx, Repository, func(ctx context.Context, remote string) error {
+		var callErr error
+		out, callErr = git(ctx, dataRoot, "ls-remote", remote, Ref)
+		return callErr
+	})
 	if err != nil {
-		return "", fmt.Errorf("%w: check Git network connectivity and SSH permissions", ErrFetch)
+		return "", fetchFailed()
 	}
 	fields := strings.Fields(out)
 	if len(fields) < 2 || fields[1] != Ref {

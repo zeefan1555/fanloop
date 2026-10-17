@@ -5,7 +5,7 @@
 - Offline source build and installation; optional clean Git configuration import.
 - GitHub Release install: platform archive, checksums.txt, release.json, the thin npm launcher, public Skill links, and `npm i -g --foreground-scripts --allow-scripts=fanloop`.
 - `fanloop update` keeps a newer installed release instead of downgrading to `latest`. `fanloop doctor` warns with `export PATH=...` when that distribution install is not on PATH.
-- `fanloop update` installs the CLI and then synchronizes Workflow configuration from second-brain-skills main. `fanloop update config` does that Git sync, skips an unchanged commit, and prints the full sha plus workflow ids. `FANLOOP_USE_FORNAX=1` with `fornax.json` keeps the Fornax sync and its `id@version` output.
+- `fanloop update` installs the CLI. After it switches to a different release, that new release performs the configuration sync from second-brain-skills main. A same-version repair synchronizes in the running process. `fanloop update config` does that Git sync without re-executing, skips an unchanged commit, and prints the full sha plus workflow ids. npm postinstall runs `update config` after switching `current` unless `FANLOOP_NO_AUTO_CONFIG` or `FANLOOP_CONFIG_SOURCE` is set; a sync failure does not fail the install. `FANLOOP_USE_FORNAX=1` with `fornax.json` keeps the Fornax sync and its `id@version` output.
 - Release version, commit, binary checksum and both public Skill entrypoints.
 - Stable `current/` and nested Release selector, separate from `config/current` source binding.
 - Failed installation preserves the active Release and previous source binding.
@@ -33,6 +33,8 @@ Explicit author-source edits must be visible without reinstalling. Capture the g
 before and after; it must remain unchanged.
 
 ## Gotchas
+
+A 0.6.4 binary that runs `fanloop update` switches to the new release, then prints `fanloop update: lstat …/fornax.json: no such file or directory` once and exits 1, because that sync still runs 0.6.4's own code. Run `fanloop update config` once more. `npm i -g <tgz>` syncs configuration during postinstall, and `fanloop flow init` re-executes the updated binary.
 
 Source builds may warn about a missing Release manifest, and first installation warns before the first configuration fetch. Broken bindings and explicit sources fail. Installed versions use `VERSION-dev.<commit-or-content-digest>`. Configuration
 packages stay outside the immutable Release. Installation never fetches. Fresh flow init fetches the Git configuration center even when `fornax.json` exists. `FANLOOP_USE_FORNAX=1` selects the installed Fornax snapshot. A versioned `current` is checked against the latest GitHub Release on a fresh non-dry-run init; failure keeps the installed binary.

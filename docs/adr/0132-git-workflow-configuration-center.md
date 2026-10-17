@@ -3,7 +3,7 @@ status: accepted
 date: 2026-10-10
 supersedes_in_part: ADR-0124-load-local-workflow-skill-packages, ADR-0128
 amends: ADR-0099, ADR-0120, ADR-0122
-amended_by: ADR-0137-take-workflow-configuration-from-fornax, ADR-0138-refresh-cli-and-git-config-on-fresh-init
+amended_by: ADR-0137-take-workflow-configuration-from-fornax, ADR-0138-refresh-cli-and-git-config-on-fresh-init, ADR-0141-https-config-remote-with-ssh-fallback
 ---
 
 # Fetch immutable Workflow configuration from second-brain-skills

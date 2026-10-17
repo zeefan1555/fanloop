@@ -35,7 +35,7 @@ npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1
 fanloop --version
 ```
 
-较新的 npm 可能拦截 postinstall，需要 `--allow-scripts=fanloop`。npm 默认不显示成功的 postinstall 输出，`--foreground-scripts` 让 `export PATH=...` 出现在终端里。安装程序先校验 sha256 和完整的内部 release 清单，再解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `~/.fanloop/current`。包装里的启动器会执行 `current/bin/fanloop`。如果这个命令还不在 `PATH` 上，安装程序会打印一条可以直接执行的 `export PATH=...`；之后 `fanloop doctor` 也会在 hint 里给出同一条命令。
+较新的 npm 可能拦截 postinstall，需要 `--allow-scripts=fanloop`。npm 默认不显示成功的 postinstall 输出，`--foreground-scripts` 让 `export PATH=...` 出现在终端里。安装程序先校验 sha256 和完整的内部 release 清单，再解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `~/.fanloop/current`。切换成功后，除非 `FANLOOP_NO_AUTO_CONFIG` 为 `1`、`true` 或 `yes`，或已经设置 `FANLOOP_CONFIG_SOURCE`，安装程序会运行 `current/bin/fanloop update config`（继承标准输入输出，超时 120 秒）。同步失败时向 stderr 打印 `fanloop install: configuration sync failed; run "fanloop update config"`，安装本身仍然成功。包装里的启动器会执行 `current/bin/fanloop`。如果这个命令还不在 `PATH` 上，安装程序会打印一条可以直接执行的 `export PATH=...`；之后 `fanloop doctor` 也会在 hint 里给出同一条命令。
 
 更新 CLI 与更新 Workflow 配置是两条命令：
 
@@ -44,7 +44,17 @@ fanloop update
 fanloop update config
 ```
 
-`fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`，然后从 `second-brain-skills` 的 `main` 同步 Workflow 配置。本机版本比 `latest` 新时 CLI 保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容。`fanloop update config` 只做这次 Git 同步。`git ls-remote` 与当前快照 commit 一致时跳过 checkout，并发同步共用一把锁，并打印完整 commit 和每个 Workflow id。缺少 `fornax.json` 不是错误。`FANLOOP_USE_FORNAX=1` 且 `fornax.json` 是普通文件时，才改为同步 Fornax 上已发布的包并打印 `id@version`。
+`fanloop update` 下载最新 GitHub Release 并切换 CLI 的 `current`。切换到另一个版本后，由新 Release 里的二进制执行配置同步。本机版本比 `latest` 新时 CLI 保持不变，不会降级；同一版本会按已校验归档修复被改过的发布内容，并仍由正在运行的二进制同步配置。`fanloop update config` 只做这次 Git 同步，不会再启动另一个二进制。`git ls-remote` 与当前快照 commit 一致时跳过 checkout，并发同步共用一把锁，并打印完整 commit 和每个 Workflow id。缺少 `fornax.json` 不是错误。`FANLOOP_USE_FORNAX=1` 且 `fornax.json` 是普通文件时，才改为同步 Fornax 上已发布的包并打印 `id@version`。
+
+### 从 0.6.4 升级
+
+0.6.4 的二进制执行 `fanloop update` 时，会先把 `current` 切到新 Release，然后打印一次：
+
+```text
+fanloop update: lstat …/fornax.json: no such file or directory
+```
+
+并以退出码 1 结束。配置同步那一半仍是 0.6.4 自己的代码；已经发出的 0.6.4 二进制不会在这次调用里执行新 Release 里的程序。再执行一次 `fanloop update config` 即可完成同步。也可以改用 `npm i -g --foreground-scripts --allow-scripts=fanloop <tgz>`（安装后自动同步配置），或 `fanloop flow init`（自动升级会 re-exec 新二进制）。
 
 ## 本地构建与安装
 
@@ -81,7 +91,7 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 安装保持离线。`./scripts/install-local.sh --config-source /absolute/config-repository` 可从干净 Git 提交导入配置快照；不指定时保留已有快照。首次安装无配置也可运行 version，随后 flow init 自动拉取。
 
-`flow init` 通过现有 SSH 凭据从 `git@github.com:zeefan1555/second-brain-skills.git` 的 main 拉取并验证完整集合，原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
+`flow init` 默认从 `https://github.com/zeefan1555/second-brain-skills.git` 的 main 拉取并验证完整集合。HTTPS 尝试设置 `GIT_TERMINAL_PROMPT=0`，并在 15 秒内结束。失败时打印一行提示，并在同一次操作里回退一次 `git@github.com:zeefan1555/second-brain-skills.git`。`configuration.json` 记录实际成功的地址。已有快照按 commit 复用，不因地址形式重新克隆，Doctor 也不因此报不匹配。成功后原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
 
 显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
 
