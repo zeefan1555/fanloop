@@ -160,6 +160,82 @@ func TestCheckSkipsInvalidReadOnlyPackage(t *testing.T) {
 	}
 }
 
+type readOnlyPairClient struct {
+	includeBroken bool
+	secondResidue []string
+}
+
+func (client *readOnlyPairClient) Skills(context.Context, string, string) ([]Skill, error) {
+	return nil, errors.New("exact key lookup is not used")
+}
+
+func (client *readOnlyPairClient) ListByPrefix(context.Context, string, string) ([]Skill, error) {
+	skills := []Skill{{ID: "good", Key: "loop.workflow.linear_runtime"}}
+	if client.includeBroken {
+		skills = append([]Skill{{ID: "broken", Key: "loop.workflow.broken_pack"}}, skills...)
+	}
+	return skills, nil
+}
+
+func (client *readOnlyPairClient) Releases(context.Context, string, string) ([]Release, error) {
+	return []Release{{Version: "1.0.0", UpdatedAt: 1}}, nil
+}
+
+func (client *readOnlyPairClient) Install(_ context.Context, _, key, _, directory string) (string, error) {
+	root := filepath.Join(directory, "loop-workflow-linear-runtime")
+	wrapperName := "loop-workflow-linear-runtime"
+	if key == "loop.workflow.broken_pack" {
+		wrapperName = "other"
+	}
+	if err := copyLinearPackage(root, wrapperName); err != nil {
+		return "", err
+	}
+	marker := filepath.Join(root, "linear-runtime", "skills", "test-guide", "from-first.txt")
+	if key == "loop.workflow.broken_pack" {
+		if err := os.WriteFile(marker, []byte("from-first\n"), 0644); err != nil {
+			return "", err
+		}
+		return root, nil
+	}
+	if _, err := os.Stat(marker); err == nil {
+		client.secondResidue = append(client.secondResidue, "linear-runtime/skills/test-guide/from-first.txt")
+	}
+	return root, nil
+}
+
+func TestCheckSkippedReadOnlyPackageDoesNotReuseTempFolders(t *testing.T) {
+	unsetConfigSource(t)
+	dataRoot := t.TempDir()
+	content := []byte(`{"sources":[{"workspace_id":"2","key_prefix":"loop.workflow.","access":"read_only"}]}` + "\n")
+	if err := os.WriteFile(filepath.Join(dataRoot, "fornax.json"), content, 0600); err != nil {
+		t.Fatal(err)
+	}
+	client := &readOnlyPairClient{}
+	if _, err := Sync(context.Background(), dataRoot, client); err != nil {
+		t.Fatal(err)
+	}
+	client.includeBroken = true
+	var warnings []string
+	previous := warnSkippedPackage
+	warnSkippedPackage = func(key, version string, err error) {
+		warnings = append(warnings, fmt.Sprintf("warning: skipping read-only package %s@%s: %s", key, version, err))
+	}
+	t.Cleanup(func() { warnSkippedPackage = previous })
+	report, err := Check(context.Background(), dataRoot, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != DriftInSync || len(report.Workflows) != 1 || report.Workflows[0].Status != WorkflowInSync || report.Workflows[0].WorkflowID != "linear-runtime" || report.Workflows[0].SkillKey != "loop.workflow.linear_runtime" {
+		t.Fatalf("in-sync report = %#v", report)
+	}
+	if len(client.secondResidue) != 0 {
+		t.Fatalf("second package contains files from the first: %#v", client.secondResidue)
+	}
+	if len(warnings) != 1 || warnings[0] != `warning: skipping read-only package loop.workflow.broken_pack@1.0.0: package name "other" does not match workflow id "linear-runtime"` {
+		t.Fatalf("warnings = %#v", warnings)
+	}
+}
+
 func TestCheckReleasesConfigurationLockBeforeFornaxQuery(t *testing.T) {
 	unsetConfigSource(t)
 	dataRoot := t.TempDir()
