@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -272,10 +271,15 @@ func (runtime Runtime) requirementChecks(root string) []*idl.DoctorCheck {
 		checks = append(checks, check("state_schema", statusPass, "State schema is readable.", ""))
 	}
 
+	local, storeFailure := store.New(root)
 	var loaded workflow.Loaded
 	bindingOK := jsonErr == nil && loose.Release.Workflow.ID != ""
 	if bindingOK {
-		loaded, err = workflow.LoadFrom(runtime.WorkflowRoot, loose.Release.Workflow.ID)
+		if storeFailure != nil {
+			err = storeFailure
+		} else {
+			loaded, err = local.LoadWorkflow(loose.Release.Workflow.ID)
+		}
 		bindingOK = err == nil
 	}
 	if jsonErr != nil {
@@ -319,12 +323,14 @@ func (runtime Runtime) requirementChecks(root string) []*idl.DoctorCheck {
 		checks = append(checks, check("outputs", statusPass, "Current Outputs match the Workflow schema and producer ownership.", ""))
 	}
 
-	local, _ := store.New(root)
-	events, eventsFailure := local.Events()
+	events := []state.Event{}
 	eventsErr := error(nil)
-	if eventsFailure != nil {
+	if storeFailure != nil {
+		eventsErr = storeFailure
+	} else if loadedEvents, eventsFailure := local.Events(); eventsFailure != nil {
 		eventsErr = eventsFailure
 	} else {
+		events = loadedEvents
 		eventsErr = validateEvents(events, strict, strictErr == nil && outputsErr == nil, loaded, bindingOK)
 	}
 	if eventsErr != nil {
@@ -346,7 +352,12 @@ func (runtime Runtime) requirementChecks(root string) []*idl.DoctorCheck {
 	}
 
 	checks = append(checks, validateCardBinding(root))
-	checks = append(checks, validateCardProjection(root, strict, strictErr == nil && outputsErr == nil))
+	var pending *state.PendingAction
+	var pendingErr error
+	if eventsErr == nil {
+		pending, pendingErr = state.PendingPanoramaAction(events)
+	}
+	checks = append(checks, validateCardProjection(root, strict, strictErr == nil && outputsErr == nil, pending, pendingErr))
 
 	if err := validateCardSnapshots(root); err != nil {
 		checks = append(checks, check("card_snapshots", statusFail, err.Error(), "Restore the immutable Card snapshot from a trusted copy."))
@@ -442,19 +453,18 @@ func validateCardSnapshots(root string) error {
 	return nil
 }
 
-func validateCardProjection(root string, current state.State, hasCurrent bool) *idl.DoctorCheck {
+const staleCardProjectionHint = "Run a non-dry-run fanloop card render --root <requirement> to rebuild .fanloop/card/projection.json from the committed event log."
+
+func validateCardProjection(root string, current state.State, hasCurrent bool, pending *state.PendingAction, pendingErr error) *idl.DoctorCheck {
 	projection, _, err := cardruntime.LoadProjection(root)
 	if err != nil {
 		return check("card_projection", statusFail, "Card projection is invalid: "+err.Error(), "Repair or restore .fanloop/card/projection.json.")
 	}
-	if hasCurrent {
-		projected := projection.State()
-		if projected.Requirement != current.Requirement || projected.Release != current.Release ||
-			!reflect.DeepEqual(projected.CurrentStepID, current.CurrentStepID) || projected.CurrentStepStatus != current.CurrentStepStatus ||
-			projected.CurrentStepSummary != current.CurrentStepSummary || !reflect.DeepEqual(projected.CurrentEvidence, current.CurrentEvidence) ||
-			!reflect.DeepEqual(projected.Outputs, current.Outputs) {
-			return check("card_projection", statusFail, "Card projection is stale.", "Run an accepted Flow report to refresh .fanloop/card/projection.json.")
-		}
+	if pendingErr != nil {
+		return check("card_projection", statusFail, "Card projection could not be compared with the pending Flow action: "+pendingErr.Error(), "Repair or restore .fanloop/trace/events.jsonl.")
+	}
+	if hasCurrent && cardruntime.ProjectionNeedsRebuild(projection, current, pending) {
+		return check("card_projection", statusFail, "Card projection is stale.", staleCardProjectionHint)
 	}
 	return check("card_projection", statusPass, "Card projection is valid and current.", "")
 }

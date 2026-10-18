@@ -47,16 +47,13 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	if failure != nil {
 		return nil, failure
 	}
-	projection, loaded, err := LoadProjection(root)
+	projection, _, err := LoadProjection(root)
 	if err != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
 	}
-	current, _, loadFailure := local.LoadBound()
+	current, loaded, loadFailure := local.LoadBound()
 	if loadFailure != nil {
 		return nil, loadFailure
-	}
-	if !projectionMatchesState(projection.State(), current) {
-		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, "Card projection is stale", nil)
 	}
 	events, eventsFailure := local.Events()
 	if eventsFailure != nil {
@@ -66,8 +63,17 @@ func (runtime Runtime) Render(_ context.Context, root string, request *cardidl.C
 	if pendingErr != nil {
 		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, pendingErr.Error(), nil)
 	}
-	if pending != nil && projection.SourceEventID != pending.TriggerEventID {
-		return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, "Card projection does not belong to the pending Flow action", nil)
+	if ProjectionNeedsRebuild(projection, current, pending) && !dryRun {
+		if err := rebuildProjection(root, current); err != nil {
+			return nil, errs.NewCode(erroridl.ErrorCode_LOCAL_COMMIT_FAILED, err.Error(), nil)
+		}
+		projection, _, err = LoadProjection(root)
+		if err != nil {
+			return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
+		}
+		if ProjectionNeedsRebuild(projection, current, pending) {
+			return nil, errs.NewCode(erroridl.ErrorCode_STATE_CORRUPT, "Card projection is stale", nil)
+		}
 	}
 	content, snapshotContent, err := renderContent(request, current, loaded)
 	if err != nil {
@@ -158,6 +164,20 @@ func RefreshProjectionForPendingAction(root string, current state.State) error {
 		projectionState.LastEventID = pending.TriggerEventID
 	}
 	return WriteProjection(root, projectionState)
+}
+
+// ProjectionNeedsRebuild reports that a valid projection does not match the
+// committed State, or does not belong to the pending Panorama action.
+// Missing and corrupt projections are rejected by LoadProjection and are not rebuilt.
+func ProjectionNeedsRebuild(projection Projection, current state.State, pending *state.PendingAction) bool {
+	if !projectionMatchesState(projection.State(), current) {
+		return true
+	}
+	return pending != nil && projection.SourceEventID != pending.TriggerEventID
+}
+
+func rebuildProjection(root string, current state.State) error {
+	return RefreshProjectionForPendingAction(root, current)
 }
 
 func projectionMatchesState(projected, current state.State) bool {

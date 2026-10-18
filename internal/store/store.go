@@ -105,7 +105,7 @@ func (s *Store) LoadBound() (state.State, workflow.Loaded, *erroridl.PublicError
 	if failure != nil {
 		return state.State{}, workflow.Loaded{}, failure
 	}
-	loaded, err := s.loadWorkflow(current.Release.Workflow.ID)
+	loaded, err := s.LoadWorkflow(current.Release.Workflow.ID)
 	if err != nil {
 		return state.State{}, workflow.Loaded{}, errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, err.Error(), nil)
 	}
@@ -173,7 +173,7 @@ func (s *Store) commitLocked(next state.State, event state.Event) *erroridl.Publ
 		return failure
 	}
 	events = append(events, event)
-	loaded, err := s.loadWorkflow(next.Release.Workflow.ID)
+	loaded, err := s.LoadWorkflow(next.Release.Workflow.ID)
 	if err != nil {
 		return corrupt(err.Error())
 	}
@@ -267,7 +267,7 @@ func (s *Store) validateCommit(events []state.Event, next state.State, event sta
 	if _, err := state.DecodeEvent(eventContent); err != nil {
 		return corrupt(err.Error())
 	}
-	loaded, err := s.loadWorkflow(next.Release.Workflow.ID)
+	loaded, err := s.LoadWorkflow(next.Release.Workflow.ID)
 	if err != nil {
 		return corrupt(err.Error())
 	}
@@ -379,7 +379,10 @@ func (s *Store) PinConfiguration(source string) error {
 	return atomicWriteMode(filepath.Join(s.directory, "configuration-snapshot"), []byte(source+"\n"), 0600)
 }
 
-func (s *Store) loadWorkflow(id string) (workflow.Loaded, error) {
+// LoadWorkflow reads the Workflow bound to this requirement. A pin at
+// .fanloop/configuration-snapshot wins over config/current. A requirement
+// without that file still follows the active configuration root.
+func (s *Store) LoadWorkflow(id string) (workflow.Loaded, error) {
 	source, pinned, err := s.readPin()
 	if err != nil {
 		return workflow.Loaded{}, err
