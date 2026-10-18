@@ -335,6 +335,7 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"CONFIGURATION_FETCH_FAILED (type=external, exit=1, retryable=true)",
 				"FANLOOP_USE_FORNAX=1",
 				"NOT_INITIALIZED",
+				"requirement doctor checks load that pinned snapshot",
 			},
 		},
 		{
@@ -464,6 +465,9 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"current or panorama",
 				"markdown or lark_json",
 				"view and format are required",
+				".fanloop/configuration-snapshot",
+				"rebuilt from that event log",
+				"Dry-run does not change the projection file",
 			},
 		},
 		{

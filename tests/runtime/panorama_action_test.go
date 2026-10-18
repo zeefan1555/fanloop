@@ -1,6 +1,7 @@
 package runtime_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -314,7 +315,7 @@ func TestPanoramaAcknowledgmentRejectsOldStateSnapshotAndAcceptsCurrentLarkCard(
 	assertNoPendingAction(t, acknowledged.stdout)
 }
 
-func TestPanoramaAcknowledgmentRejectsSnapshotRenderedFromStaleProjection(t *testing.T) {
+func TestStaleProjectionWithPendingPanoramaIsRecoverable(t *testing.T) {
 	t.Setenv("FANLOOP_TEST_KEEP_PENDING", "1")
 	binary, root := buildCLI(t), t.TempDir()
 	initialized := run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Stale projection")
@@ -332,9 +333,46 @@ func TestPanoramaAcknowledgmentRejectsSnapshotRenderedFromStaleProjection(t *tes
 		t.Fatal(err)
 	}
 
-	staleRender := run(binary, "card", "render", "--root", root, "--view", "panorama", "--format", "markdown")
-	assertError(t, staleRender, 5, "STATE_CORRUPT")
-	assertPendingActionID(t, binary, root, action.ID)
+	diagnosed := run(binary, "doctor", "--root", root)
+	if diagnosed.exitCode != 1 || diagnosed.stderr != "" {
+		t.Fatalf("doctor exit = %d stderr = %s\n%s", diagnosed.exitCode, diagnosed.stderr, diagnosed.stdout)
+	}
+	stale := doctorCheck(t, diagnosed.stdout, "card_projection")
+	if stale.Status != "failed" || stale.Summary != "Card projection is stale." || !strings.Contains(stale.Hint, "non-dry-run fanloop card render") || strings.Contains(stale.Hint, "accepted Flow report") {
+		t.Fatalf("stale projection hint = %#v", stale)
+	}
+	blocked := run(binary, "flow", "report", "progress", "--root", root,
+		"--step-id", "second", "--status", "in_progress", "--summary", "must wait")
+	assertError(t, blocked, 1, "REPORT_NOT_ALLOWED")
+
+	dryRun := run(binary, "card", "render", "--root", root, "--dry-run", "--view", "panorama", "--format", "markdown")
+	assertSuccess(t, dryRun, "card.render")
+	if dryRunCard := decodeCard(t, dryRun.stdout); dryRunCard.Data.SnapshotPath != "" || !strings.Contains(string(dryRunCard.Data.Content), "Second") {
+		t.Fatalf("dry-run did not render the committed Step without a snapshot: %#v", dryRunCard.Data)
+	}
+	if got := readFile(t, projectionPath); !bytes.Equal(got, initialProjection) {
+		t.Fatal("dry-run changed the stale Card projection")
+	}
+
+	rendered := run(binary, "card", "render", "--root", root, "--view", "panorama", "--format", "markdown")
+	assertSuccess(t, rendered, "card.render")
+	rebuilt := readFile(t, projectionPath)
+	for _, want := range []string{`"current_step_id": "second"`, `"first_artifact"`} {
+		if !bytes.Contains(rebuilt, []byte(want)) {
+			t.Fatalf("rebuilt projection missing %s:\n%s", want, rebuilt)
+		}
+	}
+	snapshot := decodeCard(t, rendered.stdout).Data.SnapshotPath
+	acknowledged := run(binary, "flow", "action", "acknowledge", "--root", root,
+		"--action-id", action.ID, "--panorama-snapshot-path", snapshot)
+	assertSuccess(t, acknowledged, "flow.action.acknowledge")
+	assertNoPendingAction(t, acknowledged.stdout)
+
+	healthy := run(binary, "doctor", "--root", root)
+	assertSuccess(t, healthy, "doctor")
+	if check := doctorCheck(t, healthy.stdout, "card_projection"); check.Status != "passed" {
+		t.Fatalf("card projection after rebuild = %#v", check)
+	}
 }
 
 func TestSameStepReentryRejectsByteIdenticalSnapshotWithPriorActionIdentity(t *testing.T) {
@@ -368,6 +406,32 @@ func TestSameStepReentryRejectsByteIdenticalSnapshotWithPriorActionIdentity(t *t
 	assertPendingActionID(t, binary, root, loopAction.ID)
 	assertSuccess(t, run(binary, "flow", "action", "acknowledge", "--root", root,
 		"--action-id", loopAction.ID, "--panorama-snapshot-path", currentSnapshot), "flow.action.acknowledge")
+}
+
+type doctorCheckResult struct {
+	ID      string `json:"id"`
+	Status  string `json:"status"`
+	Summary string `json:"summary"`
+	Hint    string `json:"hint"`
+}
+
+func doctorCheck(t *testing.T, stdout, id string) doctorCheckResult {
+	t.Helper()
+	var envelope struct {
+		Data struct {
+			Checks []doctorCheckResult `json:"checks"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	for _, check := range envelope.Data.Checks {
+		if check.ID == id {
+			return check
+		}
+	}
+	t.Fatalf("doctor response missing %s:\n%s", id, stdout)
+	return doctorCheckResult{}
 }
 
 func decodeFlowActionEnvelope(t *testing.T, content string) flowActionEnvelope {

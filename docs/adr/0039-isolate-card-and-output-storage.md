@@ -1,6 +1,7 @@
 ---
 status: accepted
 date: 2026-08-16
+amended_by: ADR-0142-rebuild-stale-card-projection-from-pinned-snapshot
 ---
 
 # 隔离 Card 投影与当前 Output 存储

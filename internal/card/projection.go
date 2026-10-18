@@ -12,6 +12,7 @@ import (
 
 	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 	"github.com/zeefan1555/fanloop/internal/state"
+	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
@@ -53,7 +54,7 @@ func WriteProjection(root string, current state.State) error {
 	if err := projection.Validate(); err != nil {
 		return err
 	}
-	loaded, err := workflow.Load(current.Release.Workflow.ID)
+	loaded, err := workflowForRequirement(root, current.Release.Workflow.ID)
 	if err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func LoadProjection(root string) (Projection, workflow.Loaded, error) {
 		SkippedStepIDs: append([]string{}, current.SkippedStepIDs...),
 		SourceEventID:  stored.SourceEventId, UpdatedAt: current.UpdatedAt,
 	}
-	loaded, err := workflow.Load(projection.Release.Workflow.ID)
+	loaded, err := workflowForRequirement(root, projection.Release.Workflow.ID)
 	if err != nil {
 		return Projection{}, workflow.Loaded{}, err
 	}
@@ -257,6 +258,14 @@ func replaceFile(path string, content []byte) error {
 		return err
 	}
 	return os.Rename(temporaryPath, path)
+}
+
+func workflowForRequirement(root, id string) (workflow.Loaded, error) {
+	local, failure := store.New(root)
+	if failure != nil {
+		return workflow.Loaded{}, fmt.Errorf("%s", failure.Message)
+	}
+	return local.LoadWorkflow(id)
 }
 
 func cloneOutputs(values map[string]state.RegisteredOutput) map[string]state.RegisteredOutput {

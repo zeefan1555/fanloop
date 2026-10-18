@@ -23,4 +23,6 @@ progress or result. Any human question must follow below the panorama. The in-st
 ## Gotchas
 
 Rendering is separate from Botmux delivery. A valid Lark payload is not proof that it was sent. Do not rebuild or summarize
-renderer-owned content when exact presentation is part of the contract.
+renderer-owned content when exact presentation is part of the contract. A stale projection is rebuilt from committed
+events under the requirement's pinned snapshot by a non-dry-run `card render`; dry-run leaves the projection file unchanged.
+Missing or corrupt projections still fail.

@@ -70,7 +70,7 @@ Loop 根据 State 中 `producer_step_id` 失效由 back Step 及其下游生产�
 Runtime 在初始化、Step 前进、回流、跳转和完成后暴露一个持久 `panorama_delivery_required` action。Action 注入 CLI Release 中唯一的 `fanloop-panorama-delivery` Skill；宿主原样展示本次 renderer 内容后，使用 action ID 与精确 `panorama_snapshot_path` 调用 `flow action acknowledge`。pending 时业务 progress/result 被拒绝。Workflow YAML 不声明 Panorama Condition 或专属展示 Skill，Runtime 本身仍不调用远端发送工具。
 
 **Trace / Card**
-Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Registry endpoint、字段名、CLI 日志要求和 Workflow Output 字段映射由严格加载的 `internal/traceconfig/registry.yaml` 决定；仓库中的 Lark 坐标是占位符，provider 为 lark 时由 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 覆盖。Runtime 不比较具体 Workflow 或 Output ID。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`，URL Output 使用 YAML 中的 `output.description` 或 key 展示，渲染时不读取或写入 Trace；显式 `card render` 生成快照，Flow Runtime 不负责远端发送。
+Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Registry endpoint、字段名、CLI 日志要求和 Workflow Output 字段映射由严格加载的 `internal/traceconfig/registry.yaml` 决定；仓库中的 Lark 坐标是占位符，provider 为 lark 时由 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 覆盖。Runtime 不比较具体 Workflow 或 Output ID。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`。已有 Requirement 的投影、渲染和 Doctor 需求检查使用 `.fanloop/configuration-snapshot` 中的 Workflow。投影落后于已提交 Event 时，非 dry-run `card render` 按该快照从 Event 重建投影后再渲染；dry-run 不改投影文件。URL Output 使用 YAML 中的 `output.description` 或 key 展示，渲染不向 Trace 追加事件；显式 `card render` 生成快照，Flow Runtime 不负责远端发送。
 
 **Agent 手册**
 每次行动前读取 `flow status`，执行 Prompt/Skills，按 Conditions 判断事实，并把匹配 `available_routes[].route` 原样随 Result 上报。

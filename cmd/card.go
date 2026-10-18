@@ -32,6 +32,10 @@ func newCardRenderCommand(ioStreams streams, root *string) *cobra.Command {
 
 Effect:
   Local write. A non-dry-run call returns Card content and writes a snapshot; dry-run returns content without a snapshot write.
+  The Workflow is loaded from the requirement pin .fanloop/configuration-snapshot. A requirement without that pin uses config/current.
+  A valid projection that is stale against committed State and Events is rebuilt from that event log.
+  Non-dry-run persists the rebuilt projection before the snapshot. Dry-run does not change the projection file.
+  A missing, corrupt, or wrongly bound projection fails and is not rebuilt.
 
 Request JSON:
   {
