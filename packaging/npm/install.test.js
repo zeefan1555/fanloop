@@ -318,8 +318,8 @@ test('build-release accepts an existing empty directory', () => {
       ...process.env,
       PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
       // Branch jobs set these; they must not be treated as a release tag.
-      GITHUB_REF: 'refs/heads/master',
-      GITHUB_REF_NAME: 'master',
+      GITHUB_REF: 'refs/heads/main',
+      GITHUB_REF_NAME: 'main',
       ...ref,
     },
     encoding: 'utf8',
