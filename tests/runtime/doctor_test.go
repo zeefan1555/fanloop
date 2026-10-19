@@ -69,3 +69,34 @@ func TestTraceBindRefreshesCardProjection(t *testing.T) {
 		t.Fatalf("Card projection did not capture Trace binding:\n%s", projection)
 	}
 }
+
+func TestTraceBindRetryRepairsProjectionAfterPostCommitFailure(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Trace retry"), "flow.init")
+	projectionPath := filepath.Join(root, ".fanloop", "card", "projection.json")
+	if err := os.Remove(projectionPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(projectionPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	first := run(binary, "trace", "bind", "--root", root,
+		"--document-url", "https://docs.example.invalid/docx/TraceRetry")
+	assertError(t, first, 5, "INTERNAL")
+	if err := os.Remove(projectionPath); err != nil {
+		t.Fatal(err)
+	}
+
+	retry := run(binary, "trace", "bind", "--root", root,
+		"--document-url", "https://docs.example.invalid/docx/TraceRetry")
+	assertSuccess(t, retry, "trace.bind")
+	if !strings.Contains(retry.stdout, `"effect": "unchanged"`) {
+		t.Fatalf("retry did not use the committed binding:\n%s", retry.stdout)
+	}
+	diagnosed := run(binary, "doctor", "--root", root)
+	assertSuccess(t, diagnosed, "doctor")
+	if check := doctorCheck(t, diagnosed.stdout, "card_projection"); check.Status != "passed" {
+		t.Fatalf("card projection after bind retry = %#v\n%s", check, diagnosed.stdout)
+	}
+}

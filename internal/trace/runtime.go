@@ -69,6 +69,11 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 	if previous != "" {
 		if state.SameTraceDocumentURL(previous, request.DocumentUrl) && previousRegistry == registry.Profile &&
 			sameOptionalDocument(previousCLILogDocumentURL, cliLogDocumentURL) {
+			if !dryRun {
+				if err := cardruntime.WriteProjection(root, current); err != nil {
+					return nil, publicError(erroridl.ErrorCode_INTERNAL, err.Error())
+				}
+			}
 			return &traceidl.TraceBindResponse{Effect: traceidl.TraceBindEffect_unchanged}, nil
 		}
 		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "this requirement already has a Trace binding")

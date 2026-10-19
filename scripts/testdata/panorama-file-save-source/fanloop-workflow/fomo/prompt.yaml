@@ -1,0 +1,7 @@
+schema_version: 2
+
+prompts:
+  panorama_condition:
+    prompt: Deliver Panorama.
+    skills:
+      - {id: workflow-panorama, prompt: Deliver Panorama., optional: false}

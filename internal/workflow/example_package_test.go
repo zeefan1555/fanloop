@@ -122,6 +122,33 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	if !strings.Contains(text, "不得查询或写入团队空间 `7590123861772503042`") || !strings.Contains(text, "不得读取或写入团队空间\n`7590123861772503042`") {
 		t.Fatal("team workspace id is not limited to prohibition text")
 	}
+	panoramaSkill := string(mustReadFile(t, filepath.Join(packageRoot, "skills", "manage-fanloop-panorama", "SKILL.md")))
+	for _, required := range []string{
+		"### 完成态 botmux",
+		"### 完成态 local_agent",
+		"### 完成态 aime",
+		"### 完成态 aiden",
+		"botmux send --card-file",
+		"lark-cli im +messages-reply",
+		"aiden-bot-cli send-card --card-file",
+		"after a successful terminal Route, render panorama once more",
+	} {
+		if !strings.Contains(panoramaSkill, required) {
+			t.Errorf("manage Panorama Skill is missing %q", required)
+		}
+	}
+	if got := strings.Count(panoramaSkill, "fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama"); got < 8 {
+		t.Fatalf("manage Panorama Skill render commands = %d, want initial and completed commands for four hosts", got)
+	}
+}
+
+func mustReadFile(t *testing.T, path string) []byte {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return content
 }
 
 func assertEveryGroupContains(t *testing.T, owner string, when When, conditionID string) {

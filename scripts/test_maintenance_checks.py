@@ -221,6 +221,18 @@ class MaintenanceChecks(unittest.TestCase):
             'with-handoff/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md',
             text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n',
         )
+        self.write(
+            'with-handoff/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'with-handoff/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Deliver Panorama.\n    skills:\n'
+            '      - {id: workflow-panorama, prompt: Deliver Panorama., optional: false}\n',
+        )
         passed = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--check-panorama-skills', '--config-source', str(self.root / 'with-handoff')],
                                 capture_output=True, text=True)
@@ -235,6 +247,55 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertEqual([], configuration.panorama_skill_errors(text))
         errors = configuration.panorama_skill_errors(text + 'local_agent\n')
         self.assertTrue(any('parent/child handoff' in error for error in errors))
+
+    def test_unbound_panorama_named_directory_is_not_linted(self):
+        self.write(
+            'unbound/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  work_ready:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: work_condition}\n'
+            '    output: {key: work_path, type: path}\n',
+        )
+        self.write(
+            'unbound/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  work_condition:\n'
+            '    prompt: Work is ready.\n    skills: []\n',
+        )
+        self.write(
+            'unbound/fanloop-workflow/fomo/skills/unused-panorama/SKILL.md',
+            'This intentionally invalid Panorama text is not bound by YAML.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'unbound')],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('panorama skills: 0 ok', result.stdout)
+
+    def test_bound_panorama_skill_is_linted_without_panorama_in_directory_name(self):
+        self.write(
+            'bound/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'bound/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Deliver Panorama.\n    skills:\n'
+            '      - {id: delivery, prompt: Deliver Panorama., optional: false}\n',
+        )
+        self.write(
+            'bound/fanloop-workflow/fomo/skills/delivery/SKILL.md',
+            'This intentionally lacks the required delivery contract.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'bound')],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
 
     def test_path_only_receipt_is_not_a_file_save_claim(self):
         path = self.root / 'prepare-result.json'

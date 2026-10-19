@@ -465,6 +465,68 @@ def _skill_dirs(root):
     return children
 
 
+YAML_ID = r'[a-z][a-z0-9_-]*'
+
+
+def _yaml_mapping_blocks(path, root_key):
+    """Read one schema-owned top-level YAML mapping without guessing directories."""
+    if not path.is_file() or path.is_symlink():
+        return {}
+    blocks = {}
+    current = None
+    inside = False
+    for line in path.read_text().splitlines():
+        if line == f'{root_key}:':
+            inside = True
+            current = None
+            continue
+        if not inside:
+            continue
+        if line and not line[0].isspace():
+            break
+        match = re.match(rf'^  ({YAML_ID}):\s*$', line)
+        if match:
+            current = match.group(1)
+            blocks[current] = []
+            continue
+        if current is not None:
+            blocks[current].append(line)
+    return {key: '\n'.join(lines) for key, lines in blocks.items()}
+
+
+def _declared_panorama_skill_ids(workflow_dir):
+    condition_blocks = _yaml_mapping_blocks(workflow_dir / 'condition.yaml', 'conditions')
+    prompt_ids = set()
+    for condition_id, block in condition_blocks.items():
+        owns_panorama = 'panorama' in condition_id or re.search(
+            r'(?m)^\s*output:\s*(?:\{[^}]*\bkey:\s*panorama_snapshot_path\b|\n\s+key:\s*panorama_snapshot_path\s*$)',
+            block,
+        )
+        if not owns_panorama:
+            continue
+        match = re.search(r'\bprompt_id:\s*(' + YAML_ID + r')\b', block)
+        if match:
+            prompt_ids.add(match.group(1))
+
+    prompt_blocks = _yaml_mapping_blocks(workflow_dir / 'prompt.yaml', 'prompts')
+    skill_ids = set()
+    for prompt_id in prompt_ids:
+        block = prompt_blocks.get(prompt_id, '')
+        skill_ids.update(re.findall(r'-\s*(?:\{\s*)?id:\s*(' + YAML_ID + r')\b', block))
+    return sorted(skill_ids)
+
+
+def _bound_panorama_skill_files(workflow_dir):
+    found = []
+    for skill_id in _declared_panorama_skill_ids(workflow_dir):
+        skill = workflow_dir / 'skills' / skill_id / 'SKILL.md'
+        if skill.is_symlink():
+            raise ValueError(f'unsupported package entry: {skill}')
+        if skill.is_file():
+            found.append(skill)
+    return found
+
+
 def panorama_skill_files(source, workflows, include_examples):
     found = []
     selected = None if workflows is None else set(workflows)
@@ -473,25 +535,11 @@ def panorama_skill_files(source, workflows, include_examples):
         for workflow_dir in _skill_dirs(skills_root):
             if selected is not None and workflow_dir.name not in selected:
                 continue
-            for skill_dir in _skill_dirs(workflow_dir / 'skills'):
-                if 'panorama' not in skill_dir.name:
-                    continue
-                skill = skill_dir / 'SKILL.md'
-                if skill.is_symlink():
-                    raise ValueError(f'unsupported package entry: {skill}')
-                if skill.is_file():
-                    found.append(skill)
+            found.extend(_bound_panorama_skill_files(workflow_dir))
     examples = source / 'examples' / 'workflows'
     if include_examples and examples.is_dir() and not examples.is_symlink():
         for workflow_dir in _skill_dirs(examples):
-            for skill_dir in _skill_dirs(workflow_dir / 'skills'):
-                if 'panorama' not in skill_dir.name:
-                    continue
-                skill = skill_dir / 'SKILL.md'
-                if skill.is_symlink():
-                    raise ValueError(f'unsupported package entry: {skill}')
-                if skill.is_file():
-                    found.append(skill)
+            found.extend(_bound_panorama_skill_files(workflow_dir))
     return found
 
 

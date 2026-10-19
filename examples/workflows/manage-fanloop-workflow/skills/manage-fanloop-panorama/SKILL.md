@@ -47,6 +47,7 @@ fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format 
 运行一次非 dry-run `lark-json` render，使用当前话题根消息 ID 和本次精确快照：
 
 ```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
 lark-cli im +messages-reply \
   --message-id <CURRENT_THREAD_ROOT_MESSAGE_ID> \
   --msg-type interactive \
@@ -62,6 +63,7 @@ lark-cli im +messages-reply \
 退出时清理：
 
 ```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
 tmp_dir="$(mktemp -d /tmp/fanloop-panorama.XXXXXX)" || exit 1
 tmp_card="$tmp_dir/card.json"
 trap 'unlink "$tmp_card" 2>/dev/null || true; rmdir "$tmp_dir" 2>/dev/null || true' EXIT
@@ -72,7 +74,51 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 
 ## 完成后
 
-成功的终止 Route 被接受、Workflow 为 completed 之后，进入 Step 时的全景图不是完成投递。local_agent 以及任何必须把 `data.content` 发给用户的父宿主再做一次非 dry-run `fanloop card render --view panorama --format markdown`，把该次精确 `data.content` 原样送出。那一次内容含 `Done` 与 `100%`。没有用户可见通道则 blocked。不得把写入文件当成这次投递。公开 CLI 不证明用户看见了消息。
+成功的终止 Route 被接受、Workflow 为 completed 之后，进入 Step 时的全景图不是完成投递。当前宿主必须按最初选中的同一分支重新 render 并投递一次；那一次内容含 `Done` 与 `100%`。不得跨宿主回退。
+
+### 完成态 botmux
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
+botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUND_SESSION_ID>
+```
+
+### 完成态 local_agent
+
+当前 Agent 持有用户可见通道时，重新执行 non-dry-run Markdown render，把本次响应的完整 `data.content` 原样发送：
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format markdown
+```
+
+父 Agent / headless 子 Agent 模式仍按上面的交接：子 Agent只返回这次新的 `data.content` 与 `data.snapshot_path`，父 Agent原样发送。没有用户可见通道则 blocked。
+
+### 完成态 aime
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
+lark-cli im +messages-reply \
+  --message-id <CURRENT_THREAD_ROOT_MESSAGE_ID> \
+  --msg-type interactive \
+  --content "$(cat -- <ABSOLUTE_SNAPSHOT_PATH>)" \
+  --reply-in-thread \
+  --as bot \
+  --format json
+```
+
+### 完成态 aiden
+
+```bash
+fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama --format lark-json
+tmp_dir="$(mktemp -d /tmp/fanloop-panorama.XXXXXX)" || exit 1
+tmp_card="$tmp_dir/card.json"
+trap 'unlink "$tmp_card" 2>/dev/null || true; rmdir "$tmp_dir" 2>/dev/null || true' EXIT
+cp -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
+cmp -s -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
+aiden-bot-cli send-card --card-file "$tmp_card"
+```
+
+所有分支都以这次 post-terminal render 返回的新 `snapshot_path` 为准。不得把写入文件当成投递；公开 CLI 不证明用户看见了消息。
 
 after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
 
