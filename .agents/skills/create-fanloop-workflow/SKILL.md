@@ -34,7 +34,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 - 只有 Workflow 明确选择全景图能力时，才声明输出 `panorama_snapshot_path:path` 的普通 `panorama_presented` Condition，绑定同一 Workflow 内的展示 Skill，并把它加入作者明确选择的正常、终止或回流 Route AND 组。未选择全景图的 Workflow 不声明该 Condition，也不受额外门禁。展示时机、step-start 第一条消息和完成态卡片必须写进该 Workflow 的 Prompt/Skill；通用 Runtime 与校验器不会补齐。
   展示 Skill 的 `local_agent` 使用 non-dry-run `fanloop card render --view panorama --format markdown`，原样投递 `data.content` 并保留本次 `data.snapshot_path`。本 Step 业务完成后，`panorama_presented` 必须与该 Route 的业务 Conditions 放进同一次 `flow report result`，不得单独上报，也不使用 action acknowledge。
   必须写明：`report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`
-  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent在 non-dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送，保留同一路径与 `panorama_delivery_receipt` Evidence，让业务工作完成后再把全景与业务 Conditions 合并成一次 Result。成功 terminal Route 后另外 render 并投递 `Done` / `100%` 完成态卡，不再提交 Condition。
+  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent在 non-dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送，保留同一路径与 `panorama_delivery_receipt` Evidence，让业务工作完成后再把全景与业务 Conditions 合并成一次 Result。只有 Workflow 明确要求完成态 Panorama 时，才在成功 terminal Route 后另外 render 并投递 `Done` / `100%` 卡，且不再提交 Condition；未要求时不得由模板强加。
 
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。
