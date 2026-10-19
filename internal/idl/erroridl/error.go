@@ -18,13 +18,6 @@ var (
 			Retryable: true,
 			Hint:      "Check Git network connectivity and SSH permissions, then retry.",
 		},
-		ErrorCode_CONDITION_RESERVED: &ErrorSpec{
-			Code:      ErrorCode_CONDITION_RESERVED,
-			Type:      ErrorType_workflow,
-			ExitCode:  5,
-			Retryable: false,
-			Hint:      "Remove the reserved Panorama Condition; the Runtime Panorama action owns it.",
-		},
 		ErrorCode_INVALID_ARGUMENT: &ErrorSpec{
 			Code:      ErrorCode_INVALID_ARGUMENT,
 			Type:      ErrorType_validation,
@@ -326,7 +319,6 @@ const (
 	ErrorCode_TRACE_UPDATE_FAILED        ErrorCode = 26
 	ErrorCode_REGISTRY_UPDATE_FAILED     ErrorCode = 27
 	ErrorCode_CONFIGURATION_FETCH_FAILED ErrorCode = 31
-	ErrorCode_CONDITION_RESERVED         ErrorCode = 32
 )
 
 func (p ErrorCode) String() string {
@@ -389,8 +381,6 @@ func (p ErrorCode) String() string {
 		return "REGISTRY_UPDATE_FAILED"
 	case ErrorCode_CONFIGURATION_FETCH_FAILED:
 		return "CONFIGURATION_FETCH_FAILED"
-	case ErrorCode_CONDITION_RESERVED:
-		return "CONDITION_RESERVED"
 	}
 	return "<UNSET>"
 }
@@ -455,8 +445,6 @@ func ErrorCodeFromString(s string) (ErrorCode, error) {
 		return ErrorCode_REGISTRY_UPDATE_FAILED, nil
 	case "CONFIGURATION_FETCH_FAILED":
 		return ErrorCode_CONFIGURATION_FETCH_FAILED, nil
-	case "CONDITION_RESERVED":
-		return ErrorCode_CONDITION_RESERVED, nil
 	}
 	return ErrorCode(0), fmt.Errorf("not a valid ErrorCode string")
 }

@@ -25,13 +25,6 @@ func TestReportAndRenderStayOnPinnedSnapshotAfterCurrentMoves(t *testing.T) {
 
 	root := t.TempDir()
 	assertSuccess(t, collect(commandWithConfig(binary, dataHome, snapshotA, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Pinned outputs")), "flow.init")
-	status := collect(commandWithConfig(binary, dataHome, snapshotA, "flow", "status", "--root", root))
-	assertSuccess(t, status, "flow.status")
-	action := onlyPendingAction(t, decodeFlowActionEnvelope(t, status.stdout))
-	rendered := collect(commandWithConfig(binary, dataHome, snapshotA, "card", "render", "--root", root, "--view", "panorama", "--format", "markdown"))
-	assertSuccess(t, rendered, "card.render")
-	assertSuccess(t, collect(commandWithConfig(binary, dataHome, snapshotA, "flow", "action", "acknowledge", "--root", root,
-		"--action-id", action.ID, "--panorama-snapshot-path", decodeCard(t, rendered.stdout).Data.SnapshotPath)), "flow.action.acknowledge")
 
 	if err := configuration.Activate(dataHome, snapshotB); err != nil {
 		t.Fatal(err)

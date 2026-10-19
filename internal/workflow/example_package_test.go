@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestExampleWorkflowValidatesWithoutReservedPanoramaCondition(t *testing.T) {
+func TestExampleWorkflowValidatesWithWorkflowOwnedPanoramaCondition(t *testing.T) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("locate repository")
@@ -19,10 +19,11 @@ func TestExampleWorkflowValidatesWithoutReservedPanoramaCondition(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, id := range []string{"panorama_presented", "panorama_card_published"} {
-		if _, exists := loaded.Workflow.Conditions[id]; exists {
-			t.Fatalf("example still defines reserved condition %s", id)
-		}
+	if _, exists := loaded.Workflow.Conditions["panorama_presented"]; !exists {
+		t.Fatal("example does not define its panorama condition")
+	}
+	if loaded.SkillPaths["example-panorama"] == "" {
+		t.Fatal("example does not bind its panorama delivery Skill")
 	}
 	if len(loaded.Workflow.OrderedStepIDs()) == 0 {
 		t.Fatal("example workflow has no steps")
@@ -51,11 +52,6 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	}
 	if got := loaded.Workflow.OrderedStepIDs(); len(got) != 4 {
 		t.Fatalf("steps = %v", got)
-	}
-	for _, id := range []string{"panorama_presented", "panorama_card_published"} {
-		if _, exists := loaded.Workflow.Conditions[id]; exists {
-			t.Fatalf("package defines reserved condition %s", id)
-		}
 	}
 	wantSkills := []string{
 		"analyze-workflow-change",
@@ -94,7 +90,6 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 		"fanloop.workflow.",
 		"fanloop update config",
 		"fanloop doctor",
-		"pending_actions",
 		"lark-cli docs +create --as user",
 	} {
 		if !strings.Contains(text, required) {

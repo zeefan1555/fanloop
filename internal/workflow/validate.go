@@ -259,9 +259,6 @@ func validatePromptRef(owner string, ref PromptRef, prompts map[string]PromptDef
 }
 
 func validateCondition(id string, condition ConditionDefinition, prompts map[string]PromptDefinition, usedPrompts map[string]bool) error {
-	if id == "panorama_presented" || id == "panorama_card_published" {
-		return ReservedConditionError{ID: id}
-	}
 	if !configIDPattern.MatchString(id) {
 		return fmt.Errorf("Condition %q is invalid", id)
 	}

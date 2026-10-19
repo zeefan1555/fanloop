@@ -444,62 +444,6 @@ func (p *OutputType) Value() (driver.Value, error) {
 	return int64(*p), nil
 }
 
-type ActionType int64
-
-const (
-	ActionType_unspecified                ActionType = 0
-	ActionType_panorama_delivery_required ActionType = 1
-)
-
-func (p ActionType) String() string {
-	switch p {
-	case ActionType_unspecified:
-		return "unspecified"
-	case ActionType_panorama_delivery_required:
-		return "panorama_delivery_required"
-	}
-	return "<UNSET>"
-}
-
-func ActionTypeFromString(s string) (ActionType, error) {
-	switch s {
-	case "unspecified":
-		return ActionType_unspecified, nil
-	case "panorama_delivery_required":
-		return ActionType_panorama_delivery_required, nil
-	}
-	return ActionType(0), fmt.Errorf("not a valid ActionType string")
-}
-
-func ActionTypePtr(v ActionType) *ActionType { return &v }
-
-func (p ActionType) MarshalText() ([]byte, error) {
-	return []byte(p.String()), nil
-}
-
-func (p *ActionType) UnmarshalText(text []byte) error {
-	q, err := ActionTypeFromString(string(text))
-	if err != nil {
-		return err
-	}
-	*p = q
-	return nil
-}
-
-func (p *ActionType) Scan(value interface{}) (err error) {
-	var result sql.NullInt64
-	err = result.Scan(value)
-	*p = ActionType(result.Int64)
-	return
-}
-
-func (p *ActionType) Value() (driver.Value, error) {
-	if p == nil {
-		return nil, nil
-	}
-	return int64(*p), nil
-}
-
 type RouteDirection int64
 
 const (
@@ -814,62 +758,6 @@ func (p *TransitionDirection) Scan(value interface{}) (err error) {
 }
 
 func (p *TransitionDirection) Value() (driver.Value, error) {
-	if p == nil {
-		return nil, nil
-	}
-	return int64(*p), nil
-}
-
-type ActionAcknowledgeEffect int64
-
-const (
-	ActionAcknowledgeEffect_unspecified  ActionAcknowledgeEffect = 0
-	ActionAcknowledgeEffect_acknowledged ActionAcknowledgeEffect = 1
-)
-
-func (p ActionAcknowledgeEffect) String() string {
-	switch p {
-	case ActionAcknowledgeEffect_unspecified:
-		return "unspecified"
-	case ActionAcknowledgeEffect_acknowledged:
-		return "acknowledged"
-	}
-	return "<UNSET>"
-}
-
-func ActionAcknowledgeEffectFromString(s string) (ActionAcknowledgeEffect, error) {
-	switch s {
-	case "unspecified":
-		return ActionAcknowledgeEffect_unspecified, nil
-	case "acknowledged":
-		return ActionAcknowledgeEffect_acknowledged, nil
-	}
-	return ActionAcknowledgeEffect(0), fmt.Errorf("not a valid ActionAcknowledgeEffect string")
-}
-
-func ActionAcknowledgeEffectPtr(v ActionAcknowledgeEffect) *ActionAcknowledgeEffect { return &v }
-
-func (p ActionAcknowledgeEffect) MarshalText() ([]byte, error) {
-	return []byte(p.String()), nil
-}
-
-func (p *ActionAcknowledgeEffect) UnmarshalText(text []byte) error {
-	q, err := ActionAcknowledgeEffectFromString(string(text))
-	if err != nil {
-		return err
-	}
-	*p = q
-	return nil
-}
-
-func (p *ActionAcknowledgeEffect) Scan(value interface{}) (err error) {
-	var result sql.NullInt64
-	err = result.Scan(value)
-	*p = ActionAcknowledgeEffect(result.Int64)
-	return
-}
-
-func (p *ActionAcknowledgeEffect) Value() (driver.Value, error) {
 	if p == nil {
 		return nil, nil
 	}
@@ -1819,139 +1707,6 @@ var fieldIDToName_Skill = map[int16]string{
 	4: "path",
 }
 
-type PendingAction struct {
-	Id             string     `thrift:"id,1,required" json:"id"`
-	Type           ActionType `thrift:"type,2,required,ActionType" json:"type"`
-	Skill          *Skill     `thrift:"skill,3,required" json:"skill"`
-	TriggerEventId string     `thrift:"trigger_event_id,4,required" json:"trigger_event_id"`
-	StepId         *string    `thrift:"step_id,5,optional" json:"step_id,omitempty"`
-}
-
-func NewPendingAction() *PendingAction {
-	return &PendingAction{}
-}
-
-func (p *PendingAction) InitDefault() {
-}
-
-func (p *PendingAction) GetId() (v string) {
-	return p.Id
-}
-
-func (p *PendingAction) GetType() (v ActionType) {
-	return p.Type
-}
-
-var PendingAction_Skill_DEFAULT *Skill
-
-func (p *PendingAction) GetSkill() (v *Skill) {
-	if !p.IsSetSkill() {
-		return PendingAction_Skill_DEFAULT
-	}
-	return p.Skill
-}
-
-func (p *PendingAction) GetTriggerEventId() (v string) {
-	return p.TriggerEventId
-}
-
-var PendingAction_StepId_DEFAULT string
-
-func (p *PendingAction) GetStepId() (v string) {
-	if !p.IsSetStepId() {
-		return PendingAction_StepId_DEFAULT
-	}
-	return *p.StepId
-}
-
-func (p *PendingAction) IsSetSkill() bool {
-	return p.Skill != nil
-}
-
-func (p *PendingAction) IsSetStepId() bool {
-	return p.StepId != nil
-}
-
-func (p *PendingAction) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("PendingAction(%+v)", *p)
-}
-
-func (p *PendingAction) DeepEqual(ano *PendingAction) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.Id) {
-		return false
-	}
-	if !p.Field2DeepEqual(ano.Type) {
-		return false
-	}
-	if !p.Field3DeepEqual(ano.Skill) {
-		return false
-	}
-	if !p.Field4DeepEqual(ano.TriggerEventId) {
-		return false
-	}
-	if !p.Field5DeepEqual(ano.StepId) {
-		return false
-	}
-	return true
-}
-
-func (p *PendingAction) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.Id, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *PendingAction) Field2DeepEqual(src ActionType) bool {
-
-	if p.Type != src {
-		return false
-	}
-	return true
-}
-func (p *PendingAction) Field3DeepEqual(src *Skill) bool {
-
-	if !p.Skill.DeepEqual(src) {
-		return false
-	}
-	return true
-}
-func (p *PendingAction) Field4DeepEqual(src string) bool {
-
-	if strings.Compare(p.TriggerEventId, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *PendingAction) Field5DeepEqual(src *string) bool {
-
-	if p.StepId == src {
-		return true
-	} else if p.StepId == nil || src == nil {
-		return false
-	}
-	if strings.Compare(*p.StepId, *src) != 0 {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_PendingAction = map[int16]string{
-	1: "id",
-	2: "type",
-	3: "skill",
-	4: "trigger_event_id",
-	5: "step_id",
-}
-
 type Prompt struct {
 	Content string   `thrift:"content,1,required" json:"content"`
 	Skills  []*Skill `thrift:"skills,2,required,list<Skill>" json:"skills"`
@@ -2524,7 +2279,6 @@ type FlowState struct {
 	Current        *CurrentTask                 `thrift:"current,2,optional" json:"current,omitempty"`
 	Outputs        map[string]*RegisteredOutput `thrift:"outputs,3,required" json:"outputs"`
 	SkippedStepIds []string                     `thrift:"skipped_step_ids,4,required,list<string>" json:"skipped_step_ids"`
-	PendingActions []*PendingAction             `thrift:"pending_actions,5,required,list<PendingAction>" json:"pending_actions"`
 }
 
 func NewFlowState() *FlowState {
@@ -2555,10 +2309,6 @@ func (p *FlowState) GetSkippedStepIds() (v []string) {
 	return p.SkippedStepIds
 }
 
-func (p *FlowState) GetPendingActions() (v []*PendingAction) {
-	return p.PendingActions
-}
-
 func (p *FlowState) IsSetCurrent() bool {
 	return p.Current != nil
 }
@@ -2586,9 +2336,6 @@ func (p *FlowState) DeepEqual(ano *FlowState) bool {
 		return false
 	}
 	if !p.Field4DeepEqual(ano.SkippedStepIds) {
-		return false
-	}
-	if !p.Field5DeepEqual(ano.PendingActions) {
 		return false
 	}
 	return true
@@ -2634,26 +2381,12 @@ func (p *FlowState) Field4DeepEqual(src []string) bool {
 	}
 	return true
 }
-func (p *FlowState) Field5DeepEqual(src []*PendingAction) bool {
-
-	if len(p.PendingActions) != len(src) {
-		return false
-	}
-	for i, v := range p.PendingActions {
-		_src := src[i]
-		if !v.DeepEqual(_src) {
-			return false
-		}
-	}
-	return true
-}
 
 var fieldIDToName_FlowState = map[int16]string{
 	1: "status",
 	2: "current",
 	3: "outputs",
 	4: "skipped_step_ids",
-	5: "pending_actions",
 }
 
 type FlowInitRequest struct {
@@ -3785,169 +3518,6 @@ var fieldIDToName_FlowResultResponse = map[int16]string{
 	5: "invalidated_outputs",
 }
 
-type FlowActionAcknowledgeRequest struct {
-	ActionId             string `thrift:"action_id,1,required" json:"action_id"`
-	PanoramaSnapshotPath string `thrift:"panorama_snapshot_path,2,required" json:"panorama_snapshot_path"`
-}
-
-func NewFlowActionAcknowledgeRequest() *FlowActionAcknowledgeRequest {
-	return &FlowActionAcknowledgeRequest{}
-}
-
-func (p *FlowActionAcknowledgeRequest) InitDefault() {
-}
-
-func (p *FlowActionAcknowledgeRequest) GetActionId() (v string) {
-	return p.ActionId
-}
-
-func (p *FlowActionAcknowledgeRequest) GetPanoramaSnapshotPath() (v string) {
-	return p.PanoramaSnapshotPath
-}
-
-func (p *FlowActionAcknowledgeRequest) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("FlowActionAcknowledgeRequest(%+v)", *p)
-}
-
-func (p *FlowActionAcknowledgeRequest) DeepEqual(ano *FlowActionAcknowledgeRequest) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.ActionId) {
-		return false
-	}
-	if !p.Field2DeepEqual(ano.PanoramaSnapshotPath) {
-		return false
-	}
-	return true
-}
-
-func (p *FlowActionAcknowledgeRequest) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.ActionId, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *FlowActionAcknowledgeRequest) Field2DeepEqual(src string) bool {
-
-	if strings.Compare(p.PanoramaSnapshotPath, src) != 0 {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_FlowActionAcknowledgeRequest = map[int16]string{
-	1: "action_id",
-	2: "panorama_snapshot_path",
-}
-
-type FlowActionAcknowledgeResponse struct {
-	Effect  ActionAcknowledgeEffect `thrift:"effect,1,required,ActionAcknowledgeEffect" json:"effect"`
-	EventId *string                 `thrift:"event_id,2,optional" json:"event_id,omitempty"`
-	State   *FlowState              `thrift:"state,3,required" json:"state"`
-}
-
-func NewFlowActionAcknowledgeResponse() *FlowActionAcknowledgeResponse {
-	return &FlowActionAcknowledgeResponse{}
-}
-
-func (p *FlowActionAcknowledgeResponse) InitDefault() {
-}
-
-func (p *FlowActionAcknowledgeResponse) GetEffect() (v ActionAcknowledgeEffect) {
-	return p.Effect
-}
-
-var FlowActionAcknowledgeResponse_EventId_DEFAULT string
-
-func (p *FlowActionAcknowledgeResponse) GetEventId() (v string) {
-	if !p.IsSetEventId() {
-		return FlowActionAcknowledgeResponse_EventId_DEFAULT
-	}
-	return *p.EventId
-}
-
-var FlowActionAcknowledgeResponse_State_DEFAULT *FlowState
-
-func (p *FlowActionAcknowledgeResponse) GetState() (v *FlowState) {
-	if !p.IsSetState() {
-		return FlowActionAcknowledgeResponse_State_DEFAULT
-	}
-	return p.State
-}
-
-func (p *FlowActionAcknowledgeResponse) IsSetEventId() bool {
-	return p.EventId != nil
-}
-
-func (p *FlowActionAcknowledgeResponse) IsSetState() bool {
-	return p.State != nil
-}
-
-func (p *FlowActionAcknowledgeResponse) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("FlowActionAcknowledgeResponse(%+v)", *p)
-}
-
-func (p *FlowActionAcknowledgeResponse) DeepEqual(ano *FlowActionAcknowledgeResponse) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.Effect) {
-		return false
-	}
-	if !p.Field2DeepEqual(ano.EventId) {
-		return false
-	}
-	if !p.Field3DeepEqual(ano.State) {
-		return false
-	}
-	return true
-}
-
-func (p *FlowActionAcknowledgeResponse) Field1DeepEqual(src ActionAcknowledgeEffect) bool {
-
-	if p.Effect != src {
-		return false
-	}
-	return true
-}
-func (p *FlowActionAcknowledgeResponse) Field2DeepEqual(src *string) bool {
-
-	if p.EventId == src {
-		return true
-	} else if p.EventId == nil || src == nil {
-		return false
-	}
-	if strings.Compare(*p.EventId, *src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *FlowActionAcknowledgeResponse) Field3DeepEqual(src *FlowState) bool {
-
-	if !p.State.DeepEqual(src) {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_FlowActionAcknowledgeResponse = map[int16]string{
-	1: "effect",
-	2: "event_id",
-	3: "state",
-}
-
 type RouteSelection struct {
 	NextStepId       *string `thrift:"next_step_id,1,optional" json:"next_step_id,omitempty"`
 	BackStepId       *string `thrift:"back_step_id,2,optional" json:"back_step_id,omitempty"`
@@ -4149,12 +3719,11 @@ var fieldIDToName_RouteSelection = map[int16]string{
 }
 
 // One method maps to one public CLI command:
-// Init              -> fanloop flow init
-// Status            -> fanloop flow status
-// Skills            -> fanloop flow skills
-// Progress          -> fanloop flow report progress
-// Result            -> fanloop flow report result
-// AcknowledgeAction -> fanloop flow action acknowledge
+// Init     -> fanloop flow init
+// Status   -> fanloop flow status
+// Skills   -> fanloop flow skills
+// Progress -> fanloop flow report progress
+// Result   -> fanloop flow report result
 type FlowService interface {
 	Init(ctx context.Context, requirementRoot string, request *FlowInitRequest, dryRun bool) (r *FlowInitResponse, err error)
 
@@ -4165,8 +3734,6 @@ type FlowService interface {
 	Progress(ctx context.Context, requirementRoot string, request *FlowProgressRequest, dryRun bool) (r *FlowProgressResponse, err error)
 
 	Result(ctx context.Context, requirementRoot string, request *FlowResultRequest, dryRun bool) (r *FlowResultResponse, err error)
-
-	AcknowledgeAction(ctx context.Context, requirementRoot string, request *FlowActionAcknowledgeRequest, dryRun bool) (r *FlowActionAcknowledgeResponse, err error)
 }
 
 type FlowServiceInitArgs struct {
@@ -4968,173 +4535,6 @@ func (p *FlowServiceResultResult) Field1DeepEqual(src *erroridl.PublicError) boo
 }
 
 var fieldIDToName_FlowServiceResultResult = map[int16]string{
-	0: "success",
-	1: "error",
-}
-
-type FlowServiceAcknowledgeActionArgs struct {
-	RequirementRoot string                        `thrift:"requirement_root,1,required" json:"requirement_root"`
-	Request         *FlowActionAcknowledgeRequest `thrift:"request,2,required" json:"request"`
-	DryRun          bool                          `thrift:"dry_run,3,required" json:"dry_run"`
-}
-
-func NewFlowServiceAcknowledgeActionArgs() *FlowServiceAcknowledgeActionArgs {
-	return &FlowServiceAcknowledgeActionArgs{}
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) InitDefault() {
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) GetRequirementRoot() (v string) {
-	return p.RequirementRoot
-}
-
-var FlowServiceAcknowledgeActionArgs_Request_DEFAULT *FlowActionAcknowledgeRequest
-
-func (p *FlowServiceAcknowledgeActionArgs) GetRequest() (v *FlowActionAcknowledgeRequest) {
-	if !p.IsSetRequest() {
-		return FlowServiceAcknowledgeActionArgs_Request_DEFAULT
-	}
-	return p.Request
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) GetDryRun() (v bool) {
-	return p.DryRun
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) IsSetRequest() bool {
-	return p.Request != nil
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("FlowServiceAcknowledgeActionArgs(%+v)", *p)
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) DeepEqual(ano *FlowServiceAcknowledgeActionArgs) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.RequirementRoot) {
-		return false
-	}
-	if !p.Field2DeepEqual(ano.Request) {
-		return false
-	}
-	if !p.Field3DeepEqual(ano.DryRun) {
-		return false
-	}
-	return true
-}
-
-func (p *FlowServiceAcknowledgeActionArgs) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.RequirementRoot, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *FlowServiceAcknowledgeActionArgs) Field2DeepEqual(src *FlowActionAcknowledgeRequest) bool {
-
-	if !p.Request.DeepEqual(src) {
-		return false
-	}
-	return true
-}
-func (p *FlowServiceAcknowledgeActionArgs) Field3DeepEqual(src bool) bool {
-
-	if p.DryRun != src {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_FlowServiceAcknowledgeActionArgs = map[int16]string{
-	1: "requirement_root",
-	2: "request",
-	3: "dry_run",
-}
-
-type FlowServiceAcknowledgeActionResult struct {
-	Success *FlowActionAcknowledgeResponse `thrift:"success,0,optional" json:"success,omitempty"`
-	Error   *erroridl.PublicError          `thrift:"error,1,optional" json:"error,omitempty"`
-}
-
-func NewFlowServiceAcknowledgeActionResult() *FlowServiceAcknowledgeActionResult {
-	return &FlowServiceAcknowledgeActionResult{}
-}
-
-func (p *FlowServiceAcknowledgeActionResult) InitDefault() {
-}
-
-var FlowServiceAcknowledgeActionResult_Success_DEFAULT *FlowActionAcknowledgeResponse
-
-func (p *FlowServiceAcknowledgeActionResult) GetSuccess() (v *FlowActionAcknowledgeResponse) {
-	if !p.IsSetSuccess() {
-		return FlowServiceAcknowledgeActionResult_Success_DEFAULT
-	}
-	return p.Success
-}
-
-var FlowServiceAcknowledgeActionResult_Error_DEFAULT *erroridl.PublicError
-
-func (p *FlowServiceAcknowledgeActionResult) GetError() (v *erroridl.PublicError) {
-	if !p.IsSetError() {
-		return FlowServiceAcknowledgeActionResult_Error_DEFAULT
-	}
-	return p.Error
-}
-
-func (p *FlowServiceAcknowledgeActionResult) IsSetSuccess() bool {
-	return p.Success != nil
-}
-
-func (p *FlowServiceAcknowledgeActionResult) IsSetError() bool {
-	return p.Error != nil
-}
-
-func (p *FlowServiceAcknowledgeActionResult) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("FlowServiceAcknowledgeActionResult(%+v)", *p)
-}
-
-func (p *FlowServiceAcknowledgeActionResult) DeepEqual(ano *FlowServiceAcknowledgeActionResult) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field0DeepEqual(ano.Success) {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.Error) {
-		return false
-	}
-	return true
-}
-
-func (p *FlowServiceAcknowledgeActionResult) Field0DeepEqual(src *FlowActionAcknowledgeResponse) bool {
-
-	if !p.Success.DeepEqual(src) {
-		return false
-	}
-	return true
-}
-func (p *FlowServiceAcknowledgeActionResult) Field1DeepEqual(src *erroridl.PublicError) bool {
-
-	if !p.Error.DeepEqual(src) {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_FlowServiceAcknowledgeActionResult = map[int16]string{
 	0: "success",
 	1: "error",
 }

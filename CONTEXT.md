@@ -55,10 +55,10 @@ Progress 返回 `status_updated`。Result 返回 `advanced|looped|completed`，�
 ## 当前事实与投影
 
 **State / Output Registry**
-恢复执行的当前事实分开落盘：`.fanloop/flow/state.json` 保存 Requirement、CLI Release/Workflow ID 绑定、活动 Step、Summary/Evidence、integration 和最后 Event 指针；`.fanloop/output/state.json` 保存当前有效 RegisteredOutputs。当前为 State/Event Schema 15、Output Registry Schema 4；字段、枚举和版本以 `idl/storage.thrift` 为唯一可编辑真值。
+恢复执行的当前事实分开落盘：`.fanloop/flow/state.json` 保存 Requirement、CLI Release/Workflow ID 绑定、活动 Step、Summary/Evidence、integration 和最后 Event 指针；`.fanloop/output/state.json` 保存当前有效 RegisteredOutputs。当前为 State/Event Schema 16、Output Registry Schema 4；字段、枚举和版本以 `idl/storage.thrift` 为唯一可编辑真值。
 
 **Event**
-不可变审计记录。Event Schema 15 使用 Thrift `EventPayload` union；落盘的 `kind` 与唯一 payload 成员一一对应，例如 `flow_progressed`、`flow_result`、`flow_action_acknowledged`。Result Event 保存原始 ConditionResults、Evidence、Summary、Effect、Transition 和 accepted/invalidated OutputChanges。dry-run 和 rejected request 不产生 Event。
+不可变审计记录。Event Schema 16 使用 Thrift `EventPayload` union；落盘的 `kind` 与唯一 payload 成员一一对应，例如 `flow_progressed`、`flow_result`。Result Event 保存原始 ConditionResults、Evidence、Summary、Effect、Transition 和 accepted/invalidated OutputChanges。dry-run 和 rejected request 不产生 Event。
 
 **CLI Execution Log**
 Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root` 的真实叶子调用在结束后 best-effort 向 `.fanloop/log/cli.jsonl` 追加一条 schema 2 Thrift JSON，包括有序 arguments、实际消费的 stdin、完整 stdout/stderr、只读、失败和 `--dry-run`；`--input @file` 只记录参数中的路径，不把文件内容算作 stdin。Help 与无 Root 的 bootstrap/版本调用不记录。日志不脱敏、不截断，可能包含 URL、Evidence、密钥或 token；目录/文件权限保持 `0700/0600`。它不参与恢复、路由或 Doctor 健康判断，写入失败也不改变命令结果；当 `internal/traceconfig/registry.yaml` 选中的策略要求 CLI 日志文档时，`trace sync` 会把同步开始前的完整字节快照投影到该文档。
@@ -67,7 +67,7 @@ Requirement 范围的完整诊断 transcript。每个具有有效绝对 `--root`
 Loop 根据 State 中 `producer_step_id` 失效由 back Step 及其下游生产的有效 Output，保留更早 Step 的事实。
 
 **Panorama 发布**
-Runtime 在初始化、Step 前进、回流、跳转和完成后暴露一个持久 `panorama_delivery_required` action。Action 注入 CLI Release 中唯一的 `fanloop-panorama-delivery` Skill；宿主原样展示本次 renderer 内容后，使用 action ID 与精确 `panorama_snapshot_path` 调用 `flow action acknowledge`。pending 时业务 progress/result 被拒绝。Workflow YAML 不声明 Panorama Condition 或专属展示 Skill，Runtime 本身仍不调用远端发送工具。
+需要 Panorama 的 Workflow 通过 YAML 的普通 `panorama_card_published` 或 `panorama_presented` Condition 声明 renderer 生成的紧凑 Panorama 已由当前宿主成功展示或发送，Output 原样保存本次 non-dry-run render 返回的 Requirement Root 相对 `panorama_snapshot_path`。该 Condition 与对应 Route 事实在同一组合中上报；CLI 只校验类型与 Route，不自动发送，也不为未配置 Panorama 的 Workflow 注入节点或 acknowledge 门。Panorama Skill 只做宿主分流和原样展示，不二次拼装审核材料。
 
 **Trace / Card**
 Trace 从已提交 State/Event 生成人类可读历史并可同步飞书。Registry endpoint、字段名、CLI 日志要求和 Workflow Output 字段映射由严格加载的 `internal/traceconfig/registry.yaml` 决定；仓库中的 Lark 坐标是占位符，provider 为 lark 时由 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 覆盖。Runtime 不比较具体 Workflow 或 Output ID。Card 由被接受的 Flow 当前事实独立更新 `.fanloop/card/projection.json`。已有 Requirement 的投影、渲染和 Doctor 需求检查使用 `.fanloop/configuration-snapshot` 中的 Workflow。投影落后于已提交 Event 时，非 dry-run `card render` 按该快照从 Event 重建投影后再渲染；dry-run 不改投影文件。URL Output 使用 YAML 中的 `output.description` 或 key 展示，渲染不向 Trace 追加事件；显式 `card render` 生成快照，Flow Runtime 不负责远端发送。

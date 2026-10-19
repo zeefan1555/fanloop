@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/traceconfig"
@@ -57,7 +56,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	committedWorkflow(t, root)
 
 	for relative, wantVersion := range map[string]float64{
-		".fanloop/flow/state.json":   float64(state.CurrentStateSchemaVersion),
+		".fanloop/flow/state.json":   16,
 		".fanloop/output/state.json": 4,
 	} {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relative)))
@@ -82,7 +81,7 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(line), &event); err != nil {
 		t.Fatal(err)
 	}
-	if event["schema_version"] != float64(state.CurrentEventSchemaVersion) || event["kind"] != "flow_initialized" {
+	if event["schema_version"] != float64(16) || event["kind"] != "flow_initialized" {
 		t.Fatalf("Event header = %#v", event)
 	}
 	payload, ok := event["payload"].(map[string]any)
@@ -242,15 +241,13 @@ func TestTraceProjectionListsOutputsWithoutBusinessSpecificSections(t *testing.T
 func TestCommitRejectsProgressWithAnOutputPayload(t *testing.T) {
 	root := t.TempDir()
 	local, current := committedWorkflow(t, root)
-	current = acknowledgeStorePanorama(t, local, current, "e1", "e2")
 	from := state.StateRef(current)
-	cause := current.LastEventID
 	current.CurrentStepStatus = state.StepInProgress
-	current.LastEventID = "e3"
+	current.LastEventID = "e2"
 	current.UpdatedAt = current.UpdatedAt.Add(time.Minute)
 	event := state.Event{
-		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e3", OccurredAt: current.UpdatedAt, Kind: state.EventFlowProgressed,
-		Command: "flow.report.progress", Workflow: current.Release.Workflow, CausedByEventID: cause,
+		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: current.UpdatedAt, Kind: state.EventFlowProgressed,
+		Command: "flow.report.progress", Workflow: current.Release.Workflow, CausedByEventID: "e1",
 		Payload: state.Payload(struct {
 			state.FlowProgressPayload
 			OutputChanges state.OutputChanges `json:"output_changes"`
@@ -264,7 +261,7 @@ func TestCommitRejectsProgressWithAnOutputPayload(t *testing.T) {
 		t.Fatalf("failure = %#v", failure)
 	}
 	events, failure := local.Events()
-	if failure != nil || len(events) != 2 {
+	if failure != nil || len(events) != 1 {
 		t.Fatalf("events = %d, failure = %v", len(events), failure)
 	}
 }
@@ -295,7 +292,6 @@ func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 	if failure := local.Commit(current, initialized); failure != nil {
 		t.Fatal(failure)
 	}
-	current = acknowledgeStorePanorama(t, local, current, "e1", "e-ack")
 
 	target := "third"
 	next := current
@@ -306,7 +302,7 @@ func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 	next.UpdatedAt = now.Add(time.Minute)
 	result := state.Event{
 		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: next.UpdatedAt, Kind: state.EventFlowResult,
-		Command: "flow.report.result", Workflow: oldRef, CausedByEventID: current.LastEventID,
+		Command: "flow.report.result", Workflow: oldRef, CausedByEventID: "e1",
 		Payload: state.Payload(state.FlowResultPayload{
 			ConditionResults: []state.ConditionResult{{ConditionID: "first_completed", Output: state.OutputValue{Type: workflow.OutputPath, Value: json.RawMessage(`"first.md"`)}}},
 			Summary:          "invalid route", Effect: state.ResultAdvanced,
@@ -318,7 +314,7 @@ func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 		t.Fatalf("failure = %#v", failure)
 	}
 	events, failure := local.Events()
-	if failure != nil || len(events) != 2 {
+	if failure != nil || len(events) != 1 {
 		t.Fatalf("events = %d, failure = %v", len(events), failure)
 	}
 }
@@ -326,14 +322,13 @@ func TestCommitValidatesNewResultAgainstCurrentRoutes(t *testing.T) {
 func TestConcurrentCommitsFromOneEventTailAreSerialized(t *testing.T) {
 	root := t.TempDir()
 	local, current := committedWorkflow(t, root)
-	current = acknowledgeStorePanorama(t, local, current, "e1", "e2")
 	stepID := *current.CurrentStepID
 	start := make(chan struct{})
 	results := make(chan *erroridl.PublicError, 2)
 	var ready sync.WaitGroup
 	ready.Add(2)
 
-	for index, eventID := range []string{"e3", "e4"} {
+	for index, eventID := range []string{"e2", "e3"} {
 		next := current
 		next.CurrentStepStatus = state.StepInProgress
 		next.CurrentStepSummary = "working"
@@ -371,63 +366,11 @@ func TestConcurrentCommitsFromOneEventTailAreSerialized(t *testing.T) {
 		t.Fatal(failure)
 	}
 	events, failure := local.Events()
-	if failure != nil || len(events) != 3 || loaded.LastEventID != events[2].ID {
+	if failure != nil || len(events) != 2 || loaded.LastEventID != events[1].ID {
 		t.Fatalf("events=%d last_event_id=%q failure=%v", len(events), loaded.LastEventID, failure)
 	}
 	if info, err := os.Stat(filepath.Join(root, ".fanloop", "flow", "state.lock")); err != nil || !info.Mode().IsRegular() {
 		t.Fatalf("persistent Requirement lock is missing or invalid: info=%v error=%v", info, err)
-	}
-}
-
-func acknowledgeStorePanorama(t *testing.T, local *Store, current state.State, trigger, id string) state.State {
-	t.Helper()
-	next := current
-	next.LastEventID = id
-	next.UpdatedAt = current.UpdatedAt.Add(time.Minute)
-	event := state.Event{
-		SchemaVersion: state.CurrentEventSchemaVersion, ID: id, OccurredAt: next.UpdatedAt,
-		Kind: state.EventFlowActionAcknowledged, Command: "flow.action.acknowledge",
-		Workflow: current.Release.Workflow, CausedByEventID: current.LastEventID,
-		Payload: state.Payload(state.FlowActionAcknowledgedPayload{
-			ActionID: "panorama-" + trigger, ActionType: state.ActionPanoramaDeliveryRequired,
-			TriggerEventID: trigger, PanoramaSnapshotPath: cardsnapshot.Path(next.UpdatedAt, trigger, 0),
-		}),
-	}
-	if failure := local.Commit(next, event); failure != nil {
-		t.Fatal(failure)
-	}
-	return next
-}
-
-func TestTraceProjectionDescribesPanoramaActionAcknowledgment(t *testing.T) {
-	loaded, err := loadRuntimeControls(t)
-	if err != nil {
-		t.Fatal(err)
-	}
-	now := time.Date(2026, 8, 12, 0, 0, 0, 0, time.UTC)
-	event := state.Event{
-		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: now,
-		Kind: state.EventFlowActionAcknowledged, Command: "flow.action.acknowledge",
-		Workflow: state.WorkflowRefFrom(loaded.Ref), CausedByEventID: "e1",
-		Payload: state.Payload(state.FlowActionAcknowledgedPayload{
-			ActionID: "panorama-e1", ActionType: state.ActionPanoramaDeliveryRequired,
-			TriggerEventID: "e1", PanoramaSnapshotPath: cardsnapshot.Path(now, "e1", 0),
-		}),
-	}
-	row := traceEventRow(loaded.Workflow, event)
-	if row.event != "Panorama" || row.skill != "fanloop-panorama-delivery@CLI" || row.result != "acknowledged" || row.reason != "全景图已投递并确认" {
-		t.Fatalf("row = %#v", row)
-	}
-	for _, want := range []string{"action=panorama-e1", "trigger_event_id=e1", "snapshot="} {
-		found := false
-		for _, item := range row.evidence {
-			if strings.Contains(item, want) {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatalf("evidence missing %q: %#v", want, row.evidence)
-		}
 	}
 }
 

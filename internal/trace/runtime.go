@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/zeefan1555/fanloop/errs"
-	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
 	"github.com/zeefan1555/fanloop/internal/state"
@@ -98,9 +97,6 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 	}
 	if failure := local.Commit(current, event); failure != nil {
 		return nil, failure
-	}
-	if err := cardruntime.RefreshProjectionForPendingAction(root, current); err != nil {
-		return nil, publicError(erroridl.ErrorCode_INTERNAL, err.Error())
 	}
 	return response, nil
 }

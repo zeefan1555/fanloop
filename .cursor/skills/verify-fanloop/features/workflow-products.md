@@ -7,7 +7,7 @@
   second-brain-skills `select-workflow` Skill; code changes use `code-change` (it replaced the retired
   `fanloop-maintainer` and `remnote-direct-maintainer`, ADR-0135).
 - Installed `create-fanloop-workflow` plus `examples/workflows/example/` as non-production authoring aids.
-- `examples/workflows/manage-fanloop-workflow`: four-stage port of loop_cli `manage-loop-workflow`, with the same five bundled skills. Panorama stays on `pending_actions`. Publication uses logged-in `fornax-cli` against personal workspace `7543941556223377409` and key prefix `fanloop.workflow.`.
+- `examples/workflows/manage-fanloop-workflow`: four-stage port of loop_cli `manage-loop-workflow`, with the same five bundled skills. The package predates Workflow-owned Panorama migration; do not infer a Runtime gate from it. Publication uses logged-in `fornax-cli` against personal workspace `7543941556223377409` and key prefix `fanloop.workflow.`.
 
 ## How to get to it (user POV)
 

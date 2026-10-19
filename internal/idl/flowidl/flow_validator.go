@@ -150,30 +150,6 @@ func (p *Skill) IsValid() error {
 	}
 	return nil
 }
-func (p *PendingAction) IsValid() error {
-	if len(p.Id) < int(1) {
-		return fmt.Errorf("field Id min_len rule failed, current value: %d", len(p.Id))
-	}
-	if p.Type.String() == "<UNSET>" {
-		return fmt.Errorf("field Type defined_only rule failed")
-	}
-	_src := []ActionType{ActionType_unspecified}
-	for _, src := range _src {
-		if p.Type == src {
-			return fmt.Errorf("field Type not_in rule failed, current value: %v", p.Type)
-		}
-	}
-	if p.Skill == nil {
-		return fmt.Errorf("field Skill not_nil rule failed")
-	}
-	if err := p.Skill.IsValid(); err != nil {
-		return fmt.Errorf("field Skill not valid, %w", err)
-	}
-	if len(p.TriggerEventId) < int(1) {
-		return fmt.Errorf("field TriggerEventId min_len rule failed, current value: %d", len(p.TriggerEventId))
-	}
-	return nil
-}
 func (p *Prompt) IsValid() error {
 	if len(p.Content) < int(1) {
 		return fmt.Errorf("field Content min_len rule failed, current value: %d", len(p.Content))
@@ -455,33 +431,6 @@ func (p *FlowResultResponse) IsValid() error {
 	}
 	if err := p.Transition.IsValid(); err != nil {
 		return fmt.Errorf("field Transition not valid, %w", err)
-	}
-	if p.State == nil {
-		return fmt.Errorf("field State not_nil rule failed")
-	}
-	if err := p.State.IsValid(); err != nil {
-		return fmt.Errorf("field State not valid, %w", err)
-	}
-	return nil
-}
-func (p *FlowActionAcknowledgeRequest) IsValid() error {
-	if len(p.ActionId) < int(1) {
-		return fmt.Errorf("field ActionId min_len rule failed, current value: %d", len(p.ActionId))
-	}
-	if len(p.PanoramaSnapshotPath) < int(1) {
-		return fmt.Errorf("field PanoramaSnapshotPath min_len rule failed, current value: %d", len(p.PanoramaSnapshotPath))
-	}
-	return nil
-}
-func (p *FlowActionAcknowledgeResponse) IsValid() error {
-	if p.Effect.String() == "<UNSET>" {
-		return fmt.Errorf("field Effect defined_only rule failed")
-	}
-	_src := []ActionAcknowledgeEffect{ActionAcknowledgeEffect_unspecified}
-	for _, src := range _src {
-		if p.Effect == src {
-			return fmt.Errorf("field Effect not_in rule failed, current value: %v", p.Effect)
-		}
 	}
 	if p.State == nil {
 		return fmt.Errorf("field State not_nil rule failed")

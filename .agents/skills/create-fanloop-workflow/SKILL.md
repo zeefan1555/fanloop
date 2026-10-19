@@ -31,10 +31,12 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 - 每个 Step 至少声明一条 Loop Route；没有更早依赖可返回时回到自身，不能留下无法返工的 Step。
 - `prompt.yaml` 只保留 Step 指令和 SkillBinding；稳定、可复用的具体方法拆到同目录原子 Skill，调用处只留指针。
 - 保留明确的 Human Gate。Agent 不得代替人批准，也不得把旧回复或实现自证当作新的人工决定。
-- 不要声明 `panorama_presented` 或 `panorama_card_published`，也不要再复制全景图展示 Skill。这两个 Condition ID 由 Runtime 保留。
-  进入、回流、跳转和完成由 CLI 内置 `fanloop-panorama-delivery` 投递，并用 `fanloop flow action acknowledge` 关闭。
-  宿主句子以该内置 Skill 为准：`report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`
-  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent 在非 dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送该 `data.content` 后再 acknowledge 同一 `snapshot_path`，然后才继续业务 Prompt。不得把带全景图门禁的 Workflow 整段放进无法发送用户可见消息的子 Agent。成功终止 Route 且 Workflow completed 之后，父宿主再 render 一次并送出精确 `data.content`。必须写明：`after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.` 不得写「最终回复不得重复 Panorama」。
+- 需要全景图时，声明输出 `panorama_snapshot_path:path` 的普通 Condition，绑定同一 Workflow 内的展示 Skill，并把它加入
+  所有需要展示的正常、终止和回流 Route 的每个 `when.any_of` AND 组。进入新 Step 或回流重入时重新展示；
+  展示失败时 blocked。展示 Skill 的 `local_agent` 只允许一条投递：非 dry-run
+  `fanloop card render --view panorama --format markdown`，把该次 `data.content` 原样作为 Step 的第一条用户可见消息，再上报该次 `data.snapshot_path`。
+  必须写明：`report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`
+  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent 在非 dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送该 `data.content` 后再上报同一 `snapshot_path`，然后才继续业务 Prompt。不得把带全景图门禁的 Workflow 整段放进无法发送用户可见消息的子 Agent。成功终止 Route 且 Workflow completed 之后，父宿主再 render 一次并送出精确 `data.content`。必须写明：`after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.` 不得写「最终回复不得重复 Panorama」。复制 `examples/workflows/example/skills/example-panorama/SKILL.md` 的投递顺序。
 
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。
@@ -46,7 +48,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 1. 完整 Step 表：顺序、`id`、`name`、Stage、Job、`executor`。
 2. 五份 YAML 的完整结构和全部 Condition/Route 组合。
 3. 原子 Skill 清单、每项职责和被哪些 Prompt 引用。
-4. Human Gate、回流目标、Panorama 覆盖、非目标和 ADR impact。
+4. Human Gate、回流目标、是否选择 Panorama 及其覆盖、非目标和 ADR impact。
 
 新 Workflow 的变更前基线记为不存在；重构现有 Workflow 时逐项列出 Step 的新增、删除、改名、重排和
 `executor` 变化。取得针对该具体草案的明确批准后，才把临时草案写入：

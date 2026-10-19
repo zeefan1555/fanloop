@@ -304,27 +304,6 @@ func (p *FlowResultPayload) IsValid() error {
 	}
 	return nil
 }
-func (p *FlowActionAcknowledgedPayload) IsValid() error {
-	if len(p.ActionId) < int(1) {
-		return fmt.Errorf("field ActionId min_len rule failed, current value: %d", len(p.ActionId))
-	}
-	if p.ActionType.String() == "<UNSET>" {
-		return fmt.Errorf("field ActionType defined_only rule failed")
-	}
-	_src := []ActionType{ActionType_unspecified}
-	for _, src := range _src {
-		if p.ActionType == src {
-			return fmt.Errorf("field ActionType not_in rule failed, current value: %v", p.ActionType)
-		}
-	}
-	if len(p.TriggerEventId) < int(1) {
-		return fmt.Errorf("field TriggerEventId min_len rule failed, current value: %d", len(p.TriggerEventId))
-	}
-	if len(p.PanoramaSnapshotPath) < int(1) {
-		return fmt.Errorf("field PanoramaSnapshotPath min_len rule failed, current value: %d", len(p.PanoramaSnapshotPath))
-	}
-	return nil
-}
 func (p *TraceDocumentBoundPayload) IsValid() error {
 	if len(p.DocumentUrl) < int(1) {
 		return fmt.Errorf("field DocumentUrl min_len rule failed, current value: %d", len(p.DocumentUrl))
@@ -542,11 +521,6 @@ func (p *EventPayload) IsValid() error {
 	if p.TraceSynced != nil {
 		if err := p.TraceSynced.IsValid(); err != nil {
 			return fmt.Errorf("field TraceSynced not valid, %w", err)
-		}
-	}
-	if p.FlowActionAcknowledged != nil {
-		if err := p.FlowActionAcknowledged.IsValid(); err != nil {
-			return fmt.Errorf("field FlowActionAcknowledged not valid, %w", err)
 		}
 	}
 	return nil

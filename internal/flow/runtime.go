@@ -25,25 +25,22 @@ import (
 )
 
 type Runtime struct {
-	Clock             func() time.Time
-	EventID           func() string
-	ReleaseVersion    string
-	ProjectCard       func(string, state.State) error
-	ProvisionTrace    func(context.Context, string, string) string
-	AutoSyncTrace     func(context.Context, string)
-	Warn              func(string)
-	PanoramaSkillPath string
+	Clock          func() time.Time
+	EventID        func() string
+	ReleaseVersion string
+	ProjectCard    func(string, state.State) error
+	ProvisionTrace func(context.Context, string, string) string
+	AutoSyncTrace  func(context.Context, string)
+	Warn           func(string)
 }
 
 var _ flowidl.FlowService = Runtime{}
 
 func DefaultRuntime() Runtime {
-	executable, _ := os.Executable()
 	return Runtime{
 		Clock: time.Now, EventID: state.NewEventID, ReleaseVersion: buildinfo.ReleaseVersion,
-		PanoramaSkillPath: filepath.Join(release.RootForExecutable(executable), filepath.FromSlash(release.PanoramaDeliverySkillPath)),
-		ProjectCard:       cardruntime.WriteProjection,
-		ProvisionTrace:    provisionTraceDocument,
+		ProjectCard:    cardruntime.WriteProjection,
+		ProvisionTrace: provisionTraceDocument,
 		AutoSyncTrace: func(ctx context.Context, root string) {
 			_, _ = trace.DefaultRuntime().Sync(ctx, root, traceidl.NewTraceSyncRequest(), false)
 		},
@@ -80,10 +77,6 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if err != nil {
 		if errors.Is(err, configuration.ErrFetch) {
 			return nil, newFlowError(erroridl.ErrorCode_CONFIGURATION_FETCH_FAILED, err.Error(), nil)
-		}
-		var reserved workflow.ReservedConditionError
-		if errors.As(err, &reserved) {
-			return nil, newFlowError(erroridl.ErrorCode_CONDITION_RESERVED, reserved.Error(), nil)
 		}
 		return nil, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 	}
@@ -135,14 +128,11 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if failure := validateAndCommit(local, loaded.Workflow, next, event); failure != nil {
 		return nil, failure
 	}
-	response.State = workflowview.ProjectLoadedWithAction(loaded, next, &state.PendingAction{
-		ID: "panorama-" + event.ID, Type: state.ActionPanoramaDeliveryRequired, TriggerEventID: event.ID, StepID: first,
-	}, runtime.panoramaSkillPath())
-	if err := response.IsValid(); err != nil {
-		return nil, internalError(err)
-	}
 	traceWarning := runtime.provisionTrace(ctx, root, request.Requirement.Title)
 	runtime.warn(traceWarning)
+	if traceWarning != "" {
+		return response, nil
+	}
 	current, _, loadFailure := local.LoadBound()
 	if loadFailure != nil {
 		runtime.warn(fmt.Sprintf("Card projection for Flow Event %s could not load current State: %v", event.ID, loadFailure))
@@ -159,17 +149,12 @@ func (runtime Runtime) Status(_ context.Context, root string, request *flowidl.F
 	if err := request.IsValid(); err != nil {
 		return nil, requestError(err)
 	}
-	local, current, loaded, failure := load(root)
-	if failure != nil {
-		return nil, failure
-	}
-	pending, failure := loadPendingAction(local)
+	_, current, loaded, failure := load(root)
 	if failure != nil {
 		return nil, failure
 	}
 	response := &flowidl.FlowStatusResponse{
-		Requirement: workflowview.Requirement(current.Requirement), Workflow: workflowview.WorkflowRef(current.Release.Workflow.Ref()),
-		State: workflowview.ProjectLoadedWithAction(loaded, current, pending, runtime.panoramaSkillPath()),
+		Requirement: workflowview.Requirement(current.Requirement), Workflow: workflowview.WorkflowRef(current.Release.Workflow.Ref()), State: workflowview.ProjectLoaded(loaded, current),
 	}
 	if err := response.IsValid(); err != nil {
 		return nil, internalError(err)
@@ -186,9 +171,6 @@ func (runtime Runtime) Progress(ctx context.Context, root string, request *flowi
 		return nil, failure
 	}
 	if failure := requireCurrentStep(current, request.StepId); failure != nil {
-		return nil, failure
-	}
-	if failure := requireNoPendingAction(local); failure != nil {
 		return nil, failure
 	}
 	if current.CurrentStepStatus == state.StepAwaitingConfirmation {
@@ -236,9 +218,6 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 	if failure := requireCurrentStep(current, request.StepId); failure != nil {
 		return nil, failure
 	}
-	if failure := requireNoPendingAction(local); failure != nil {
-		return nil, failure
-	}
 	evaluation, resultFailure := evaluateResult(loaded.Workflow, current, request)
 	if resultFailure != nil {
 		return nil, resultFailure
@@ -262,12 +241,6 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 		eventID := runtime.eventID()
 		response.EventId = stringPointer(eventID)
 		current.LastEventID = eventID
-		if evaluation.durableEffect != state.ResultStarted {
-			response.State = workflowview.ProjectLoadedWithAction(loaded, current, &state.PendingAction{
-				ID: "panorama-" + eventID, Type: state.ActionPanoramaDeliveryRequired,
-				TriggerEventID: eventID, StepID: evaluation.durableTransition.ToStepID,
-			}, runtime.panoramaSkillPath())
-		}
 	}
 	if err := response.IsValid(); err != nil {
 		return nil, internalError(err)
@@ -284,67 +257,6 @@ func (runtime Runtime) Result(ctx context.Context, root string, request *flowidl
 		return nil, failure
 	}
 	runtime.afterAcceptedReport(ctx, root, current, event.ID)
-	return response, nil
-}
-
-func (runtime Runtime) AcknowledgeAction(_ context.Context, root string, request *flowidl.FlowActionAcknowledgeRequest, dryRun bool) (*flowidl.FlowActionAcknowledgeResponse, error) {
-	if request == nil {
-		return nil, requestError(errText("request is required"))
-	}
-	if err := request.IsValid(); err != nil {
-		return nil, requestError(err)
-	}
-	local, current, loaded, failure := load(root)
-	if failure != nil {
-		return nil, failure
-	}
-	pending, failure := loadPendingAction(local)
-	if failure != nil {
-		return nil, failure
-	}
-	if pending == nil {
-		return nil, newFlowError(erroridl.ErrorCode_REPORT_NOT_ALLOWED, "no Flow action is pending", nil)
-	}
-	if request.ActionId != pending.ID {
-		return nil, newFlowError(erroridl.ErrorCode_STATE_CONFLICT, "action_id is not the pending Flow action", map[string]string{"pending_action_id": pending.ID})
-	}
-	if failure := validatePanoramaSnapshot(root, request.PanoramaSnapshotPath, pending, current); failure != nil {
-		return nil, failure
-	}
-	next := current
-	next.UpdatedAt = runtime.now()
-	response := &flowidl.FlowActionAcknowledgeResponse{
-		Effect: flowidl.ActionAcknowledgeEffect_acknowledged,
-		State:  workflowview.ProjectLoaded(loaded, next),
-	}
-	if dryRun {
-		if err := response.IsValid(); err != nil {
-			return nil, internalError(err)
-		}
-		return response, nil
-	}
-	eventID := runtime.eventID()
-	response.EventId = stringPointer(eventID)
-	previousEventID := next.LastEventID
-	next.LastEventID = eventID
-	event := state.Event{
-		SchemaVersion: state.CurrentEventSchemaVersion, ID: eventID, OccurredAt: next.UpdatedAt,
-		Kind: state.EventFlowActionAcknowledged, Command: "flow.action.acknowledge",
-		Workflow: next.Release.Workflow, CausedByEventID: previousEventID,
-		Payload: state.Payload(state.FlowActionAcknowledgedPayload{
-			ActionID: pending.ID, ActionType: pending.Type, TriggerEventID: pending.TriggerEventID,
-			PanoramaSnapshotPath: request.PanoramaSnapshotPath,
-		}),
-	}
-	if err := response.IsValid(); err != nil {
-		return nil, internalError(err)
-	}
-	if failure := validateAndCommit(local, loaded.Workflow, next, event); failure != nil {
-		return nil, failure
-	}
-	if err := cardruntime.RefreshProjectionForPendingAction(root, next); err != nil {
-		runtime.warn(fmt.Sprintf("Card projection for Flow Event %s could not update: %v", event.ID, err))
-	}
 	return response, nil
 }
 
@@ -513,29 +425,6 @@ func load(root string) (*store.Store, state.State, workflow.Loaded, *erroridl.Pu
 	return local, current, loaded, nil
 }
 
-func loadPendingAction(local *store.Store) (*state.PendingAction, *erroridl.PublicError) {
-	events, failure := local.Events()
-	if failure != nil {
-		return nil, storeError(failure)
-	}
-	pending, err := state.PendingPanoramaAction(events)
-	if err != nil {
-		return nil, newFlowError(erroridl.ErrorCode_STATE_CORRUPT, err.Error(), nil)
-	}
-	return pending, nil
-}
-
-func requireNoPendingAction(local *store.Store) *erroridl.PublicError {
-	pending, failure := loadPendingAction(local)
-	if failure != nil {
-		return failure
-	}
-	if pending != nil {
-		return newFlowError(erroridl.ErrorCode_REPORT_NOT_ALLOWED, "pending Flow action must be acknowledged before business reports", map[string]string{"pending_action_id": pending.ID})
-	}
-	return nil
-}
-
 func internalError(err error) *erroridl.PublicError {
 	return newFlowError(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
 }
@@ -556,9 +445,7 @@ func (runtime Runtime) projectCard(root string, current state.State, eventID str
 	if runtime.ProjectCard == nil {
 		return ""
 	}
-	projectionState := current
-	projectionState.LastEventID = eventID
-	if err := runtime.ProjectCard(root, projectionState); err != nil {
+	if err := runtime.ProjectCard(root, current); err != nil {
 		return fmt.Sprintf("Card projection for Flow Event %s could not update: %v", eventID, err)
 	}
 	return ""
@@ -596,14 +483,6 @@ func (runtime Runtime) releaseVersion() string {
 		return buildinfo.ReleaseVersion
 	}
 	return runtime.ReleaseVersion
-}
-
-func (runtime Runtime) panoramaSkillPath() string {
-	if runtime.PanoramaSkillPath != "" {
-		return runtime.PanoramaSkillPath
-	}
-	executable, _ := os.Executable()
-	return filepath.Join(release.RootForExecutable(executable), filepath.FromSlash(release.PanoramaDeliverySkillPath))
 }
 
 func stringPointer(value string) *string { return &value }

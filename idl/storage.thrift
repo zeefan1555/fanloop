@@ -7,8 +7,8 @@ namespace go storageidl
 // This file owns every Fanloop-defined structured JSON/JSONL document under
 // .fanloop. It defines file schemas only: no public CLI methods or RPC service.
 
-const i32 FLOW_STATE_SCHEMA_VERSION      = 15
-const i32 EVENT_SCHEMA_VERSION           = 15
+const i32 FLOW_STATE_SCHEMA_VERSION      = 16
+const i32 EVENT_SCHEMA_VERSION           = 16
 const i32 OUTPUT_REGISTRY_SCHEMA_VERSION = 4
 const i32 CARD_PROJECTION_SCHEMA_VERSION = 7
 const i32 CARD_BINDING_SCHEMA_VERSION      = 2
@@ -71,19 +71,14 @@ enum RegistryProfile {
 }
 
 enum EventKind {
-  unspecified              = 0,
-  flow_initialized         = 1,
-  flow_progressed          = 2,
-  flow_result              = 3,
-  trace_document_bound     = 4,
-  trace_sync_started       = 5,
-  trace_synced             = 6,
-  flow_action_acknowledged = 7,
-}
-
-enum ActionType {
-  unspecified                = 0,
-  panorama_delivery_required = 1,
+  unspecified          = 0,
+  flow_initialized     = 1,
+  flow_progressed      = 2,
+  flow_result          = 3,
+  trace_document_bound = 4,
+  trace_sync_started   = 5,
+  trace_synced         = 6,
+  // Value 7 is retired with Runtime-owned Panorama actions and must not be reused.
 }
 
 enum ResultEffect {
@@ -258,16 +253,6 @@ struct FlowResultPayload {
   6: required OutputChanges         output_changes    (vt.not_nil = "true"),
 }
 
-struct FlowActionAcknowledgedPayload {
-  1: required string     action_id              (vt.min_size = "1"),
-  2: required ActionType action_type            (
-    vt.defined_only = "true",
-    vt.not_in = "ActionType.unspecified",
-  ),
-  3: required string     trigger_event_id       (vt.min_size = "1"),
-  4: required string     panorama_snapshot_path (vt.min_size = "1"),
-}
-
 struct TraceDocumentBoundPayload {
   1: optional string          previous_document_url,
   2: required string          document_url          (vt.min_size = "1"),
@@ -318,13 +303,13 @@ struct TraceSyncedPayload {
 }
 
 union EventPayload {
-  1: FlowInitializedPayload        flow_initialized,
-  2: FlowProgressedPayload         flow_progressed,
-  3: FlowResultPayload             flow_result,
-  4: TraceDocumentBoundPayload     trace_document_bound,
-  5: TraceSyncStartedPayload       trace_sync_started,
-  6: TraceSyncedPayload            trace_synced,
-  7: FlowActionAcknowledgedPayload flow_action_acknowledged,
+  1: FlowInitializedPayload    flow_initialized,
+  2: FlowProgressedPayload     flow_progressed,
+  3: FlowResultPayload         flow_result,
+  4: TraceDocumentBoundPayload trace_document_bound,
+  5: TraceSyncStartedPayload   trace_sync_started,
+  6: TraceSyncedPayload        trace_synced,
+  // Field 7 is retired with Runtime-owned Panorama actions and must not be reused.
 }
 
 struct Event {

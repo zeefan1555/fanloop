@@ -27,32 +27,8 @@ func FormatPanoramaStage(stage DisplayStage, stepLabel func(DisplayStep) string)
 	return stage.Name + "：" + strings.Join(jobs, " ｜ ")
 }
 
-const panoramaDeliverySkillID = "fanloop-panorama-delivery"
-const panoramaDeliveryPrompt = "Deliver the current Panorama exactly as the built-in Skill requires, then acknowledge this action."
-
 func ProjectLoaded(loaded workflow.Loaded, current state.State) *flowidl.FlowState {
-	return ProjectLoadedWithAction(loaded, current, nil, "")
-}
-
-func ProjectLoadedWithAction(loaded workflow.Loaded, current state.State, pending *state.PendingAction, skillPath string) *flowidl.FlowState {
-	result := project(loaded.Workflow, current, loaded.SkillPaths)
-	result.PendingActions = []*flowidl.PendingAction{}
-	if pending == nil {
-		return result
-	}
-	action := &flowidl.PendingAction{
-		Id: pending.ID, Type: flowidl.ActionType_panorama_delivery_required,
-		Skill: &flowidl.Skill{
-			Id: panoramaDeliverySkillID, Prompt: panoramaDeliveryPrompt, Optional: false, Path: skillPath,
-		},
-		TriggerEventId: pending.TriggerEventID,
-	}
-	if pending.StepID != "" {
-		stepID := pending.StepID
-		action.StepId = &stepID
-	}
-	result.PendingActions = []*flowidl.PendingAction{action}
-	return result
+	return project(loaded.Workflow, current, loaded.SkillPaths)
 }
 
 func project(definition workflow.Workflow, current state.State, paths map[string]string) *flowidl.FlowState {

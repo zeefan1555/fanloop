@@ -3,6 +3,7 @@ status: accepted
 date: 2026-10-15
 supersedes: ADR-0081, ADR-0119
 supersedes_in_part: ADR-0104, ADR-0130
+superseded_by: ADR-0143-everything-is-condition
 ---
 
 # 将 Panorama 投递改为 Runtime Required Action

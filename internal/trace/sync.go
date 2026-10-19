@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	"github.com/zeefan1555/fanloop/internal/executionlog"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
@@ -52,9 +51,6 @@ func (runtime Runtime) Sync(ctx context.Context, root string, request *traceidl.
 		}
 		if failure := local.Commit(current, started); failure != nil {
 			return nil, failure
-		}
-		if err := cardruntime.RefreshProjectionForPendingAction(root, current); err != nil {
-			return nil, publicError(erroridl.ErrorCode_INTERNAL, err.Error())
 		}
 		events, failure = local.Events()
 		if failure != nil {
@@ -109,9 +105,6 @@ func (runtime Runtime) Sync(ctx context.Context, root string, request *traceidl.
 	}
 	if failure := local.Commit(current, event); failure != nil {
 		return nil, failure
-	}
-	if err := cardruntime.RefreshProjectionForPendingAction(root, current); err != nil {
-		return nil, publicError(erroridl.ErrorCode_INTERNAL, err.Error())
 	}
 	return data, nil
 }

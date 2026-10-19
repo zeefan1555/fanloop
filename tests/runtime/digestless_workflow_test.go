@@ -154,7 +154,6 @@ func TestCurrentSchemaRequirementDoesNotRevalidateHistoricalRoutes(t *testing.T)
 	}
 	assertSuccess(t, run(binary, "flow", "status", "--root", root), "flow.status")
 	assertSuccess(t, run(binary, "card", "render", "--root", root, "--view", "current", "--format", "markdown", "--dry-run"), "card.render")
-	acknowledgePendingPanorama(t, binary, root)
 
 	paths, before := requirementFacts(t, root)
 	currentResult := run(binary, "flow", "report", "result", "--root", root, "--step-id", "second",

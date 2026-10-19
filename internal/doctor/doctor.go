@@ -7,11 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
-	"github.com/zeefan1555/fanloop/internal/cardsnapshot"
 	"github.com/zeefan1555/fanloop/internal/configuration"
 	idl "github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -352,12 +353,7 @@ func (runtime Runtime) requirementChecks(root string) []*idl.DoctorCheck {
 	}
 
 	checks = append(checks, validateCardBinding(root))
-	var pending *state.PendingAction
-	var pendingErr error
-	if eventsErr == nil {
-		pending, pendingErr = state.PendingPanoramaAction(events)
-	}
-	checks = append(checks, validateCardProjection(root, strict, strictErr == nil && outputsErr == nil, pending, pendingErr))
+	checks = append(checks, validateCardProjection(root, strict, strictErr == nil && outputsErr == nil))
 
 	if err := validateCardSnapshots(root); err != nil {
 		checks = append(checks, check("card_snapshots", statusFail, err.Error(), "Restore the immutable Card snapshot from a trusted copy."))
@@ -455,15 +451,12 @@ func validateCardSnapshots(root string) error {
 
 const staleCardProjectionHint = "Run a non-dry-run fanloop card render --root <requirement> to rebuild .fanloop/card/projection.json from the committed event log."
 
-func validateCardProjection(root string, current state.State, hasCurrent bool, pending *state.PendingAction, pendingErr error) *idl.DoctorCheck {
+func validateCardProjection(root string, current state.State, hasCurrent bool) *idl.DoctorCheck {
 	projection, _, err := cardruntime.LoadProjection(root)
 	if err != nil {
 		return check("card_projection", statusFail, "Card projection is invalid: "+err.Error(), "Repair or restore .fanloop/card/projection.json.")
 	}
-	if pendingErr != nil {
-		return check("card_projection", statusFail, "Card projection could not be compared with the pending Flow action: "+pendingErr.Error(), "Repair or restore .fanloop/trace/events.jsonl.")
-	}
-	if hasCurrent && cardruntime.ProjectionNeedsRebuild(projection, current, pending) {
+	if hasCurrent && cardruntime.ProjectionNeedsRebuild(projection, current) {
 		return check("card_projection", statusFail, "Card projection is stale.", staleCardProjectionHint)
 	}
 	return check("card_projection", statusPass, "Card projection is valid and current.", "")
@@ -481,7 +474,25 @@ func validateCardBinding(root string) *idl.DoctorCheck {
 }
 
 func validCardSnapshotPath(path string) bool {
-	return cardsnapshot.ValidPath(path)
+	const prefix = ".fanloop/card/"
+	if !strings.HasPrefix(path, prefix) || strings.Contains(strings.TrimPrefix(path, prefix), "/") || !strings.HasSuffix(path, ".json") {
+		return false
+	}
+	stem := strings.TrimSuffix(strings.TrimPrefix(path, prefix), ".json")
+	const stampLength = len("20260807T004805.880691+0800")
+	if len(stem) < stampLength {
+		return false
+	}
+	if _, err := time.Parse("20060102T150405.000000-0700", stem[:stampLength]); err != nil {
+		return false
+	}
+	if suffix := stem[stampLength:]; suffix != "" {
+		value, err := strconv.Atoi(strings.TrimPrefix(suffix, "-"))
+		if err != nil || !strings.HasPrefix(suffix, "-") || value < 1 {
+			return false
+		}
+	}
+	return true
 }
 
 func validateRenderedCardContent(content []byte) error {
