@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/zeefan1555/fanloop/errs"
+	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
 	"github.com/zeefan1555/fanloop/internal/state"
@@ -68,6 +69,11 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 	if previous != "" {
 		if state.SameTraceDocumentURL(previous, request.DocumentUrl) && previousRegistry == registry.Profile &&
 			sameOptionalDocument(previousCLILogDocumentURL, cliLogDocumentURL) {
+			if !dryRun {
+				if failure := refreshCardProjection(local, root); failure != nil {
+					return nil, failure
+				}
+			}
 			return &traceidl.TraceBindResponse{Effect: traceidl.TraceBindEffect_unchanged}, nil
 		}
 		return nil, publicError(erroridl.ErrorCode_INVALID_ARGUMENT, "this requirement already has a Trace binding")
@@ -98,7 +104,19 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 	if failure := local.Commit(current, event); failure != nil {
 		return nil, failure
 	}
+	if failure := refreshCardProjection(local, root); failure != nil {
+		return nil, failure
+	}
 	return response, nil
+}
+
+func refreshCardProjection(local *store.Store, root string) *erroridl.PublicError {
+	return local.WithLockedState(func(latest state.State) *erroridl.PublicError {
+		if err := cardruntime.WriteProjection(root, latest); err != nil {
+			return publicError(erroridl.ErrorCode_INTERNAL, err.Error())
+		}
+		return nil
+	})
 }
 
 func (runtime Runtime) Status(_ context.Context, root string, request *traceidl.TraceStatusRequest) (*traceidl.TraceStatusResponse, error) {

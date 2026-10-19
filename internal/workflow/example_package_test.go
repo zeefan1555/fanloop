@@ -57,6 +57,7 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 		"analyze-workflow-change",
 		"build-workflow-candidate",
 		"explain-workflow-design",
+		"manage-fanloop-panorama",
 		"manage-workflow-document",
 		"publish-workflow-candidate",
 	}
@@ -66,6 +67,19 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	for _, id := range wantSkills {
 		if loaded.SkillPaths[id] == "" {
 			t.Fatalf("missing skill %s", id)
+		}
+	}
+	if _, exists := loaded.Workflow.Conditions["panorama_presented"]; !exists {
+		t.Fatal("manage-fanloop-workflow does not declare its Panorama condition")
+	}
+	for stepID, routes := range loaded.Workflow.Flows {
+		for _, route := range routes {
+			assertEveryGroupContains(t, stepID+" flow", route.When, "panorama_presented")
+		}
+	}
+	for stepID, routes := range loaded.Workflow.Loops {
+		for _, route := range routes {
+			assertEveryGroupContains(t, stepID+" loop", route.When, "panorama_presented")
 		}
 	}
 	packageRoot := filepath.Join(root, "manage-fanloop-workflow")
@@ -107,5 +121,62 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	}
 	if !strings.Contains(text, "不得查询或写入团队空间 `7590123861772503042`") || !strings.Contains(text, "不得读取或写入团队空间\n`7590123861772503042`") {
 		t.Fatal("team workspace id is not limited to prohibition text")
+	}
+	panoramaSkill := string(mustReadFile(t, filepath.Join(packageRoot, "skills", "manage-fanloop-panorama", "SKILL.md")))
+	for _, required := range []string{
+		"### 完成态 botmux",
+		"### 完成态 local_agent",
+		"### 完成态 aime",
+		"### 完成态 aiden",
+		"botmux send --card-file",
+		"lark-cli im +messages-reply",
+		"aiden-bot-cli send-card --card-file",
+		"after a successful terminal Route, render panorama once more",
+	} {
+		if !strings.Contains(panoramaSkill, required) {
+			t.Errorf("manage Panorama Skill is missing %q", required)
+		}
+	}
+	if got := strings.Count(panoramaSkill, "fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama"); got < 8 {
+		t.Fatalf("manage Panorama Skill render commands = %d, want initial and completed commands for four hosts", got)
+	}
+	conditionAt := strings.Index(panoramaSkill, "## 终态前上报 Condition")
+	completedAt := strings.Index(panoramaSkill, "## 完成后")
+	noReportAt := strings.Index(panoramaSkill, "完成态投递只发送这次新的卡片，不提交 ConditionResult")
+	if conditionAt < 0 || completedAt < 0 || noReportAt < 0 || !(conditionAt < completedAt && completedAt < noReportAt) {
+		t.Fatalf("manage Panorama Skill does not separate pre-terminal reporting from post-terminal delivery")
+	}
+	for _, required := range []string{
+		"`candidate_cancelled` 终态：不 render `Done` / `100%` Panorama",
+		"不得说“全部步骤完成”",
+		"`publish_workflow_candidate` Step",
+		"`fornax_release_published`",
+		"才执行下面的完成卡投递",
+	} {
+		if !strings.Contains(panoramaSkill, required) {
+			t.Errorf("manage Panorama terminal policy is missing %q", required)
+		}
+	}
+}
+
+func mustReadFile(t *testing.T, path string) []byte {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return content
+}
+
+func assertEveryGroupContains(t *testing.T, owner string, when When, conditionID string) {
+	t.Helper()
+	for index, group := range when.AnyOf {
+		found := false
+		for _, id := range group {
+			found = found || id == conditionID
+		}
+		if !found {
+			t.Fatalf("%s route group %d does not contain %s: %v", owner, index, conditionID, group)
+		}
 	}
 }

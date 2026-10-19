@@ -1,6 +1,10 @@
 schema_version: 3
 
 conditions:
+  panorama_presented:
+    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}
+    output: {key: panorama_snapshot_path, type: path}
+
   workflow_document_ready:
     prompt_ref: {file: prompt.yaml, prompt_id: workflow_document_ready_condition}
     output: {key: workflow_document_url, type: url, description: Workflow 管理文档}

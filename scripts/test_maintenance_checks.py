@@ -219,8 +219,19 @@ class MaintenanceChecks(unittest.TestCase):
         text = (source / 'fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md').read_text()
         self.write(
             'with-handoff/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md',
-            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
-            + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n',
+            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n',
+        )
+        self.write(
+            'with-handoff/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'with-handoff/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Deliver Panorama.\n    skills:\n'
+            '      - {id: workflow-panorama, prompt: Deliver Panorama., optional: false}\n',
         )
         passed = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--check-panorama-skills', '--config-source', str(self.root / 'with-handoff')],
@@ -236,6 +247,105 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertEqual([], configuration.panorama_skill_errors(text))
         errors = configuration.panorama_skill_errors(text + 'local_agent\n')
         self.assertTrue(any('parent/child handoff' in error for error in errors))
+
+    def test_unbound_panorama_named_directory_is_not_linted(self):
+        self.write(
+            'unbound/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  work_ready:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: work_condition}\n'
+            '    output: {key: work_path, type: path}\n',
+        )
+        self.write(
+            'unbound/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  work_condition:\n'
+            '    prompt: Work is ready.\n    skills: []\n',
+        )
+        self.write(
+            'unbound/fanloop-workflow/fomo/skills/unused-panorama/SKILL.md',
+            'This intentionally invalid Panorama text is not bound by YAML.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'unbound')],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('panorama skills: 0 ok', result.stdout)
+
+    def test_bound_panorama_skill_is_linted_without_panorama_in_directory_name(self):
+        self.write(
+            'bound/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'bound/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Deliver Panorama.\n    skills:\n'
+            '      - {id: delivery, prompt: Deliver Panorama., optional: false}\n',
+        )
+        self.write(
+            'bound/fanloop-workflow/fomo/skills/delivery/SKILL.md',
+            'This intentionally lacks the required delivery contract.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'bound')],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
+
+    def test_flow_style_panorama_skill_binding_is_linted(self):
+        self.write(
+            'flow-binding/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'flow-binding/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Deliver Panorama.\n'
+            '    skills: [{id: delivery, prompt: Deliver Panorama., optional: false}]\n',
+        )
+        self.write(
+            'flow-binding/fanloop-workflow/fomo/skills/delivery/SKILL.md',
+            'This intentionally lacks the required delivery contract.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'flow-binding')],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
+
+    def test_panorama_output_key_is_order_independent(self):
+        self.write(
+            'ordered-output/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  delivery_confirmed:\n'
+            '    prompt_ref:\n      file: prompt.yaml\n      prompt_id: delivery_condition\n'
+            '    output:\n      type: path\n      key: panorama_snapshot_path\n',
+        )
+        self.write(
+            'ordered-output/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  delivery_condition:\n'
+            '    prompt: Deliver Panorama.\n'
+            '    skills: [{prompt: Deliver Panorama., optional: false, id: delivery}]\n',
+        )
+        self.write(
+            'ordered-output/fanloop-workflow/fomo/skills/delivery/SKILL.md',
+            'This intentionally lacks the required delivery contract.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'ordered-output')],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
 
     def test_path_only_receipt_is_not_a_file_save_claim(self):
         path = self.root / 'prepare-result.json'
@@ -272,18 +382,20 @@ class MaintenanceChecks(unittest.TestCase):
         in_progress = evidence.read_text().replace('workflow status completed', 'still on retrospect_run')
         self.assertEqual([], configuration.missing_done_panorama_errors(in_progress))
 
-    def test_skip_done_phrase_names_the_replacement(self):
+    def test_done_panorama_is_workflow_owned_not_globally_required(self):
         text = (
             'local_agent\n'
             + configuration.REQUIRED_BLOCKED_SENTENCE + '\n'
             + 'headless fanloop card render --view panorama --format markdown data.content\n'
             + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
-            + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n'
-            + '最终回复不得重复 Panorama。\n'
         )
-        errors = configuration.panorama_skill_errors(text)
-        self.assertTrue(any('最终回复不得重复 Panorama' in error for error in errors), errors)
-        self.assertTrue(any(configuration.REQUIRED_DONE_PANORAMA_SENTENCE in error for error in errors))
+        self.assertEqual([], configuration.panorama_skill_errors(text))
+        self.assertEqual([], configuration.panorama_skill_errors(
+            text + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n'))
+
+    def test_bundled_manage_workflow_panorama_skill_passes_delivery_lint(self):
+        skill = ROOT / 'examples/workflows/manage-fanloop-workflow/skills/manage-fanloop-panorama/SKILL.md'
+        self.assertEqual([], configuration.panorama_skill_errors(skill.read_text()))
 
     def test_combo_slang_fixture_fails_and_plain_words_pass(self):
         evidence = ROOT / 'scripts/testdata/combo-slang-one-pass.md'

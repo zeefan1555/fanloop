@@ -20,7 +20,7 @@ description: 在 manage-fanloop-workflow 的构建节点中依据已确认分析
 3. 每个 SkillBinding 指向同 Bundle 的真实非空 Skill，并显式声明 `optional`。
 4. Human Gate 保留；Agent 不替人批准；影响 Route 的事实不能只写入 Evidence 或 Skill 禁止语句。
 5. Output key 稳定且使用最窄类型；用户可见名称写在 `description`，不翻译 key。
-6. 不声明、绑定或上报 Runtime 保留的全景图 Condition、Output 或本地投递 Skill。运行时动作只由 Status 的 `pending_actions` 处理，关闭动作为 `fanloop flow action acknowledge`。
+6. 按分析结论决定是否加入 Panorama。需要时把普通 Condition、`panorama_snapshot_path:path`、包内投递 Skill 和选定 Route operand 一起写入候选；不需要时完全省略。不得依赖任何 Runtime action 或 acknowledge 接口。
 
 ## Step ID
 

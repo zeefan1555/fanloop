@@ -11,6 +11,8 @@ Fanloop Runtime no longer owns Panorama delivery or any other business gate. It 
 
 `panorama_presented` and `panorama_card_published` are ordinary Condition IDs. A Workflow that needs a Panorama declares its Condition, adds it to the applicable Route combinations, and binds a delivery Skill through `prompt.yaml`. A Workflow that omits such a Condition starts and advances without rendering or acknowledging a Panorama. `card render --view panorama` remains a general renderer that any Workflow Skill may call.
 
+“Applicable” is owned by that Workflow. The Runtime, common entrypoint, and generic configuration validator do not infer that Panorama must happen before step-start confirmation, on every Route alternative, or after terminal completion. Authors encode each chosen timing and Route in their own Prompt, Skill, and YAML; generic validation checks that those explicit references are structurally valid. Package-specific tests may enforce a stronger contract for a package that deliberately chooses one.
+
 This removes the Runtime-owned `panorama_delivery_required` action, `flow action acknowledge`, the release-level `fanloop-panorama-delivery` Skill, snapshot receipt identity, and the `CONDITION_RESERVED` error. The existing example package demonstrates the opt-in model with `panorama_presented` and `example-panorama`. Production Workflow packages live in second-brain-skills and migrate separately by adding the same Condition/Route/Skill pattern only where Panorama remains desired.
 
 No compatibility layer or fallback path remains. State and Event schema versions advance from 15 to 16. Event kind value 7, EventPayload field 7, and FlowState field 5 are retired and must not be reused. Requirements written with schema 15 are not migrated by this change.

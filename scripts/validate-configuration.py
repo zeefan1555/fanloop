@@ -3,7 +3,8 @@
 
 Panorama Skills must block headless file-save delivery. --check-panorama-skills
 checks that text without a matrix. Skills that mention local_agent must also
-state the parent/child handoff and the post-complete Done panorama delivery.
+state the parent/child handoff. Route coverage, timing, and completed Panorama
+delivery are owned by each Workflow rather than inferred by this validator.
 --reject-file-save-evidence fails when pasted evidence treats artifacts/panorama-*
 as panorama_presented. --reject-missing-done-panorama fails a transcript that
 stops after the retrospect 75% panorama once the workflow has completed.
@@ -48,7 +49,6 @@ REQUIRED_DONE_PANORAMA_SENTENCE = (
     'after a successful terminal Route, render panorama once more and deliver exact data.content; '
     'the in-step retrospect panorama is not the Done 100% delivery.'
 )
-FORBIDDEN_SKIP_DONE_PANORAMA = '最终回复不得重复 Panorama'
 # 2026-10-07 combo review: one_pass/plain_words failed on unexplained trading slang.
 COMBO_SLANG = ('梭哈', '全仓', '一把梭', '优秀个股')
 REQUIRED_COMBO_SLANG_SENTENCE = (
@@ -193,17 +193,6 @@ def panorama_skill_errors(text):
                 'local_agent panorama delivery is missing the parent/child handoff. '
                 f'Add these sentences: {quoted}'
             )
-        if REQUIRED_DONE_PANORAMA_SENTENCE not in text:
-            errors.append(
-                'local_agent panorama delivery is missing the post-complete Done panorama. '
-                f'Add this sentence: "{REQUIRED_DONE_PANORAMA_SENTENCE}"'
-            )
-        if FORBIDDEN_SKIP_DONE_PANORAMA in text:
-            errors.append(
-                'Skill tells the host to stop after the in-step panorama. '
-                f'Remove "{FORBIDDEN_SKIP_DONE_PANORAMA}". '
-                f'Add this sentence: "{REQUIRED_DONE_PANORAMA_SENTENCE}"'
-            )
     return errors
 
 
@@ -289,20 +278,6 @@ def combo_id_teaching_errors(text):
             + REQUIRED_COMBO_REF_SENTENCE
         )
     return errors
-
-
-def remnote_done_prompt_errors(source, workflows):
-    if workflows is not None and 'remnote-flashcards' not in workflows:
-        return []
-    prompt = source / 'fanloop-workflow' / 'remnote-flashcards' / 'prompt.yaml'
-    if not prompt.is_file():
-        return []
-    if REQUIRED_DONE_PANORAMA_SENTENCE in prompt.read_text():
-        return []
-    return [
-        f'{_relative(prompt, source)}: remnote-flashcards terminal delivery is missing the Done panorama sentence. '
-        f'Add this sentence to retrospect_run_flow: "{REQUIRED_DONE_PANORAMA_SENTENCE}"'
-    ]
 
 
 def _require_sentence(source, relative, sentence, why):
@@ -460,8 +435,6 @@ def learning_card_gate_errors(source):
                     f'fanloop-workflow/remnote-flashcards/flow.yaml: missing route condition {condition_id}. '
                     'The engine only advances when the forward route lists it.'
                 )
-        if 'panorama_presented' not in flow_text:
-            errors.append('fanloop-workflow/remnote-flashcards/flow.yaml: panorama_presented must stay on every forward route.')
     package = source / 'fanloop-workflow' / 'remnote-flashcards'
     if not package.is_dir():
         return errors
@@ -492,6 +465,141 @@ def _skill_dirs(root):
     return children
 
 
+YAML_ID = r'[a-z][a-z0-9_-]*'
+
+
+def _yaml_mapping_blocks(path, root_key):
+    """Read one schema-owned top-level YAML mapping without guessing directories."""
+    if not path.is_file() or path.is_symlink():
+        return {}
+    blocks = {}
+    current = None
+    inside = False
+    for line in path.read_text().splitlines():
+        if line == f'{root_key}:':
+            inside = True
+            current = None
+            continue
+        if not inside:
+            continue
+        if line and not line[0].isspace():
+            break
+        match = re.match(rf'^  ({YAML_ID}):\s*$', line)
+        if match:
+            current = match.group(1)
+            blocks[current] = []
+            continue
+        if current is not None:
+            blocks[current].append(line)
+    return {key: '\n'.join(lines) for key, lines in blocks.items()}
+
+
+def _flow_mapping(text):
+    text = text.strip()
+    if text.startswith('{') and text.endswith('}'):
+        text = text[1:-1]
+    result = {}
+    for item in text.split(','):
+        key, separator, value = item.partition(':')
+        if separator and re.fullmatch(YAML_ID, key.strip()):
+            result[key.strip()] = value.strip().strip('"\'')
+    return result
+
+
+def _yaml_child_mapping(block, field):
+    lines = block.splitlines()
+    for index, line in enumerate(lines):
+        match = re.match(r'^(\s*)' + re.escape(field) + r':\s*(.*)$', line)
+        if not match:
+            continue
+        indent, remainder = len(match.group(1)), match.group(2).strip()
+        if remainder:
+            return _flow_mapping(remainder)
+        result = {}
+        for nested in lines[index + 1:]:
+            if not nested.strip():
+                continue
+            nested_indent = len(nested) - len(nested.lstrip())
+            if nested_indent <= indent:
+                break
+            item = re.match(r'^\s*(' + YAML_ID + r'):\s*([^#]+?)\s*$', nested)
+            if item:
+                result[item.group(1)] = item.group(2).strip().strip('"\'')
+        return result
+    return {}
+
+
+def _yaml_skill_ids(block):
+    lines = block.splitlines()
+    for index, line in enumerate(lines):
+        match = re.match(r'^(\s*)skills:\s*(.*)$', line)
+        if not match:
+            continue
+        indent, remainder = len(match.group(1)), match.group(2).strip()
+        if remainder.startswith('[') and remainder.endswith(']'):
+            return sorted({
+                mapping['id']
+                for item in re.findall(r'\{[^{}]*\}', remainder)
+                for mapping in [_flow_mapping(item)]
+                if re.fullmatch(YAML_ID, mapping.get('id', ''))
+            })
+        skill_ids = set()
+        current = None
+
+        def collect(mapping):
+            if mapping is not None and re.fullmatch(YAML_ID, mapping.get('id', '')):
+                skill_ids.add(mapping['id'])
+
+        for nested in lines[index + 1:]:
+            if not nested.strip():
+                continue
+            nested_indent = len(nested) - len(nested.lstrip())
+            if nested_indent <= indent:
+                break
+            item = re.match(r'^\s*-\s*(.*)$', nested)
+            if item:
+                collect(current)
+                current = _flow_mapping(item.group(1))
+                continue
+            if current is not None:
+                field = re.match(r'^\s*(' + YAML_ID + r'):\s*([^#]+?)\s*$', nested)
+                if field:
+                    current[field.group(1)] = field.group(2).strip().strip('"\'')
+        collect(current)
+        return sorted(skill_ids)
+    return []
+
+
+def _declared_panorama_skill_ids(workflow_dir):
+    condition_blocks = _yaml_mapping_blocks(workflow_dir / 'condition.yaml', 'conditions')
+    prompt_ids = set()
+    for condition_id, block in condition_blocks.items():
+        output = _yaml_child_mapping(block, 'output')
+        owns_panorama = 'panorama' in condition_id or output.get('key') == 'panorama_snapshot_path'
+        if not owns_panorama:
+            continue
+        prompt_id = _yaml_child_mapping(block, 'prompt_ref').get('prompt_id', '')
+        if re.fullmatch(YAML_ID, prompt_id):
+            prompt_ids.add(prompt_id)
+
+    prompt_blocks = _yaml_mapping_blocks(workflow_dir / 'prompt.yaml', 'prompts')
+    skill_ids = set()
+    for prompt_id in prompt_ids:
+        skill_ids.update(_yaml_skill_ids(prompt_blocks.get(prompt_id, '')))
+    return sorted(skill_ids)
+
+
+def _bound_panorama_skill_files(workflow_dir):
+    found = []
+    for skill_id in _declared_panorama_skill_ids(workflow_dir):
+        skill = workflow_dir / 'skills' / skill_id / 'SKILL.md'
+        if skill.is_symlink():
+            raise ValueError(f'unsupported package entry: {skill}')
+        if skill.is_file():
+            found.append(skill)
+    return found
+
+
 def panorama_skill_files(source, workflows, include_examples):
     found = []
     selected = None if workflows is None else set(workflows)
@@ -500,25 +608,11 @@ def panorama_skill_files(source, workflows, include_examples):
         for workflow_dir in _skill_dirs(skills_root):
             if selected is not None and workflow_dir.name not in selected:
                 continue
-            for skill_dir in _skill_dirs(workflow_dir / 'skills'):
-                if 'panorama' not in skill_dir.name:
-                    continue
-                skill = skill_dir / 'SKILL.md'
-                if skill.is_symlink():
-                    raise ValueError(f'unsupported package entry: {skill}')
-                if skill.is_file():
-                    found.append(skill)
+            found.extend(_bound_panorama_skill_files(workflow_dir))
     examples = source / 'examples' / 'workflows'
     if include_examples and examples.is_dir() and not examples.is_symlink():
         for workflow_dir in _skill_dirs(examples):
-            for skill_dir in _skill_dirs(workflow_dir / 'skills'):
-                if 'panorama' not in skill_dir.name:
-                    continue
-                skill = skill_dir / 'SKILL.md'
-                if skill.is_symlink():
-                    raise ValueError(f'unsupported package entry: {skill}')
-                if skill.is_file():
-                    found.append(skill)
+            found.extend(_bound_panorama_skill_files(workflow_dir))
     return found
 
 
@@ -535,7 +629,6 @@ def check_panorama_skills(source, workflows, include_examples):
         text = skill.read_text()
         for error in panorama_skill_errors(text):
             errors.append(f'{_relative(skill, source)}: {error}')
-    errors.extend(remnote_done_prompt_errors(source, workflows))
     return errors
 
 
@@ -572,7 +665,7 @@ def main():
     parser.add_argument('--output-root', type=Path)
     parser.add_argument('--workflow', action='append', help='Workflow matrix to run; repeatable, default all')
     parser.add_argument('--check-panorama-skills', action='store_true',
-                        help='Check panorama Skill delivery text, including the local_agent parent/child handoff and the post-complete Done panorama, then exit')
+                        help='Check delivery integrity for Panorama Skills that a Workflow actually declares, then exit')
     parser.add_argument('--check-learning-card-gates', action='store_true',
                         help='Check remnote-flashcards slang and combo rem-ref instructions, then exit')
     parser.add_argument('--check-notion-experience-sync', action='store_true',

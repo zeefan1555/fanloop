@@ -130,9 +130,6 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	}
 	traceWarning := runtime.provisionTrace(ctx, root, request.Requirement.Title)
 	runtime.warn(traceWarning)
-	if traceWarning != "" {
-		return response, nil
-	}
 	current, _, loadFailure := local.LoadBound()
 	if loadFailure != nil {
 		runtime.warn(fmt.Sprintf("Card projection for Flow Event %s could not load current State: %v", event.ID, loadFailure))

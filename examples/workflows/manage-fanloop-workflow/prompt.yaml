@@ -1,6 +1,11 @@
 schema_version: 2
 
 prompts:
+  panorama_condition:
+    prompt: 进入当前 Step 后按 manage-fanloop-panorama Skill 投递本次完整 Panorama；真实投递成功后返回精确 snapshot_path。该行为由本 Workflow 的 Condition 和 Route 声明，不依赖 Runtime action。
+    skills:
+      - {id: manage-fanloop-panorama, prompt: 按当前宿主投递 renderer 原始内容，并返回本次 panorama_presented ConditionResult。, optional: false}
+
   analyze_workflow_change_flow:
     prompt: 创建唯一的 L2 飞书管理文档，读取用户目标和 Fornax 当前基线，把设计压缩成文档内可直接阅读的人话 HTML 图。
     skills:
@@ -65,7 +70,7 @@ prompts:
     prompt: 每个 SkillBinding 都指向同 Bundle 的真实非空 SKILL.md 并显式声明 optional 时返回检查对象。
     skills: []
   output_contract_validated_condition:
-    prompt: 每个 Output 使用稳定 key 和最窄类型，可见 Output 具有确认过的 description，且不存在 Runtime 保留字段时返回检查对象。
+    prompt: 每个 Output 使用稳定 key 和最窄类型，可见 Output 具有确认过的 description，且不存在未在候选 YAML 中声明的隐藏门禁时返回检查对象。
     skills: []
   workflow_review_package_ready_condition:
     prompt: 唯一飞书文档的候选 HTML 已包含分析、Step 表、Condition/Route 矩阵、绑定 Skill、完整 diff、静态校验结果和未验证范围时返回审核 block 引用。
