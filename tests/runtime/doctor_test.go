@@ -52,3 +52,20 @@ func TestDoctorChecksCardIndependentlyWhenTraceIsCorrupt(t *testing.T) {
 		}
 	}
 }
+
+func TestTraceBindRefreshesCardProjection(t *testing.T) {
+	binary, root := buildCLI(t), t.TempDir()
+	assertSuccess(t, run(binary, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Trace projection"), "flow.init")
+	assertSuccess(t, run(binary, "trace", "bind", "--root", root,
+		"--document-url", "https://docs.example.invalid/docx/TraceProjection"), "trace.bind")
+
+	diagnosed := run(binary, "doctor", "--root", root)
+	assertSuccess(t, diagnosed, "doctor")
+	if check := doctorCheck(t, diagnosed.stdout, "card_projection"); check.Status != "passed" {
+		t.Fatalf("card projection after trace bind = %#v\n%s", check, diagnosed.stdout)
+	}
+	projection := string(readFile(t, filepath.Join(root, ".fanloop", "card", "projection.json")))
+	if !strings.Contains(projection, `"trace_document_url": "https://docs.example.invalid/docx/TraceProjection"`) {
+		t.Fatalf("Card projection did not capture Trace binding:\n%s", projection)
+	}
+}

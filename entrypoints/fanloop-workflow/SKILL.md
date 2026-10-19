@@ -38,22 +38,11 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码分析、文档生成或研发交付。
 
-## 可选 Panorama Condition
-
-最新 `current.conditions[]` 包含 `panorama_presented` 或 `panorama_card_published` 时，立即执行该
-Condition Prompt 绑定的 required Panorama Skill，保留它返回的完整 ConditionResult；进入当前 Step
-后执行一次，后续 Result 中原样携带。
-progress 和人工交互不重复展示。展示失败时按 Skill 上报 blocked，不提交 Result 或选择 Route。
-
-Panorama 是进入新 Step 后第一条用户可见消息，不得先发进度前缀或人工问题。`local_agent` 由 Panorama
-Skill 使用宿主可继续执行的用户可见消息通道完整发送 `data.content`；成功后同一轮继续；真正的人工问题只能随后发送，
-最终回复不重复该 Panorama。宿主缺少这种通道时按 Panorama Skill blocked。
-
 ## 执行当前 Step
 
 1. 使用启动阶段或上一次响应后读取的最新 `flow status`；仅按启动协议初始化新流程。
 2. 只使用最新 `data.state.current`：读取扁平 `context`、`execution.status`、`prompt`、`conditions`、`common_skills`、`common_conditions`、`available_routes` 和已有 `outputs`。
-3. 每个结构化 Skill 都以 `path` 给出当前 live Workflow 目录中的绝对 `SKILL.md`；每次 Status 后都重新读取，不缓存旧内容，不得按 `id` 去全局 Skills Root 猜测或搜索。依次使用 `optional=false` 的 Skills；`optional=true` 只在对应 Prompt 的条件成立时使用。`path` 缺失或不可读时停止执行并运行 `doctor`，不得 fallback 到 Release 副本或其他同名 Skill。
+3. 每个结构化 Skill 都以 `path` 给出当前 live Workflow 目录中的绝对 `SKILL.md`；每次 Status 后都重新读取，不缓存旧内容，不得按 `id` 去全局 Skills Root 猜测或搜索。依次使用 `optional=false` 的 Skills；`optional=true` 只在对应 Prompt 的条件成立时使用。Panorama 与其他能力一样，只在当前 Prompt、Condition 或 Route 的绑定要求它时执行，不按 Condition ID 注入额外时机。`path` 缺失或不可读时停止执行并运行 `doctor`，不得 fallback 到 Release 副本或其他同名 Skill。
 4. `execution.status=awaiting_confirmation` 时，先完整执行 `current.common_skills` 中必需的 Skill，但不执行业务 `current.prompt`；只能从 `current.common_conditions` 取得唯一 Condition，并选择 `start_current_step` 或 `jump_step_id` Route。必须等待针对当前 Step 和本次材料的全新、明确人类确认；早先的笼统授权不得代替逐 Step 确认。确认开工时使用 `--start-current-step`；确认跳转时使用 `--jump-step-id <ID>`。
 5. `execution.status=in_progress|ready|fixing|blocked` 时，完整执行 `current.prompt`；若人类明确要求跳转，仍执行 `current.common_skills` 对应的跳转 Skill，从 `current.common_conditions` 上报唯一 Condition 并使用 `--jump-step-id <ID>`。
 6. 工作尚未形成退出结论时上报：
@@ -67,8 +56,8 @@ Skill 使用宿主可继续执行的用户可见消息通道完整发送 `data.c
    `when.any_of` 外层是 OR、内层是 AND。提交一个完整组合；同一 `exclusive_group` 只选一个 Condition。Output key 由 Condition 定义，Agent 不提交 key 或 producer_step_id。Evidence 只用于审计，不参与路由。
 8. 从最新 `available_routes` 选择一条满足该 Condition 组合的 Route，并把 `route` 原样表达为 `--next-step-id`、`--back-step-id`、`--terminal`、`--start-current-step` 或 `--jump-step-id`。`direction=flow` 返回 `advanced|completed|started`；`direction=loop` 返回 `looped`；Jump 返回 `jumped`，按 Status 报告的目标和跳过项继续。不要猜目标。
 9. CLI 只在所选方向和目标内校验 `when.any_of` 唯一命中；未知 Route、事实与选择不一致、零命中或多命中都原子拒绝。
-10. Human Step 使用同一个 Result 接缝。当前 Route 要求 `panorama_presented` 或 `panorama_card_published` 时，先按其绑定 Skill 原样展示 renderer 生成的 Panorama；等到展示之后的全新、明确人类决定，再把本次精确 `panorama_snapshot_path` 与决定 Condition、回执和 Evidence 一起上报。沉默、含糊回复、机器人结论或 Agent 自批均无效；CLI 不自动发送，也不认证审批人或事实真伪。
-11. 每次响应后重新读取 Status。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
+10. Human Step 使用同一个 Result 接缝。按当前 Prompt/Skills 准备材料并等待全新、明确的人类决定；沉默、含糊回复、机器人结论或 Agent 自批均无效。CLI 不自动发送，也不认证审批人或事实真伪。
+11. 每次响应后重新读取 Status。terminal Result 被接受后没有 `current`；只执行 terminal 前已读取的 Workflow Skill 明确声明的 post-terminal 动作，不从 Runtime 或 Condition ID 推断额外动作。命令错误不修改 State/Event；dry-run 返回计算结果但不写 Event、不触发远端投影。
 
 ## 按需发现整套 Skill
 
@@ -80,12 +69,11 @@ Skill 使用宿主可继续执行的用户可见消息通道完整发送 `data.c
 
 1. 禁止调用 `botmux ask` 或其他结构化问答模式；问题只通过当前会话的普通回复发送。
 2. 先完成承载最新状态的非 dry-run 写命令：新 Requirement 使用 `flow init`；Result 进入 Human Step 时复用该 `flow report result`；Agent Step 新增人工依赖时使用 `flow report progress --status blocked`。
-3. Human Step 选择人工路径时，按当前 Prompt/Skill 准备审核材料，并按 Condition 绑定 Skill 把 Panorama 作为第一条用户可见消息原样展示；保留本次 `panorama_snapshot_path` 后，才能在其下方请求人工决定。CLI 写命令不会代为发送。
-4. 当前 State 已记录同一 blocked 事实时不重复上报；Human Step 重入仍必须生成新的 Panorama 快照。
+3. Human Step 选择人工路径时，按当前 Prompt/Skill 准备审核材料；若 Workflow 自己要求 Panorama，则按其绑定 Skill 指定的时机投递。CLI 写命令不会代为发送。
+4. 当前 State 已记录同一 blocked 事实时不重复上报。
 
 State、Event、Bundle、Skill 或 Release 疑似不一致时运行 `doctor`。
 
 ## 最终普通回复
 
-当前 Step 配置了 Panorama Condition 且已由绑定 Skill 单独展示时，最终回复不重新 render、重复或改写它。
-需要人工输入时，只在已配置的 Panorama 之后展示当前完整问题；否则只说明当前 Stage/Job/Step、已接受结果及下一项真实依赖。
+最终回复执行当前 Workflow 已读取 Prompt/Skill 明确声明的收尾动作，然后说明已接受结果和下一项真实依赖。入口不按 Condition ID 自动 render、重复或禁止 Panorama。

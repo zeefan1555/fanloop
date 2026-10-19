@@ -3,27 +3,27 @@ schema_version: 5
 flow:
   analyze_workflow_change:
     - prompt_ref: {file: prompt.yaml, prompt_id: analyze_workflow_change_flow}
-      when: {any_of: [[workflow_document_ready, workflow_document_governance_ready, step_model_ready, condition_route_matrix_ready, output_contract_plan_ready, skill_plan_ready, workflow_design_visual_ready]]}
+      when: {any_of: [[workflow_document_ready, workflow_document_governance_ready, step_model_ready, condition_route_matrix_ready, output_contract_plan_ready, skill_plan_ready, workflow_design_visual_ready, panorama_presented]]}
       next_step_id: build_workflow_candidate
 
   build_workflow_candidate:
     - prompt_ref: {file: prompt.yaml, prompt_id: build_workflow_candidate_flow}
       when:
         any_of:
-          - [workflow_candidate_ready, bundle_schema_validated, route_model_validated, skill_bindings_validated, output_contract_validated, workflow_review_package_ready, workflow_review_visual_ready]
+          - [workflow_candidate_ready, bundle_schema_validated, route_model_validated, skill_bindings_validated, output_contract_validated, workflow_review_package_ready, workflow_review_visual_ready, panorama_presented]
       next_step_id: review_workflow_candidate
 
   review_workflow_candidate:
     - prompt_ref: {file: prompt.yaml, prompt_id: review_workflow_candidate_flow}
-      when: {any_of: [[candidate_approved, candidate_review_recorded]]}
+      when: {any_of: [[candidate_approved, candidate_review_recorded, panorama_presented]]}
       next_step_id: publish_workflow_candidate
     - prompt_ref: {file: prompt.yaml, prompt_id: candidate_cancelled_terminal}
-      when: {any_of: [[candidate_cancelled, candidate_review_recorded]]}
+      when: {any_of: [[candidate_cancelled, candidate_review_recorded, panorama_presented]]}
       terminal: true
 
   publish_workflow_candidate:
     - prompt_ref: {file: prompt.yaml, prompt_id: publish_workflow_candidate_flow}
       when:
         any_of:
-          - [publish_baseline_revalidated, fornax_release_published, fornax_config_center_link_ready, workflow_version_diff_link_ready, published_bundle_matched, local_config_synchronized, local_doctor_healthy, usage_prompt_ready, user_local_update_instruction_ready, delivery_visualization_ready]
+          - [publish_baseline_revalidated, fornax_release_published, fornax_config_center_link_ready, workflow_version_diff_link_ready, published_bundle_matched, local_config_synchronized, local_doctor_healthy, usage_prompt_ready, user_local_update_instruction_ready, delivery_visualization_ready, panorama_presented]
       terminal: true

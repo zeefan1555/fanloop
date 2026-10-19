@@ -57,6 +57,7 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 		"analyze-workflow-change",
 		"build-workflow-candidate",
 		"explain-workflow-design",
+		"manage-fanloop-panorama",
 		"manage-workflow-document",
 		"publish-workflow-candidate",
 	}
@@ -66,6 +67,19 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	for _, id := range wantSkills {
 		if loaded.SkillPaths[id] == "" {
 			t.Fatalf("missing skill %s", id)
+		}
+	}
+	if _, exists := loaded.Workflow.Conditions["panorama_presented"]; !exists {
+		t.Fatal("manage-fanloop-workflow does not declare its Panorama condition")
+	}
+	for stepID, routes := range loaded.Workflow.Flows {
+		for _, route := range routes {
+			assertEveryGroupContains(t, stepID+" flow", route.When, "panorama_presented")
+		}
+	}
+	for stepID, routes := range loaded.Workflow.Loops {
+		for _, route := range routes {
+			assertEveryGroupContains(t, stepID+" loop", route.When, "panorama_presented")
 		}
 	}
 	packageRoot := filepath.Join(root, "manage-fanloop-workflow")
@@ -107,5 +121,18 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	}
 	if !strings.Contains(text, "不得查询或写入团队空间 `7590123861772503042`") || !strings.Contains(text, "不得读取或写入团队空间\n`7590123861772503042`") {
 		t.Fatal("team workspace id is not limited to prohibition text")
+	}
+}
+
+func assertEveryGroupContains(t *testing.T, owner string, when When, conditionID string) {
+	t.Helper()
+	for index, group := range when.AnyOf {
+		found := false
+		for _, id := range group {
+			found = found || id == conditionID
+		}
+		if !found {
+			t.Fatalf("%s route group %d does not contain %s: %v", owner, index, conditionID, group)
+		}
 	}
 }

@@ -219,8 +219,7 @@ class MaintenanceChecks(unittest.TestCase):
         text = (source / 'fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md').read_text()
         self.write(
             'with-handoff/fanloop-workflow/fomo/skills/workflow-panorama/SKILL.md',
-            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
-            + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n',
+            text + '\n' + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n',
         )
         passed = subprocess.run([sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
                                  '--check-panorama-skills', '--config-source', str(self.root / 'with-handoff')],
@@ -272,18 +271,20 @@ class MaintenanceChecks(unittest.TestCase):
         in_progress = evidence.read_text().replace('workflow status completed', 'still on retrospect_run')
         self.assertEqual([], configuration.missing_done_panorama_errors(in_progress))
 
-    def test_skip_done_phrase_names_the_replacement(self):
+    def test_done_panorama_is_workflow_owned_not_globally_required(self):
         text = (
             'local_agent\n'
             + configuration.REQUIRED_BLOCKED_SENTENCE + '\n'
             + 'headless fanloop card render --view panorama --format markdown data.content\n'
             + '\n'.join(configuration.REQUIRED_HANDOFF_SENTENCES) + '\n'
-            + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n'
-            + '最终回复不得重复 Panorama。\n'
         )
-        errors = configuration.panorama_skill_errors(text)
-        self.assertTrue(any('最终回复不得重复 Panorama' in error for error in errors), errors)
-        self.assertTrue(any(configuration.REQUIRED_DONE_PANORAMA_SENTENCE in error for error in errors))
+        self.assertEqual([], configuration.panorama_skill_errors(text))
+        self.assertEqual([], configuration.panorama_skill_errors(
+            text + configuration.REQUIRED_DONE_PANORAMA_SENTENCE + '\n'))
+
+    def test_bundled_manage_workflow_panorama_skill_passes_delivery_lint(self):
+        skill = ROOT / 'examples/workflows/manage-fanloop-workflow/skills/manage-fanloop-panorama/SKILL.md'
+        self.assertEqual([], configuration.panorama_skill_errors(skill.read_text()))
 
     def test_combo_slang_fixture_fails_and_plain_words_pass(self):
         evidence = ROOT / 'scripts/testdata/combo-slang-one-pass.md'

@@ -3,7 +3,8 @@
 
 Panorama Skills must block headless file-save delivery. --check-panorama-skills
 checks that text without a matrix. Skills that mention local_agent must also
-state the parent/child handoff and the post-complete Done panorama delivery.
+state the parent/child handoff. Route coverage, timing, and completed Panorama
+delivery are owned by each Workflow rather than inferred by this validator.
 --reject-file-save-evidence fails when pasted evidence treats artifacts/panorama-*
 as panorama_presented. --reject-missing-done-panorama fails a transcript that
 stops after the retrospect 75% panorama once the workflow has completed.
@@ -48,7 +49,6 @@ REQUIRED_DONE_PANORAMA_SENTENCE = (
     'after a successful terminal Route, render panorama once more and deliver exact data.content; '
     'the in-step retrospect panorama is not the Done 100% delivery.'
 )
-FORBIDDEN_SKIP_DONE_PANORAMA = '最终回复不得重复 Panorama'
 # 2026-10-07 combo review: one_pass/plain_words failed on unexplained trading slang.
 COMBO_SLANG = ('梭哈', '全仓', '一把梭', '优秀个股')
 REQUIRED_COMBO_SLANG_SENTENCE = (
@@ -193,17 +193,6 @@ def panorama_skill_errors(text):
                 'local_agent panorama delivery is missing the parent/child handoff. '
                 f'Add these sentences: {quoted}'
             )
-        if REQUIRED_DONE_PANORAMA_SENTENCE not in text:
-            errors.append(
-                'local_agent panorama delivery is missing the post-complete Done panorama. '
-                f'Add this sentence: "{REQUIRED_DONE_PANORAMA_SENTENCE}"'
-            )
-        if FORBIDDEN_SKIP_DONE_PANORAMA in text:
-            errors.append(
-                'Skill tells the host to stop after the in-step panorama. '
-                f'Remove "{FORBIDDEN_SKIP_DONE_PANORAMA}". '
-                f'Add this sentence: "{REQUIRED_DONE_PANORAMA_SENTENCE}"'
-            )
     return errors
 
 
@@ -289,20 +278,6 @@ def combo_id_teaching_errors(text):
             + REQUIRED_COMBO_REF_SENTENCE
         )
     return errors
-
-
-def remnote_done_prompt_errors(source, workflows):
-    if workflows is not None and 'remnote-flashcards' not in workflows:
-        return []
-    prompt = source / 'fanloop-workflow' / 'remnote-flashcards' / 'prompt.yaml'
-    if not prompt.is_file():
-        return []
-    if REQUIRED_DONE_PANORAMA_SENTENCE in prompt.read_text():
-        return []
-    return [
-        f'{_relative(prompt, source)}: remnote-flashcards terminal delivery is missing the Done panorama sentence. '
-        f'Add this sentence to retrospect_run_flow: "{REQUIRED_DONE_PANORAMA_SENTENCE}"'
-    ]
 
 
 def _require_sentence(source, relative, sentence, why):
@@ -460,8 +435,6 @@ def learning_card_gate_errors(source):
                     f'fanloop-workflow/remnote-flashcards/flow.yaml: missing route condition {condition_id}. '
                     'The engine only advances when the forward route lists it.'
                 )
-        if 'panorama_presented' not in flow_text:
-            errors.append('fanloop-workflow/remnote-flashcards/flow.yaml: panorama_presented must stay on every forward route.')
     package = source / 'fanloop-workflow' / 'remnote-flashcards'
     if not package.is_dir():
         return errors
@@ -535,7 +508,6 @@ def check_panorama_skills(source, workflows, include_examples):
         text = skill.read_text()
         for error in panorama_skill_errors(text):
             errors.append(f'{_relative(skill, source)}: {error}')
-    errors.extend(remnote_done_prompt_errors(source, workflows))
     return errors
 
 
@@ -572,7 +544,7 @@ def main():
     parser.add_argument('--output-root', type=Path)
     parser.add_argument('--workflow', action='append', help='Workflow matrix to run; repeatable, default all')
     parser.add_argument('--check-panorama-skills', action='store_true',
-                        help='Check panorama Skill delivery text, including the local_agent parent/child handoff and the post-complete Done panorama, then exit')
+                        help='Check delivery integrity for Panorama Skills that a Workflow actually declares, then exit')
     parser.add_argument('--check-learning-card-gates', action='store_true',
                         help='Check remnote-flashcards slang and combo rem-ref instructions, then exit')
     parser.add_argument('--check-notion-experience-sync', action='store_true',

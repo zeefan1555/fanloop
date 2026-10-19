@@ -36,8 +36,8 @@
   "files": {
     ".fanloop/card/projection.json": {
       "mode": "0600",
-      "sha256": "1a95aeaef9b343eb96e52acfd48214a5763a6dec17b621395cac63242601f7e6",
-      "content": "{\n  \"schema_version\": 7,\n  \"requirement\": {\n    \"title\": \"Synthetic trace sync\"\n  },\n  \"release\": {\n    \"version\": \"dev\",\n    \"workflow\": {\n      \"id\": \"linear-runtime\"\n    }\n  },\n  \"current_step_id\": \"first\",\n  \"current_step_status\": \"ready\",\n  \"current_step_summary\": \"workflow initialized\",\n  \"outputs\": {},\n  \"source_event_id\": \"\u003cEVENT_ID\u003e\",\n  \"updated_at\": \"\u003cTIMESTAMP\u003e\",\n  \"skipped_step_ids\": []\n}\n"
+      "sha256": "7acad0f082030b3c4680586ee9d147f67989fab9a4936a75ce1ddbd0065149a7",
+      "content": "{\n  \"schema_version\": 7,\n  \"requirement\": {\n    \"title\": \"Synthetic trace sync\"\n  },\n  \"release\": {\n    \"version\": \"dev\",\n    \"workflow\": {\n      \"id\": \"linear-runtime\"\n    }\n  },\n  \"current_step_id\": \"first\",\n  \"current_step_status\": \"ready\",\n  \"current_step_summary\": \"workflow initialized\",\n  \"outputs\": {},\n  \"trace_document_url\": \"https://docs.example.invalid/docx/TraceDocument\",\n  \"source_event_id\": \"\u003cEVENT_ID\u003e\",\n  \"updated_at\": \"\u003cTIMESTAMP\u003e\",\n  \"skipped_step_ids\": []\n}\n"
     },
     ".fanloop/configuration-snapshot": {
       "mode": "0600",

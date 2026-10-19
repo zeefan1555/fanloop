@@ -31,7 +31,7 @@ fornax-cli skill install --custom-region CN --workspace-id 7543941556223377409 -
 一个可由真实文档、平台回执或人工回复验证的事实，使用最窄的 Output 类型。Evidence 只用于审计。
 人工决定使用 `enum_value`、`exclusive_group` 和绑定本次提问与回复的回执。
 
-全景图不是 Workflow Condition。不要设计 `panorama_presented` 或 `panorama_card_published`。进入、回流、跳转和完成由 Runtime `pending_actions` 要求投递，再用 `fanloop flow action acknowledge` 关闭。
+Panorama 与其他能力一样由 Workflow 自己选择。需要时声明普通 Condition、Output、Prompt/Skill 绑定和精确 Route operand；不需要时不添加。不要依赖 Runtime action、保留 Condition 或 acknowledge 命令。
 
 分析中必须列出：
 
