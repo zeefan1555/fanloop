@@ -30,7 +30,7 @@ botmux send --card-file <ABSOLUTE_SNAPSHOT_PATH> --no-mention --session-id <BOUN
 
 The child must not submit panorama_presented.
 After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.
-The parent sends the exact data.content as the first user-visible message for that Step, then reports panorama_presented with that same snapshot_path, then continues the Step business Prompt.
+The parent sends the exact data.content as the first user-visible message for that Step, retains that same snapshot_path and a panorama_delivery_receipt Evidence item, lets the Step business work finish, then submits panorama_presented together with the business Conditions in one flow report result.
 Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.
 
 当前 Agent 自己持有用户可见消息通道，且没有把本 Step 交给 headless 子 Agent 时，运行一次非 dry-run Markdown render，把该次响应的完整 `data.content` 原样作为进入 Step 后第一条用户可见
@@ -83,5 +83,13 @@ after a successful terminal Route, render panorama once more and deliver exact d
 ```json
 {"condition_id":"panorama_presented","output":{"type":"path","value":"<data.snapshot_path>"}}
 ```
+
+保留该 ConditionResult，等本 Step 业务完成后，与业务 Conditions 放进一次 `flow report result`；同一次 Result 的 Evidence 只使用 IDL 允许的 `source`、`content`、可选 `ref`；投递字段编码进 `content` 字符串：
+
+```json
+{"source":"system","ref":"panorama_delivery_receipt","content":"{\"delivered\":true,\"snapshot_path\":\"<data.snapshot_path>\",\"host\":\"<host>\"}"}
+```
+
+不得先单独上报 `panorama_presented`。
 
 渲染、发送或结果确认失败时保持 blocked，不扫描旧快照、不双发、不跨宿主回退。

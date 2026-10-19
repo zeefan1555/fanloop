@@ -31,10 +31,10 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 - 每个 Step 至少声明一条 Loop Route；没有更早依赖可返回时回到自身，不能留下无法返工的 Step。
 - `prompt.yaml` 只保留 Step 指令和 SkillBinding；稳定、可复用的具体方法拆到同目录原子 Skill，调用处只留指针。
 - 保留明确的 Human Gate。Agent 不得代替人批准，也不得把旧回复或实现自证当作新的人工决定。
-- 需要全景图时，声明输出 `panorama_snapshot_path:path` 的普通 Condition，绑定同一 Workflow 内的展示 Skill，并只把它加入作者明确选择的 Route AND 组。展示时机、是否覆盖回流/终止、是否在 step-start 确认前展示、是否需要完成态卡片，都必须写进该 Workflow 的 Prompt/Skill；通用 Runtime 与校验器不会补齐。
-  展示 Skill 的 `local_agent` 使用 non-dry-run `fanloop card render --view panorama --format markdown`，按自身声明的时机原样投递 `data.content`，再上报该次 `data.snapshot_path`。
+- 只有 Workflow 明确选择全景图能力时，才声明输出 `panorama_snapshot_path:path` 的普通 `panorama_presented` Condition，绑定同一 Workflow 内的展示 Skill，并把它加入作者明确选择的正常、终止或回流 Route AND 组。未选择全景图的 Workflow 不声明该 Condition，也不受额外门禁。展示时机、step-start 第一条消息和完成态卡片必须写进该 Workflow 的 Prompt/Skill；通用 Runtime 与校验器不会补齐。
+  展示 Skill 的 `local_agent` 使用 non-dry-run `fanloop card render --view panorama --format markdown`，原样投递 `data.content` 并保留本次 `data.snapshot_path`。本 Step 业务完成后，`panorama_presented` 必须与该 Route 的业务 Conditions 放进同一次 `flow report result`，不得单独上报，也不使用 action acknowledge。
   必须写明：`report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.`
-  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent在 non-dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送后再按 Workflow 声明提交 Condition。需要完成态 Panorama 时由该 Skill 另外写明 post-terminal 动作；不需要时不得由模板强加。
+  不得把写入 `artifacts/panorama-*` 写成成功路径。提到 `local_agent` 时还要写明父/子交接：`The child must not submit panorama_presented.` 子 Agent在 non-dry-run render 后停住，把 `data.content` 与 `data.snapshot_path` 交还父 Agent；父 Agent 原样发送，保留同一路径与 `panorama_delivery_receipt` Evidence，让业务工作完成后再把全景与业务 Conditions 合并成一次 Result。只有 Workflow 明确要求完成态 Panorama 时，才在成功 terminal Route 后另外 render 并投递 `Done` / `100%` 卡，且不再提交 Condition；未要求时不得由模板强加。
 
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。
@@ -46,7 +46,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 1. 完整 Step 表：顺序、`id`、`name`、Stage、Job、`executor`。
 2. 五份 YAML 的完整结构和全部 Condition/Route 组合。
 3. 原子 Skill 清单、每项职责和被哪些 Prompt 引用。
-4. Human Gate、回流目标、是否选择 Panorama 及其覆盖、非目标和 ADR impact。
+4. Human Gate、回流目标、是否选择 Panorama 及所选 Route 的覆盖、非目标和 ADR impact。
 
 新 Workflow 的变更前基线记为不存在；重构现有 Workflow 时逐项列出 Step 的新增、删除、改名、重排和
 `executor` 变化。取得针对该具体草案的明确批准后，才把临时草案写入：
