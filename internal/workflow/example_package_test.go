@@ -140,6 +140,12 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	if got := strings.Count(panoramaSkill, "fanloop card render --root <ABSOLUTE_REQUIREMENT_ROOT> --view panorama"); got < 8 {
 		t.Fatalf("manage Panorama Skill render commands = %d, want initial and completed commands for four hosts", got)
 	}
+	conditionAt := strings.Index(panoramaSkill, "## 终态前上报 Condition")
+	completedAt := strings.Index(panoramaSkill, "## 完成后")
+	noReportAt := strings.Index(panoramaSkill, "完成态投递只发送这次新的卡片，不提交 ConditionResult")
+	if conditionAt < 0 || completedAt < 0 || noReportAt < 0 || !(conditionAt < completedAt && completedAt < noReportAt) {
+		t.Fatalf("manage Panorama Skill does not separate pre-terminal reporting from post-terminal delivery")
+	}
 }
 
 func mustReadFile(t *testing.T, path string) []byte {

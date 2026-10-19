@@ -70,8 +70,8 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 		if state.SameTraceDocumentURL(previous, request.DocumentUrl) && previousRegistry == registry.Profile &&
 			sameOptionalDocument(previousCLILogDocumentURL, cliLogDocumentURL) {
 			if !dryRun {
-				if err := cardruntime.WriteProjection(root, current); err != nil {
-					return nil, publicError(erroridl.ErrorCode_INTERNAL, err.Error())
+				if failure := refreshCardProjection(local, root); failure != nil {
+					return nil, failure
 				}
 			}
 			return &traceidl.TraceBindResponse{Effect: traceidl.TraceBindEffect_unchanged}, nil
@@ -104,10 +104,19 @@ func (runtime Runtime) Bind(_ context.Context, root string, request *traceidl.Tr
 	if failure := local.Commit(current, event); failure != nil {
 		return nil, failure
 	}
-	if err := cardruntime.WriteProjection(root, current); err != nil {
-		return nil, publicError(erroridl.ErrorCode_INTERNAL, err.Error())
+	if failure := refreshCardProjection(local, root); failure != nil {
+		return nil, failure
 	}
 	return response, nil
+}
+
+func refreshCardProjection(local *store.Store, root string) *erroridl.PublicError {
+	return local.WithLockedState(func(latest state.State) *erroridl.PublicError {
+		if err := cardruntime.WriteProjection(root, latest); err != nil {
+			return publicError(erroridl.ErrorCode_INTERNAL, err.Error())
+		}
+		return nil
+	})
 }
 
 func (runtime Runtime) Status(_ context.Context, root string, request *traceidl.TraceStatusRequest) (*traceidl.TraceStatusResponse, error) {

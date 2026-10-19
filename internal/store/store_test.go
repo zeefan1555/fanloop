@@ -90,6 +90,39 @@ func TestCommitWritesStorageThriftJSON(t *testing.T) {
 	}
 }
 
+func TestWithLockedStateReloadsLatestCommittedState(t *testing.T) {
+	root := t.TempDir()
+	local, stale := committedWorkflow(t, root)
+	stepID := *stale.CurrentStepID
+	latest := stale
+	latest.CurrentStepStatus = state.StepInProgress
+	latest.CurrentStepSummary = "newer"
+	latest.LastEventID = "e2"
+	latest.UpdatedAt = stale.UpdatedAt.Add(time.Minute)
+	event := state.Event{
+		SchemaVersion: state.CurrentEventSchemaVersion, ID: "e2", OccurredAt: latest.UpdatedAt,
+		Kind: state.EventFlowProgressed, Command: "flow.report.progress", Workflow: latest.Release.Workflow,
+		CausedByEventID: stale.LastEventID,
+		Payload: state.Payload(state.FlowProgressPayload{
+			FromStepID: stepID, FromStepStatus: stale.CurrentStepStatus,
+			ToStepStatus: latest.CurrentStepStatus, Summary: latest.CurrentStepSummary,
+		}),
+	}
+	if failure := local.Commit(latest, event); failure != nil {
+		t.Fatal(failure)
+	}
+	var observed state.State
+	if failure := local.WithLockedState(func(current state.State) *erroridl.PublicError {
+		observed = current
+		return nil
+	}); failure != nil {
+		t.Fatal(failure)
+	}
+	if observed.LastEventID != latest.LastEventID || observed.CurrentStepSummary != "newer" {
+		t.Fatalf("locked State = last_event %q summary %q; stale was %q", observed.LastEventID, observed.CurrentStepSummary, stale.LastEventID)
+	}
+}
+
 func TestLoadBoundRejectsTraceURLTamperedOutsideEvents(t *testing.T) {
 	root := t.TempDir()
 	local, current := committedWorkflow(t, root)

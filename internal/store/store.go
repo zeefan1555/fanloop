@@ -164,6 +164,18 @@ func (s *Store) Commit(next state.State, event state.Event) *erroridl.PublicErro
 	})
 }
 
+// WithLockedState serializes a projection or other derived write with Flow
+// commits and reloads the latest committed State after acquiring the lock.
+func (s *Store) WithLockedState(operation func(state.State) *erroridl.PublicError) *erroridl.PublicError {
+	return s.withExclusiveLock(func() *erroridl.PublicError {
+		current, _, failure := s.LoadBound()
+		if failure != nil {
+			return failure
+		}
+		return operation(current)
+	})
+}
+
 func (s *Store) commitLocked(next state.State, event state.Event) *erroridl.PublicError {
 	events, failure := s.Events()
 	if failure != nil {

@@ -513,6 +513,8 @@ def _declared_panorama_skill_ids(workflow_dir):
     for prompt_id in prompt_ids:
         block = prompt_blocks.get(prompt_id, '')
         skill_ids.update(re.findall(r'-\s*(?:\{\s*)?id:\s*(' + YAML_ID + r')\b', block))
+        for sequence in re.findall(r'\bskills:\s*\[(.*?)\]', block, flags=re.DOTALL):
+            skill_ids.update(re.findall(r'(?:^|[,{])\s*id:\s*(' + YAML_ID + r')\b', sequence))
     return sorted(skill_ids)
 
 

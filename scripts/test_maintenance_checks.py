@@ -297,6 +297,31 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
 
+    def test_flow_style_panorama_skill_binding_is_linted(self):
+        self.write(
+            'flow-binding/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'flow-binding/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Deliver Panorama.\n'
+            '    skills: [{id: delivery, prompt: Deliver Panorama., optional: false}]\n',
+        )
+        self.write(
+            'flow-binding/fanloop-workflow/fomo/skills/delivery/SKILL.md',
+            'This intentionally lacks the required delivery contract.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'flow-binding')],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
+
     def test_path_only_receipt_is_not_a_file_save_claim(self):
         path = self.root / 'prepare-result.json'
         path.write_text(

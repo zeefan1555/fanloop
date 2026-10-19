@@ -72,6 +72,16 @@ cmp -s -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
 aiden-bot-cli send-card --card-file "$tmp_card"
 ```
 
+## 终态前上报 Condition
+
+当前 Step 仍存在时，只有已经把本次 `data.content` 原样发到用户可见通道的当前宿主，在成功展示后，才返回下面的 ConditionResult。headless 子 Agent 不提交 `panorama_presented`：
+
+```json
+{"condition_id":"panorama_presented","output":{"type":"path","value":"<data.snapshot_path>"}}
+```
+
+该 ConditionResult 与业务 Condition 一起提交并选择 Route。渲染、发送或结果确认失败时保持 blocked，不扫描旧快照、不双发、不跨宿主回退。
+
 ## 完成后
 
 成功的终止 Route 被接受、Workflow 为 completed 之后，进入 Step 时的全景图不是完成投递。当前宿主必须按最初选中的同一分支重新 render 并投递一次；那一次内容含 `Done` 与 `100%`。不得跨宿主回退。
@@ -122,12 +132,4 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 
 after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
 
-只有已经把本次 `data.content` 原样发到用户可见通道的当前宿主，在成功展示后，才返回下面的 ConditionResult。headless 子 Agent 不提交 `panorama_presented`。
-
-成功展示后返回：
-
-```json
-{"condition_id":"panorama_presented","output":{"type":"path","value":"<data.snapshot_path>"}}
-```
-
-渲染、发送或结果确认失败时保持 blocked，不扫描旧快照、不双发、不跨宿主回退。
+完成态投递只发送这次新的卡片，不提交 ConditionResult，也不再调用 `flow report result`；terminal 成功后当前 Step 已清空。
