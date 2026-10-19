@@ -38,7 +38,7 @@ REQUIRED_HANDOFF_SENTENCES = (
     'The child must not submit panorama_presented.',
     'After non-dry-run fanloop card render --view panorama --format markdown, the child stops and returns data.content and data.snapshot_path to the parent; report blocked if render fails.',
     'The parent sends the exact data.content as the first user-visible message for that Step, retains that same snapshot_path and a panorama_delivery_receipt Evidence item, lets the Step business work finish, then submits panorama_presented together with the business Conditions in one flow report result.',
-    'panorama_delivery_receipt',
+    '{"source":"system","ref":"panorama_delivery_receipt","content":"{\\"delivered\\":true,\\"snapshot_path\\":\\"<data.snapshot_path>\\",\\"host\\":\\"<host>\\"}"}',
     'Never run a panorama-gated Workflow fully headless in a child that cannot post user-visible messages.',
 )
 # 2026-10-07 remnote-flashcards: the host posted the retrospect-step panorama

@@ -80,7 +80,13 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 {"condition_id":"panorama_presented","output":{"type":"path","value":"<data.snapshot_path>"}}
 ```
 
-保留该 ConditionResult，等本 Step 业务完成后，与业务 Conditions 放进一次 `flow report result`；同一次 Result 的 Evidence 写入 `ref=panorama_delivery_receipt`、`delivered=true` 和相同 `snapshot_path`。不得先单独上报 `panorama_presented`。渲染、发送或结果确认失败时保持 blocked，不扫描旧快照、不双发、不跨宿主回退。
+保留该 ConditionResult，等本 Step 业务完成后，与业务 Conditions 放进一次 `flow report result`；同一次 Result 的 Evidence 只使用 IDL 允许的 `source`、`content`、可选 `ref`；投递字段编码进 `content` 字符串：
+
+```json
+{"source":"system","ref":"panorama_delivery_receipt","content":"{\"delivered\":true,\"snapshot_path\":\"<data.snapshot_path>\",\"host\":\"<host>\"}"}
+```
+
+不得先单独上报 `panorama_presented`。渲染、发送或结果确认失败时保持 blocked，不扫描旧快照、不双发、不跨宿主回退。
 
 ## 完成后
 
