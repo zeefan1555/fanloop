@@ -494,27 +494,98 @@ def _yaml_mapping_blocks(path, root_key):
     return {key: '\n'.join(lines) for key, lines in blocks.items()}
 
 
+def _flow_mapping(text):
+    text = text.strip()
+    if text.startswith('{') and text.endswith('}'):
+        text = text[1:-1]
+    result = {}
+    for item in text.split(','):
+        key, separator, value = item.partition(':')
+        if separator and re.fullmatch(YAML_ID, key.strip()):
+            result[key.strip()] = value.strip().strip('"\'')
+    return result
+
+
+def _yaml_child_mapping(block, field):
+    lines = block.splitlines()
+    for index, line in enumerate(lines):
+        match = re.match(r'^(\s*)' + re.escape(field) + r':\s*(.*)$', line)
+        if not match:
+            continue
+        indent, remainder = len(match.group(1)), match.group(2).strip()
+        if remainder:
+            return _flow_mapping(remainder)
+        result = {}
+        for nested in lines[index + 1:]:
+            if not nested.strip():
+                continue
+            nested_indent = len(nested) - len(nested.lstrip())
+            if nested_indent <= indent:
+                break
+            item = re.match(r'^\s*(' + YAML_ID + r'):\s*([^#]+?)\s*$', nested)
+            if item:
+                result[item.group(1)] = item.group(2).strip().strip('"\'')
+        return result
+    return {}
+
+
+def _yaml_skill_ids(block):
+    lines = block.splitlines()
+    for index, line in enumerate(lines):
+        match = re.match(r'^(\s*)skills:\s*(.*)$', line)
+        if not match:
+            continue
+        indent, remainder = len(match.group(1)), match.group(2).strip()
+        if remainder.startswith('[') and remainder.endswith(']'):
+            return sorted({
+                mapping['id']
+                for item in re.findall(r'\{[^{}]*\}', remainder)
+                for mapping in [_flow_mapping(item)]
+                if re.fullmatch(YAML_ID, mapping.get('id', ''))
+            })
+        skill_ids = set()
+        current = None
+
+        def collect(mapping):
+            if mapping is not None and re.fullmatch(YAML_ID, mapping.get('id', '')):
+                skill_ids.add(mapping['id'])
+
+        for nested in lines[index + 1:]:
+            if not nested.strip():
+                continue
+            nested_indent = len(nested) - len(nested.lstrip())
+            if nested_indent <= indent:
+                break
+            item = re.match(r'^\s*-\s*(.*)$', nested)
+            if item:
+                collect(current)
+                current = _flow_mapping(item.group(1))
+                continue
+            if current is not None:
+                field = re.match(r'^\s*(' + YAML_ID + r'):\s*([^#]+?)\s*$', nested)
+                if field:
+                    current[field.group(1)] = field.group(2).strip().strip('"\'')
+        collect(current)
+        return sorted(skill_ids)
+    return []
+
+
 def _declared_panorama_skill_ids(workflow_dir):
     condition_blocks = _yaml_mapping_blocks(workflow_dir / 'condition.yaml', 'conditions')
     prompt_ids = set()
     for condition_id, block in condition_blocks.items():
-        owns_panorama = 'panorama' in condition_id or re.search(
-            r'(?m)^\s*output:\s*(?:\{[^}]*\bkey:\s*panorama_snapshot_path\b|\n\s+key:\s*panorama_snapshot_path\s*$)',
-            block,
-        )
+        output = _yaml_child_mapping(block, 'output')
+        owns_panorama = 'panorama' in condition_id or output.get('key') == 'panorama_snapshot_path'
         if not owns_panorama:
             continue
-        match = re.search(r'\bprompt_id:\s*(' + YAML_ID + r')\b', block)
-        if match:
-            prompt_ids.add(match.group(1))
+        prompt_id = _yaml_child_mapping(block, 'prompt_ref').get('prompt_id', '')
+        if re.fullmatch(YAML_ID, prompt_id):
+            prompt_ids.add(prompt_id)
 
     prompt_blocks = _yaml_mapping_blocks(workflow_dir / 'prompt.yaml', 'prompts')
     skill_ids = set()
     for prompt_id in prompt_ids:
-        block = prompt_blocks.get(prompt_id, '')
-        skill_ids.update(re.findall(r'-\s*(?:\{\s*)?id:\s*(' + YAML_ID + r')\b', block))
-        for sequence in re.findall(r'\bskills:\s*\[(.*?)\]', block, flags=re.DOTALL):
-            skill_ids.update(re.findall(r'(?:^|[,{])\s*id:\s*(' + YAML_ID + r')\b', sequence))
+        skill_ids.update(_yaml_skill_ids(prompt_blocks.get(prompt_id, '')))
     return sorted(skill_ids)
 
 

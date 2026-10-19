@@ -84,7 +84,10 @@ aiden-bot-cli send-card --card-file "$tmp_card"
 
 ## 完成后
 
-成功的终止 Route 被接受、Workflow 为 completed 之后，进入 Step 时的全景图不是完成投递。当前宿主必须按最初选中的同一分支重新 render 并投递一次；那一次内容含 `Done` 与 `100%`。不得跨宿主回退。
+先读取刚被接受的 terminal Result：
+
+- `candidate_cancelled` 终态：不 render `Done` / `100%` Panorama。只发送取消专用的普通说明，明确候选已取消、没有发布、发布 Step 未执行；不得说“全部步骤完成”。到此停止。
+- 只有 `publish_workflow_candidate` Step 以 `fornax_release_published`、`published_bundle_matched` 等发布成功 Condition 完成 terminal Route 时，才执行下面的完成卡投递。进入 Step 时的全景图不是完成投递；当前宿主按最初选中的同一分支重新 render 并投递一次，内容含 `Done` 与 `100%`。不得跨宿主回退。
 
 ### 完成态 botmux
 
@@ -128,7 +131,7 @@ cmp -s -- <ABSOLUTE_SNAPSHOT_PATH> "$tmp_card" || exit 1
 aiden-bot-cli send-card --card-file "$tmp_card"
 ```
 
-所有分支都以这次 post-terminal render 返回的新 `snapshot_path` 为准。不得把写入文件当成投递；公开 CLI 不证明用户看见了消息。
+成功发布分支都以这次 post-terminal render 返回的新 `snapshot_path` 为准。不得把写入文件当成投递；公开 CLI 不证明用户看见了消息。
 
 after a successful terminal Route, render panorama once more and deliver exact data.content; the in-step retrospect panorama is not the Done 100% delivery.
 

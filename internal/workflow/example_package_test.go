@@ -146,6 +146,17 @@ func TestManageFanloopWorkflowPackageValidates(t *testing.T) {
 	if conditionAt < 0 || completedAt < 0 || noReportAt < 0 || !(conditionAt < completedAt && completedAt < noReportAt) {
 		t.Fatalf("manage Panorama Skill does not separate pre-terminal reporting from post-terminal delivery")
 	}
+	for _, required := range []string{
+		"`candidate_cancelled` 终态：不 render `Done` / `100%` Panorama",
+		"不得说“全部步骤完成”",
+		"`publish_workflow_candidate` Step",
+		"`fornax_release_published`",
+		"才执行下面的完成卡投递",
+	} {
+		if !strings.Contains(panoramaSkill, required) {
+			t.Errorf("manage Panorama terminal policy is missing %q", required)
+		}
+	}
 }
 
 func mustReadFile(t *testing.T, path string) []byte {

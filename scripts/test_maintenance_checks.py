@@ -322,6 +322,31 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
 
+    def test_panorama_output_key_is_order_independent(self):
+        self.write(
+            'ordered-output/fanloop-workflow/fomo/condition.yaml',
+            'schema_version: 3\nconditions:\n  delivery_confirmed:\n'
+            '    prompt_ref:\n      file: prompt.yaml\n      prompt_id: delivery_condition\n'
+            '    output:\n      type: path\n      key: panorama_snapshot_path\n',
+        )
+        self.write(
+            'ordered-output/fanloop-workflow/fomo/prompt.yaml',
+            'schema_version: 2\nprompts:\n  delivery_condition:\n'
+            '    prompt: Deliver Panorama.\n'
+            '    skills: [{prompt: Deliver Panorama., optional: false, id: delivery}]\n',
+        )
+        self.write(
+            'ordered-output/fanloop-workflow/fomo/skills/delivery/SKILL.md',
+            'This intentionally lacks the required delivery contract.\n',
+        )
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root / 'ordered-output')],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('fanloop-workflow/fomo/skills/delivery/SKILL.md', result.stderr)
+
     def test_path_only_receipt_is_not_a_file_save_claim(self):
         path = self.root / 'prepare-result.json'
         path.write_text(
