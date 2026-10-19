@@ -146,10 +146,9 @@ func NewRoot(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command
 Agent workflow:
 1. Read the fanloop-workflow Skill before advancing a requirement.
 2. Run fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT> immediately before acting.
-3. If state.pending_actions is non-empty, read each action.skill, complete it, acknowledge that same action with flow action acknowledge, and reread Status.
-4. Only when pending_actions is empty, execute current.prompt and its required Skills from that latest Status.
-5. Read the target leaf command --help for its exact Request and controls.
-6. Report progress or a Condition result, then read flow status again.
+3. Execute current.prompt and its required Skills from that latest Status.
+4. Read the target leaf command --help for its exact Request and controls.
+5. Report progress or a Condition result, then read flow status again.
 
 If flow status reports NOT_INITIALIZED, run flow init once and then read Status.`,
 		Version:           buildinfo.CLIVersion,

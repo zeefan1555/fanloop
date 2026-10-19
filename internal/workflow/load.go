@@ -21,19 +21,6 @@ var workflowIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 var configIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var ErrInvalidSelector = errors.New("invalid workflow selector")
 var ErrInvalidConfiguration = errors.New("invalid workflow configuration")
-var ErrReservedCondition = errors.New("reserved panorama condition")
-
-type ReservedConditionError struct {
-	ID string
-}
-
-func (err ReservedConditionError) Error() string {
-	return fmt.Sprintf("Condition %q is reserved for the Loop Runtime Panorama action", err.ID)
-}
-
-func (err ReservedConditionError) Unwrap() []error {
-	return []error{ErrReservedCondition, ErrInvalidConfiguration}
-}
 
 func invalidConfiguration(err error) error {
 	if errors.Is(err, ErrInvalidConfiguration) {

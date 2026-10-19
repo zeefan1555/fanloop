@@ -15,9 +15,9 @@ const (
 	//
 	// This file owns every Fanloop-defined structured JSON/JSONL document under
 	// .fanloop. It defines file schemas only: no public CLI methods or RPC service.
-	FLOW_STATE_SCHEMA_VERSION = 15
+	FLOW_STATE_SCHEMA_VERSION = 16
 
-	EVENT_SCHEMA_VERSION = 15
+	EVENT_SCHEMA_VERSION = 16
 
 	OUTPUT_REGISTRY_SCHEMA_VERSION = 4
 
@@ -338,14 +338,13 @@ func (p *RegistryProfile) Value() (driver.Value, error) {
 type EventKind int64
 
 const (
-	EventKind_unspecified              EventKind = 0
-	EventKind_flow_initialized         EventKind = 1
-	EventKind_flow_progressed          EventKind = 2
-	EventKind_flow_result              EventKind = 3
-	EventKind_trace_document_bound     EventKind = 4
-	EventKind_trace_sync_started       EventKind = 5
-	EventKind_trace_synced             EventKind = 6
-	EventKind_flow_action_acknowledged EventKind = 7
+	EventKind_unspecified          EventKind = 0
+	EventKind_flow_initialized     EventKind = 1
+	EventKind_flow_progressed      EventKind = 2
+	EventKind_flow_result          EventKind = 3
+	EventKind_trace_document_bound EventKind = 4
+	EventKind_trace_sync_started   EventKind = 5
+	EventKind_trace_synced         EventKind = 6
 )
 
 func (p EventKind) String() string {
@@ -364,8 +363,6 @@ func (p EventKind) String() string {
 		return "trace_sync_started"
 	case EventKind_trace_synced:
 		return "trace_synced"
-	case EventKind_flow_action_acknowledged:
-		return "flow_action_acknowledged"
 	}
 	return "<UNSET>"
 }
@@ -386,8 +383,6 @@ func EventKindFromString(s string) (EventKind, error) {
 		return EventKind_trace_sync_started, nil
 	case "trace_synced":
 		return EventKind_trace_synced, nil
-	case "flow_action_acknowledged":
-		return EventKind_flow_action_acknowledged, nil
 	}
 	return EventKind(0), fmt.Errorf("not a valid EventKind string")
 }
@@ -415,62 +410,6 @@ func (p *EventKind) Scan(value interface{}) (err error) {
 }
 
 func (p *EventKind) Value() (driver.Value, error) {
-	if p == nil {
-		return nil, nil
-	}
-	return int64(*p), nil
-}
-
-type ActionType int64
-
-const (
-	ActionType_unspecified                ActionType = 0
-	ActionType_panorama_delivery_required ActionType = 1
-)
-
-func (p ActionType) String() string {
-	switch p {
-	case ActionType_unspecified:
-		return "unspecified"
-	case ActionType_panorama_delivery_required:
-		return "panorama_delivery_required"
-	}
-	return "<UNSET>"
-}
-
-func ActionTypeFromString(s string) (ActionType, error) {
-	switch s {
-	case "unspecified":
-		return ActionType_unspecified, nil
-	case "panorama_delivery_required":
-		return ActionType_panorama_delivery_required, nil
-	}
-	return ActionType(0), fmt.Errorf("not a valid ActionType string")
-}
-
-func ActionTypePtr(v ActionType) *ActionType { return &v }
-
-func (p ActionType) MarshalText() ([]byte, error) {
-	return []byte(p.String()), nil
-}
-
-func (p *ActionType) UnmarshalText(text []byte) error {
-	q, err := ActionTypeFromString(string(text))
-	if err != nil {
-		return err
-	}
-	*p = q
-	return nil
-}
-
-func (p *ActionType) Scan(value interface{}) (err error) {
-	var result sql.NullInt64
-	err = result.Scan(value)
-	*p = ActionType(result.Int64)
-	return
-}
-
-func (p *ActionType) Value() (driver.Value, error) {
 	if p == nil {
 		return nil, nil
 	}
@@ -2739,100 +2678,6 @@ var fieldIDToName_FlowResultPayload = map[int16]string{
 	6: "output_changes",
 }
 
-type FlowActionAcknowledgedPayload struct {
-	ActionId             string     `thrift:"action_id,1,required" json:"action_id"`
-	ActionType           ActionType `thrift:"action_type,2,required,ActionType" json:"action_type"`
-	TriggerEventId       string     `thrift:"trigger_event_id,3,required" json:"trigger_event_id"`
-	PanoramaSnapshotPath string     `thrift:"panorama_snapshot_path,4,required" json:"panorama_snapshot_path"`
-}
-
-func NewFlowActionAcknowledgedPayload() *FlowActionAcknowledgedPayload {
-	return &FlowActionAcknowledgedPayload{}
-}
-
-func (p *FlowActionAcknowledgedPayload) InitDefault() {
-}
-
-func (p *FlowActionAcknowledgedPayload) GetActionId() (v string) {
-	return p.ActionId
-}
-
-func (p *FlowActionAcknowledgedPayload) GetActionType() (v ActionType) {
-	return p.ActionType
-}
-
-func (p *FlowActionAcknowledgedPayload) GetTriggerEventId() (v string) {
-	return p.TriggerEventId
-}
-
-func (p *FlowActionAcknowledgedPayload) GetPanoramaSnapshotPath() (v string) {
-	return p.PanoramaSnapshotPath
-}
-
-func (p *FlowActionAcknowledgedPayload) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("FlowActionAcknowledgedPayload(%+v)", *p)
-}
-
-func (p *FlowActionAcknowledgedPayload) DeepEqual(ano *FlowActionAcknowledgedPayload) bool {
-	if p == ano {
-		return true
-	} else if p == nil || ano == nil {
-		return false
-	}
-	if !p.Field1DeepEqual(ano.ActionId) {
-		return false
-	}
-	if !p.Field2DeepEqual(ano.ActionType) {
-		return false
-	}
-	if !p.Field3DeepEqual(ano.TriggerEventId) {
-		return false
-	}
-	if !p.Field4DeepEqual(ano.PanoramaSnapshotPath) {
-		return false
-	}
-	return true
-}
-
-func (p *FlowActionAcknowledgedPayload) Field1DeepEqual(src string) bool {
-
-	if strings.Compare(p.ActionId, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *FlowActionAcknowledgedPayload) Field2DeepEqual(src ActionType) bool {
-
-	if p.ActionType != src {
-		return false
-	}
-	return true
-}
-func (p *FlowActionAcknowledgedPayload) Field3DeepEqual(src string) bool {
-
-	if strings.Compare(p.TriggerEventId, src) != 0 {
-		return false
-	}
-	return true
-}
-func (p *FlowActionAcknowledgedPayload) Field4DeepEqual(src string) bool {
-
-	if strings.Compare(p.PanoramaSnapshotPath, src) != 0 {
-		return false
-	}
-	return true
-}
-
-var fieldIDToName_FlowActionAcknowledgedPayload = map[int16]string{
-	1: "action_id",
-	2: "action_type",
-	3: "trigger_event_id",
-	4: "panorama_snapshot_path",
-}
-
 type TraceDocumentBoundPayload struct {
 	PreviousDocumentUrl       *string          `thrift:"previous_document_url,1,optional" json:"previous_document_url,omitempty"`
 	DocumentUrl               string           `thrift:"document_url,2,required" json:"document_url"`
@@ -4336,13 +4181,12 @@ var fieldIDToName_TraceConfig = map[int16]string{
 }
 
 type EventPayload struct {
-	FlowInitialized        *FlowInitializedPayload        `thrift:"flow_initialized,1,optional" json:"flow_initialized,omitempty"`
-	FlowProgressed         *FlowProgressedPayload         `thrift:"flow_progressed,2,optional" json:"flow_progressed,omitempty"`
-	FlowResult             *FlowResultPayload             `thrift:"flow_result,3,optional" json:"flow_result,omitempty"`
-	TraceDocumentBound     *TraceDocumentBoundPayload     `thrift:"trace_document_bound,4,optional" json:"trace_document_bound,omitempty"`
-	TraceSyncStarted       *TraceSyncStartedPayload       `thrift:"trace_sync_started,5,optional" json:"trace_sync_started,omitempty"`
-	TraceSynced            *TraceSyncedPayload            `thrift:"trace_synced,6,optional" json:"trace_synced,omitempty"`
-	FlowActionAcknowledged *FlowActionAcknowledgedPayload `thrift:"flow_action_acknowledged,7,optional" json:"flow_action_acknowledged,omitempty"`
+	FlowInitialized    *FlowInitializedPayload    `thrift:"flow_initialized,1,optional" json:"flow_initialized,omitempty"`
+	FlowProgressed     *FlowProgressedPayload     `thrift:"flow_progressed,2,optional" json:"flow_progressed,omitempty"`
+	FlowResult         *FlowResultPayload         `thrift:"flow_result,3,optional" json:"flow_result,omitempty"`
+	TraceDocumentBound *TraceDocumentBoundPayload `thrift:"trace_document_bound,4,optional" json:"trace_document_bound,omitempty"`
+	TraceSyncStarted   *TraceSyncStartedPayload   `thrift:"trace_sync_started,5,optional" json:"trace_sync_started,omitempty"`
+	TraceSynced        *TraceSyncedPayload        `thrift:"trace_synced,6,optional" json:"trace_synced,omitempty"`
 }
 
 func NewEventPayload() *EventPayload {
@@ -4406,15 +4250,6 @@ func (p *EventPayload) GetTraceSynced() (v *TraceSyncedPayload) {
 	return p.TraceSynced
 }
 
-var EventPayload_FlowActionAcknowledged_DEFAULT *FlowActionAcknowledgedPayload
-
-func (p *EventPayload) GetFlowActionAcknowledged() (v *FlowActionAcknowledgedPayload) {
-	if !p.IsSetFlowActionAcknowledged() {
-		return EventPayload_FlowActionAcknowledged_DEFAULT
-	}
-	return p.FlowActionAcknowledged
-}
-
 func (p *EventPayload) CountSetFieldsEventPayload() int {
 	count := 0
 	if p.IsSetFlowInitialized() {
@@ -4433,9 +4268,6 @@ func (p *EventPayload) CountSetFieldsEventPayload() int {
 		count++
 	}
 	if p.IsSetTraceSynced() {
-		count++
-	}
-	if p.IsSetFlowActionAcknowledged() {
 		count++
 	}
 	return count
@@ -4463,10 +4295,6 @@ func (p *EventPayload) IsSetTraceSyncStarted() bool {
 
 func (p *EventPayload) IsSetTraceSynced() bool {
 	return p.TraceSynced != nil
-}
-
-func (p *EventPayload) IsSetFlowActionAcknowledged() bool {
-	return p.FlowActionAcknowledged != nil
 }
 
 func (p *EventPayload) String() string {
@@ -4498,9 +4326,6 @@ func (p *EventPayload) DeepEqual(ano *EventPayload) bool {
 		return false
 	}
 	if !p.Field6DeepEqual(ano.TraceSynced) {
-		return false
-	}
-	if !p.Field7DeepEqual(ano.FlowActionAcknowledged) {
 		return false
 	}
 	return true
@@ -4548,13 +4373,6 @@ func (p *EventPayload) Field6DeepEqual(src *TraceSyncedPayload) bool {
 	}
 	return true
 }
-func (p *EventPayload) Field7DeepEqual(src *FlowActionAcknowledgedPayload) bool {
-
-	if !p.FlowActionAcknowledged.DeepEqual(src) {
-		return false
-	}
-	return true
-}
 
 var fieldIDToName_EventPayload = map[int16]string{
 	1: "flow_initialized",
@@ -4563,5 +4381,4 @@ var fieldIDToName_EventPayload = map[int16]string{
 	4: "trace_document_bound",
 	5: "trace_sync_started",
 	6: "trace_synced",
-	7: "flow_action_acknowledged",
 }

@@ -24,10 +24,7 @@ func loadWorkflow(root, selector string) (workflow.Loaded, *erroridl.PublicError
 	if err == nil {
 		return loaded, nil
 	}
-	var reserved workflow.ReservedConditionError
 	switch {
-	case errors.As(err, &reserved):
-		return workflow.Loaded{}, newFlowError(erroridl.ErrorCode_CONDITION_RESERVED, reserved.Error(), nil)
 	case errors.Is(err, workflow.ErrInvalidSelector):
 		return workflow.Loaded{}, newFlowError(erroridl.ErrorCode_INVALID_ARGUMENT, err.Error(), nil)
 	case errors.Is(err, fs.ErrNotExist):

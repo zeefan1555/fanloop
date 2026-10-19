@@ -310,19 +310,6 @@ func eventPayloadToIDL(event Event) (*storageidl.EventPayload, error) {
 			return nil, err
 		}
 		payload.FlowResult = converted
-	case EventFlowActionAcknowledged:
-		value, ok := EventPayloadAs[FlowActionAcknowledgedPayload](event)
-		if !ok {
-			return nil, fmt.Errorf("invalid %s payload type", event.Kind)
-		}
-		actionType, err := storageidl.ActionTypeFromString(string(value.ActionType))
-		if err != nil {
-			return nil, err
-		}
-		payload.FlowActionAcknowledged = &storageidl.FlowActionAcknowledgedPayload{
-			ActionId: value.ActionID, ActionType: actionType, TriggerEventId: value.TriggerEventID,
-			PanoramaSnapshotPath: value.PanoramaSnapshotPath,
-		}
 	case EventTraceDocumentBound:
 		value, ok := EventPayloadAs[TraceDocumentBoundPayload](event)
 		if !ok {
@@ -404,14 +391,6 @@ func eventPayloadFromIDL(kind EventKind, payload *storageidl.EventPayload) (any,
 			return nil, payloadMismatch(kind)
 		}
 		return flowResultFromIDL(payload.FlowResult)
-	case EventFlowActionAcknowledged:
-		if payload.FlowActionAcknowledged == nil {
-			return nil, payloadMismatch(kind)
-		}
-		return FlowActionAcknowledgedPayload{
-			ActionID: payload.FlowActionAcknowledged.ActionId, ActionType: ActionType(payload.FlowActionAcknowledged.ActionType.String()),
-			TriggerEventID: payload.FlowActionAcknowledged.TriggerEventId, PanoramaSnapshotPath: payload.FlowActionAcknowledged.PanoramaSnapshotPath,
-		}, nil
 	case EventTraceDocumentBound:
 		if payload.TraceDocumentBound == nil {
 			return nil, payloadMismatch(kind)

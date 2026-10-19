@@ -25,9 +25,8 @@ import subprocess
 import sys
 
 # Agents still reported panorama_presented after writing artifacts/panorama-*.md.
-# Runtime now owns delivery through the Panorama action (ADR-0137). Skill text and
-# this lint still block a file-save claim. Workflow YAML must not define the
-# reserved Condition IDs.
+# Runtime only checks the path receipt (ADR-0119), so the Skill text and this lint
+# are what block that claim.
 REQUIRED_BLOCKED_SENTENCE = (
     'report blocked if no user-visible channel; never write artifacts/panorama-* as delivery.'
 )
@@ -461,12 +460,8 @@ def learning_card_gate_errors(source):
                     f'fanloop-workflow/remnote-flashcards/flow.yaml: missing route condition {condition_id}. '
                     'The engine only advances when the forward route lists it.'
                 )
-        for reserved in ('panorama_presented', 'panorama_card_published'):
-            if reserved in flow_text:
-                errors.append(
-                    'fanloop-workflow/remnote-flashcards/flow.yaml: '
-                    f'{reserved} is reserved for the Loop Runtime Panorama action.'
-                )
+        if 'panorama_presented' not in flow_text:
+            errors.append('fanloop-workflow/remnote-flashcards/flow.yaml: panorama_presented must stay on every forward route.')
     package = source / 'fanloop-workflow' / 'remnote-flashcards'
     if not package.is_dir():
         return errors
@@ -534,39 +529,6 @@ def _relative(path, source):
         return path.as_posix()
 
 
-def reserved_panorama_condition_errors(source, workflows, include_examples):
-    errors = []
-    roots = []
-    selected = None if workflows is None else set(workflows)
-    packages = source / 'fanloop-workflow'
-    if packages.is_dir() and not packages.is_symlink():
-        for package in sorted(packages.iterdir()):
-            if selected is not None and package.name not in selected:
-                continue
-            if package.is_dir() and not package.is_symlink():
-                roots.append(package)
-    if include_examples:
-        examples = source / 'examples' / 'workflows'
-        if examples.is_dir() and not examples.is_symlink():
-            roots.extend(
-                item for item in sorted(examples.iterdir())
-                if item.is_dir() and not item.is_symlink()
-            )
-    pattern = re.compile(r'(?m)^\s*(panorama_presented|panorama_card_published)\s*:')
-    for package in roots:
-        for name in ('condition.yaml', 'flow.yaml', 'loop.yaml', 'prompt.yaml'):
-            path = package / name
-            if not path.is_file() or path.is_symlink():
-                continue
-            match = pattern.search(path.read_text())
-            if match:
-                errors.append(
-                    f'{_relative(path, source)}: Condition "{match.group(1)}" is reserved '
-                    'for the Loop Runtime Panorama action.'
-                )
-    return errors
-
-
 def check_panorama_skills(source, workflows, include_examples):
     errors = []
     for skill in panorama_skill_files(source, workflows, include_examples):
@@ -574,7 +536,6 @@ def check_panorama_skills(source, workflows, include_examples):
         for error in panorama_skill_errors(text):
             errors.append(f'{_relative(skill, source)}: {error}')
     errors.extend(remnote_done_prompt_errors(source, workflows))
-    errors.extend(reserved_panorama_condition_errors(source, workflows, include_examples))
     return errors
 
 

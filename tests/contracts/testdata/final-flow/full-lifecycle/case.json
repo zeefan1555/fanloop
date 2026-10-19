@@ -4,18 +4,10 @@
   "commands": [
     {"args": ["flow", "init", "--root", "{{ROOT}}", "--workflow", "linear-runtime", "--title", "Synthetic Routing Contract"]},
     {"args": ["flow", "status", "--root", "{{ROOT}}"]},
-    {"args": ["card", "render", "--root", "{{ROOT}}", "--view", "panorama", "--format", "markdown"]},
-    {"args": ["flow", "action", "acknowledge", "--root", "{{ROOT}}", "--action-id", "{{PENDING_ACTION_ID}}", "--panorama-snapshot-path", "{{SNAPSHOT_PATH}}"]},
     {"args": ["flow", "report", "progress", "--root", "{{ROOT}}", "--step-id", "first", "--status", "in_progress", "--summary", "first step running"]},
     {"args": ["flow", "report", "result", "--root", "{{ROOT}}", "--step-id", "first", "--condition-result", "{\"condition_id\":\"first_completed\",\"output\":{\"type\":\"path\",\"value\":\"first.md\"}}", "--next-step-id", "second", "--summary", "first step complete"]},
-    {"args": ["card", "render", "--root", "{{ROOT}}", "--view", "panorama", "--format", "markdown"]},
-    {"args": ["flow", "action", "acknowledge", "--root", "{{ROOT}}", "--action-id", "{{PENDING_ACTION_ID}}", "--panorama-snapshot-path", "{{SNAPSHOT_PATH}}"]},
     {"args": ["flow", "report", "result", "--root", "{{ROOT}}", "--step-id", "second", "--condition-result", "{\"condition_id\":\"second_rework\",\"output\":{\"type\":\"enum_value\",\"value\":\"rework\"}}", "--back-step-id", "first", "--summary", "return to first"]},
-    {"args": ["card", "render", "--root", "{{ROOT}}", "--view", "panorama", "--format", "markdown"]},
-    {"args": ["flow", "action", "acknowledge", "--root", "{{ROOT}}", "--action-id", "{{PENDING_ACTION_ID}}", "--panorama-snapshot-path", "{{SNAPSHOT_PATH}}"]},
     {"args": ["flow", "report", "result", "--root", "{{ROOT}}", "--step-id", "first", "--condition-result", "{\"condition_id\":\"first_completed\",\"output\":{\"type\":\"path\",\"value\":\"first-revised.md\"}}", "--next-step-id", "second", "--summary", "first step revised"]},
-    {"args": ["card", "render", "--root", "{{ROOT}}", "--view", "panorama", "--format", "markdown"]},
-    {"args": ["flow", "action", "acknowledge", "--root", "{{ROOT}}", "--action-id", "{{PENDING_ACTION_ID}}", "--panorama-snapshot-path", "{{SNAPSHOT_PATH}}"]},
     {"args": ["flow", "report", "result", "--root", "{{ROOT}}", "--step-id", "second", "--condition-result", "{\"condition_id\":\"second_completed\",\"output\":{\"type\":\"path\",\"value\":\"second.md\"}}", "--condition-result", "{\"condition_id\":\"second_evidence\",\"output\":{\"type\":\"path\",\"value\":\"evidence.json\"}}", "--next-step-id", "third", "--summary", "second step complete"]},
     {"args": ["card", "render", "--root", "{{ROOT}}", "--dry-run", "--view", "panorama", "--format", "markdown"]},
     {"args": ["flow", "status", "--root", "{{ROOT}}"]}

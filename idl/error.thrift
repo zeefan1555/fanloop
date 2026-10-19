@@ -40,9 +40,9 @@ enum ErrorCode {
   TRACE_UPDATE_FAILED      = 26,
   REGISTRY_UPDATE_FAILED   = 27,
   CONFIGURATION_FETCH_FAILED = 31,
-  CONDITION_RESERVED         = 32,
   // 28 and 29 are retired with the public update command and must not be reused.
   // 30 is retired with the hidden __install command and must not be reused.
+  // 32 is retired with Runtime-owned Panorama actions and must not be reused.
 }
 
 struct ErrorSpec {
@@ -70,7 +70,6 @@ exception PublicError {
 
 const map<ErrorCode,ErrorSpec> ERROR_SPECS = {
   ErrorCode.CONFIGURATION_FETCH_FAILED: {"code": ErrorCode.CONFIGURATION_FETCH_FAILED, "type": ErrorType.external, "exit_code": 1, "retryable": true, "hint": "Check Git network connectivity and SSH permissions, then retry."},
-  ErrorCode.CONDITION_RESERVED: {"code": ErrorCode.CONDITION_RESERVED, "type": ErrorType.workflow, "exit_code": 5, "retryable": false, "hint": "Remove the reserved Panorama Condition; the Runtime Panorama action owns it."},
   ErrorCode.INVALID_ARGUMENT: {"code": ErrorCode.INVALID_ARGUMENT, "type": ErrorType.validation, "exit_code": 2, "retryable": false, "hint": "Check the command arguments and retry."},
   ErrorCode.INVALID_INPUT_JSON: {"code": ErrorCode.INVALID_INPUT_JSON, "type": ErrorType.validation, "exit_code": 2, "retryable": false, "hint": "Pass one JSON object matching the command Request."},
   ErrorCode.ROOT_REQUIRED: {"code": ErrorCode.ROOT_REQUIRED, "type": ErrorType.validation, "exit_code": 2, "retryable": false, "hint": "Pass the absolute requirement directory."},

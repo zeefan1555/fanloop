@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"bytes"
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,11 +44,10 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 	if output := run("flow", "init", "--root", root, "--workflow", "sample-custom", "--title", "E2E"); !strings.Contains(output, `"command": "flow.init"`) {
 		t.Fatalf("flow output = %s", output)
 	}
-	acknowledgePanorama(t, run, root)
 	if output := run("flow", "report", "progress", "--step-id", "analyze_materials", "--status", "in_progress", "--summary", "working", "--root", root); !strings.Contains(output, `"effect": "status_updated"`) {
 		t.Fatalf("flow progress result = %s", output)
 	}
-	if output := run("trace", "render", "--root", root); !strings.Contains(output, `"event_count": 3`) {
+	if output := run("trace", "render", "--root", root); !strings.Contains(output, `"event_count": 2`) {
 		t.Fatalf("trace output = %s", output)
 	}
 	if output := run("card", "render", "--root", root, "--view", "current", "--format", "markdown"); !strings.Contains(output, `"format": "markdown"`) {
@@ -65,46 +63,6 @@ func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 			t.Fatalf("final commands wrote deprecated requirement path %s: %v", deprecated, err)
 		}
 	}
-}
-
-func acknowledgeInstalledPanorama(t *testing.T, dataRoot, codexRoot, agentsRoot, root string) {
-	t.Helper()
-	acknowledgePanorama(t, func(args ...string) string {
-		t.Helper()
-		result := runCurrent(dataRoot, codexRoot, agentsRoot, args...)
-		if result.err != nil {
-			t.Fatalf("fanloop %s: %v\nstdout: %s\nstderr: %s", strings.Join(args, " "), result.err, result.stdout, result.stderr)
-		}
-		return result.stdout
-	}, root)
-}
-
-func acknowledgePanorama(t *testing.T, run func(args ...string) string, root string) {
-	t.Helper()
-	var status struct {
-		Data struct {
-			State struct {
-				PendingActions []struct {
-					ID string `json:"id"`
-				} `json:"pending_actions"`
-			} `json:"state"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal([]byte(run("flow", "status", "--root", root)), &status); err != nil {
-		t.Fatal(err)
-	}
-	if len(status.Data.State.PendingActions) != 1 {
-		t.Fatalf("pending actions = %#v", status.Data.State.PendingActions)
-	}
-	var rendered struct {
-		Data struct {
-			SnapshotPath string `json:"snapshot_path"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal([]byte(run("card", "render", "--root", root, "--view", "panorama", "--format", "markdown")), &rendered); err != nil || rendered.Data.SnapshotPath == "" {
-		t.Fatalf("panorama render: %v", err)
-	}
-	run("flow", "action", "acknowledge", "--root", root, "--action-id", status.Data.State.PendingActions[0].ID, "--panorama-snapshot-path", rendered.Data.SnapshotPath)
 }
 
 func TestE2ECommandsScrubBotmuxBindingByDefault(t *testing.T) {

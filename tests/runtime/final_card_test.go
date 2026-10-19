@@ -151,7 +151,11 @@ func TestCardRenderUsesIndependentProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	rendered := run(binary, "card", "render", "--root", root, "--view", "panorama", "--format", "lark-json")
-	assertError(t, rendered, 5, "STATE_CORRUPT")
+	assertSuccess(t, rendered, "card.render")
+	card := decodeCard(t, rendered.stdout)
+	if bytes.Contains(card.Data.Content, []byte("最近一次 Result")) {
+		t.Fatalf("Card still renders latest Result:\n%s", card.Data.Content)
+	}
 	if got := readFile(t, eventsPath); !bytes.Equal(got, brokenTrace) {
 		t.Fatalf("Card render changed Trace Events:\n%s", got)
 	}

@@ -22,7 +22,7 @@ second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括
 
 完整包目录为 `fanloop-workflow/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
 `fanloop-workflow` 与 `create-fanloop-workflow` 两个公共 Skill；安装检查和 Doctor 的安装检查从当前 live Workflow 根加载，并拒绝缺失或
-额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。已有 Requirement 的 status、report、action、skills、trace、card render、Card projection 和 Doctor 需求检查读取 `.fanloop/configuration-snapshot`。
+额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。已有 Requirement 的 status、report、skills、trace、card render、Card projection 和 Doctor 需求检查读取 `.fanloop/configuration-snapshot`。
 
 入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
 `fanloop-maintenance` 对应
@@ -60,7 +60,7 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 进入 `skipped_step_ids`，目标及下游 Outputs 失效；Card 与 Trace 将 skipped 显示为“已跳过”。完整
 决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
-Human Step 的审核与 Panorama 由五份 YAML 驱动。代码通道（`code-change` playbook）由主 Agent批准需求与最终候选，配置通道经独立行为试用后提交本地完整包并回读。Panorama Skill 按宿主原样展示 renderer 输出，并返回本次快照；CLI只校验类型与Route，不代替审批或证明业务事实。
+Human Step 的审核与可选 Panorama 都由五份 YAML 驱动。代码通道（`code-change` playbook）由主 Agent批准需求与最终候选，配置通道经独立行为试用后提交本地完整包并回读。选择 Panorama 的 Workflow 通过普通 Condition 和绑定 Skill 按宿主原样展示 renderer 输出并返回本次快照；CLI只校验类型与Route，不代替审批或证明业务事实，也不注入固定 Panorama 节点。
 
 ## 当前配置实例
 
@@ -83,7 +83,7 @@ required checks、同步 Review、自动 squash merge，把本 Requirement 的�
 ## 当前持久化版本
 
 - Workflow / Flow / Condition / Loop / Prompt：`7 / 5 / 3 / 4 / 2`
-- Flow State / Event / Output Registry：`14 / 14 / 4`
+- Flow State / Event / Output Registry：`16 / 16 / 4`
 - Card Projection / Card Binding / Trace Config / CLI Log：`7 / 2 / 2 / 2`
 
 Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命令、文件位置和恢复提示均不
@@ -108,7 +108,7 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 五YAML仍是通用加载器的唯一执行图，配置内容不进入Requirement或CLI Release。
 本地源绑定、完整包与 Dashboard 边界见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 CLI 的 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`。版本发生变化时，新二进制执行配置同步；同一版本修复仍由当前进程同步 `second-brain-skills` `main`。`fanloop update config` 只做这次 Git 同步；commit 未变时跳过 checkout。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时才同步 Fornax，已发布集合和已安装树都没变时跳过下载。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。已有 Requirement 的 `flow status/report/action/skills`、`trace`、`card render`、Card projection 更新和 Doctor 需求检查读取该 Requirement 固定的快照，不跟随之后的 `config/current`。投影文件能通过 pinned Workflow 校验但落后于已提交 State/Event 时，非 dry-run `card render` 从事件日志重建投影后再渲染；缺失、损坏或绑定错误的投影仍直接失败。见 [ADR-0142](./adr/0142-rebuild-stale-card-projection-from-pinned-snapshot.md)。完整决定见
+用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 CLI 的 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`。版本发生变化时，新二进制执行配置同步；同一版本修复仍由当前进程同步 `second-brain-skills` `main`。`fanloop update config` 只做这次 Git 同步；commit 未变时跳过 checkout。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时才同步 Fornax，已发布集合和已安装树都没变时跳过下载。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。已有 Requirement 的 `flow status/report/skills`、`trace`、`card render`、Card projection 更新和 Doctor 需求检查读取该 Requirement 固定的快照，不跟随之后的 `config/current`。投影文件能通过 pinned Workflow 校验但落后于已提交 State/Event 时，非 dry-run `card render` 从事件日志重建投影后再渲染；缺失、损坏或绑定错误的投影仍直接失败。见 [ADR-0142](./adr/0142-rebuild-stale-card-projection-from-pinned-snapshot.md)。完整决定见
 [ADR-0140](./adr/0140-update-reexecs-new-release-for-config-sync.md)、[ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)、[ADR-0136](./adr/0136-distribute-cli-from-github-releases.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
 新增生产 Workflow 直接增加 fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。

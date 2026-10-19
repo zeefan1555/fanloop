@@ -19,7 +19,7 @@ func TestVersionExposesThriftReleaseContract(t *testing.T) {
 	if err := json.Unmarshal([]byte(version.stdout), &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.Data.StateSchema.WriteVersion != 15 {
+	if response.Data.StateSchema.WriteVersion != 16 {
 		t.Fatalf("version response = %s", version.stdout)
 	}
 	var raw map[string]any

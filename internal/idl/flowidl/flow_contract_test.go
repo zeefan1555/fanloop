@@ -26,9 +26,6 @@ func (fakeService) Progress(context.Context, string, *FlowProgressRequest, bool)
 func (fakeService) Result(context.Context, string, *FlowResultRequest, bool) (*FlowResultResponse, error) {
 	return nil, nil
 }
-func (fakeService) AcknowledgeAction(context.Context, string, *FlowActionAcknowledgeRequest, bool) (*FlowActionAcknowledgeResponse, error) {
-	return nil, nil
-}
 
 func TestGeneratedContractCompiles(t *testing.T) {
 	var _ FlowService = fakeService{}

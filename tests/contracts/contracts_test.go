@@ -88,7 +88,6 @@ func TestPublicContracts(t *testing.T) {
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build fanloop: %v\n%s", err, output)
 	}
-	copyTree(t, filepath.Join(repo, "entrypoints"), filepath.Join(filepath.Dir(binary), "entrypoints"))
 	paths, err := filepath.Glob(filepath.Join(repo, "tests", "contracts", "testdata", "*", "*", "case.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -266,10 +265,9 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 	}
 	privateFiles := loadPrivateFiles(t, root, value.PrivateFiles)
 	results := make([]commandResult, 0, len(value.Commands))
-	rawStdout := make([]string, 0, len(value.Commands))
 	var files map[string]fileResult
 	for index, step := range value.Commands {
-		args := expandDynamic(expandAll(step.Args, root), rawStdout)
+		args := expandAll(step.Args, root)
 		command := exec.Command(binary, args...)
 		command.Dir = root
 		command.Env = mergeEnvironment(root, value.Environment, step.Environment)
@@ -290,7 +288,6 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 			Stderr:   normalizeText(stderr.String(), root),
 		}
 		results = append(results, result)
-		rawStdout = append(rawStdout, stdout.String())
 		files = snapshot(t, root)
 		if err := detectPrivateLeak(privateFiles, result, files); err != nil {
 			t.Fatalf("command %d: %v", index, err)
@@ -506,43 +503,6 @@ func expandAll(values []string, root string) []string {
 	return result
 }
 
-func expandDynamic(values, stdout []string) []string {
-	actionID, snapshotPath := latestActionAndSnapshot(stdout)
-	result := make([]string, len(values))
-	for index, value := range values {
-		value = strings.ReplaceAll(value, "{{PENDING_ACTION_ID}}", actionID)
-		value = strings.ReplaceAll(value, "{{SNAPSHOT_PATH}}", snapshotPath)
-		result[index] = value
-	}
-	return result
-}
-
-func latestActionAndSnapshot(stdout []string) (string, string) {
-	actionID, snapshotPath := "", ""
-	for index := len(stdout) - 1; index >= 0 && (actionID == "" || snapshotPath == ""); index-- {
-		var envelope struct {
-			Data struct {
-				SnapshotPath string `json:"snapshot_path"`
-				State        struct {
-					PendingActions []struct {
-						ID string `json:"id"`
-					} `json:"pending_actions"`
-				} `json:"state"`
-			} `json:"data"`
-		}
-		if json.Unmarshal([]byte(stdout[index]), &envelope) != nil {
-			continue
-		}
-		if actionID == "" && len(envelope.Data.State.PendingActions) == 1 {
-			actionID = envelope.Data.State.PendingActions[0].ID
-		}
-		if snapshotPath == "" && envelope.Data.SnapshotPath != "" {
-			snapshotPath = envelope.Data.SnapshotPath
-		}
-	}
-	return actionID, snapshotPath
-}
-
 func expand(value, root string) string { return strings.ReplaceAll(value, "{{ROOT}}", root) }
 
 var (
@@ -554,15 +514,13 @@ var (
 		`((?:\\)+"[^"]*event_id(?:\\)+"\s*:\s*(?:\\)+")(?:(?:legacy-)?[0-9a-f]{24}|evt_[0-9a-f]{24}|[0-9a-f]{32})((?:\\)+")`,
 	)
 	eventIDTextPattern = regexp.MustCompile(
-		`(\b(?:event_id|last_event_id|caused_by_event_id|trigger_event_id)=)(?:(?:legacy-)?[0-9a-f]{24}|evt_[0-9a-f]{24}|[0-9a-f]{32})\b`,
+		`(\b(?:event_id|last_event_id|caused_by_event_id)=)(?:(?:legacy-)?[0-9a-f]{24}|evt_[0-9a-f]{24}|[0-9a-f]{32})\b`,
 	)
 	invocationIDFieldPattern = regexp.MustCompile(`("invocation_id"\s*:\s*")[^"]+(")`)
 	durationMSFieldPattern   = regexp.MustCompile(`("duration_ms"\s*:\s*)[0-9]+`)
 	nativeEventIDPattern     = regexp.MustCompile("(`)(?:evt_[0-9a-f]{24}|[0-9a-f]{32})(`)")
 	nativeCardPattern        = regexp.MustCompile(`\b(?:evt_[0-9a-f]{24}|[0-9a-f]{32})\.json\b`)
-	cardPattern              = regexp.MustCompile(`\b[0-9]{8}T[0-9]{6}\.[0-9]{6}[+-][0-9]{4}(?:-[0-9a-f]{64})?(?:-[0-9]+)?\.json\b`)
-	panoramaSkillPathPattern = regexp.MustCompile(`(?:/[^"\\]+)+/entrypoints/fanloop-workflow/skills/fanloop-panorama-delivery/SKILL\.md`)
-	panoramaActionPattern    = regexp.MustCompile(`panorama-(?:evt_[0-9a-f]{24}|[0-9a-f]{32})`)
+	cardPattern              = regexp.MustCompile(`\b[0-9]{8}T[0-9]{6}\.[0-9]{6}[+-][0-9]{4}(?:-[0-9]+)?\.json\b`)
 )
 
 func normalizeText(value, root string) string {
@@ -588,8 +546,6 @@ func normalizeText(value, root string) string {
 	value = durationMSFieldPattern.ReplaceAllString(value, `${1}0`)
 	value = nativeEventIDPattern.ReplaceAllString(value, `${1}<EVENT_ID>${2}`)
 	value = nativeCardPattern.ReplaceAllString(value, `<EVENT_ID>.json`)
-	value = panoramaSkillPathPattern.ReplaceAllString(value, `<RELEASE_ROOT>/entrypoints/fanloop-workflow/skills/fanloop-panorama-delivery/SKILL.md`)
-	value = panoramaActionPattern.ReplaceAllString(value, `panorama-<EVENT_ID>`)
 	return cardPattern.ReplaceAllString(value, "<TIMESTAMP>.json")
 }
 

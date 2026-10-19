@@ -192,9 +192,6 @@ func normalizeConditions(values map[string]*yamlidl.ConditionDefinition) (map[st
 	}
 	result := make(map[string]ConditionDefinition, len(values))
 	for id, value := range values {
-		if id == "panorama_presented" || id == "panorama_card_published" {
-			return nil, ReservedConditionError{ID: id}
-		}
 		if value == nil {
 			return nil, fmt.Errorf("condition.%s is null", id)
 		}

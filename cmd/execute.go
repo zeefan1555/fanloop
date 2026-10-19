@@ -58,15 +58,6 @@ func addOperationControls(command *cobra.Command, controls *operationControls) {
 	if ok && spec.SupportsDryRun {
 		command.Flags().BoolVar(&controls.dryRun, "dry-run", false, "validate and plan without business side effects")
 	}
-	if ok && len(spec.Errors) > 0 {
-		var catalog strings.Builder
-		catalog.WriteString("\n\nErrors:\n")
-		for _, item := range spec.Errors {
-			fmt.Fprintf(&catalog, "  %s (type=%s, exit=%d, retryable=%t): %s\n",
-				item.Code.String(), item.Type.String(), item.ExitCode, item.Retryable, item.Hint)
-		}
-		command.Long += strings.TrimSuffix(catalog.String(), "\n")
-	}
 	if ok && spec.RequirementScope != commonidl.RequirementScope_none {
 		command.Long += `
 
@@ -309,14 +300,6 @@ func normalizePublicError(err error) *erroridl.PublicError {
 }
 
 func normalizeConfigurationError(spec idl.CommandSpec, err error) *erroridl.PublicError {
-	var reserved workflow.ReservedConditionError
-	if errors.As(err, &reserved) {
-		for _, allowed := range spec.Errors {
-			if allowed.Code == erroridl.ErrorCode_CONDITION_RESERVED {
-				return errs.NewCode(erroridl.ErrorCode_CONDITION_RESERVED, reserved.Error(), nil)
-			}
-		}
-	}
 	if errors.Is(err, workflow.ErrInvalidConfiguration) {
 		for _, allowed := range spec.Errors {
 			if allowed.Code == erroridl.ErrorCode_WORKFLOW_INVALID {

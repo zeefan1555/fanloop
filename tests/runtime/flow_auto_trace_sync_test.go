@@ -108,7 +108,7 @@ func TestFlowReportAutomaticallySyncsBoundTraceThroughCLI(t *testing.T) {
 	}
 	status := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, status, "trace.status")
-	for _, want := range []string{`"event_count": 12`, `"outcome": "succeeded"`, `"target": "trace_document"`, `"target": "registry"`} {
+	for _, want := range []string{`"event_count": 11`, `"outcome": "succeeded"`, `"target": "trace_document"`, `"target": "registry"`} {
 		if !strings.Contains(status.stdout, want) {
 			t.Fatalf("Trace status does not contain %s:\n%s", want, status.stdout)
 		}
@@ -174,7 +174,7 @@ func TestFlowReportDoesNotAutoSyncRejectedOrDryRunUpdates(t *testing.T) {
 	}
 	traceStatus := run(binary, "trace", "status", "--root", root)
 	assertSuccess(t, traceStatus, "trace.status")
-	if !strings.Contains(traceStatus.stdout, `"event_count": 3`) || strings.Contains(traceStatus.stdout, `"last_sync"`) {
+	if !strings.Contains(traceStatus.stdout, `"event_count": 2`) || strings.Contains(traceStatus.stdout, `"last_sync"`) {
 		t.Fatalf("non-committed reports changed Trace sync history: %s", traceStatus.stdout)
 	}
 }
