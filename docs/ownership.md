@@ -28,6 +28,8 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
+Existing production work, including `remnote-flashcards`, uses the current selector and its matching verification suite.
+
 Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`; discover them through its current `select-workflow` Skill. New ordinary Skill changes use `write-skill`, and Workflow package changes use Runtime `manage-fanloop-workflow`. `second-brain-skills-maintainer` continues existing Runs only. Validation, independent review, branch PR delivery and parent gitlink readback belong to the selected Runtime steps. ADR-0135's retirement of fanloop-maintainer and remnote-direct-maintainer remains; code changes use `code-change`. `examples/workflows/manage-fanloop-workflow` is a loader fixture and is not the production entry.
 
 ## Verify entry
