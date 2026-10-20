@@ -19,8 +19,10 @@ not start a separate maintenance or delivery procedure. Existing Runs continue
 with their pinned configuration; no compatibility layer is added.
 
 When a bound Runtime Step calls a create/edit method, retain the caller's current
-Root, workspace and candidate directory. Inspect that Root's latest public
-`flow status` and verify the calling Step; do not create another Root or initialize
+Root, workspace and candidate directory. Reuse the caller's fixed controller and
+bound data/Skill-root environment under the public entrypoint protocol; a pinned
+controller must resolve its own configuration without an external source override.
+Inspect that Root's latest public `flow status` and verify the calling Step; do not create another Root or initialize
 a nested Run. Missing or inconsistent context returns to the caller for correction.
 Only a public call outside a bound Step that explicitly requests a maintenance
 Run selects the corresponding Runtime. Resume an existing target Root; otherwise

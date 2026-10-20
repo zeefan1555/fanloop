@@ -336,7 +336,7 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, required := range []string{"已绑定 Runtime 步骤", "当前 Root", "不得新建 Root", "NOT_INITIALIZED"} {
+		for _, required := range []string{"已绑定 Runtime 步骤", "当前 Root", "不得新建 Root", "NOT_INITIALIZED", "调用方已绑定的控制器与环境", "bound-release-home/current/bin/fanloop"} {
 			if !strings.Contains(string(method), required) {
 				t.Errorf("%s is missing the bound-Step/public-entry distinction %q", name, required)
 			}

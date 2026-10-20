@@ -7,7 +7,9 @@ description: 普通 Skill 的 write-skill 或 Workflow 的 Runtime manage-fanloo
 
 先区分公共入口与已绑定 Runtime 步骤：
 
-- 已绑定 Runtime 步骤调用本方法时，使用调用方的当前 Root，执行 `fanloop flow status --root <当前 Root>`，核对当前 Workflow、Step 与调用本方法的指令。沿用当前步骤的 workspace、获准作者 worktree 与候选目录；不得新建 Root 来另起维护 Run、再次初始化当前 Run 或离开当前步骤。Status 失败或上下文不符时交回调用方补齐，不另开 Run。候选校验用的隔离 Root 不替代调用方当前 Root，也不启动第二个管理 Run。
+本方法的 CLI 操作沿用公共 `fanloop-workflow` 入口的「已初始化 Requirement 的固定控制器」协议。已绑定调用或已有目标 Run 复用调用方确定的物理控制器、`FANLOOP_DATA_HOME` 与四个 Skill Root；Root 有 `bound-release-home/current/bin/fanloop` 时由该控制器按自身绑定解析配置并清除 `FANLOOP_CONFIG_SOURCE`，不得调用全局 current 或另选 Release。固定控制器读 Status 失败时交回调用方，不回退。只有未初始化的新公共 Run 才按公共入口使用全局 current。
+
+- 已绑定 Runtime 步骤调用本方法时，使用调用方的当前 Root，复用调用方已绑定的控制器与环境执行 `flow status --root <当前 Root>`，核对当前 Workflow、Step 与调用本方法的指令。沿用当前步骤的 workspace、获准作者 worktree 与候选目录；不得新建 Root 来另起维护 Run、再次初始化当前 Run 或离开当前步骤。Status 失败或上下文不符时交回调用方补齐，不另开 Run。候选校验用的隔离 Root 不替代调用方当前 Root，也不启动第二个管理 Run。
 - 只有未在已绑定 Runtime 步骤中执行、且明确要求启动维护 Run 的公共调用，才为新普通 Skill 选择 `write-skill`、为新 Workflow 包选择 Runtime `manage-fanloop-workflow`。已有目标 Run 时直接使用其绝对 Root 并回读 Status；新 Run 先创建独立绝对 Root 并执行 `fanloop flow status --root <Root>`，只有 `NOT_INITIALIZED` 才用所选 ID 初始化并回读 Status。其他错误先解决，不重复初始化。
 
 本文件是当前步骤调用的内容方法，验证与发布由对应步骤负责。
