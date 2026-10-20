@@ -9,8 +9,9 @@ description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓
 
 ## 1. 先确认需要 Workflow
 
-新 Workflow 需求先在独立绝对 Root 执行 `fanloop flow init --root <新 Root> --workflow manage-fanloop-workflow --title <标题>`，
-回读 Status。已有目标 Run 时使用其最新 Status，不重复初始化。本文件仅在当前步骤需要转换输入材料时提供方法；分析、构建、验证、审核和发布由该 Runtime 包负责。
+新 Workflow 需求先创建独立绝对目录（`mkdir -p <新 Root>`），再执行 `fanloop flow status --root <新 Root>`。
+只有返回 `NOT_INITIALIZED` 时，才执行 `fanloop flow init --root <新 Root> --workflow manage-fanloop-workflow --title <标题>` 并回读 Status。
+已有目标 Run 时按最新 Status 继续；其他错误先解决，不重复初始化。本文件仅在当前步骤需要转换输入材料时提供方法；分析、构建、验证、审核和发布由该 Runtime 包负责。
 普通 Skill 创建、修改、移动或退役使用 `write-skill`；已绑定旧维护的 Run 按其固定快照继续。
 
 读取配置仓库 `AGENTS.md`、Fanloop 代码仓库的 `idl/yaml.thrift` 与相关 `docs/adr/`，以及最接近目标的现有 Workflow。存在相近业务

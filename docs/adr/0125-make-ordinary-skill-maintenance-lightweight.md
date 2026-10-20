@@ -2,9 +2,15 @@
 status: accepted
 date: 2026-10-02
 amends: ADR-0109, ADR-0119, ADR-0123, ADR-0124
+superseded_in_part_by: ADR-0144-route-skill-maintenance-through-runtime
 ---
 
 # Ordinary Skill Maintenance Has No Separate Delivery Ceremony
+
+The standalone maintenance entry, no-Requirement orchestration, installation and
+delivery endpoint below are superseded by [ADR-0144](0144-route-skill-maintenance-through-runtime.md).
+Its proportional verification, risk-sensitive independent trials, CI classification
+and code/configuration boundaries remain effective.
 
 ## Direct Repository Skill Maintenance (2026-10-03)
 

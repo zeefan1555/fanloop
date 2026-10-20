@@ -26,11 +26,11 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 ## 启动
 
-每次启动或继续 Requirement，先将 Requirement Root 解析为绝对路径并运行 `flow status`：
+每次启动或继续 Requirement，先将 Requirement Root 解析为绝对路径；新 Root 先用 `mkdir -p` 创建目录，再运行 `flow status`：
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
-新普通 Skill 变更使用 `write-skill`；新 Workflow 包变更使用 Runtime `manage-fanloop-workflow`。在独立绝对 Root 执行 `fanloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --workflow <对应 ID> --title <非空标题>` 并回读 Status，按其当前绑定步骤执行验证、审核和发布。旧维护只继续已绑定的旧 Run。维护 Fanloop 代码或混合实现时使用 `code-change` Workflow，Define按实际范围选择通道。
+新普通 Skill 变更使用 `write-skill`；新 Workflow 包变更使用 Runtime `manage-fanloop-workflow`。只有独立绝对 Root 的 Status 返回 `NOT_INITIALIZED` 时才执行 `fanloop flow init --root <ABSOLUTE_REQUIREMENT_ROOT> --workflow <对应 ID> --title <非空标题>` 并回读 Status，按其当前绑定步骤执行验证、审核和发布。已有 Run 直接继续，其他错误先解决。旧维护只继续已绑定的旧 Run。维护 Fanloop 代码或混合实现时使用 `code-change` Workflow，Define按实际范围选择通道。
 生产配置真值是 second-brain-skills main 的 `fanloop-workflow/<workflow-id>/` 完整包。新 flow init 自动拉取并原子激活不可变提交快照，即使存在 `fornax.json`；拉取失败且已有快照时继续使用该快照。`fanloop update config` 也从这条 GitHub main 同步；已有快照 commit 相同则跳过 checkout。已有 flow status/report/skills 离线读取固定快照。`FANLOOP_USE_FORNAX=1` 且 `fornax.json` 是普通文件时，init、update config 和 config drift 才改用 Fornax。显式绝对 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新，update config 与 config drift 会拒绝它。新的非 dry-run `flow init` 还会尝试把 CLI 更新到最新 GitHub Release，失败只告警并继续使用已安装版本。Dashboard 默认只读快照，显式作者源可编辑。每次读取最新 Status 的精确 Skill 路径。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。

@@ -5,8 +5,9 @@ description: 普通 Skill 的 write-skill 或 Workflow 的 Runtime manage-fanloo
 
 # Edit Fanloop Skills
 
-新普通 Skill 需求初始化 `write-skill`，新 Workflow 包需求初始化 Runtime `manage-fanloop-workflow`，
-使用独立绝对 Root 并回读 Status。本文件是当前步骤需要时调用的内容方法，不是独立维护或发布入口。
+新普通 Skill 需求选择 `write-skill`，新 Workflow 包需求选择 Runtime `manage-fanloop-workflow`。
+先创建独立绝对 Root 并执行 `fanloop flow status --root <Root>`；只有 `NOT_INITIALIZED` 才用所选 ID 初始化并回读 Status。
+已有 Run 按最新 Status 继续；其他错误先解决。本文件是当前步骤需要时调用的内容方法，不是独立维护或发布入口。
 代码耦合 Skill 改真值源并按当前步骤交接独立源 PR 和镜像同步；已有 Run 按固定快照继续。
 
 ## 1. 固定范围
@@ -17,7 +18,7 @@ description: 普通 Skill 的 write-skill 或 Workflow 的 Runtime manage-fanloo
 
 ## 2. 修改并检查
 
-修改 Agent 指令时读取目标仓库 `agent-governance/writing-for-agents/SKILL.md`：写清触发条件、顺序动作和可核对的完成标准，方法保持单一来源。该写作 Skill 不可用时报告缺失，不把其他 Skill 冒充它。
+修改 Agent 指令时读取当前步骤绑定的 `writing-for-agents/SKILL.md` 和其 `SKILL-MECHANICS.md`：写清触发条件、顺序动作和可核对的完成标准，方法保持单一来源。该写作 Skill 不可用时报告缺失，不把其他 Skill 冒充它。
 
 按改动语义复用现有检查，命令参数从当前 `--help` 读取：
 
