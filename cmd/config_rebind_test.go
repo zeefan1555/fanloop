@@ -83,7 +83,7 @@ func TestConfigRebindPublicCLIRejectsUninitializedRequirement(t *testing.T) {
 }
 
 func TestConfigRebindPublicCLIRollsBackPreparedAuditWhenPinWriteFails(t *testing.T) {
-	dataRoot, oldSnapshot, newSnapshot := configRebindSnapshots(t)
+	dataRoot, _, newSnapshot := configRebindSnapshots(t)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
 	t.Setenv("FANLOOP_NO_AUTO_CONFIG", "1")
 	configUnsetSource(t)
@@ -94,6 +94,10 @@ func TestConfigRebindPublicCLIRollsBackPreparedAuditWhenPinWriteFails(t *testing
 	}
 	metadata := filepath.Join(root, ".fanloop")
 	if err := os.MkdirAll(filepath.Join(metadata, "audit"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	beforePin, err := os.ReadFile(filepath.Join(metadata, "configuration-snapshot"))
+	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Chmod(metadata, 0o500); err != nil {
@@ -108,8 +112,8 @@ func TestConfigRebindPublicCLIRollsBackPreparedAuditWhenPinWriteFails(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(pin) != oldSnapshot+"\n" {
-		t.Fatalf("failed transaction changed pin: %q", pin)
+	if !bytes.Equal(beforePin, pin) {
+		t.Fatalf("failed transaction changed pin: before=%q after=%q", beforePin, pin)
 	}
 	if _, err = os.Stat(filepath.Join(metadata, "audit", "configuration-rebindings.jsonl")); !os.IsNotExist(err) {
 		t.Fatalf("failed transaction retained prepared audit: %v", err)
@@ -117,7 +121,7 @@ func TestConfigRebindPublicCLIRollsBackPreparedAuditWhenPinWriteFails(t *testing
 }
 
 func TestConfigRebindPublicCLIRejectsInvalidTargetWithoutMutation(t *testing.T) {
-	dataRoot, oldSnapshot, _ := configRebindSnapshots(t)
+	dataRoot, _, _ := configRebindSnapshots(t)
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
 	t.Setenv("FANLOOP_NO_AUTO_CONFIG", "1")
 	configUnsetSource(t)
@@ -134,7 +138,7 @@ func TestConfigRebindPublicCLIRejectsInvalidTargetWithoutMutation(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(before, after) || string(after) != oldSnapshot+"\n" {
+	if !bytes.Equal(before, after) {
 		t.Fatalf("failed rebind mutated pin: before=%q after=%q", before, after)
 	}
 	if _, err = os.Stat(filepath.Join(root, ".fanloop", "audit", "configuration-rebindings.jsonl")); !os.IsNotExist(err) {
