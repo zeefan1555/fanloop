@@ -1198,12 +1198,202 @@ var fieldIDToName_ConfigDriftResponse = map[int16]string{
 	4: "remote_commit",
 }
 
+type ConfigRebindRequest struct {
+	// Omit snapshot to use config/current. An explicit value names one installed
+	// directory under config/snapshots; arbitrary filesystem paths are rejected.
+	Snapshot *string `thrift:"snapshot,1,optional" json:"snapshot,omitempty"`
+	Reason   string  `thrift:"reason,2,required" json:"reason"`
+}
+
+func NewConfigRebindRequest() *ConfigRebindRequest {
+	return &ConfigRebindRequest{}
+}
+
+func (p *ConfigRebindRequest) InitDefault() {
+}
+
+var ConfigRebindRequest_Snapshot_DEFAULT string
+
+func (p *ConfigRebindRequest) GetSnapshot() (v string) {
+	if !p.IsSetSnapshot() {
+		return ConfigRebindRequest_Snapshot_DEFAULT
+	}
+	return *p.Snapshot
+}
+
+func (p *ConfigRebindRequest) GetReason() (v string) {
+	return p.Reason
+}
+
+func (p *ConfigRebindRequest) IsSetSnapshot() bool {
+	return p.Snapshot != nil
+}
+
+func (p *ConfigRebindRequest) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ConfigRebindRequest(%+v)", *p)
+}
+
+func (p *ConfigRebindRequest) DeepEqual(ano *ConfigRebindRequest) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Snapshot) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.Reason) {
+		return false
+	}
+	return true
+}
+
+func (p *ConfigRebindRequest) Field1DeepEqual(src *string) bool {
+
+	if p.Snapshot == src {
+		return true
+	} else if p.Snapshot == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.Snapshot, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ConfigRebindRequest) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.Reason, src) != 0 {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_ConfigRebindRequest = map[int16]string{
+	1: "snapshot",
+	2: "reason",
+}
+
+type ConfigRebindResponse struct {
+	PreviousSnapshot string `thrift:"previous_snapshot,1,required" json:"previous_snapshot"`
+	NewSnapshot      string `thrift:"new_snapshot,2,required" json:"new_snapshot"`
+	ReboundAt        string `thrift:"rebound_at,3,required" json:"rebound_at"`
+	Reason           string `thrift:"reason,4,required" json:"reason"`
+	AuditPath        string `thrift:"audit_path,5,required" json:"audit_path"`
+}
+
+func NewConfigRebindResponse() *ConfigRebindResponse {
+	return &ConfigRebindResponse{}
+}
+
+func (p *ConfigRebindResponse) InitDefault() {
+}
+
+func (p *ConfigRebindResponse) GetPreviousSnapshot() (v string) {
+	return p.PreviousSnapshot
+}
+
+func (p *ConfigRebindResponse) GetNewSnapshot() (v string) {
+	return p.NewSnapshot
+}
+
+func (p *ConfigRebindResponse) GetReboundAt() (v string) {
+	return p.ReboundAt
+}
+
+func (p *ConfigRebindResponse) GetReason() (v string) {
+	return p.Reason
+}
+
+func (p *ConfigRebindResponse) GetAuditPath() (v string) {
+	return p.AuditPath
+}
+
+func (p *ConfigRebindResponse) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ConfigRebindResponse(%+v)", *p)
+}
+
+func (p *ConfigRebindResponse) DeepEqual(ano *ConfigRebindResponse) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.PreviousSnapshot) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.NewSnapshot) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.ReboundAt) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.Reason) {
+		return false
+	}
+	if !p.Field5DeepEqual(ano.AuditPath) {
+		return false
+	}
+	return true
+}
+
+func (p *ConfigRebindResponse) Field1DeepEqual(src string) bool {
+
+	if strings.Compare(p.PreviousSnapshot, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ConfigRebindResponse) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.NewSnapshot, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ConfigRebindResponse) Field3DeepEqual(src string) bool {
+
+	if strings.Compare(p.ReboundAt, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ConfigRebindResponse) Field4DeepEqual(src string) bool {
+
+	if strings.Compare(p.Reason, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ConfigRebindResponse) Field5DeepEqual(src string) bool {
+
+	if strings.Compare(p.AuditPath, src) != 0 {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_ConfigRebindResponse = map[int16]string{
+	1: "previous_snapshot",
+	2: "new_snapshot",
+	3: "rebound_at",
+	4: "reason",
+	5: "audit_path",
+}
+
 type OpsService interface {
 	Version(ctx context.Context, request *VersionRequest) (r *VersionResponse, err error)
 
 	Doctor(ctx context.Context, requirementRoot string, request *DoctorRequest) (r *DoctorResponse, err error)
 
 	ConfigDrift(ctx context.Context, request *ConfigDriftRequest) (r *ConfigDriftResponse, err error)
+
+	ConfigRebind(ctx context.Context, requirementRoot string, request *ConfigRebindRequest) (r *ConfigRebindResponse, err error)
 }
 
 type OpsServiceVersionArgs struct {
@@ -1623,6 +1813,157 @@ func (p *OpsServiceConfigDriftResult) Field1DeepEqual(src *erroridl.PublicError)
 }
 
 var fieldIDToName_OpsServiceConfigDriftResult = map[int16]string{
+	0: "success",
+	1: "error",
+}
+
+type OpsServiceConfigRebindArgs struct {
+	RequirementRoot string               `thrift:"requirement_root,1" json:"requirement_root"`
+	Request         *ConfigRebindRequest `thrift:"request,2,required" json:"request"`
+}
+
+func NewOpsServiceConfigRebindArgs() *OpsServiceConfigRebindArgs {
+	return &OpsServiceConfigRebindArgs{}
+}
+
+func (p *OpsServiceConfigRebindArgs) InitDefault() {
+}
+
+func (p *OpsServiceConfigRebindArgs) GetRequirementRoot() (v string) {
+	return p.RequirementRoot
+}
+
+var OpsServiceConfigRebindArgs_Request_DEFAULT *ConfigRebindRequest
+
+func (p *OpsServiceConfigRebindArgs) GetRequest() (v *ConfigRebindRequest) {
+	if !p.IsSetRequest() {
+		return OpsServiceConfigRebindArgs_Request_DEFAULT
+	}
+	return p.Request
+}
+
+func (p *OpsServiceConfigRebindArgs) IsSetRequest() bool {
+	return p.Request != nil
+}
+
+func (p *OpsServiceConfigRebindArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OpsServiceConfigRebindArgs(%+v)", *p)
+}
+
+func (p *OpsServiceConfigRebindArgs) DeepEqual(ano *OpsServiceConfigRebindArgs) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.RequirementRoot) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.Request) {
+		return false
+	}
+	return true
+}
+
+func (p *OpsServiceConfigRebindArgs) Field1DeepEqual(src string) bool {
+
+	if strings.Compare(p.RequirementRoot, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *OpsServiceConfigRebindArgs) Field2DeepEqual(src *ConfigRebindRequest) bool {
+
+	if !p.Request.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_OpsServiceConfigRebindArgs = map[int16]string{
+	1: "requirement_root",
+	2: "request",
+}
+
+type OpsServiceConfigRebindResult struct {
+	Success *ConfigRebindResponse `thrift:"success,0,optional" json:"success,omitempty"`
+	Error   *erroridl.PublicError `thrift:"error,1,optional" json:"error,omitempty"`
+}
+
+func NewOpsServiceConfigRebindResult() *OpsServiceConfigRebindResult {
+	return &OpsServiceConfigRebindResult{}
+}
+
+func (p *OpsServiceConfigRebindResult) InitDefault() {
+}
+
+var OpsServiceConfigRebindResult_Success_DEFAULT *ConfigRebindResponse
+
+func (p *OpsServiceConfigRebindResult) GetSuccess() (v *ConfigRebindResponse) {
+	if !p.IsSetSuccess() {
+		return OpsServiceConfigRebindResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var OpsServiceConfigRebindResult_Error_DEFAULT *erroridl.PublicError
+
+func (p *OpsServiceConfigRebindResult) GetError() (v *erroridl.PublicError) {
+	if !p.IsSetError() {
+		return OpsServiceConfigRebindResult_Error_DEFAULT
+	}
+	return p.Error
+}
+
+func (p *OpsServiceConfigRebindResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *OpsServiceConfigRebindResult) IsSetError() bool {
+	return p.Error != nil
+}
+
+func (p *OpsServiceConfigRebindResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OpsServiceConfigRebindResult(%+v)", *p)
+}
+
+func (p *OpsServiceConfigRebindResult) DeepEqual(ano *OpsServiceConfigRebindResult) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field0DeepEqual(ano.Success) {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.Error) {
+		return false
+	}
+	return true
+}
+
+func (p *OpsServiceConfigRebindResult) Field0DeepEqual(src *ConfigRebindResponse) bool {
+
+	if !p.Success.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+func (p *OpsServiceConfigRebindResult) Field1DeepEqual(src *erroridl.PublicError) bool {
+
+	if !p.Error.DeepEqual(src) {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_OpsServiceConfigRebindResult = map[int16]string{
 	0: "success",
 	1: "error",
 }

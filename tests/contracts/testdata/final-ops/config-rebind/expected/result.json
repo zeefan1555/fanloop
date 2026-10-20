@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "final-ops-config-rebind",
+  "commands": [
+    {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "{\n  \"ok\": false,\n  \"error\": {\n    \"type\": \"validation\",\n    \"code\": \"ROOT_REQUIRED\",\n    \"message\": \"--root is required\",\n    \"hint\": \"Pass the absolute requirement directory.\",\n    \"retryable\": false\n  },\n  \"meta\": {\n    \"command\": \"config.rebind\"\n  },\n  \"_notice\": {}\n}\n"
+    }
+  ],
+  "files": {}
+}

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/zeefan1555/fanloop/errs"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
@@ -389,6 +390,118 @@ func (s *Store) PinConfiguration(source string) error {
 		return err
 	}
 	return atomicWriteMode(filepath.Join(s.directory, "configuration-snapshot"), []byte(source+"\n"), 0600)
+}
+
+const configurationRebindAuditPath = "audit/configuration-rebindings.jsonl"
+
+type configurationRebindAudit struct {
+	SchemaVersion    int    `json:"schema_version"`
+	TransactionID    string `json:"transaction_id"`
+	Phase            string `json:"phase"`
+	PreviousSnapshot string `json:"previous_snapshot"`
+	NewSnapshot      string `json:"new_snapshot"`
+	ReboundAt        string `json:"rebound_at"`
+	Reason           string `json:"reason"`
+}
+
+// RebindConfiguration atomically replaces an initialized requirement's
+// configuration pin and appends the matching audit record under the same
+// requirement lock. The target Workflow must accept the current State and
+// complete Event history before either file changes.
+func (s *Store) RebindConfiguration(source, reason string, occurredAt time.Time) (string, string, *erroridl.PublicError) {
+	source = filepath.Clean(source)
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return "", "", errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "rebind reason is required", nil)
+	}
+	root, err := workflow.SourceRoot(source)
+	if err != nil {
+		return "", "", errs.NewCode(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
+	}
+	var previous string
+	failure := s.withExclusiveLock(func() *erroridl.PublicError {
+		current, failure := s.Load()
+		if failure != nil {
+			return failure
+		}
+		var pinned bool
+		previous, pinned, err = s.readPin()
+		if err != nil {
+			return corrupt(err.Error())
+		}
+		if !pinned {
+			return corrupt("configuration snapshot pin is missing")
+		}
+		loaded, loadErr := workflow.LoadFrom(root, current.Release.Workflow.ID)
+		if loadErr != nil {
+			return errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, loadErr.Error(), nil)
+		}
+		if validateErr := current.ValidateAgainst(loaded.Workflow); validateErr != nil {
+			return errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, validateErr.Error(), nil)
+		}
+		events, eventsFailure := s.Events()
+		if eventsFailure != nil {
+			return eventsFailure
+		}
+		if validateErr := state.ValidateHistory(events, current, loaded); validateErr != nil {
+			return errs.NewCode(erroridl.ErrorCode_WORKFLOW_MISMATCH, validateErr.Error(), nil)
+		}
+
+		transactionID := state.NewEventID()
+		audit := configurationRebindAudit{
+			SchemaVersion:    1,
+			TransactionID:    transactionID,
+			Phase:            "prepared",
+			PreviousSnapshot: filepath.Base(previous),
+			NewSnapshot:      filepath.Base(source),
+			ReboundAt:        occurredAt.UTC().Format(time.RFC3339Nano),
+			Reason:           reason,
+		}
+		preparedLine, marshalErr := json.Marshal(audit)
+		if marshalErr != nil {
+			return commitError(marshalErr)
+		}
+		preparedLine = append(preparedLine, '\n')
+		audit.Phase = "committed"
+		committedLine, marshalErr := json.Marshal(audit)
+		if marshalErr != nil {
+			return commitError(marshalErr)
+		}
+		committedLine = append(committedLine, '\n')
+		pinPath := filepath.Join(s.directory, "configuration-snapshot")
+		auditPath := filepath.Join(s.directory, filepath.FromSlash(configurationRebindAuditPath))
+		if mkdirErr := os.MkdirAll(filepath.Dir(auditPath), 0o700); mkdirErr != nil {
+			return commitError(mkdirErr)
+		}
+		beforePin, snapshotErr := snapshot(pinPath)
+		if snapshotErr != nil {
+			return commitError(snapshotErr)
+		}
+		beforeAudit, snapshotErr := snapshot(auditPath)
+		if snapshotErr != nil {
+			return commitError(snapshotErr)
+		}
+		auditContent := append(append([]byte(nil), beforeAudit.content...), preparedLine...)
+		if writeErr := atomicWrite(auditPath, auditContent); writeErr != nil {
+			return commitError(writeErr)
+		}
+		if writeErr := atomicWriteMode(pinPath, []byte(source+"\n"), 0o600); writeErr != nil {
+			_ = beforeAudit.restore(auditPath)
+			_ = beforePin.restore(pinPath)
+			return commitError(writeErr)
+		}
+		auditContent = append(auditContent, committedLine...)
+		if writeErr := atomicWrite(auditPath, auditContent); writeErr != nil {
+			_ = beforePin.restore(pinPath)
+			_ = beforeAudit.restore(auditPath)
+			return commitError(writeErr)
+		}
+		return nil
+	})
+	if failure != nil {
+		return "", "", failure
+	}
+	return previous, filepath.ToSlash(filepath.Join(".fanloop", configurationRebindAuditPath)), nil
 }
 
 // LoadWorkflow reads the Workflow bound to this requirement. A pin at

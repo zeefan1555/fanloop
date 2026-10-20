@@ -113,6 +113,21 @@ struct ConfigDriftResponse {
   4: optional string remote_commit (vt.min_size = "1"),
 }
 
+struct ConfigRebindRequest {
+  // Omit snapshot to use config/current. An explicit value names one installed
+  // directory under config/snapshots; arbitrary filesystem paths are rejected.
+  1: optional string snapshot (vt.min_size = "1"),
+  2: required string reason   (vt.min_size = "1"),
+}
+
+struct ConfigRebindResponse {
+  1: required string previous_snapshot (vt.min_size = "1"),
+  2: required string new_snapshot      (vt.min_size = "1"),
+  3: required string rebound_at        (vt.min_size = "1"),
+  4: required string reason            (vt.min_size = "1"),
+  5: required string audit_path        (vt.min_size = "1"),
+}
+
 service OpsService {
   VersionResponse Version(
     1: required VersionRequest request,
@@ -146,5 +161,17 @@ service OpsService {
     cli.requirement_scope = "none",
     cli.supports_dry_run = "false",
     cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,INTERNAL",
+  )
+
+  ConfigRebindResponse ConfigRebind(
+    1: string                       requirement_root,
+    2: required ConfigRebindRequest request,
+  ) throws (1: error.PublicError error) (
+    cli.id = "config.rebind",
+    cli.summary = "Rebind an existing requirement to an installed Workflow snapshot",
+    cli.risk = "local_write",
+    cli.requirement_scope = "existing",
+    cli.supports_dry_run = "false",
+    cli.errors = "INVALID_ARGUMENT,INVALID_INPUT_JSON,ROOT_REQUIRED,NOT_INITIALIZED,STATE_CORRUPT,STATE_SCHEMA_UNSUPPORTED,WORKFLOW_MISMATCH,WORKFLOW_INVALID,LOCAL_COMMIT_FAILED,INTERNAL",
   )
 }

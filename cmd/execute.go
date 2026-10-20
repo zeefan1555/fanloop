@@ -113,7 +113,7 @@ func runOperation[T any](
 			return fail(failure)
 		}
 	}
-	if id != "version" && id != "doctor" && id != "config.drift" && !strings.HasPrefix(id, "verify.") {
+	if id != "version" && id != "doctor" && id != "config.drift" && id != "config.rebind" && !strings.HasPrefix(id, "verify.") {
 		dataRoot, err := release.DefaultDataRoot()
 		if err != nil {
 			return fail(normalizePublicError(err))
