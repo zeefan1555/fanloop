@@ -5,14 +5,17 @@ description: 普通 Skill 的 write-skill 或 Workflow 的 Runtime manage-fanloo
 
 # Edit Fanloop Skills
 
-新普通 Skill 需求选择 `write-skill`，新 Workflow 包需求选择 Runtime `manage-fanloop-workflow`。
-先创建独立绝对 Root 并执行 `fanloop flow status --root <Root>`；只有 `NOT_INITIALIZED` 才用所选 ID 初始化并回读 Status。
-已有 Run 按最新 Status 继续；其他错误先解决。本文件是当前步骤需要时调用的内容方法，不是独立维护或发布入口。
+先区分公共入口与已绑定 Runtime 步骤：
+
+- 已绑定 Runtime 步骤调用本方法时，使用调用方的当前 Root，执行 `fanloop flow status --root <当前 Root>`，核对当前 Workflow、Step 与调用本方法的指令。沿用当前步骤的 workspace、获准作者 worktree 与候选目录；不得新建 Root 来另起维护 Run、再次初始化当前 Run 或离开当前步骤。Status 失败或上下文不符时交回调用方补齐，不另开 Run。候选校验用的隔离 Root 不替代调用方当前 Root，也不启动第二个管理 Run。
+- 只有未在已绑定 Runtime 步骤中执行、且明确要求启动维护 Run 的公共调用，才为新普通 Skill 选择 `write-skill`、为新 Workflow 包选择 Runtime `manage-fanloop-workflow`。已有目标 Run 时直接使用其绝对 Root 并回读 Status；新 Run 先创建独立绝对 Root 并执行 `fanloop flow status --root <Root>`，只有 `NOT_INITIALIZED` 才用所选 ID 初始化并回读 Status。其他错误先解决，不重复初始化。
+
+本文件是当前步骤调用的内容方法，验证与发布由对应步骤负责。
 代码耦合 Skill 改真值源并按当前步骤交接独立源 PR 和镜像同步；已有 Run 按固定快照继续。
 
 ## 1. 固定范围
 
-读取目标仓库 `AGENTS.md`、相关 ADR 和受影响的完整 Skill；涉及 Workflow 时读取同包五份 YAML 及绑定资源。确认实际 Git 根、远端、`main`、当前工作树和用户停止位置，从最新 `origin/main` 建隔离分支或 worktree，只改当前步骤已批准路径并保留无关改动。实际绑定的配置源在推送前保持已交付版本。
+读取目标仓库 `AGENTS.md`、相关 ADR 和受影响的完整 Skill；涉及 Workflow 时读取同包五份 YAML 及绑定资源。确认实际 Git 根、远端、`main`、当前工作树和用户停止位置。已绑定步骤沿用其 workspace 记录的作者 worktree；只有公共启动且尚无作者工作区时才从最新 `origin/main` 建隔离分支或 worktree。只改当前步骤已批准路径并保留无关改动。实际绑定的配置源在推送前保持已交付版本。
 
 范围限于 `fanloop-workflow/<workflow-id>/` 的 YAML、非可执行 Skill Markdown，`<category>/<skill-id>/` 的仓库级 Skill 及必要关联文档。脚本、Runtime、IDL、Schema、安装或测试基础设施改动停止这条路径，说明代码范围后另行处理；目录名不是代码豁免。计划请求止于计划，不进行 Git 写入或业务写入。
 
