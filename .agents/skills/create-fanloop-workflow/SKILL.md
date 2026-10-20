@@ -14,8 +14,8 @@ description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓
 已有目标 Run 时按最新 Status 继续；其他错误先解决，不重复初始化。本文件仅在当前步骤需要转换输入材料时提供方法；分析、构建、验证、审核和发布由该 Runtime 包负责。
 普通 Skill 创建、修改、移动或退役使用 `write-skill`；已绑定旧维护的 Run 按其固定快照继续。
 
-读取配置仓库 `AGENTS.md`、Fanloop 代码仓库的 `idl/yaml.thrift` 与相关 `docs/adr/`，以及最接近目标的现有 Workflow。存在相近业务
-Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行骨架。若一个原子 Skill 已足够完成任务，停止
+读取配置仓库 `AGENTS.md`、当前绑定步骤的配置契约，以及最接近目标的完整 Workflow；有 Fanloop 源 checkout 时再查相关 IDL 与 ADR。存在相近业务
+Workflow 时优先复用；否则按当前 Runtime 已批准的材料映射和五份 YAML 契约生成最小完整草案，再用已安装 CLI 严格加载。作者方法不依赖未打包的 `examples/` 或 Fanloop 源 checkout。若一个原子 Skill 已足够完成任务，停止
 新增 Workflow，并说明应复用或新增哪个 Skill。
 
 先做一张材料映射表：每项已确认事实对应哪个 Step、Condition、Route、Output 或 Skill；无法映射的内容标为
@@ -23,7 +23,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 
 ## 2. 改写可运行骨架
 
-把 `examples/workflows/example/` 复制到本地临时目录，按材料映射表替换业务语义。示例只提供结构，不提供默认业务
+在当前步骤的隔离候选目录，按已批准材料映射生成完整包；可复用配置源里最接近的完整包结构。现有包只提供结构，不提供默认业务
 决定：替换 Workflow/Stage/Job/Step/Condition/Output/Prompt/Skill ID 和正文，删除不需要的分支，只保留
 真实需求需要的路径。完成后用 `rg` 检查新目录没有遗留 `example`、`analyze_materials`、`draft_result`、
 `confirm_result` 等示例标识。
@@ -44,9 +44,9 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。
 
-## 3. 人审后再写隔离候选
+## 3. 写隔离候选并准备 Runtime 审核材料
 
-写入候选目录前，先展示：
+按当前构建步骤写入候选，并整理：
 
 1. 完整 Step 表：顺序、`id`、`name`、Stage、Job、`executor`。
 2. 五份 YAML 的完整结构和全部 Condition/Route 组合。
@@ -54,7 +54,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 4. Human Gate、回流目标、是否选择 Panorama 及所选 Route 的覆盖、非目标和 ADR impact。
 
 新 Workflow 的变更前基线记为不存在；重构现有 Workflow 时逐项列出 Step 的新增、删除、改名、重排和
-`executor` 变化。取得针对该具体草案的明确批准后，才把临时草案写入：
+`executor` 变化。构建产物写入：
 
 ```text
 <repo>/fanloop-workflow/<workflow-id>/
@@ -67,7 +67,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 `-- skills/<skill-id>/SKILL.md
 ```
 
-范围扩大或 Schema 变化时重新对齐。Step 变化作为配置契约事实记录并自动校验，不另设 YAML 人工门禁。源根必须是绝对仓库路径，拒绝符号链接和不完整包；子 Skills 与资源保持在同一包内。
+完成后交回 Runtime 构建步骤，由其生成具体审核包并进入独立审核；本辅助 Skill 不增加构建前审批。范围扩大或 Schema 变化时重新对齐。Step 变化作为配置契约事实记录并自动校验，不另设 YAML 人工门禁。源根必须是绝对仓库路径，拒绝符号链接和不完整包；子 Skills 与资源保持在同一包内。
 
 ## 4. 校验并发布候选
 
