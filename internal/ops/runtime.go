@@ -3,6 +3,11 @@ package ops
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/zeefan1555/fanloop/errs"
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
@@ -12,6 +17,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/store"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -68,6 +74,84 @@ func (Runtime) ConfigDrift(ctx context.Context, request *opsidl.ConfigDriftReque
 		return nil, driftFailure(err)
 	}
 	return gitDriftResponse(report), nil
+}
+
+func (Runtime) ConfigRebind(_ context.Context, root string, request *opsidl.ConfigRebindRequest) (*opsidl.ConfigRebindResponse, error) {
+	if request == nil {
+		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "request is required", nil)
+	}
+	reason := strings.TrimSpace(request.Reason)
+	if reason == "" {
+		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, "reason is required", nil)
+	}
+	dataRoot, err := release.DefaultDataRoot()
+	if err != nil {
+		return nil, err
+	}
+	unlock, err := workflow.LockConfiguration(dataRoot, false)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+	target, err := installedSnapshot(dataRoot, request.Snapshot)
+	if err != nil {
+		return nil, errs.NewCode(erroridl.ErrorCode_INVALID_ARGUMENT, err.Error(), nil)
+	}
+	if _, err = configuration.Read(target); err != nil {
+		return nil, errs.NewCode(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
+	}
+	local, failure := store.New(root)
+	if failure != nil {
+		return nil, failure
+	}
+	reboundAt := time.Now().UTC()
+	previous, auditPath, failure := local.RebindConfiguration(target, reason, reboundAt)
+	if failure != nil {
+		return nil, failure
+	}
+	return &opsidl.ConfigRebindResponse{
+		PreviousSnapshot: filepath.Base(previous),
+		NewSnapshot:      filepath.Base(target),
+		ReboundAt:        reboundAt.Format(time.RFC3339Nano),
+		Reason:           reason,
+		AuditPath:        auditPath,
+	}, nil
+}
+
+func installedSnapshot(dataRoot string, requested *string) (string, error) {
+	snapshots := filepath.Join(dataRoot, "config", "snapshots")
+	var target string
+	if requested == nil {
+		current := filepath.Join(dataRoot, "config", "current")
+		linked, err := os.Readlink(current)
+		if err != nil {
+			return "", fmt.Errorf("read active configuration snapshot: %w", err)
+		}
+		if !filepath.IsAbs(linked) {
+			linked = filepath.Join(filepath.Dir(current), linked)
+		}
+		target = filepath.Clean(linked)
+	} else {
+		name := strings.TrimSpace(*requested)
+		if name == "" || name == "." || name == ".." || filepath.Base(name) != name || strings.ContainsAny(name, `/\\`) {
+			return "", fmt.Errorf("snapshot must name one installed configuration snapshot")
+		}
+		target = filepath.Join(snapshots, name)
+	}
+	if filepath.Dir(target) != filepath.Clean(snapshots) {
+		return "", fmt.Errorf("configuration snapshot is not installed under %s", snapshots)
+	}
+	info, err := os.Lstat(target)
+	if os.IsNotExist(err) {
+		return "", fmt.Errorf("configuration snapshot %q is not installed", filepath.Base(target))
+	}
+	if err != nil {
+		return "", fmt.Errorf("inspect configuration snapshot: %w", err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("configuration snapshot must be a real directory")
+	}
+	return target, nil
 }
 
 func driftFailure(err error) error {

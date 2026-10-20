@@ -138,3 +138,32 @@ func (p *ConfigDriftResponse) IsValid() error {
 	}
 	return nil
 }
+func (p *ConfigRebindRequest) IsValid() error {
+	if p.Snapshot != nil {
+		if len(*p.Snapshot) < int(1) {
+			return fmt.Errorf("field Snapshot min_len rule failed, current value: %d", len(*p.Snapshot))
+		}
+	}
+	if len(p.Reason) < int(1) {
+		return fmt.Errorf("field Reason min_len rule failed, current value: %d", len(p.Reason))
+	}
+	return nil
+}
+func (p *ConfigRebindResponse) IsValid() error {
+	if len(p.PreviousSnapshot) < int(1) {
+		return fmt.Errorf("field PreviousSnapshot min_len rule failed, current value: %d", len(p.PreviousSnapshot))
+	}
+	if len(p.NewSnapshot) < int(1) {
+		return fmt.Errorf("field NewSnapshot min_len rule failed, current value: %d", len(p.NewSnapshot))
+	}
+	if len(p.ReboundAt) < int(1) {
+		return fmt.Errorf("field ReboundAt min_len rule failed, current value: %d", len(p.ReboundAt))
+	}
+	if len(p.Reason) < int(1) {
+		return fmt.Errorf("field Reason min_len rule failed, current value: %d", len(p.Reason))
+	}
+	if len(p.AuditPath) < int(1) {
+		return fmt.Errorf("field AuditPath min_len rule failed, current value: %d", len(p.AuditPath))
+	}
+	return nil
+}

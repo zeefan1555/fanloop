@@ -114,7 +114,7 @@ func TestRootOwnsRealDomainSubcommands(t *testing.T) {
 		"flow":   {"init", "report", "skills", "status"},
 		"trace":  {"bind", "render", "status", "sync"},
 		"card":   {"render"},
-		"config": {"drift"},
+		"config": {"drift", "rebind"},
 		"verify": {"cleanup", "doctor", "smoke", "snapshot"},
 	}
 	for domain, operations := range want {
@@ -464,6 +464,19 @@ func TestLeafHelpPublishesCompleteRequestContract(t *testing.T) {
 				"managed config/current snapshot",
 				"credential-free fornax.json",
 				"does not require --root",
+			},
+		},
+		{
+			name:      "config rebind",
+			commandID: "config.rebind",
+			args:      []string{"config", "rebind", "--help"},
+			want: []string{
+				`"reason":"why this requirement must use the new snapshot"`,
+				"Local write",
+				"--root /absolute/requirement",
+				"config/snapshots",
+				"configuration-rebindings.jsonl",
+				"does not support --dry-run",
 			},
 		},
 		{

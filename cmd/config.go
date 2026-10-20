@@ -17,6 +17,61 @@ func newConfigCommand(ioStreams streams) *cobra.Command {
 		RunE:  func(command *cobra.Command, _ []string) error { return command.Help() },
 	}
 	command.AddCommand(newConfigDriftCommand(ioStreams))
+	command.AddCommand(newConfigRebindCommand(ioStreams))
+	return command
+}
+
+func newConfigRebindCommand(ioStreams streams) *cobra.Command {
+	var controls operationControls
+	request := opsidl.NewConfigRebindRequest()
+	command := operationCommand("config.rebind")
+	command.Long = `Purpose:
+  Rebind one initialized requirement to an installed Workflow configuration snapshot.
+
+Effect:
+  Local write. Validates the current State and complete Event history against the target snapshot, then atomically updates
+  .fanloop/configuration-snapshot and appends .fanloop/audit/configuration-rebindings.jsonl under the requirement lock.
+  The audit record contains the previous and new snapshot identities, UTC time, and required reason.
+
+Request JSON:
+  {"reason":"why this requirement must use the new snapshot","snapshot":"optional-installed-snapshot-name"}
+
+Typed flags:
+  fanloop config rebind --root /absolute/requirement --reason "..." [--snapshot <installed-name>]
+
+Constraints:
+  Omit snapshot to bind config/current. An explicit snapshot is a directory name already installed under
+  FANLOOP_DATA_HOME/config/snapshots; arbitrary paths are rejected. The target must contain the bound Workflow
+  and must validate the existing State and Event history. Use either --input or typed flags, not both.
+  JSON input rejects unknown fields, type errors, invalid enums, and trailing JSON.
+
+Controls:
+  --root is required and must name an initialized requirement. This command has local persistent side effects
+  and does not support --dry-run.
+
+Next step:
+  Read fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT> and use only the absolute Skill paths it returns.`
+	command.Example = `  fanloop config rebind --root /work/requirement --reason "adopt the repaired configuration"
+  fanloop config rebind --root /work/requirement --snapshot 0123456789abcdef0123456789abcdef01234567 --reason "pin reviewed snapshot"`
+	command.RunE = func(command *cobra.Command, _ []string) error {
+		root, _ := command.Flags().GetString("root")
+		return runOperation(command.Context(), command, root, controls, ioStreams,
+			func() (*opsidl.ConfigRebindRequest, *erroridl.PublicError) { return request, nil },
+			func(ctx context.Context, request *opsidl.ConfigRebindRequest, _ bool) (operationResult, *erroridl.PublicError) {
+				response, err := ops.DefaultRuntime().ConfigRebind(ctx, root, request)
+				return operationResult{data: response}, normalizePublicErrorOrNil(err)
+			})
+	}
+	command.Flags().StringVar(&request.Reason, "reason", "", "required audit reason")
+	var snapshot string
+	command.Flags().StringVar(&snapshot, "snapshot", "", "installed snapshot name; defaults to config/current")
+	command.PreRunE = func(command *cobra.Command, _ []string) error {
+		if command.Flags().Changed("snapshot") {
+			request.Snapshot = &snapshot
+		}
+		return nil
+	}
+	addOperationControls(command, &controls)
 	return command
 }
 
