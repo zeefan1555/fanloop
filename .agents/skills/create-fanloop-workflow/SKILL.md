@@ -9,8 +9,17 @@ description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓
 
 ## 1. 先确认需要 Workflow
 
-读取配置仓库 `AGENTS.md`、Fanloop 代码仓库的 `idl/yaml.thrift` 与相关 `docs/adr/`，以及最接近目标的现有 Workflow。存在相近业务
-Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行骨架。若一个原子 Skill 已足够完成任务，停止
+先区分公共入口与已绑定 Runtime 步骤，不能仅凭输入是新 Workflow 就启动另一个 Run：
+
+本方法的 CLI 操作沿用公共 `fanloop-workflow` 入口的「已初始化 Requirement 的固定控制器」协议。已绑定调用或已有目标 Run 复用调用方确定的物理控制器、`FANLOOP_DATA_HOME` 与四个 Skill Root；Root 有 `bound-release-home/current/bin/fanloop` 时由该控制器按自身绑定解析配置并清除 `FANLOOP_CONFIG_SOURCE`，不得调用全局 current 或另选 Release。固定控制器读 Status 失败时交回调用方，不回退。只有未初始化的新公共 Run 才按公共入口使用全局 current。
+
+- 已绑定 Runtime 步骤调用本方法时，使用调用方的当前 Root，复用调用方已绑定的控制器与环境执行 `flow status --root <当前 Root>`，核对当前 Workflow、Step 与调用本方法的指令。沿用该步骤的 workspace、已批准材料与隔离候选目录；不得新建 Root 来另起维护 Run、再次初始化当前 Run 或离开当前步骤。Status 失败或调用上下文不符时交回调用方补齐，不改用新 Run。候选校验用的隔离 Root 不替代调用方当前 Root，也不启动第二个管理 Run。
+- 只有未在已绑定 Runtime 步骤中执行、且明确要求启动维护 Run 的公共调用，才选择 Runtime。已有目标 Run 时直接使用其绝对 Root 并回读 Status；新 Workflow Run 先创建独立绝对目录（`mkdir -p <新 Root>`），再执行 `fanloop flow status --root <新 Root>`。只有返回 `NOT_INITIALIZED` 时，才执行 `fanloop flow init --root <新 Root> --workflow manage-fanloop-workflow --title <标题>` 并回读 Status；其他错误先解决，不重复初始化。公共调用中的普通 Skill 创建、修改、移动或退役使用 `write-skill`。
+
+本文件只提供材料转换方法；分析、构建、验证、审核和发布由对应 Runtime 当前步骤负责。已绑定旧维护的 Run 按其固定快照继续。
+
+读取配置仓库 `AGENTS.md`、当前绑定步骤的配置契约，以及最接近目标的完整 Workflow；有 Fanloop 源 checkout 时再查相关 IDL 与 ADR。存在相近业务
+Workflow 时优先复用；否则按当前 Runtime 已批准的材料映射和五份 YAML 契约生成最小完整草案，再用已安装 CLI 严格加载。作者方法不依赖未打包的 `examples/` 或 Fanloop 源 checkout。若一个原子 Skill 已足够完成任务，停止
 新增 Workflow，并说明应复用或新增哪个 Skill。
 
 先做一张材料映射表：每项已确认事实对应哪个 Step、Condition、Route、Output 或 Skill；无法映射的内容标为
@@ -18,7 +27,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 
 ## 2. 改写可运行骨架
 
-把 `examples/workflows/example/` 复制到本地临时目录，按材料映射表替换业务语义。示例只提供结构，不提供默认业务
+在当前步骤的隔离候选目录，按已批准材料映射生成完整包；可复用配置源里最接近的完整包结构。现有包只提供结构，不提供默认业务
 决定：替换 Workflow/Stage/Job/Step/Condition/Output/Prompt/Skill ID 和正文，删除不需要的分支，只保留
 真实需求需要的路径。完成后用 `rg` 检查新目录没有遗留 `example`、`analyze_materials`、`draft_result`、
 `confirm_result` 等示例标识。
@@ -39,9 +48,9 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 不要新增兼容层、fallback、运行时代码、IDL、依赖或脚本。现有 Schema 无法表达需求时停止，并把缺口与
 最小契约变更交给人另行审核。
 
-## 3. 人审后再写隔离候选
+## 3. 写隔离候选并准备 Runtime 审核材料
 
-写入候选目录前，先展示：
+按当前构建步骤写入候选，并整理：
 
 1. 完整 Step 表：顺序、`id`、`name`、Stage、Job、`executor`。
 2. 五份 YAML 的完整结构和全部 Condition/Route 组合。
@@ -49,7 +58,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 4. Human Gate、回流目标、是否选择 Panorama 及所选 Route 的覆盖、非目标和 ADR impact。
 
 新 Workflow 的变更前基线记为不存在；重构现有 Workflow 时逐项列出 Step 的新增、删除、改名、重排和
-`executor` 变化。取得针对该具体草案的明确批准后，才把临时草案写入：
+`executor` 变化。构建产物写入：
 
 ```text
 <repo>/fanloop-workflow/<workflow-id>/
@@ -62,7 +71,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 `-- skills/<skill-id>/SKILL.md
 ```
 
-范围扩大或 Schema 变化时重新对齐。Step 变化作为配置契约事实记录并自动校验，不另设 YAML 人工门禁。源根必须是绝对仓库路径，拒绝符号链接和不完整包；子 Skills 与资源保持在同一包内。
+完成后交回 Runtime 构建步骤，由其生成具体审核包并进入独立审核；本辅助 Skill 不增加构建前审批。范围扩大或 Schema 变化时重新对齐。Step 变化作为配置契约事实记录并自动校验，不另设 YAML 人工门禁。源根必须是绝对仓库路径，拒绝符号链接和不完整包；子 Skills 与资源保持在同一包内。
 
 ## 4. 校验并发布候选
 
@@ -70,4 +79,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 一条成功 Route 和一条回流 Route；不另写校验器或为配置改动构建新 binary。
 
 逐项核对五份 YAML 引用闭合、所有 SkillBinding 都指向同目录已有 Skill、Route 可达且不含绕过 Human Gate
-或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md` 直接校验、提交、推送 `main` 和本地交付，不再启动维护 Workflow。`FANLOOP_CONFIG_SOURCE` 可用于候选检查，但最终必须回读用户默认环境实际绑定的源。默认配置随下一次新 flow init 拉取生效；显式作者源的编辑随下一次调用生效，无需 CLI 重建；未发生的推送或本地更新不能写成完成事实。
+或 Panorama 的组合。记录候选完整文件清单、head 和 SHA-256，交回 Runtime `manage-fanloop-workflow` 当前构建步骤。
+由当前绑定步骤负责完整包、Route Matrix、复盘与 Panorama 验证，独立审核精确候选，分支 PR 发布，
+以及父 PR、gitlink 和配置同步回读；不直接向 `main` 提交或推送，不按本文件绕过审核及 publish Conditions。
+`FANLOOP_CONFIG_SOURCE` 只用于已授权隔离候选检查，不激活生产；未发生的审核、合并或同步保留为未完成。

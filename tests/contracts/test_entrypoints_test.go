@@ -310,17 +310,8 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 	repo := repositoryRoot(t)
 	for _, relative := range []string{
 		".agents/skills/create-fanloop-workflow/SKILL.md",
-		"examples/workflows/example/workflow.yaml",
-		"examples/workflows/example/condition.yaml",
-		"examples/workflows/example/flow.yaml",
-		"examples/workflows/example/loop.yaml",
-		"examples/workflows/example/prompt.yaml",
-		"examples/workflows/manage-fanloop-workflow/SKILL.md",
-		"examples/workflows/manage-fanloop-workflow/workflow.yaml",
-		"examples/workflows/manage-fanloop-workflow/condition.yaml",
-		"examples/workflows/manage-fanloop-workflow/flow.yaml",
-		"examples/workflows/manage-fanloop-workflow/loop.yaml",
-		"examples/workflows/manage-fanloop-workflow/prompt.yaml",
+		".agents/skills/edit-fanloop-skills/SKILL.md",
+		"entrypoints/fanloop-workflow/SKILL.md",
 	} {
 		if info, err := os.Stat(filepath.Join(repo, relative)); err != nil || !info.Mode().IsRegular() {
 			t.Fatalf("authoring asset %s: %v", relative, err)
@@ -335,9 +326,41 @@ func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
 			t.Errorf("Workflow authoring Skill is missing %q", required)
 		}
 	}
-	for _, forbidden := range []string{"Fornax", "fanloop update"} {
+	for _, forbidden := range []string{"Fornax", "fanloop update", "examples/workflows/example/"} {
 		if strings.Contains(string(skill), forbidden) {
-			t.Errorf("Workflow authoring Skill retains repository-delivery instruction %q", forbidden)
+			t.Errorf("Workflow authoring Skill retains an independent authoring or delivery instruction %q", forbidden)
+		}
+	}
+	for _, name := range []string{"create-fanloop-workflow", "edit-fanloop-skills"} {
+		method, err := os.ReadFile(filepath.Join(repo, ".agents", "skills", name, "SKILL.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, required := range []string{"已绑定 Runtime 步骤", "当前 Root", "不得新建 Root", "NOT_INITIALIZED", "调用方已绑定的控制器与环境", "bound-release-home/current/bin/fanloop"} {
+			if !strings.Contains(string(method), required) {
+				t.Errorf("%s is missing the bound-Step/public-entry distinction %q", name, required)
+			}
+		}
+	}
+}
+
+func TestWorkflowTestFixturesAreAvailable(t *testing.T) {
+	repo := repositoryRoot(t)
+	for _, relative := range []string{
+		"examples/workflows/example/workflow.yaml",
+		"examples/workflows/example/condition.yaml",
+		"examples/workflows/example/flow.yaml",
+		"examples/workflows/example/loop.yaml",
+		"examples/workflows/example/prompt.yaml",
+		"examples/workflows/manage-fanloop-workflow/SKILL.md",
+		"examples/workflows/manage-fanloop-workflow/workflow.yaml",
+		"examples/workflows/manage-fanloop-workflow/condition.yaml",
+		"examples/workflows/manage-fanloop-workflow/flow.yaml",
+		"examples/workflows/manage-fanloop-workflow/loop.yaml",
+		"examples/workflows/manage-fanloop-workflow/prompt.yaml",
+	} {
+		if info, err := os.Stat(filepath.Join(repo, relative)); err != nil || !info.Mode().IsRegular() {
+			t.Fatalf("Workflow test fixture %s: %v", relative, err)
 		}
 	}
 }

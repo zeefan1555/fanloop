@@ -28,7 +28,9 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`. The current set is ai-daily-brief, code-change, daily-journal, general, pstack-native, remnote-flashcards, second-brain-skills-maintainer and write-skill. ADR-0135 retired fanloop-maintainer and remnote-direct-maintainer; code changes use the `code-change` Workflow. ADR-0132 supersedes ADR-0128's retirement inventory only. `examples/workflows/manage-fanloop-workflow` is the in-repo port of loop_cli `manage-loop-workflow` and is validated by the loader test. It is not part of that production set until the configuration repository carries the same package.
+Existing production work, including `remnote-flashcards`, uses the current selector and its matching verification suite.
+
+Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`; discover them through its current `select-workflow` Skill. New ordinary Skill changes use `write-skill`, and Workflow package changes use Runtime `manage-fanloop-workflow`. `second-brain-skills-maintainer` continues existing Runs only. Validation, independent review, branch PR delivery and parent gitlink readback belong to the selected Runtime steps. ADR-0135's retirement of fanloop-maintainer and remnote-direct-maintainer remains; code changes use `code-change`. `examples/workflows/manage-fanloop-workflow` is a loader fixture and is not the production entry.
 
 ## Verify entry
 

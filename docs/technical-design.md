@@ -16,7 +16,7 @@ second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括
 
 - `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow，由 second-brain-skills 的 `select-workflow` Skill 选择；代码变更走 `code-change`（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
 - `ai-daily-brief`：公开 X 来源的中文 AI 日报流程。
-- `second-brain-skills-maintainer`：Skills 仓库的隔离候选、验证与交付流程。
+- 新普通 Skill 变更使用 `write-skill`，Workflow 包变更使用 Runtime `manage-fanloop-workflow`；`second-brain-skills-maintainer` 仅继续旧 Run。验证和发布由对应当前步骤负责。
 - `pstack-native`：六步剧本交付，保留完整脚本与资源。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 
@@ -111,7 +111,7 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 CLI 的 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`。版本发生变化时，新二进制执行配置同步；同一版本修复仍由当前进程同步 `second-brain-skills` `main`。`fanloop update config` 只做这次 Git 同步；commit 未变时跳过 checkout。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时才同步 Fornax，已发布集合和已安装树都没变时跳过下载。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。已有 Requirement 的 `flow status/report/skills`、`trace`、`card render`、Card projection 更新和 Doctor 需求检查读取该 Requirement 固定的快照，不跟随之后的 `config/current`。投影文件能通过 pinned Workflow 校验但落后于已提交 State/Event 时，非 dry-run `card render` 从事件日志重建投影后再渲染；缺失、损坏或绑定错误的投影仍直接失败。见 [ADR-0142](./adr/0142-rebuild-stale-card-projection-from-pinned-snapshot.md)。完整决定见
 [ADR-0140](./adr/0140-update-reexecs-new-release-for-config-sync.md)、[ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)、[ADR-0136](./adr/0136-distribute-cli-from-github-releases.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-新增生产 Workflow 直接增加 fanloop-workflow/<workflow-id>/ 完整包。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
+新增生产 Workflow 由 Runtime manage-fanloop-workflow 的当前步骤在 second-brain-skills 增加 fanloop-workflow/<workflow-id>/ 完整包，验证和独立审核后通过分支 PR 交付。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
 
 仓库级本地门禁只有一个：
 

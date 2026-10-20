@@ -18,14 +18,14 @@
 
 ## 代码与配置分离
 
-先按实际改动区分配置与代码：外部纯配置读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md` 直接维护；代码和混合实现走 second-brain-skills `fanloop-workflow/code-change` Workflow（`fanloop-maintainer` 已退役，见 ADR-0135）。配置改变业务流程，不等于修改执行引擎。
+先按实际改动区分配置与代码：外部纯配置按目标选择 Runtime：普通 Skill 使用 second-brain-skills 的 `write-skill`，Workflow 包使用 `manage-fanloop-workflow`；代码和混合实现走 second-brain-skills `fanloop-workflow/code-change` Workflow（`fanloop-maintainer` 已退役，见 ADR-0135）。配置改变业务流程，不等于修改执行引擎。
 
 1. 纯配置变更包括 `fanloop-workflow/<workflow-id>/` 的五份 Workflow YAML、包内非可执行 Skill 指令与参考材料、`<category>/<skill-id>/` 下的仓库级 Skill，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置按语义验证：错字/排版检查 diff 和引用并有据免测；普通模板、说明和 Prompt 由当前 Agent 实际自检，加载受影响完整包并检查代表性结果；Step、Condition、Route、绑定变化才跑受影响 Workflow 矩阵。路由、绑定、权限、安全、审批或外部写入规则变化仍需全新独立 Agent 实际试用并回读原始产物。解析器错误回归留在代码测试，不为文案重跑全产品或手造错误集。证据标明 self_check、independent 或 not_applicable，不要求新 binary 或代码 manifest。
-3. 纯配置变更由 second-brain-skills 的 `manage-fanloop-workflow` 完成修改、相应校验、提交推送 `main` 和实际配置源回读；用户指定停止位置时服从该边界。不初始化维护 Workflow 或 Requirement，不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 纯配置变更新开对应 Runtime Run：普通 Skill 使用 `write-skill`，Workflow 包使用 `manage-fanloop-workflow`；按最新 Status 的步骤完成修改、验证、独立审核、分支 PR 与实际配置源回读。旧维护仅继续旧 Run。普通 Skill 先安装已验证 head 的只读完整快照并确认，再交付 Skills PR；Workflow publish 完成父 PR、gitlink 与必需配置同步后才前进。用户指定停止位置时服从该边界。不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
 5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 按用户保留的具体人工门禁执行；IDL 按下方主 Agent 契约审核执行。
-6. 普通配置由同一 Agent 连续完成，不增加维护阶段、Panorama、飞书报告、实现子 Agent或重复检查。保留原始工具结果，在提交记录和最终回复中给出校验、提交、推送与本地回读证据；不额外要求阶段文档。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
+6. 配置执行与文档要求以对应 Runtime 的最新绑定为准，保留原始工具结果及候选身份。普通 Skill 的自检、冻结安装和交付按 write-skill，Workflow 的分析、构建、审核和发布按 manage；不在辅助 Skill 中另建或绕过这些步骤。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
 7. CI 用完整 Git diff 的轻量 changes 任务分流，纯配置可跳过引擎任务；仅 `skills/`、`.agents/skills/<skill>/` 下普通非可执行 Skill Markdown、包根五 YAML、普通 docs Markdown、根 AGENTS.md/README.md 可豁免。脚本、验证资产、可执行位、符号链接、未知或混合改动走完整代码 CI；重命名检查前后路径和 mode，基线缺失不能判配置，分流失败阻止交付。本地材料禁入库检查始终保留。授权 PR 合并须核对同 HEAD 分流结果和适用 required checks，不能绕过保护；代码通道门禁不变。
 
 完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、本地配置提交及公开 CLI 回读。

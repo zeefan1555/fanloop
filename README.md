@@ -15,14 +15,13 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - `pstack-native`：六步剧本交付，完整包来自配置中心。
 - `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow（由 second-brain-skills 的 `select-workflow` Skill 选择）；Fanloop、RemNote Direct 等仓库的代码变更走 `code-change`（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
 - `ai-daily-brief`：采集公开 X 原创帖并生成中文 AI 日报。
-- `second-brain-skills-maintainer`：维护 Skills 仓库候选、验证与交付。
+- 新普通 Skill 变更使用 `write-skill`，Workflow 包变更使用 Runtime `manage-fanloop-workflow`；`second-brain-skills-maintainer` 仅继续旧 Run。验证和发布由对应当前步骤负责。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
 
 每套 Workflow 是仓库 `fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
 
-新增一套流程可先使用仓库内 `.agents/skills/create-fanloop-workflow/` 与
-`examples/workflows/example/` 生成并校验完整五 YAML 候选；明确的包入口可直接使用 Workflow ID。
-`examples/workflows/manage-fanloop-workflow` 是可加载的四阶段配置管理包，发布目标是个人 Fornax 空间，不进入 second-brain-skills 生产库存。
+新增或修改流程先初始化 Runtime `manage-fanloop-workflow`，按 Status 需要读取 `.agents/skills/create-fanloop-workflow/` 的材料转换方法。
+`examples/workflows/example/` 与 `examples/workflows/manage-fanloop-workflow` 仅作为通用测试夹具，不是生产维护或发布入口。
 公共场景别名属于独立入口 Skill 的安装范围，不为新增配置隐式重建 CLI 或更新已安装场景表。不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。该文件里的 Lark 坐标是占位符；provider 为 lark 时用 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 提供真实值。
 
@@ -148,6 +147,9 @@ FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop dashboard
 显式编辑模式只保存已列出的完整文件，包括根 `SKILL.md`，校验观察摘要、符号链接与完整 Bundle 后原子写回同一仓库。可以显式编辑当前绑定源；CLI 和 Dashboard 共享同源目录锁。
 
 ## 新增 Workflow
+
+先初始化 Runtime `manage-fanloop-workflow` 并按最新 Status 构建、验证和交付下面的完整包。
+新增公共场景属于 Fanloop 源改动，单独走分支 PR；仅新增配置不改场景表。
 
 ```text
 fanloop-workflow/<workflow-id>/SKILL.md
