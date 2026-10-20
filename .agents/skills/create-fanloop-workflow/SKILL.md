@@ -9,6 +9,10 @@ description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓
 
 ## 1. 先确认需要 Workflow
 
+新 Workflow 需求先在独立绝对 Root 执行 `fanloop flow init --root <新 Root> --workflow manage-fanloop-workflow --title <标题>`，
+回读 Status。已有目标 Run 时使用其最新 Status，不重复初始化。本文件仅在当前步骤需要转换输入材料时提供方法；分析、构建、验证、审核和发布由该 Runtime 包负责。
+普通 Skill 创建、修改、移动或退役使用 `write-skill`；已绑定旧维护的 Run 按其固定快照继续。
+
 读取配置仓库 `AGENTS.md`、Fanloop 代码仓库的 `idl/yaml.thrift` 与相关 `docs/adr/`，以及最接近目标的现有 Workflow。存在相近业务
 Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行骨架。若一个原子 Skill 已足够完成任务，停止
 新增 Workflow，并说明应复用或新增哪个 Skill。
@@ -70,4 +74,7 @@ Workflow 时优先复用；否则以 `examples/workflows/example/` 为可运行�
 一条成功 Route 和一条回流 Route；不另写校验器或为配置改动构建新 binary。
 
 逐项核对五份 YAML 引用闭合、所有 SkillBinding 都指向同目录已有 Skill、Route 可达且不含绕过 Human Gate
-或 Panorama 的组合。记录候选完整文件清单与 SHA-256，按 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md` 直接校验、提交、推送 `main` 和本地交付，不再启动维护 Workflow。`FANLOOP_CONFIG_SOURCE` 可用于候选检查，但最终必须回读用户默认环境实际绑定的源。默认配置随下一次新 flow init 拉取生效；显式作者源的编辑随下一次调用生效，无需 CLI 重建；未发生的推送或本地更新不能写成完成事实。
+或 Panorama 的组合。记录候选完整文件清单、head 和 SHA-256，交回 Runtime `manage-fanloop-workflow` 当前构建步骤。
+由当前绑定步骤负责完整包、Route Matrix、复盘与 Panorama 验证，独立审核精确候选，分支 PR 发布，
+以及父 PR、gitlink 和配置同步回读；不直接向 `main` 提交或推送，不按本文件绕过审核及 publish Conditions。
+`FANLOOP_CONFIG_SOURCE` 只用于已授权隔离候选检查，不激活生产；未发生的审核、合并或同步保留为未完成。

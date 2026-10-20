@@ -30,11 +30,11 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 用户明确要求使用 Fanloop 或选择配置中的场景时表示要启动新流程；普通问答、分析或直接操作不自动进入 Workflow。
 
-纯 Workflow 配置维护直接读取 second-brain-skills 的 `agent-governance/manage-fanloop-workflow/SKILL.md`，其他仓库级 Skill 内容维护按目标仓库 `AGENTS.md` 路由；两者都不初始化维护 Requirement。维护 Fanloop 代码或混合实现时使用 `code-change` Workflow，Define按实际范围选择通道。
+新普通 Skill 变更使用 `write-skill`；新 Workflow 包变更使用 Runtime `manage-fanloop-workflow`。在独立绝对 Root 执行 `flow init --workflow <对应 ID>` 并回读 Status，按其当前绑定步骤执行验证、审核和发布。旧维护只继续已绑定的旧 Run。维护 Fanloop 代码或混合实现时使用 `code-change` Workflow，Define按实际范围选择通道。
 生产配置真值是 second-brain-skills main 的 `fanloop-workflow/<workflow-id>/` 完整包。新 flow init 自动拉取并原子激活不可变提交快照，即使存在 `fornax.json`；拉取失败且已有快照时继续使用该快照。`fanloop update config` 也从这条 GitHub main 同步；已有快照 commit 相同则跳过 checkout。已有 flow status/report/skills 离线读取固定快照。`FANLOOP_USE_FORNAX=1` 且 `fornax.json` 是普通文件时，init、update config 和 config drift 才改用 Fornax。显式绝对 FANLOOP_CONFIG_SOURCE 指向作者仓库根并跳过刷新，update config 与 config drift 会拒绝它。新的非 dry-run `flow init` 还会尝试把 CLI 更新到最新 GitHub Release，失败只告警并继续使用已安装版本。Dashboard 默认只读快照，显式作者源可编辑。每次读取最新 Status 的精确 Skill 路径。
 
 1. Status 返回已初始化 State 时，直接继续当前 Workflow，不执行 Release 更新。
-2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)，再读取 [`routes.yaml`](routes.yaml)。只按用户显式选择的场景取得 Workflow ID，随后运行 `flow init`；用户尚未选择场景时展示配置中的可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
+2. Status 返回 `NOT_INITIALIZED` 且用户要启动新流程时，完整读取并执行 [`ref/role.md`](ref/role.md)。已确认为普通 Skill 或 Workflow 包维护的需求使用上面的对应 ID；其他流程读取 [`routes.yaml`](routes.yaml)，按用户显式选择的场景取得 ID 再运行 `flow init`。用户尚未选择目标时展示可用场景并等待，不得初始化默认 Workflow。同一次新流程启动只执行一次选择。
 
 Skill、CLI、场景配置或 init 任一不可用或失败时，原样报告阻塞并停止；不得降级为普通代码分析、文档生成或研发交付。
 
