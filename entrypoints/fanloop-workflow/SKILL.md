@@ -9,7 +9,7 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 **读取 Status → 执行 Prompt/Skills → 上报 Progress 或 Result → 读取新 Status**
 
-`.fanloop` 由 CLI 管理。构造命令输入前读取目标叶子命令的 `--help`。新需求未指定目录时使用 `~/fanloop/worktrees/<requirement_slug>`；已有需求使用包含 `.fanloop` 的目录。
+`.fanloop` 由 CLI 管理。构造命令输入前读取目标叶子命令的 `--help`。新需求未指定目录时使用 `~/fanloop/workspace/<workflow-id>/<requirement-root>`，选定 Workflow 后解析为绝对路径；已有需求使用包含 `.fanloop` 的原绝对目录继续。
 
 ## 已初始化 Requirement 的固定控制器
 

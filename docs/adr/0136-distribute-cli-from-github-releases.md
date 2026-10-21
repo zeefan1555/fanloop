@@ -4,7 +4,7 @@ date: 2026-10-15
 supersedes: ADR-0122
 supersedes_in_part: ADR-0095, ADR-0123, ADR-0132
 amends: ADR-0108
-amended_by: ADR-0137-take-workflow-configuration-from-fornax, ADR-0138-refresh-cli-and-git-config-on-fresh-init
+amended_by: ADR-0137-take-workflow-configuration-from-fornax, ADR-0138-refresh-cli-and-git-config-on-fresh-init, ADR-0146-persist-launcher-path-and-bound-release-downloads
 ---
 
 # 从 GitHub Release 分发 CLI

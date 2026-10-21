@@ -483,7 +483,283 @@ test('prints an exact PATH instruction only when the binary is not already reach
   });
   assert.equal(
     layout.pathInstruction(root, {PATH: '/usr/bin', npm_config_prefix: '/opt/fanloop'}).instruction,
-    `export PATH="${bin}:$PATH"`,
+    `export PATH='/opt/fanloop/bin':"$PATH"`,
   );
   assert.equal(layout.pathInstruction(root, {PATH: `/usr/bin${path.delimiter}/opt/fanloop/bin`, npm_config_prefix: '/opt/fanloop'}).onPath, true);
+});
+
+test('persists a single safely quoted PATH block for zsh and preserves user bytes', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-profile-'));
+  const zdot = path.join(home, 'zsh config');
+  const prefix = path.join(home, "npm 'prefix");
+  const bin = path.join(prefix, 'bin');
+  fs.mkdirSync(zdot);
+  fs.mkdirSync(bin, {recursive: true});
+  fs.writeFileSync(path.join(bin, 'fanloop'), '#!/bin/sh\necho candidate\n', {mode: 0o755});
+  const original = Buffer.from('# user\r\nexport USER_VALUE=kept\n# no final newline');
+  fs.writeFileSync(path.join(zdot, '.zshrc'), original);
+  const env = {HOME: home, ZDOTDIR: zdot, SHELL: '/bin/zsh', npm_config_prefix: prefix, PATH: '/usr/bin:/bin'};
+  layout.ensureLauncherPath(path.join(home, 'data'), env);
+  const first = fs.readFileSync(path.join(zdot, '.zshrc'));
+  assert.deepEqual(first.subarray(0, original.length), original);
+  layout.ensureLauncherPath(path.join(home, 'data'), env);
+  assert.deepEqual(fs.readFileSync(path.join(zdot, '.zshrc')), first);
+  for (const name of ['.zshrc', '.zprofile']) {
+    assert.equal(fs.readFileSync(path.join(zdot, name), 'utf8').match(/# >>> fanloop PATH >>>/g).length, 1);
+  }
+  if (fs.existsSync('/bin/zsh')) {
+    for (const mode of ['-ic', '-lc']) {
+      const result = spawnSync('/bin/zsh', [mode, 'fanloop'], {env, encoding: 'utf8'});
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout.trim(), 'candidate');
+    }
+  }
+});
+
+test('selects bash login precedence and sh profile without touching other files', () => {
+  for (const login of ['.bash_profile', '.bash_login', '.profile', null]) {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-bash-'));
+    if (login) fs.writeFileSync(path.join(home, login), '# user\n');
+    const nativeBin = path.join(home, 'data', 'current', 'bin');
+    fs.mkdirSync(nativeBin, {recursive: true});
+    fs.writeFileSync(path.join(nativeBin, 'fanloop'), '#!/bin/sh\necho candidate\n', {mode: 0o755});
+    const env = {HOME: home, SHELL: '/bin/bash', PATH: '/usr/bin:/bin'};
+    layout.ensureLauncherPath(path.join(home, 'data'), env);
+    assert.equal(fs.existsSync(path.join(home, '.bashrc')), true);
+    assert.equal(fs.existsSync(path.join(home, login || '.bash_profile')), true);
+    assert.equal(fs.readdirSync(home).filter((name) => ['.bash_profile', '.bash_login', '.profile'].includes(name)).length, 1);
+    // Explicitly source the login file: some system /etc/profile files reset HOME.
+    for (const profile of ['.bashrc', login || '.bash_profile']) {
+      const result = spawnSync('/bin/bash', ['--noprofile', '--norc', '-c', '. "$HOME/$1"; fanloop', 'check', profile], {env, encoding: 'utf8'});
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout.trim(), 'candidate');
+    }
+    layout.ensureLauncherPath(path.join(home, 'data'), {...env, SHELL: '/bin/sh'});
+    assert.equal(fs.existsSync(path.join(home, '.profile')), true);
+  }
+});
+
+test('PATH configuration rejects unsupported shells, invalid paths and unwriteable profiles', (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-profile-error-'));
+  const data = path.join(home, 'data');
+  const env = {HOME: home, SHELL: '/bin/zsh'};
+  // Even a broken empty-HOME implementation must stay inside this test's isolated home.
+  t.mock.method(os, 'homedir', () => home);
+  assert.throws(() => layout.ensureLauncherPath(data, {...env, SHELL: '/bin/fish'}), /unsupported shell/);
+  for (const overrides of [{HOME: ''}, {ZDOTDIR: ''}, {npm_config_prefix: ''}, {HOME: 'relative'}, {ZDOTDIR: 'relative'}, {npm_config_prefix: 'relative'}, {npm_config_prefix: `${home}\ncommand`}, {npm_config_prefix: `${home}:other`}]) {
+    assert.throws(() => layout.ensureLauncherPath(data, {...env, ...overrides}), /absolute|invalid/);
+  }
+  fs.mkdirSync(path.join(home, '.zshrc'));
+  assert.throws(() => layout.ensureLauncherPath(data, env), /PATH configuration/);
+  assert.equal(fs.existsSync(path.join(home, '.zprofile')), false);
+});
+
+test('updates only its own PATH block and refuses malformed markers', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-marker-'));
+  const env = {HOME: home, SHELL: '/bin/sh'};
+  layout.ensureLauncherPath(path.join(home, 'old'), env);
+  const profile = path.join(home, '.profile');
+  fs.appendFileSync(profile, '# after\n');
+  layout.ensureLauncherPath(path.join(home, 'new'), env);
+  assert.match(fs.readFileSync(profile, 'utf8'), /new\/current\/bin/);
+  assert.equal(fs.readFileSync(profile, 'utf8').endsWith('# after\n'), true);
+  fs.writeFileSync(profile, '# >>> fanloop PATH >>>\nuser command\n');
+  const before = fs.readFileSync(profile);
+  assert.throws(() => layout.ensureLauncherPath(path.join(home, 'new'), env), /marker/);
+  assert.deepEqual(fs.readFileSync(profile), before);
+});
+
+test('profile atomic writes preserve mode and symlinks, and partial write failure keeps user bytes', (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-atomic-profile-'));
+  const target = path.join(home, 'user-profile');
+  const profile = path.join(home, '.profile');
+  fs.writeFileSync(target, '# original user bytes\n', {mode: 0o640});
+  fs.chmodSync(target, 0o640);
+  fs.symlinkSync('user-profile', profile);
+  const env = {HOME: home, SHELL: '/bin/sh'};
+  layout.ensureLauncherPath(path.join(home, 'data'), env);
+  assert.equal(fs.readlinkSync(profile), 'user-profile');
+  assert.equal(fs.statSync(target).mode & 0o777, 0o640);
+  const before = fs.readFileSync(target);
+  const write = fs.writeFileSync;
+  t.mock.method(fs, 'writeFileSync', (file, bytes, options) => {
+    if (path.basename(file).startsWith('.fanloop-path-')) {
+      write(file, bytes.subarray(0, 8), options);
+      throw new Error('simulated partial write');
+    }
+    return write(file, bytes, options);
+  });
+  assert.throws(() => layout.ensureLauncherPath(path.join(home, 'other'), env), /could not write/);
+  assert.deepEqual(fs.readFileSync(target), before);
+  assert.equal(fs.readlinkSync(profile), 'user-profile');
+  assert.equal(fs.readdirSync(home).some((name) => name.startsWith('.fanloop-path-')), false);
+});
+
+test('retries interrupted 2xx bodies and caps permanent interruption at four attempts', async () => {
+  const counts = new Map();
+  const server = http.createServer((request, response) => {
+    const count = (counts.get(request.url) || 0) + 1;
+    counts.set(request.url, count);
+    response.writeHead(200, {'Content-Length': '8'});
+    if (request.url === '/recover' && count === 2) {
+      response.end('complete');
+      return;
+    }
+    response.write('part');
+    setTimeout(() => response.destroy(), 10);
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    assert.equal((await download(`${base}/recover`, 'archive')).toString(), 'complete');
+    assert.equal(counts.get('/recover'), 2);
+    await assert.rejects(download(`${base}/forever`, 'archive'), /four attempts|4 attempts/);
+    assert.equal(counts.get('/forever'), 4);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('HTTP failures, oversize and unsafe redirects never retry or leak signed URLs', async () => {
+  const counts = new Map();
+  const secret = 'signed-test-query';
+  const server = http.createServer((request, response) => {
+    const pathname = new URL(request.url, 'http://localhost').pathname;
+    counts.set(pathname, (counts.get(pathname) || 0) + 1);
+    if (pathname === '/unsafe') {
+      response.writeHead(302, {Location: `http://username:password@127.0.0.1:${server.address().port}/target?token=${secret}`});
+    } else if (pathname === '/large') {
+      response.writeHead(200);
+    } else {
+      response.writeHead(Number(pathname.slice(1)));
+    }
+    response.end('too big body');
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    for (const pathname of ['/404', '/503', '/large', '/unsafe']) {
+      await assert.rejects(download(`${base}${pathname}?token=${secret}`, 'archive', 4), (err) => {
+        assert.doesNotMatch(err.message, /signed-test-query|username|password|http:\/\//);
+        return true;
+      });
+      assert.equal(counts.get(pathname), 1);
+    }
+    assert.equal(counts.has('/target'), false);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('validates the initial URL before fetch and sanitizes unknown or certificate errors', async (t) => {
+  let calls = 0;
+  t.mock.method(global, 'fetch', async () => {
+    calls += 1;
+    const err = new Error('https://user:password@example.invalid?token=private-query');
+    err.cause = {code: 'CERT_HAS_EXPIRED'};
+    throw err;
+  });
+  for (const url of ['http://example.invalid/file', 'https://user:password@example.invalid', 'not a URL']) {
+    await assert.rejects(download(url, 'archive'), /unsafe|invalid/);
+  }
+  assert.equal(calls, 0);
+  await assert.rejects(download('https://example.invalid/file?token=private-query', 'archive'), (err) => {
+    assert.doesNotMatch(err.message, /private-query|password|https:\/\//);
+    return true;
+  });
+  assert.equal(calls, 1);
+});
+
+test('known transport timeouts retry but unknown and pre-body socket errors do not', async (t) => {
+  let calls = 0;
+  let code = 'UND_ERR_CONNECT_TIMEOUT';
+  t.mock.method(global, 'fetch', async () => {
+    calls += 1;
+    const err = new Error('private URL must be discarded');
+    err.cause = {code};
+    throw err;
+  });
+  await assert.rejects(download('https://example.invalid/file', 'archive'), /4 attempts|four attempts/);
+  assert.equal(calls, 4);
+  for (code of ['UND_ERR_SOCKET', 'ECONNRESET', 'UNKNOWN']) {
+    calls = 0;
+    await assert.rejects(download('https://example.invalid/file', 'archive'), /download archive failed/);
+    assert.equal(calls, 1);
+  }
+});
+
+test('one 30-second signal covers headers, redirects and body on each attempt', async (t) => {
+  const deadlines = [];
+  const signals = [];
+  t.mock.method(AbortSignal, 'timeout', (ms) => {
+    deadlines.push(ms);
+    return new AbortController().signal;
+  });
+  let calls = 0;
+  t.mock.method(global, 'fetch', async (url, options) => {
+    calls += 1;
+    assert.equal(options.redirect, 'manual');
+    signals.push(options.signal);
+    if (calls === 1) return new Response('', {status: 302, headers: {Location: 'https://example.invalid/body'}});
+    return new Response('body');
+  });
+  assert.equal((await download('https://example.invalid/redirect', 'archive')).toString(), 'body');
+  assert.deepEqual(deadlines, [30000]);
+  assert.equal(signals[0], signals[1]);
+});
+
+test('deadline cancellation remains retryable when fetch surfaces only AbortError', async (t) => {
+  let calls = 0;
+  t.mock.method(AbortSignal, 'timeout', () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException('deadline exceeded', 'TimeoutError'));
+    return controller.signal;
+  });
+  t.mock.method(global, 'fetch', async () => {
+    calls += 1;
+    throw new DOMException('request aborted', 'AbortError');
+  });
+  await assert.rejects(download('https://example.invalid/body', 'archive'), /4 attempts/);
+  assert.equal(calls, 4);
+});
+
+test('body timeout restarts with a fresh deadline and bounded redirect loops reject', async (t) => {
+  const realTimeout = AbortSignal.timeout;
+  const signals = [];
+  let shortDeadline = true;
+  t.mock.method(AbortSignal, 'timeout', (ms) => {
+    assert.equal(ms, 30000);
+    const signal = realTimeout.call(AbortSignal, shortDeadline ? 500 : ms);
+    signals.push(signal);
+    return signal;
+  });
+  let requests = 0;
+  const server = http.createServer((request, response) => {
+    requests += 1;
+    if (request.url === '/loop') {
+      response.writeHead(302, {Location: '/loop'});
+      response.end();
+    } else {
+      response.writeHead(200);
+      response.write('waiting');
+      // Bound even the pre-implementation red run instead of leaving a test server hung.
+      setTimeout(() => response.destroy(), 5000);
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    await assert.rejects(download(`${base}/body`, 'archive'), /4 attempts|four attempts/);
+    assert.equal(requests, 4);
+    assert.equal(new Set(signals).size, 4);
+    requests = 0;
+    shortDeadline = false;
+    await assert.rejects(download(`${base}/loop`, 'archive'), /redirect/);
+    assert.equal(requests, 6);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
