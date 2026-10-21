@@ -20,7 +20,7 @@ Read the frozen installed entrypoint and record its digest. Resolve its grouped 
 Read `flow init --help`. Prove missing Workflow selection fails with `INVALID_ARGUMENT` at exit 2 and an unknown ID fails with
 `WORKFLOW_NOT_FOUND` at exit 1 without exposing filesystem errors. Run init dry-run
 with a real Workflow and confirm no State exists; perform the real init and read Status to confirm the selected Workflow ID
-is bound and its Prompt/Skill paths come from the Requirement's pinned snapshot.
+is bound and its Prompt/Skill paths come from the Requirement's pinned configuration source.
 
 For an authoring failure matrix, copy the synthetic Workflow tree into a fresh isolated configuration root and mutate one
 case at a time: malformed YAML syntax, an unknown field, an invalid Step executor, an unknown Condition, an unknown Prompt,
@@ -30,6 +30,7 @@ approval; it does not replace product behavior trials for valid configuration.
 
 ## Gotchas
 
-Selection only applies before initialization. An initialized Requirement keeps its persisted Workflow ID and configuration
-snapshot; later config/current or author-source edits do not silently replace its semantics or Skill paths. Use the explicit
-rebind command when adopting installed configuration, or a new Root for each selection variant.
+Selection only applies before initialization. An initialized Requirement keeps its persisted Workflow ID and absolute
+configuration pin; later config/current updates do not replace that binding. A Requirement pinned to an explicit author
+repository still reflects content edits in that same repository. Use config rebind to adopt an installed snapshot, or a new
+Root for each selection variant.
