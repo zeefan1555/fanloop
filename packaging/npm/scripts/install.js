@@ -8,6 +8,8 @@ const path = require('path');
 const layout = require('./layout');
 
 const DOWNLOAD_LIMIT = 256 * 1024 * 1024;
+const DOWNLOAD_TIMEOUT = 30000;
+const RETRY_DELAYS = [100, 200, 400];
 
 function treeSnapshot(root) {
   const lines = [];
@@ -83,33 +85,96 @@ function releaseBase(version) {
   return `https://github.com/zeefan1555/fanloop/releases/download/v${version}`;
 }
 
+function downloadFailure(message) {
+  const err = new Error(message);
+  err.downloadFailure = true;
+  return err;
+}
+
+function checkedDownloadURL(value, name, base) {
+  let url;
+  try {
+    url = new URL(value, base);
+  } catch {
+    throw downloadFailure(`download ${name} failed: invalid URL`);
+  }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if (url.username || url.password || (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback))) {
+    throw downloadFailure(`download ${name} failed: unsafe URL`);
+  }
+  return url;
+}
+
+function transientDownloadError(err, bodyStage, signal) {
+  // Older fetch implementations surface deadline cancellation as AbortError.
+  if (signal.aborted && signal.reason?.name === 'TimeoutError') return true;
+  const seen = new Set();
+  for (let cause = err; cause && !seen.has(cause); cause = cause.cause) {
+    seen.add(cause);
+    if (cause.name === 'TimeoutError' || ['UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT'].includes(cause.code)) {
+      return true;
+    }
+    if (bodyStage && ['UND_ERR_SOCKET', 'UND_ERR_RES_CONTENT_LENGTH_MISMATCH'].includes(cause.code)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 async function download(url, name, limit = DOWNLOAD_LIMIT) {
-  const response = await fetch(url, {headers: {'User-Agent': 'fanloop-install'}});
-  if (response.status === 404) {
-    throw new Error(`download ${name} failed: HTTP 404. Fanloop releases require a public repository or authentication; this installer does not send a token.`);
-  }
-  if (!response.ok) {
-    throw new Error(`download ${name} failed: ${response.status}`);
-  }
-  if (!response.body) {
-    throw new Error(`download ${name} failed: empty response`);
-  }
-  const reader = response.body.getReader();
-  const chunks = [];
-  let total = 0;
-  while (true) {
-    const {done, value} = await reader.read();
-    if (done) {
-      break;
+  const initial = checkedDownloadURL(url, name);
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt += 1) {
+    const signal = AbortSignal.timeout(DOWNLOAD_TIMEOUT);
+    let bodyStage = false;
+    try {
+      let current = initial;
+      let response;
+      for (let redirects = 0; ; redirects += 1) {
+        response = await fetch(current, {headers: {'User-Agent': 'fanloop-install'}, redirect: 'manual', signal});
+        if (![301, 302, 303, 307, 308].includes(response.status)) break;
+        if (response.body) await response.body.cancel().catch(() => {});
+        const location = response.headers.get('location');
+        if (!location || redirects >= 5) {
+          throw downloadFailure(`download ${name} failed: invalid or excessive redirects`);
+        }
+        current = checkedDownloadURL(location, name, current);
+      }
+      if (!response.ok) {
+        if (response.body) await response.body.cancel().catch(() => {});
+        if (response.status === 404) {
+          throw downloadFailure(`download ${name} failed: HTTP 404. Fanloop releases require a public repository or authentication; this installer does not send a token.`);
+        }
+        throw downloadFailure(`download ${name} failed: HTTP ${response.status}`);
+      }
+      if (!response.body) throw downloadFailure(`download ${name} failed: empty response`);
+      const reader = response.body.getReader();
+      const chunks = [];
+      let total = 0;
+      bodyStage = true;
+      try {
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          total += value.byteLength;
+          if (total > limit) throw downloadFailure(`download ${name} exceeds ${limit} bytes`);
+          chunks.push(Buffer.from(value));
+        }
+      } finally {
+        await reader.cancel().catch(() => {});
+        reader.releaseLock();
+      }
+      return Buffer.concat(chunks);
+    } catch (err) {
+      if (err.downloadFailure) throw err;
+      if (!transientDownloadError(err, bodyStage, signal)) {
+        throw downloadFailure(`download ${name} failed: non-retryable transport error`);
+      }
+      if (attempt === RETRY_DELAYS.length) {
+        throw downloadFailure(`download ${name} failed: transient transport error after 4 attempts`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]));
     }
-    total += value.byteLength;
-    if (total > limit) {
-      await reader.cancel();
-      throw new Error(`download ${name} exceeds ${limit} bytes`);
-    }
-    chunks.push(Buffer.from(value));
   }
-  return Buffer.concat(chunks);
 }
 
 async function readReleaseFile(name, options) {
@@ -137,18 +202,26 @@ async function installRelease(options) {
   const checksumBytes = await readFile('checksums.txt');
   const manifestBytes = await readFile('release.json');
   const archive = await readFile(name);
-  const checksums = checksumBytes.toString('utf8');
-  const archiveHash = layout.verifyChecksum(checksums, name, archive);
-  layout.verifyChecksum(checksums, 'release.json', manifestBytes);
-  const manifest = JSON.parse(manifestBytes.toString('utf8'));
-  if (manifest.schema_version !== 1 || manifest.version !== version || manifest.tag !== `v${version}`) {
-    throw new Error('release.json does not match this package version');
+  let validationStage = 'checksums';
+  try {
+    const checksums = checksumBytes.toString('utf8');
+    const archiveHash = layout.verifyChecksum(checksums, name, archive);
+    layout.verifyChecksum(checksums, 'release.json', manifestBytes);
+    validationStage = 'manifest';
+    const manifest = JSON.parse(manifestBytes.toString('utf8'));
+    if (manifest.schema_version !== 1 || manifest.version !== version || manifest.tag !== `v${version}`) {
+      throw new Error('release.json does not match this package version');
+    }
+    const listed = (manifest.assets || []).find((asset) => asset.name === name);
+    if (!listed || listed.sha256 !== archiveHash || listed.os !== platform.os || listed.arch !== platform.arch) {
+      throw new Error(`release.json does not match checksums.txt for ${name}`);
+    }
+    validationStage = 'archive';
+    await extractArchive(archive, dataHome, version);
+  } catch {
+    // Validation errors can contain downloaded text, JSON fields or archive paths.
+    throw new Error(`release validation failed: ${validationStage}`);
   }
-  const listed = (manifest.assets || []).find((asset) => asset.name === name);
-  if (!listed || listed.sha256 !== archiveHash || listed.os !== platform.os || listed.arch !== platform.arch) {
-    throw new Error(`release.json does not match checksums.txt for ${name}`);
-  }
-  await extractArchive(archive, dataHome, version);
   const roots = options.skillRoots || layout.skillRootsFrom(options.env || process.env);
   const created = layout.ensureSkillLinks(dataHome, roots);
   try {
@@ -206,6 +279,7 @@ async function main() {
     platform: layout.selectPlatform(process.platform, process.arch),
     releaseDir: process.env.FANLOOP_RELEASE_DIR || '',
   });
+  layout.ensureLauncherPath(installed.dataHome);
   reportInstall(installed.dataHome, installed.version);
 }
 

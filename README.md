@@ -34,7 +34,9 @@ npm i -g --foreground-scripts --allow-scripts=fanloop https://github.com/zeefan1
 fanloop --version
 ```
 
-较新的 npm 可能拦截 postinstall，需要 `--allow-scripts=fanloop`。npm 默认不显示成功的 postinstall 输出，`--foreground-scripts` 让 `export PATH=...` 出现在终端里。安装程序先校验 sha256 和完整的内部 release 清单，再解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `~/.fanloop/current`。切换成功后，除非 `FANLOOP_NO_AUTO_CONFIG` 为 `1`、`true` 或 `yes`，或已经设置 `FANLOOP_CONFIG_SOURCE`，安装程序会运行 `current/bin/fanloop update config`（继承标准输入输出，超时 120 秒）。同步失败时向 stderr 打印 `fanloop install: configuration sync failed; run "fanloop update config"`，安装本身仍然成功。包装里的启动器会执行 `current/bin/fanloop`。如果这个命令还不在 `PATH` 上，安装程序会打印一条可以直接执行的 `export PATH=...`；之后 `fanloop doctor` 也会在 hint 里给出同一条命令。
+较新的 npm 可能拦截 postinstall，需要 `--allow-scripts=fanloop`。npm 默认不显示成功的 postinstall 输出，`--foreground-scripts` 让 `export PATH=...` 出现在终端里。安装程序先校验 sha256 和完整的内部 release 清单，再解压到 `~/.fanloop/releases/<version>`，创建指向 `current` 的公共 Skill 链接，最后原子切换 `~/.fanloop/current`。切换成功后，除非 `FANLOOP_NO_AUTO_CONFIG` 为 `1`、`true` 或 `yes`，或已经设置 `FANLOOP_CONFIG_SOURCE`，安装程序会运行 `current/bin/fanloop update config`（继承标准输入输出，超时 120 秒）。同步失败时向 stderr 打印 `fanloop install: configuration sync failed; run "fanloop update config"`，安装本身仍然成功。包装里的启动器会执行 `current/bin/fanloop`。安装程序还会把一个幂等的 Fanloop PATH 区块写入 zsh 的 `.zshrc`/`.zprofile`（遵循 `ZDOTDIR`，否则 `HOME`）、bash 的 `.bashrc` 与优先存在的 login profile（默认 `.bash_profile`），或 sh 的 `.profile`。使用 npm 提供的绝对 `prefix/bin`，否则使用 `dataHome/current/bin`；安全引用含空格和单引号的路径，保留区块外原文。新 shell 可直接运行命令；当前终端尚未包含该目录时仍打印可执行的 `export PATH=...`。未知 shell、无效路径或 profile 失败会明确退出失败，CLI 可能已激活，不宣称回滚。`fanloop doctor` 仍提示 native binary 的 PATH。
+
+每个 npm 发布文件下载有 30 秒截止（包含响应头、最多五跳重定向和正文），最多四次尝试，重试间隔 100/200/400ms。只重试明确超时和 2xx 正文截断；HTTP、证书、不安全地址、过大响应、校验和解包错误立即拒绝。每跳地址都限定 HTTPS 或本地 loopback 测试 HTTP，禁止 userinfo，终端诊断不输出 URL 或 query。下载/校验失败不切换已有 `current`。
 
 更新 CLI 与更新 Workflow 配置是两条命令：
 

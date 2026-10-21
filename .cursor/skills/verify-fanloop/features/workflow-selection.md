@@ -5,6 +5,7 @@
 - Explicit Workflow selection for a new Requirement.
 - Scenario routing through `entrypoints/fanloop-workflow/routes.yaml`.
 - Rejection of missing or unknown Workflow IDs.
+- The distributed fanloop-workflow entrypoint groups new default Roots under ~/fanloop/workspace/<workflow-id>/<requirement-root>; the CLI still receives an explicit absolute Root. Existing Roots continue at their original path.
 
 ## How to get to it (user POV)
 
@@ -14,10 +15,12 @@ from the bound local repository's `fanloop-workflow/` directory.
 
 ## Driving it with fanloop
 
-Read `flow init --help`. Prove missing Workflow selection fails with `INVALID_ARGUMENT` and an unknown ID fails with
+Read the frozen installed entrypoint and record its digest. Resolve its grouped default to an absolute isolated Root and run status, init dry-run, real init and status with a synthetic Workflow. Continue a separate previously initialized Root and prove neither directory moved. Do not infer an implicit CLI Root argument from the Skill convention.
+
+Read `flow init --help`. Prove missing Workflow selection fails with `INVALID_ARGUMENT` at exit 2 and an unknown ID fails with
 `WORKFLOW_NOT_FOUND` at exit 1 without exposing filesystem errors. Run init dry-run
 with a real Workflow and confirm no State exists; perform the real init and read Status to confirm the selected Workflow ID
-is bound and its Prompt/Skill paths come from the live root.
+is bound and its Prompt/Skill paths come from the Requirement's pinned configuration source.
 
 For an authoring failure matrix, copy the synthetic Workflow tree into a fresh isolated configuration root and mutate one
 case at a time: malformed YAML syntax, an unknown field, an invalid Step executor, an unknown Condition, an unknown Prompt,
@@ -27,6 +30,7 @@ approval; it does not replace product behavior trials for valid configuration.
 
 ## Gotchas
 
-Selection only applies before initialization. An initialized Requirement keeps its persisted Workflow ID while every CLI
-invocation resolves current semantics and Skill paths from the live Workflow with that ID. Changing live content does not
-change the persisted Workflow reference. Use a new Root for each selection variant.
+Selection only applies before initialization. An initialized Requirement keeps its persisted Workflow ID and absolute
+configuration pin; later config/current updates do not replace that binding. A Requirement pinned to an explicit author
+repository still reflects content edits in that same repository. Use config rebind to adopt an installed snapshot, or a new
+Root for each selection variant.

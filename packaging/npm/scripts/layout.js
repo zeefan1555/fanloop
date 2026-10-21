@@ -431,15 +431,104 @@ function switchCurrent(dataHome, version) {
   return true;
 }
 
+function absoluteShellPath(value) {
+  if (typeof value !== 'string' || !path.isAbsolute(value)) {
+    throw new Error('shell PATH configuration paths must be absolute');
+  }
+  if (/[\x00-\x1f\x7f:]/.test(value)) {
+    throw new Error('invalid shell PATH configuration path');
+  }
+  return path.resolve(value);
+}
+
+function launcherBin(dataHome, env) {
+  return Object.prototype.hasOwnProperty.call(env, 'npm_config_prefix')
+    ? path.join(absoluteShellPath(env.npm_config_prefix), 'bin')
+    : path.join(absoluteShellPath(dataHome), 'current', 'bin');
+}
+
+function shellExport(bin) {
+  return `export PATH='${bin.replace(/'/g, "'\\''")}':"$PATH"`;
+}
+
+function ensureLauncherPath(dataHome, env = process.env) {
+  const home = absoluteShellPath(Object.prototype.hasOwnProperty.call(env, 'HOME') ? env.HOME : os.homedir());
+  const bin = launcherBin(dataHome, env);
+  const shell = path.basename(env.SHELL || '');
+  let profiles;
+  if (shell === 'zsh') {
+    const root = Object.prototype.hasOwnProperty.call(env, 'ZDOTDIR') ? absoluteShellPath(env.ZDOTDIR) : home;
+    profiles = [path.join(root, '.zshrc'), path.join(root, '.zprofile')];
+  } else if (shell === 'bash') {
+    const login = ['.bash_profile', '.bash_login', '.profile'].find((name) => fs.existsSync(path.join(home, name))) || '.bash_profile';
+    profiles = [path.join(home, '.bashrc'), path.join(home, login)];
+  } else if (shell === 'sh') {
+    profiles = [path.join(home, '.profile')];
+  } else {
+    throw new Error('unsupported shell for persistent PATH configuration; use zsh, bash or sh');
+  }
+  const block = Buffer.from(`# >>> fanloop PATH >>>\n${shellExport(bin)}\n# <<< fanloop PATH <<<\n`);
+  // Prepare every edit before writing, so invalid profile types or markers fail first.
+  const edits = profiles.map((file) => {
+    let original = Buffer.alloc(0);
+    let target = file;
+    let mode = 0o600;
+    let exists = false;
+    try {
+      const entry = fs.lstatSync(file);
+      exists = true;
+      if (entry.isSymbolicLink()) target = fs.realpathSync(file);
+      const info = fs.statSync(target);
+      if (!info.isFile()) throw new Error('profile is not a regular file');
+      mode = info.mode & 0o777;
+      original = fs.readFileSync(target);
+    } catch (err) {
+      // A dangling existing symlink is not an absent profile and must remain untouched.
+      if (err.code !== 'ENOENT' || exists) throw new Error('shell PATH configuration could not read a profile');
+    }
+    // Latin-1 keeps regex offsets aligned with the original bytes, including non-UTF8 content.
+    const text = original.toString('latin1');
+    const starts = [...text.matchAll(/^# >>> fanloop PATH >>>\r?$/gm)];
+    const ends = [...text.matchAll(/^# <<< fanloop PATH <<<\r?$/gm)];
+    let content;
+    if (starts.length || ends.length) {
+      if (starts.length !== 1 || ends.length !== 1 || starts[0].index >= ends[0].index) {
+        throw new Error('shell PATH configuration has malformed Fanloop markers');
+      }
+      let end = ends[0].index + ends[0][0].length;
+      if (text[end] === '\n') end += 1;
+      content = Buffer.concat([original.subarray(0, starts[0].index), block, original.subarray(end)]);
+    } else {
+      const separator = original.length && original[original.length - 1] !== 10 ? Buffer.from('\n') : Buffer.alloc(0);
+      content = Buffer.concat([original, separator, block]);
+    }
+    return {file: target, original, content, mode};
+  });
+  for (const {file, original, content, mode} of edits) {
+    if (original.equals(content)) continue;
+    const temporary = path.join(path.dirname(file), `.fanloop-path-${crypto.randomBytes(6).toString('hex')}`);
+    try {
+      fs.mkdirSync(path.dirname(file), {recursive: true});
+      fs.writeFileSync(temporary, content, {flag: 'wx', mode});
+      fs.chmodSync(temporary, mode);
+      fs.renameSync(temporary, file);
+    } catch {
+      throw new Error('shell PATH configuration could not write a profile; CLI installation may already be active');
+    } finally {
+      fs.rmSync(temporary, {force: true});
+    }
+  }
+  return profiles;
+}
+
 function pathInstruction(dataHome, env = process.env) {
   const bin = path.join(dataHome, 'current', 'bin');
-  const prefix = env.npm_config_prefix;
-  const npmBin = prefix ? path.join(prefix, process.platform === 'win32' ? '' : 'bin') : '';
+  const npmBin = env.npm_config_prefix ? launcherBin(dataHome, env) : '';
   const entries = String(env.PATH || '').split(path.delimiter).filter(Boolean);
   if ((npmBin && entries.includes(npmBin)) || entries.includes(bin)) {
     return {onPath: true, instruction: ''};
   }
-  return {onPath: false, instruction: `export PATH="${bin}:$PATH"`};
+  return {onPath: false, instruction: shellExport(launcherBin(dataHome, env))};
 }
 
 module.exports = {
@@ -453,6 +542,7 @@ module.exports = {
   dataHome,
   directoryDigest,
   ensureSkillLinks,
+  ensureLauncherPath,
   fileDigest,
   npmPackageName,
   parseChecksums,
