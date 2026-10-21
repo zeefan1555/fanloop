@@ -202,18 +202,26 @@ async function installRelease(options) {
   const checksumBytes = await readFile('checksums.txt');
   const manifestBytes = await readFile('release.json');
   const archive = await readFile(name);
-  const checksums = checksumBytes.toString('utf8');
-  const archiveHash = layout.verifyChecksum(checksums, name, archive);
-  layout.verifyChecksum(checksums, 'release.json', manifestBytes);
-  const manifest = JSON.parse(manifestBytes.toString('utf8'));
-  if (manifest.schema_version !== 1 || manifest.version !== version || manifest.tag !== `v${version}`) {
-    throw new Error('release.json does not match this package version');
+  let validationStage = 'checksums';
+  try {
+    const checksums = checksumBytes.toString('utf8');
+    const archiveHash = layout.verifyChecksum(checksums, name, archive);
+    layout.verifyChecksum(checksums, 'release.json', manifestBytes);
+    validationStage = 'manifest';
+    const manifest = JSON.parse(manifestBytes.toString('utf8'));
+    if (manifest.schema_version !== 1 || manifest.version !== version || manifest.tag !== `v${version}`) {
+      throw new Error('release.json does not match this package version');
+    }
+    const listed = (manifest.assets || []).find((asset) => asset.name === name);
+    if (!listed || listed.sha256 !== archiveHash || listed.os !== platform.os || listed.arch !== platform.arch) {
+      throw new Error(`release.json does not match checksums.txt for ${name}`);
+    }
+    validationStage = 'archive';
+    await extractArchive(archive, dataHome, version);
+  } catch {
+    // Validation errors can contain downloaded text, JSON fields or archive paths.
+    throw new Error(`release validation failed: ${validationStage}`);
   }
-  const listed = (manifest.assets || []).find((asset) => asset.name === name);
-  if (!listed || listed.sha256 !== archiveHash || listed.os !== platform.os || listed.arch !== platform.arch) {
-    throw new Error(`release.json does not match checksums.txt for ${name}`);
-  }
-  await extractArchive(archive, dataHome, version);
   const roots = options.skillRoots || layout.skillRootsFrom(options.env || process.env);
   const created = layout.ensureSkillLinks(dataHome, roots);
   try {

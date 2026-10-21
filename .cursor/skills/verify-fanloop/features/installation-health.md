@@ -24,6 +24,8 @@ Distribute the frozen npm package and same-commit platform assets explicitly. Ru
 
 Use loopback HTTP fixtures with the frozen postinstall entrypoint for interrupted 2xx then success, permanent interruption, actual 30-second header/body deadline, HTTP 404/503, oversize, unsafe redirect and checksum rejection. Record request counts, elapsed time, exit codes and old current/manifest readback. Prove only known transient failures retry at most four times; failures preserve current before activation and diagnostics omit signed query/userinfo. Fast mocked deadline classification does not replace the actual 30-second check.
 
+Include downloaded malformed checksums, invalid distribution JSON, untrusted internal manifest fields and unsafe archive entries. Public postinstall must report only `release validation failed: checksums`, `manifest` or `archive`, never response text, JSON field names or archive paths; reject once and preserve the previous current/manifest.
+
 Use isolated data and Skill roots. On macOS invoke the documented installer and pinner with /bin/bash, including no output-directory argument and no configuration source. Install two clean commits, check each immutable
 Release, then check `current/release` and the absolute `config/current` snapshot binding and configuration.json identity.
 Prove no new `current/workflows` copy exists. The four Skill roots expose only

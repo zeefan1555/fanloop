@@ -70,7 +70,8 @@ function releaseAssets(version, prepare, options = {}) {
   if (prepare) {
     prepare(stage);
   }
-  const archiveName = `fanloop-${version}-linux-amd64.tar.gz`;
+  const platform = options.platform || {os: 'linux', arch: 'amd64'};
+  const archiveName = `fanloop-${version}-${platform.os}-${platform.arch}.tar.gz`;
   packStage(stage, path.join(release, archiveName), options.format);
   const archiveBytes = fs.readFileSync(path.join(release, archiveName));
   const archiveHash = crypto.createHash('sha256').update(archiveBytes).digest('hex');
@@ -79,7 +80,7 @@ function releaseAssets(version, prepare, options = {}) {
     version,
     tag: `v${version}`,
     repository: 'zeefan1555/fanloop',
-    assets: [{name: archiveName, os: 'linux', arch: 'amd64', sha256: archiveHash}],
+    assets: [{name: archiveName, os: platform.os, arch: platform.arch, sha256: archiveHash}],
   };
   fs.writeFileSync(path.join(release, 'release.json'), `${JSON.stringify(manifest)}\n`);
   const manifestHash = crypto.createHash('sha256').update(fs.readFileSync(path.join(release, 'release.json'))).digest('hex');
@@ -146,7 +147,7 @@ test('install verifies checksums before switching current', async () => {
       skillRoots: roots,
       readFile: async (name) => fs.promises.readFile(name === 'checksums.txt' ? bad : path.join(release, name)),
     }),
-    /sha256 mismatch/,
+    /release validation failed: checksums/,
   );
   assert.equal(fs.existsSync(path.join(root, 'current')), false);
 
@@ -174,6 +175,67 @@ test('rejects a relative FANLOOP_DATA_HOME before resolving it', () => {
   assert.equal(layout.dataHome({FANLOOP_DATA_HOME: absolute}), absolute);
 });
 
+test('postinstall safely classifies untrusted checksum, manifest and archive errors', async (t) => {
+  const version = fs.readFileSync(path.resolve(__dirname, '..', '..', 'VERSION'), 'utf8').trim();
+  const platform = {os: process.platform, arch: process.arch === 'x64' ? 'amd64' : process.arch};
+  const sentinel = 'https://synthetic-user:synthetic-password@example.invalid/?token=query-sentinel';
+  for (const [kind, classification] of [['checksums', 'checksums'], ['manifest-json', 'manifest'], ['internal-manifest', 'archive'], ['archive-entry', 'archive']]) {
+    await t.test(kind, () => {
+      const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-safe-validation-'));
+      const packageDir = path.join(scratch, 'package');
+      fs.mkdirSync(path.join(packageDir, 'scripts'), {recursive: true});
+      for (const name of ['install.js', 'layout.js']) fs.copyFileSync(path.join(__dirname, 'scripts', name), path.join(packageDir, 'scripts', name));
+      fs.writeFileSync(path.join(packageDir, 'package.json'), JSON.stringify({version}));
+      const data = path.join(scratch, 'data');
+      const home = path.join(scratch, 'home');
+      fs.mkdirSync(home);
+      fs.mkdirSync(path.join(data, 'releases', 'previous'), {recursive: true});
+      const previous = Buffer.from('previous manifest bytes\n');
+      fs.writeFileSync(path.join(data, 'releases', 'previous', 'release.json'), previous);
+      fs.symlinkSync('releases/previous', path.join(data, 'current'));
+      const {release, archiveName} = releaseAssets(version, (stage) => {
+        if (kind === 'internal-manifest') {
+          const file = path.join(stage, 'release.json');
+          const manifest = JSON.parse(fs.readFileSync(file));
+          manifest[sentinel] = true;
+          fs.writeFileSync(file, JSON.stringify(manifest));
+        }
+      }, {platform});
+      if (kind === 'manifest-json') {
+        fs.writeFileSync(path.join(release, 'release.json'), sentinel);
+      }
+      if (kind === 'archive-entry') {
+        const file = path.join(release, archiveName);
+        const raw = zlib.gunzipSync(fs.readFileSync(file));
+        const header = raw.subarray(0, 512);
+        header.fill(0, 0, 100);
+        header.write(`../${sentinel}`, 0);
+        header[156] = '0'.charCodeAt(0);
+        header.fill(0x20, 148, 156);
+        let sum = 0;
+        for (const byte of header) sum += byte;
+        header.write(`${sum.toString(8).padStart(6, '0')}\0 `, 148);
+        fs.writeFileSync(file, zlib.gzipSync(raw));
+        const distribution = JSON.parse(fs.readFileSync(path.join(release, 'release.json')));
+        distribution.assets[0].sha256 = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+        fs.writeFileSync(path.join(release, 'release.json'), JSON.stringify(distribution));
+      }
+      const checksum = (name) => crypto.createHash('sha256').update(fs.readFileSync(path.join(release, name))).digest('hex');
+      fs.writeFileSync(path.join(release, 'checksums.txt'), kind === 'checksums' ? sentinel : `${checksum(archiveName)}  ${archiveName}\n${checksum('release.json')}  release.json\n`);
+      const roots = skillRoots(scratch);
+      const env = {...process.env, HOME: home, SHELL: '/bin/sh', FANLOOP_DATA_HOME: data, FANLOOP_RELEASE_DIR: release, FANLOOP_NO_AUTO_CONFIG: '1', FANLOOP_CODEX_SKILLS_ROOT: roots[0], FANLOOP_AGENT_SKILLS_ROOT: roots[1], FANLOOP_TRAE_SKILLS_ROOT: roots[2], FANLOOP_CLAUDE_SKILLS_ROOT: roots[3]};
+      for (const name of ['NODE_OPTIONS', 'ZDOTDIR', 'npm_config_prefix', 'FANLOOP_CONFIG_SOURCE', 'BOTMUX_CHAT_ID', 'BOTMUX_SESSION_ID']) delete env[name];
+      const result = spawnSync(process.execPath, [path.join(packageDir, 'scripts', 'install.js')], {env, encoding: 'utf8', timeout: 10000});
+      assert.equal(result.status, 1, result.stderr);
+      assert.doesNotMatch(result.stderr, /https?:|synthetic-user|synthetic-password|query-sentinel/);
+      assert.match(result.stderr, new RegExp(`release validation failed: ${classification}`));
+      assert.doesNotMatch(result.stdout, /installed fanloop/);
+      assert.equal(fs.readlinkSync(path.join(data, 'current')), 'releases/previous');
+      assert.deepEqual(fs.readFileSync(path.join(data, 'current', 'release.json')), previous);
+    });
+  }
+});
+
 test('does not switch current when the internal manifest or skill links are incomplete', async () => {
   const version = '1.2.3';
   const incomplete = releaseAssets(version, (stage) => {
@@ -188,7 +250,7 @@ test('does not switch current when the internal manifest or skill links are inco
       releaseDir: incomplete.release,
       skillRoots: skillRoots(root),
     }),
-    /release\.json|binary checksum|schema/,
+    /release validation failed: archive/,
   );
   assert.equal(fs.existsSync(path.join(root, 'current')), false);
   assert.equal(fs.existsSync(path.join(root, 'releases', version)), false);
@@ -281,7 +343,7 @@ test('rejects hard links and device entries before switching current', async () 
       releaseDir: linked.release,
       skillRoots: skillRoots(root),
     }),
-    /not a regular file/,
+    /release validation failed: archive/,
   );
   assert.equal(fs.existsSync(path.join(root, 'current')), false);
 
@@ -370,7 +432,7 @@ test('rejects symlink archive entries before switching current', async () => {
       releaseDir: linked.release,
       skillRoots: skillRoots(root),
     }),
-    /not a regular file/,
+    /release validation failed: archive/,
   );
   assert.equal(fs.existsSync(path.join(root, 'current')), false);
 });
