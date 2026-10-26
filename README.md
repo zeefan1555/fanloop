@@ -92,7 +92,7 @@ export PATH="$HOME/.fanloop/current/bin:$PATH"
 
 安装保持离线。`./scripts/install-local.sh --config-source /absolute/config-repository` 可从干净 Git 提交导入配置快照；不指定时保留已有快照。首次安装无配置也可运行 version，随后 flow init 自动拉取。
 
-`flow init` 默认从 `https://github.com/zeefan1555/second-brain-skills.git` 的 main 拉取并验证完整集合。HTTPS 尝试设置 `GIT_TERMINAL_PROMPT=0`，并在 15 秒内结束。失败时打印一行提示，并在同一次操作里回退一次 `git@github.com:zeefan1555/second-brain-skills.git`。`configuration.json` 记录实际成功的地址。已有快照按 commit 复用，不因地址形式重新克隆，Doctor 也不因此报不匹配。成功后原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
+`flow init` 默认从 `https://github.com/zeefan1555/second-brain-skills.git` 的 main 拉取并验证完整集合。远端探测每次最多 15 秒，fetch 与 checkout 每次使用独立两分钟预算。Git 设置 `GIT_TERMINAL_PROMPT=0`。失败时打印一行提示，并在同一次操作里回退一次 `git@github.com:zeefan1555/second-brain-skills.git`；父 context 已取消时不重试。每次 checkout 尝试使用独立私有暂存仓库，不复用失败尝试的锁，也不删除用户锁。失败信息按 HTTPS 与 SSH 区分超时、取消、认证、锁冲突、网络或其他错误，不输出原始 stderr。`configuration.json` 记录实际成功的地址。已有快照按 commit 复用，不因地址形式重新克隆，Doctor 也不因此报不匹配。成功后原子切换 `config/current` 到 `config/snapshots/<commit-sha>/`。失败保留旧配置且不创建 Requirement；dry-run 只验证临时候选。`configuration.json` 与 Doctor 给出 commit SHA 和完整资源摘要。已有 status/report/skills 保持离线。
 
 显式绝对 `FANLOOP_CONFIG_SOURCE` 指向包含 `fanloop-workflow/` 的作者仓库根，并跳过远端刷新。默认 Dashboard 只读快照；显式作者源可编辑，下一次调用读取编辑内容。快照不原地编辑。
 

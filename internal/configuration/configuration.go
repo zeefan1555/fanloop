@@ -12,8 +12,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
@@ -25,8 +27,8 @@ const OriginFornax = "fornax"
 
 var ErrFetch = errors.New("configuration fetch failed")
 
-func fetchFailed() error {
-	return fmt.Errorf("%w over HTTPS (%s) and SSH (%s): check network connectivity, HTTPS Git credentials (e.g. gh auth setup-git / credential helper), and SSH key access", ErrFetch, Repository, RepositorySSH)
+func fetchFailed(cause error) error {
+	return fmt.Errorf("%w: %w; check network connectivity, HTTPS Git credentials (e.g. gh auth setup-git / credential helper), and SSH key access", ErrFetch, cause)
 }
 
 type File struct {
@@ -133,7 +135,7 @@ func Prepare(ctx context.Context, dataRoot string, dryRun bool) (string, func(),
 	candidate, remote, err := checkout(ctx, staging, Repository, Ref)
 	if err != nil {
 		cleanup()
-		return "", nil, fetchFailed()
+		return "", nil, fetchFailed(err)
 	}
 	root := filepath.Join(staging, "checkout")
 	manifest, err := inspect(root, candidate)
@@ -201,23 +203,29 @@ func Import(ctx context.Context, dataRoot, source string) (string, error) {
 }
 
 func checkout(ctx context.Context, staging, repository, ref string) (string, string, error) {
-	root := filepath.Join(staging, "checkout")
-	if err := os.Mkdir(root, 0700); err != nil {
-		return "", "", err
-	}
-	for _, args := range [][]string{{"init", "--quiet"}, {"sparse-checkout", "set", "--no-cone", "/" + Category + "/"}} {
-		if _, err := git(ctx, root, args...); err != nil {
-			return "", "", err
+	var commit string
+	remote, err := runProduction(ctx, repository, fetchAttemptTimeout, func(ctx context.Context, remote string) error {
+		root, err := os.MkdirTemp(staging, ".checkout-")
+		if err != nil {
+			return err
 		}
-	}
-	remote, err := fetchRemote(ctx, root, repository, ref)
-	if err != nil {
-		return "", "", err
-	}
-	if _, err := git(ctx, root, "checkout", "--quiet", "--detach", "FETCH_HEAD"); err != nil {
-		return "", "", err
-	}
-	commit, err := git(ctx, root, "rev-parse", "HEAD")
+		defer os.RemoveAll(root)
+		for _, args := range [][]string{
+			{"init", "--quiet"},
+			{"sparse-checkout", "set", "--no-cone", "/" + Category + "/"},
+			{"fetch", "--quiet", "--depth=1", "--no-tags", remote, ref},
+			{"checkout", "--quiet", "--detach", "FETCH_HEAD"},
+		} {
+			if _, err := git(ctx, root, args...); err != nil {
+				return err
+			}
+		}
+		commit, err = git(ctx, root, "rev-parse", "HEAD")
+		if err != nil {
+			return err
+		}
+		return os.Rename(root, filepath.Join(staging, "checkout"))
+	})
 	if err != nil {
 		return "", "", err
 	}
@@ -229,12 +237,55 @@ func git(ctx context.Context, dir string, args ...string) (string, error) {
 	command.Dir = dir
 	// GIT_TERMINAL_PROMPT=0 keeps the HTTPS attempt from waiting on a credential prompt.
 	command.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=15")
+	// Bound orphan-held pipes without killing Git's descendants or other processes.
+	command.WaitDelay = 250 * time.Millisecond
 	// Git diagnostics may contain credential-bearing URLs from local configuration.
 	data, err := command.Output()
 	if err != nil {
-		return "", fmt.Errorf("git %s failed", args[0])
+		return "", gitFailure(args[0], ctx, err)
 	}
 	return strings.TrimSpace(string(data)), nil
+}
+
+type gitError struct {
+	verb  string
+	kind  string
+	cause error
+}
+
+func (err *gitError) Error() string { return fmt.Sprintf("%s (git %s)", err.kind, err.verb) }
+func (err *gitError) Unwrap() error { return err.cause }
+
+var gitDiagnosticURL = regexp.MustCompile(`[a-z][a-z0-9+.-]*://[^\s'"]+`)
+
+func gitFailure(verb string, ctx context.Context, failure error) error {
+	if cause := ctx.Err(); cause != nil {
+		kind := "canceled"
+		if errors.Is(cause, context.DeadlineExceeded) {
+			kind = "timeout"
+		}
+		return &gitError{verb: verb, kind: kind, cause: cause}
+	}
+	kind := "other"
+	var exit *exec.ExitError
+	if errors.As(failure, &exit) {
+		stderr := gitDiagnosticURL.ReplaceAllString(strings.ToLower(string(exit.Stderr)), "")
+		switch {
+		case strings.Contains(stderr, "no space left on device"), strings.Contains(stderr, "permission denied") && !strings.Contains(stderr, "permission denied (publickey"):
+			kind = "other"
+		case strings.Contains(stderr, "unable to create") && strings.Contains(stderr, ".lock") && strings.Contains(stderr, "file exists"),
+			strings.Contains(stderr, "another git process"),
+			strings.Contains(stderr, "cannot lock ref") && (strings.Contains(stderr, "reference already exists") || strings.Contains(stderr, " is at ") && strings.Contains(stderr, " but expected ")):
+			kind = "lock conflict"
+		case strings.Contains(stderr, "timed out"):
+			kind = "timeout"
+		case strings.Contains(stderr, "authentication failed"), strings.Contains(stderr, "could not read username"), strings.Contains(stderr, "could not read password"), strings.Contains(stderr, "terminal prompts disabled"), strings.Contains(stderr, "permission denied (publickey"), strings.Contains(stderr, "invalid username or password"):
+			kind = "authentication"
+		case strings.Contains(stderr, "could not resolve"), strings.Contains(stderr, "unable to access"), strings.Contains(stderr, "connection reset"), strings.Contains(stderr, "connection refused"), strings.Contains(stderr, "network is unreachable"), strings.Contains(stderr, "remote end hung up"):
+			kind = "network"
+		}
+	}
+	return &gitError{verb: verb, kind: kind, cause: failure}
 }
 
 func inspect(source, commit string) (Manifest, error) {
