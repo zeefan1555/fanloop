@@ -69,8 +69,7 @@ async function extractArchive(bytes, dataHome, version) {
         await fs.promises.rename(backup, finalDir);
         throw err;
       }
-      await fs.promises.rm(backup, {recursive: true, force: true});
-      return;
+      return backup;
     }
     await fs.promises.rename(staging, finalDir);
     moved = true;
@@ -203,6 +202,7 @@ async function installRelease(options) {
   const manifestBytes = await readFile('release.json');
   const archive = await readFile(name);
   let validationStage = 'checksums';
+  let backup;
   try {
     const checksums = checksumBytes.toString('utf8');
     const archiveHash = layout.verifyChecksum(checksums, name, archive);
@@ -217,18 +217,23 @@ async function installRelease(options) {
       throw new Error(`release.json does not match checksums.txt for ${name}`);
     }
     validationStage = 'archive';
-    await extractArchive(archive, dataHome, version);
+    backup = await extractArchive(archive, dataHome, version);
   } catch {
     // Validation errors can contain downloaded text, JSON fields or archive paths.
     throw new Error(`release validation failed: ${validationStage}`);
   }
-  const roots = options.skillRoots || layout.skillRootsFrom(options.env || process.env);
-  const created = layout.ensureSkillLinks(dataHome, roots);
+  let created = [];
   try {
+    const roots = options.skillRoots || layout.skillRootsFrom(options.env || process.env);
+    created = layout.ensureSkillLinks(dataHome, roots);
     layout.switchCurrent(dataHome, version);
   } catch (err) {
     for (const link of created) {
       fs.rmSync(link, {force: true});
+    }
+    if (backup) {
+      const result = spawnSync(path.join(dataHome, 'releases', version, 'bin', 'fanloop'), ['__activate-current', '--data-root', dataHome, '--version', version, '--restore-release', path.basename(backup)], {stdio: 'pipe'});
+      if (result.error || result.status !== 0) throw new Error('release rollback failed; original release backup retained');
     }
     throw err;
   }
@@ -273,13 +278,16 @@ function reportInstall(dataHome, version, env = process.env) {
 async function main() {
   const pkg = require('../package.json');
   const version = pkg.version;
+  const dataHome = layout.dataHome();
+  const managed = layout.assertCurrentReplaceable(dataHome);
+  if (managed) layout.ensureLauncherPath(dataHome);
   const installed = await installRelease({
     version,
-    dataHome: layout.dataHome(),
+    dataHome,
     platform: layout.selectPlatform(process.platform, process.arch),
     releaseDir: process.env.FANLOOP_RELEASE_DIR || '',
   });
-  layout.ensureLauncherPath(installed.dataHome);
+  if (!managed) layout.ensureLauncherPath(installed.dataHome);
   reportInstall(installed.dataHome, installed.version);
 }
 

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/release/currentlayout"
 )
 
 const (
@@ -60,17 +61,19 @@ type Platform struct {
 
 // Options selects the release endpoint and the data root to update.
 type Options struct {
-	DataRoot   string
-	Client     *http.Client
-	LatestURL  string
-	Platform   Platform
-	SkillRoots []string
+	DataRoot       string
+	Client         *http.Client
+	LatestURL      string
+	Platform       Platform
+	SkillRoots     []string
+	BeforeActivate func(string) error
 }
 
 // Result is the release that current points at after a successful update.
 type Result struct {
-	Version   string
-	Unchanged bool
+	Version             string
+	Unchanged           bool
+	ConfigurationSynced bool
 }
 
 type releaseIndex struct {
@@ -167,67 +170,21 @@ func checksumEntry(checksums, filename string) (string, error) {
 }
 
 // SwitchCurrent atomically points dataRoot/current at releases/version.
-// It reports whether the link changed. A directory current is left untouched.
+// It reports whether the link changed and preserves migrated managed directories.
 func SwitchCurrent(dataRoot, version string) (bool, error) {
-	if !versionPattern.MatchString(version) {
-		return false, fmt.Errorf("invalid release version %q", version)
-	}
-	if !filepath.IsAbs(dataRoot) {
-		return false, fmt.Errorf("data root must be absolute")
-	}
-	releaseName := filepath.Join("releases", version)
-	releaseDir := filepath.Join(dataRoot, releaseName)
-	info, err := os.Lstat(releaseDir)
-	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return false, fmt.Errorf("release %s is not an installed directory", version)
-	}
-	current := filepath.Join(dataRoot, "current")
-	if err := assertCurrentReplaceable(current); err != nil {
-		return false, err
-	}
-	if target, err := os.Readlink(current); err == nil && filepath.Clean(target) == filepath.Clean(releaseName) {
-		return false, nil
-	} else if err != nil && !os.IsNotExist(err) {
-		return false, err
-	}
-	temporary, err := os.CreateTemp(dataRoot, ".current-")
-	if err != nil {
-		return false, err
-	}
-	temporaryName := temporary.Name()
-	if err := temporary.Close(); err != nil {
-		_ = os.Remove(temporaryName)
-		return false, err
-	}
-	if err := os.Remove(temporaryName); err != nil {
-		return false, err
-	}
-	if err := os.Symlink(releaseName, temporaryName); err != nil {
-		return false, err
-	}
-	if err := os.Rename(temporaryName, current); err != nil {
-		_ = os.Remove(temporaryName)
-		return false, err
-	}
-	return true, nil
+	return currentlayout.Switch(dataRoot, version)
 }
 
 func assertCurrentReplaceable(current string) error {
-	info, err := os.Lstat(current)
-	if os.IsNotExist(err) {
-		return nil
-	}
+	_, _, err := currentlayout.Inspect(filepath.Dir(current))
 	if err != nil {
-		return err
+		return fmt.Errorf("current is not a symlink or valid managed directory: %w", err)
 	}
-	if info.Mode()&os.ModeSymlink == 0 {
-		return fmt.Errorf("refusing to replace %s because it is not a symlink", current)
-	}
-	return nil
+	return err
 }
 
 // Update downloads the latest GitHub Release for this platform and switches current.
-func Update(ctx context.Context, options Options) (Result, error) {
+func Update(ctx context.Context, options Options) (result Result, failure error) {
 	if !filepath.IsAbs(options.DataRoot) {
 		return Result{}, fmt.Errorf("data root must be absolute")
 	}
@@ -316,10 +273,18 @@ func Update(ctx context.Context, options Options) (Result, error) {
 	if listed == nil || listed.SHA256 != archiveHash || listed.OS != platform.OS || listed.Arch != platform.Arch {
 		return Result{}, fmt.Errorf("release.json does not match checksums.txt for %s", name)
 	}
-	previous, _ := os.Readlink(filepath.Join(options.DataRoot, "current"))
-	if err := installArchive(options.DataRoot, version, archive); err != nil {
+	previous, _, _ := currentlayout.Inspect(options.DataRoot)
+	backup, err := installArchive(options.DataRoot, version, archive)
+	if err != nil {
 		return Result{}, err
 	}
+	defer func() {
+		if failure != nil && backup != "" {
+			if err := currentlayout.RestoreRelease(options.DataRoot, version, filepath.Base(backup)); err != nil {
+				failure = fmt.Errorf("%w; release rollback failed, backup retained: %v", failure, err)
+			}
+		}
+	}()
 	roots, err := skillRoots(options)
 	if err != nil {
 		return Result{}, err
@@ -328,11 +293,18 @@ func Update(ctx context.Context, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if _, err := SwitchCurrent(options.DataRoot, version); err != nil {
+	if options.BeforeActivate != nil {
+		if err := options.BeforeActivate(filepath.Join(options.DataRoot, "releases", version)); err != nil {
+			removeSkillLinks(created)
+			return Result{}, err
+		}
+	}
+	changed, err := SwitchCurrent(options.DataRoot, version)
+	if err != nil {
 		removeSkillLinks(created)
 		return Result{}, err
 	}
-	return Result{Version: version, Unchanged: filepath.Clean(previous) == filepath.Clean(filepath.Join("releases", version))}, nil
+	return Result{Version: version, Unchanged: !changed && filepath.Clean(previous) == filepath.Clean(filepath.Join("releases", version)), ConfigurationSynced: options.BeforeActivate != nil}, nil
 }
 
 func skillRoots(options Options) ([]string, error) {
@@ -347,8 +319,8 @@ func skillRoots(options Options) ([]string, error) {
 }
 
 func installedReleaseVersion(dataRoot string) (string, bool, error) {
-	target, err := os.Readlink(filepath.Join(dataRoot, "current"))
-	if os.IsNotExist(err) {
+	target, _, err := currentlayout.Inspect(dataRoot)
+	if err == nil && target == "" {
 		return "", false, nil
 	}
 	if err != nil {
@@ -432,15 +404,15 @@ func removeSkillLinks(paths []string) {
 	}
 }
 
-func installArchive(dataRoot, version string, archive []byte) error {
+func installArchive(dataRoot, version string, archive []byte) (string, error) {
 	releases := filepath.Join(dataRoot, "releases")
 	if err := os.MkdirAll(releases, 0o755); err != nil {
-		return err
+		return "", err
 	}
 	finalDir := filepath.Join(releases, version)
 	staging, err := os.MkdirTemp(releases, ".extract-")
 	if err != nil {
-		return err
+		return "", err
 	}
 	moved := false
 	defer func() {
@@ -449,50 +421,49 @@ func installArchive(dataRoot, version string, archive []byte) error {
 		}
 	}()
 	if err := extractTarGz(archive, staging); err != nil {
-		return err
+		return "", err
 	}
 	if err := validateReleaseTree(staging, version); err != nil {
-		return err
+		return "", err
 	}
 	info, err := os.Lstat(finalDir)
 	if err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("refusing to replace immutable release %s", version)
+			return "", fmt.Errorf("refusing to replace immutable release %s", version)
 		}
 		match, err := treesMatch(finalDir, staging)
 		if err != nil {
-			return err
+			return "", err
 		}
 		if match {
-			return nil
+			return "", nil
 		}
 		backup := filepath.Join(releases, fmt.Sprintf(".backup-%s-", version))
 		backup, err = os.MkdirTemp(releases, filepath.Base(backup))
 		if err != nil {
-			return err
+			return "", err
 		}
 		if err := os.Remove(backup); err != nil {
-			return err
+			return "", err
 		}
 		if err := os.Rename(finalDir, backup); err != nil {
-			return err
+			return "", err
 		}
 		if err := os.Rename(staging, finalDir); err != nil {
 			_ = os.Rename(backup, finalDir)
-			return err
+			return "", err
 		}
 		moved = true
-		_ = os.RemoveAll(backup)
-		return nil
+		return backup, nil
 	}
 	if !os.IsNotExist(err) {
-		return err
+		return "", err
 	}
 	if err := os.Rename(staging, finalDir); err != nil {
-		return err
+		return "", err
 	}
 	moved = true
-	return nil
+	return "", nil
 }
 
 func extractTarGz(content []byte, destination string) error {
