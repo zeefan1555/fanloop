@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -255,6 +256,8 @@ type gitError struct {
 func (err *gitError) Error() string { return fmt.Sprintf("%s (git %s)", err.kind, err.verb) }
 func (err *gitError) Unwrap() error { return err.cause }
 
+var gitDiagnosticURL = regexp.MustCompile(`[a-z][a-z0-9+.-]*://[^\s'"]+`)
+
 func gitFailure(verb string, ctx context.Context, failure error) error {
 	if cause := ctx.Err(); cause != nil {
 		kind := "canceled"
@@ -266,13 +269,17 @@ func gitFailure(verb string, ctx context.Context, failure error) error {
 	kind := "other"
 	var exit *exec.ExitError
 	if errors.As(failure, &exit) {
-		stderr := strings.ToLower(string(exit.Stderr))
+		stderr := gitDiagnosticURL.ReplaceAllString(strings.ToLower(string(exit.Stderr)), "")
 		switch {
-		case strings.Contains(stderr, "unable to create") && strings.Contains(stderr, ".lock"), strings.Contains(stderr, "another git process"), strings.Contains(stderr, "cannot lock ref"):
+		case strings.Contains(stderr, "no space left on device"), strings.Contains(stderr, "permission denied") && !strings.Contains(stderr, "permission denied (publickey"):
+			kind = "other"
+		case strings.Contains(stderr, "unable to create") && strings.Contains(stderr, ".lock") && strings.Contains(stderr, "file exists"),
+			strings.Contains(stderr, "another git process"),
+			strings.Contains(stderr, "cannot lock ref") && (strings.Contains(stderr, "reference already exists") || strings.Contains(stderr, " is at ") && strings.Contains(stderr, " but expected ")):
 			kind = "lock conflict"
-		case strings.Contains(stderr, "timed out"), strings.Contains(stderr, "timeout"):
+		case strings.Contains(stderr, "timed out"):
 			kind = "timeout"
-		case strings.Contains(stderr, "authentication failed"), strings.Contains(stderr, "could not read username"), strings.Contains(stderr, "could not read password"), strings.Contains(stderr, "terminal prompts disabled"), strings.Contains(stderr, "permission denied"), strings.Contains(stderr, "invalid username or password"):
+		case strings.Contains(stderr, "authentication failed"), strings.Contains(stderr, "could not read username"), strings.Contains(stderr, "could not read password"), strings.Contains(stderr, "terminal prompts disabled"), strings.Contains(stderr, "permission denied (publickey"), strings.Contains(stderr, "invalid username or password"):
 			kind = "authentication"
 		case strings.Contains(stderr, "could not resolve"), strings.Contains(stderr, "unable to access"), strings.Contains(stderr, "connection reset"), strings.Contains(stderr, "connection refused"), strings.Contains(stderr, "network is unreachable"), strings.Contains(stderr, "remote end hung up"):
 			kind = "network"
