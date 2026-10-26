@@ -54,7 +54,7 @@ func Sync(ctx context.Context, dataRoot string) (SyncResult, error) {
 	defer os.RemoveAll(staging)
 	candidate, remote, err := checkout(ctx, staging, Repository, Ref)
 	if err != nil {
-		return SyncResult{}, fetchFailed()
+		return SyncResult{}, fetchFailed(err)
 	}
 	manifest, err := inspect(filepath.Join(staging, "checkout"), candidate)
 	if err == nil {
@@ -93,13 +93,13 @@ func currentManifest(dataRoot string) (Manifest, bool) {
 
 func remoteCommit(ctx context.Context, dataRoot string) (string, error) {
 	var out string
-	_, err := runProduction(ctx, Repository, func(ctx context.Context, remote string) error {
+	_, err := runProduction(ctx, Repository, httpsAttemptTimeout, func(ctx context.Context, remote string) error {
 		var callErr error
 		out, callErr = git(ctx, dataRoot, "ls-remote", remote, Ref)
 		return callErr
 	})
 	if err != nil {
-		return "", fetchFailed()
+		return "", fetchFailed(err)
 	}
 	fields := strings.Fields(out)
 	if len(fields) < 2 || fields[1] != Ref {

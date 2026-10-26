@@ -46,6 +46,51 @@ func TestFetchRegressionCanceledParentDoesNotRetry(t *testing.T) {
 	}
 }
 
+func TestFetchRegressionParentCanceledDuringFetchDoesNotRetry(t *testing.T) {
+	remoteFixture(t)
+	notice := captureNotice(t)
+	marker := filepath.Join(t.TempDir(), "fetch-started")
+	log := wrapGit(t, fmt.Sprintf("if [ \"$1\" = fetch ]; then printf interrupted > .git/shallow.lock; printf ready > %q; exec sleep 5; fi", marker))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	data := t.TempDir()
+	finished := make(chan error, 1)
+	go func() {
+		_, done, err := Prepare(ctx, data, false)
+		if done != nil {
+			done()
+		}
+		finished <- err
+	}()
+	deadline := time.NewTimer(10 * time.Second)
+	defer deadline.Stop()
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+	waiting := true
+	for waiting {
+		select {
+		case <-deadline.C:
+			t.Fatal("fetch did not create its interrupted lock")
+		case <-tick.C:
+			if _, err := os.Stat(marker); err == nil {
+				waiting = false
+			}
+		}
+	}
+	cancel()
+	select {
+	case err := <-finished:
+		if !errors.Is(err, ErrFetch) || !errors.Is(err, context.Canceled) {
+			t.Fatalf("active fetch cancellation lost its cause: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("active cancellation did not return")
+	}
+	if notice.Len() != 0 || strings.Count(readGitLog(t, log), "fetch\n") != 1 {
+		t.Fatal("canceled active fetch started an invalid retry")
+	}
+}
+
 func TestFetchRegressionHealthyFetchExceedsProbeBudget(t *testing.T) {
 	if testing.Short() {
 		t.Skip("real Git fetch delayed 16 seconds to exercise the production budget")
@@ -107,31 +152,39 @@ func TestFetchRegressionTimedOutAttemptLockDoesNotPoisonRetry(t *testing.T) {
 	source := sourceRepository(t)
 	want := strings.TrimSpace(command(t, source, "rev-parse", "HEAD"))
 	writeGitInsteadOf(t, [2]string{fileRemote(source), Repository}, [2]string{fileRemote(source), RepositorySSH})
-	previous := httpsAttemptTimeout
-	httpsAttemptTimeout = 100 * time.Millisecond
-	t.Cleanup(func() { httpsAttemptTimeout = previous })
+	previous := fetchAttemptTimeout
+	fetchAttemptTimeout = 2 * time.Second
+	t.Cleanup(func() { fetchAttemptTimeout = previous })
 	captureNotice(t)
-	body := fmt.Sprintf("if [ \"$1\" = fetch ]; then\n case \"$*\" in\n *%s*) printf 'interrupted' > .git/shallow.lock; exec sleep 5 ;;\n esac\nfi", Repository)
+	marker := filepath.Join(t.TempDir(), "interrupted-lock")
+	body := fmt.Sprintf("if [ \"$1\" = fetch ]; then\n case \"$*\" in\n *%s*) printf 'interrupted' > .git/shallow.lock; test -f .git/shallow.lock && printf 'lock existed' > %q; exec sleep 30 ;;\n esac\nfi", Repository, marker)
 	wrapGit(t, body)
 	staging := t.TempDir()
+	started := time.Now()
 	commit, remote, err := checkout(withRemoteSession(context.Background()), staging, Repository, Ref)
 	if err != nil || commit != want || remote != RepositorySSH {
 		t.Fatalf("timed out attempt lock poisoned real retry: commit=%s remote=%s error=%v", commit, remote, err)
+	}
+	if content, err := os.ReadFile(marker); err != nil || string(content) != "lock existed" {
+		t.Fatal("timed out fetch did not create its real lock")
+	}
+	if elapsed := time.Since(started); elapsed < 2*time.Second || elapsed > 20*time.Second {
+		t.Fatalf("fetch did not time out before its 30-second wait: %s", elapsed)
 	}
 }
 
 func TestFetchRegressionDeadlineRetainsCauseAndBoundsPipes(t *testing.T) {
 	root := t.TempDir()
 	command(t, root, "init", "--quiet")
-	wrapGit(t, "if [ \"$1\" = fetch ]; then printf interrupted > .git/shallow.lock; sleep 2 & exec sleep 5; fi")
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	wrapGit(t, "if [ \"$1\" = fetch ]; then printf interrupted > .git/shallow.lock; sleep 4 & exec sleep 5; fi")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	started := time.Now()
 	_, err := git(ctx, root, "fetch", Repository, Ref)
 	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "timeout") {
 		t.Fatalf("deadline lost its safe classification or cause: %v", err)
 	}
-	if time.Since(started) > 1500*time.Millisecond {
+	if time.Since(started) > 3*time.Second {
 		t.Fatal("orphan-held pipes exceeded the cancellation bound")
 	}
 	if _, err := os.Stat(filepath.Join(root, ".git", "shallow.lock")); err != nil {
@@ -165,8 +218,33 @@ func TestFetchRegressionBothFailuresKeepCurrentAndClassify(t *testing.T) {
 	if strings.Contains(err.Error(), "secret") || strings.Contains(err.Error(), "example.test") {
 		t.Fatal("credential-bearing stderr escaped")
 	}
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) {
+		t.Fatal("underlying Git exit error was lost")
+	}
 	after, err := os.Readlink(current)
 	if err != nil || after != before {
 		t.Fatal("failed transports changed current")
+	}
+}
+
+func TestGitFailureClassifiesWithoutPrintingDiagnostics(t *testing.T) {
+	for _, test := range []struct {
+		stderr string
+		kind   string
+	}{
+		{"fatal: unable to create '.git/shallow.lock': Permission denied", "lock conflict"},
+		{"fatal: could not read Password: terminal prompts disabled", "authentication"},
+		{"fatal: connection timed out", "timeout"},
+		{"fatal: could not resolve host", "network"},
+		{"fatal: unexpected protocol failure", "other"},
+	} {
+		t.Run(test.kind, func(t *testing.T) {
+			exit := &exec.ExitError{Stderr: []byte(test.stderr + " https://credential:secret@example.test/repo")}
+			err := gitFailure("fetch", context.Background(), exit)
+			if !strings.HasPrefix(err.Error(), test.kind) || strings.Contains(err.Error(), "secret") || !errors.Is(err, exit) {
+				t.Fatalf("safe classification = %v", err)
+			}
+		})
 	}
 }

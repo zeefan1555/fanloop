@@ -320,7 +320,7 @@ func TestSSHSnapshotIsReusedWithoutFetch(t *testing.T) {
 
 func TestHTTPSTimeoutFallsBackOnce(t *testing.T) {
 	previous := httpsAttemptTimeout
-	httpsAttemptTimeout = 200 * time.Millisecond
+	httpsAttemptTimeout = 2 * time.Second
 	t.Cleanup(func() { httpsAttemptTimeout = previous })
 	sshRepo := sourceRepository(t)
 	want := strings.TrimSpace(command(t, sshRepo, "rev-parse", "HEAD"))
@@ -344,7 +344,7 @@ func TestHTTPSTimeoutFallsBackOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if elapsed > 3*time.Second {
+	if elapsed > 5*time.Second {
 		t.Fatalf("HTTPS attempt took %s", elapsed)
 	}
 	if result.Unchanged || result.CommitSHA != want {

@@ -16,8 +16,9 @@ const RepositorySSH = "git@github.com:zeefan1555/second-brain-skills.git"
 // RemoteNotice receives the one-line SSH fallback notice. It defaults to stderr.
 var RemoteNotice io.Writer = os.Stderr
 
-// httpsAttemptTimeout bounds only the HTTPS attempt. SSH keeps its own connect timeout.
+// Remote probes and Git pack transfers use separate budgets.
 var httpsAttemptTimeout = 15 * time.Second
+var fetchAttemptTimeout = 2 * time.Minute
 
 const remoteFallbackNotice = "notice: HTTPS configuration fetch failed; falling back to " + RepositorySSH
 
@@ -68,32 +69,45 @@ func (session *remoteSession) fallBack() {
 }
 
 // runProduction resolves the production remote once per operation.
-// The HTTPS URL is tried first, with httpsAttemptTimeout. One failure prints
+// The HTTPS URL is tried first, with an independent attempt budget. One failure prints
 // a notice and retries RepositorySSH. Later calls in the same session use SSH.
 // Any other repository, including a local import path, is used unchanged.
-func runProduction(ctx context.Context, repository string, operation func(ctx context.Context, remote string) error) (string, error) {
+func runProduction(ctx context.Context, repository string, timeout time.Duration, operation func(ctx context.Context, remote string) error) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return repository, gitFailure("remote", ctx, nil)
+	}
+	attempt := func(remote string) error {
+		attemptCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		return operation(attemptCtx, remote)
+	}
 	if repository != Repository {
 		return repository, operation(ctx, repository)
 	}
 	session := sessionFrom(ctx)
 	if session.usingSSH() {
-		return RepositorySSH, operation(ctx, RepositorySSH)
+		err := attempt(RepositorySSH)
+		if err != nil {
+			err = fmt.Errorf("SSH: %w", err)
+		}
+		return RepositorySSH, err
 	}
-	httpsCtx, cancel := context.WithTimeout(ctx, httpsAttemptTimeout)
-	err := operation(httpsCtx, Repository)
-	cancel()
+	err := attempt(Repository)
 	if err == nil {
 		return Repository, nil
 	}
+	if ctx.Err() != nil {
+		return Repository, fmt.Errorf("HTTPS: %w", err)
+	}
 	session.fallBack()
-	return RepositorySSH, operation(ctx, RepositorySSH)
-}
-
-func fetchRemote(ctx context.Context, root, repository, ref string) (string, error) {
-	return runProduction(ctx, repository, func(ctx context.Context, remote string) error {
-		_, err := git(ctx, root, "fetch", "--quiet", "--depth=1", "--no-tags", remote, ref)
-		return err
-	})
+	sshErr := attempt(RepositorySSH)
+	if sshErr != nil {
+		return RepositorySSH, fmt.Errorf("HTTPS: %w; SSH: %w", err, sshErr)
+	}
+	return RepositorySSH, nil
 }
 
 // manifestsMatch compares snapshot identity. The stored repository URL is not
