@@ -175,6 +175,7 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		newDashboardCommand(ioStreams),
 		newUpdateCommand(stdout, stderr),
 		newInstallCommand(stdout, stderr),
+		newActivateCurrentCommand(stderr),
 	)
 	return root
 }

@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const fs = require('fs');
+const {spawnSync} = require('child_process');
 const os = require('os');
 const path = require('path');
 const zlib = require('zlib');
@@ -394,9 +395,23 @@ function assertCurrentReplaceable(dataHome) {
     }
     throw err;
   }
-  if (!info.isSymbolicLink()) {
-    throw new Error(`${current} is not a symlink. Development installs use ./scripts/install-local.sh; refusing to replace this directory.`);
+  if (info.isSymbolicLink()) return false;
+  if (!info.isDirectory()) throw new Error(`${current} is not a symlink or managed directory`);
+  const links = {bin: 'release/bin', entrypoints: 'release/entrypoints', 'release.json': 'release/release.json'};
+  const entries = fs.readdirSync(current);
+  if (entries.length !== 4 || entries.some((name) => name !== 'release' && !Object.hasOwn(links, name))) throw new Error('current is not a symlink or valid managed directory; refusing unmanaged entries');
+  for (const [name, target] of Object.entries(links)) {
+    if (path.normalize(fs.readlinkSync(path.join(current, name))) !== path.normalize(target)) throw new Error(`refusing invalid managed current link ${name}`);
   }
+  const releaseTarget = path.resolve(current, fs.readlinkSync(path.join(current, 'release')));
+  const releases = path.join(dataHome, 'releases');
+  const relative = path.relative(releases, releaseTarget);
+  if (relative === '.' || relative === '..' || path.dirname(relative) !== '.') throw new Error('refusing invalid managed current release');
+  for (const dir of [releases, releaseTarget]) {
+    const entry = fs.lstatSync(dir);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) throw new Error('refusing invalid managed current release directory');
+  }
+  return true;
 }
 
 function switchCurrent(dataHome, version) {
@@ -409,8 +424,15 @@ function switchCurrent(dataHome, version) {
   if (!info.isDirectory() || info.isSymbolicLink()) {
     throw new Error(`release directory is not a real directory: ${releaseDir}`);
   }
-  assertCurrentReplaceable(dataHome);
+  const managed = assertCurrentReplaceable(dataHome);
   const current = path.join(dataHome, 'current');
+  if (managed) {
+    const result = spawnSync(path.join(releaseDir, 'bin', 'fanloop'), ['__activate-current', '--data-root', dataHome, '--version', version], {stdio: 'pipe'});
+    if (result.error || result.status !== 0 || !fs.lstatSync(current).isSymbolicLink() || fs.readlinkSync(current) !== releaseName) {
+      throw new Error('managed current activation failed');
+    }
+    return true;
+  }
   try {
     if (fs.readlinkSync(current) === releaseName) {
       return false;

@@ -10,12 +10,12 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
-	"strings"
 
 	"github.com/zeefan1555/fanloop/internal/configuration"
 	"github.com/zeefan1555/fanloop/internal/doctor"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/release/currentlayout"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -53,6 +53,11 @@ func Run(request Request) (Result, error) {
 		return Result{}, err
 	}
 	defer unlock()
+	unlockCurrent, err := currentlayout.Lock(request.DataRoot)
+	if err != nil {
+		return Result{}, err
+	}
+	defer unlockCurrent()
 
 	manifest, err := release.Load(request.Source)
 	if err != nil {
@@ -343,29 +348,8 @@ func preflightCurrent(current, releasesRoot string) error {
 		return err
 	}
 	if info.IsDir() && info.Mode()&os.ModeSymlink == 0 {
-		for name, target := range map[string]string{"bin": "release/bin", "entrypoints": "release/entrypoints", "release.json": "release/release.json"} {
-			actual, readErr := os.Readlink(filepath.Join(current, name))
-			if readErr != nil || filepath.Clean(actual) != filepath.Clean(target) {
-				return fmt.Errorf("refusing invalid stable current link %s", filepath.Join(current, name))
-			}
-		}
-		releaseLink := filepath.Join(current, "release")
-		releaseTarget, readErr := os.Readlink(releaseLink)
-		if readErr != nil {
-			return fmt.Errorf("refusing invalid stable current link %s", releaseLink)
-		}
-		if !filepath.IsAbs(releaseTarget) {
-			releaseTarget = filepath.Join(current, releaseTarget)
-		}
-		relative, relativeErr := filepath.Rel(releasesRoot, filepath.Clean(releaseTarget))
-		if relativeErr != nil || relative == "." || filepath.Dir(relative) != "." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-			return fmt.Errorf("refusing invalid stable current link %s", releaseLink)
-		}
-		targetInfo, targetErr := os.Lstat(filepath.Join(releasesRoot, relative))
-		if targetErr != nil || !targetInfo.IsDir() || targetInfo.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("refusing invalid stable current link %s", releaseLink)
-		}
-		return nil
+		_, err := currentlayout.ValidateManaged(current, releasesRoot)
+		return err
 	}
 	return fmt.Errorf("refusing non-directory current path %s", current)
 }

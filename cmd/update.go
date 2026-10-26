@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,11 +17,27 @@ import (
 	"github.com/zeefan1555/fanloop/internal/distribution"
 	"github.com/zeefan1555/fanloop/internal/fornaxmirror"
 	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/release/currentlayout"
 )
 
 var (
 	applyReleaseUpdate = func(ctx context.Context, dataRoot string) (distribution.Result, error) {
-		return distribution.Update(ctx, distribution.Options{DataRoot: dataRoot})
+		options := distribution.Options{DataRoot: dataRoot}
+		_, managed, err := currentlayout.Inspect(dataRoot)
+		if err != nil {
+			return distribution.Result{}, err
+		}
+		if managed {
+			options.BeforeActivate = func(root string) error {
+				command := exec.CommandContext(ctx, filepath.Join(root, "bin", "fanloop"), "update", "config")
+				command.Stdout, command.Stderr = os.Stdout, os.Stderr
+				if err := command.Run(); err != nil {
+					return fmt.Errorf("configuration sync before current migration failed")
+				}
+				return nil
+			}
+		}
+		return distribution.Update(ctx, options)
 	}
 	applyGitConfigSync    = configuration.Sync
 	applyFornaxConfigSync = func(ctx context.Context, dataRoot string) (fornaxmirror.SyncResult, error) {
@@ -96,6 +113,9 @@ func runReleaseUpdate(ctx context.Context, stdout, stderr io.Writer) error {
 	}
 	if _, err = fmt.Fprintf(stdout, "%s %s\n", state, result.Version); err != nil {
 		return reportUpdate(stderr, err)
+	}
+	if result.ConfigurationSynced {
+		return nil
 	}
 	if !result.Unchanged && os.Getenv(envUpdateReexec) != "1" {
 		binary := filepath.Join(dataRoot, "current", "bin", "fanloop")

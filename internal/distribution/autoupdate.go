@@ -11,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/zeefan1555/fanloop/internal/release/currentlayout"
 )
 
 // AutoUpdateTimeout bounds a fresh-init CLI refresh. A slow or failed check
@@ -43,6 +45,9 @@ var (
 func AutoUpdate(ctx context.Context, options Options) (Result, error) {
 	if !filepath.IsAbs(options.DataRoot) {
 		return Result{}, fmt.Errorf("data root must be absolute")
+	}
+	if _, managed, err := currentlayout.Inspect(options.DataRoot); err != nil || managed {
+		return Result{}, ErrNoReleaseInstall
 	}
 	installed, ok, err := installedReleaseVersion(options.DataRoot)
 	if err != nil || !ok {
