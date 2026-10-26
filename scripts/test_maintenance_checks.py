@@ -13,6 +13,17 @@ spec = importlib.util.spec_from_file_location('configuration', ROOT / 'scripts/v
 configuration = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(configuration)
 
+RENDER_ONLY_PANORAMA = '''# Workflow Panorama
+
+只 render、不投递；任何宿主都不发全景图。
+fanloop card render --view panorama --format markdown
+Return data.content and data.snapshot_path after the privacy check.
+
+```json
+{"source":"system","ref":"panorama_delivery_receipt","content":"{\\"rendered\\":true,\\"privacy_ok\\":true,\\"sent\\":false,\\"host\\":\\"render_only\\",\\"snapshot_path\\":\\"<data.snapshot_path>\\"}"}
+```
+'''
+
 
 def synthetic_gate_text():
     return '\n'.join(str(value) for name, value in vars(configuration).items()
@@ -247,6 +258,83 @@ class MaintenanceChecks(unittest.TestCase):
         self.assertEqual([], configuration.panorama_skill_errors(text))
         errors = configuration.panorama_skill_errors(text + 'local_agent\n')
         self.assertTrue(any('parent/child handoff' in error for error in errors))
+
+    def test_render_only_panorama_workflow_passes_without_delivery_markers(self):
+        self.write(
+            'fanloop-workflow/custom-render/condition.yaml',
+            'schema_version: 3\nconditions:\n  panorama_presented:\n'
+            '    prompt_ref: {file: prompt.yaml, prompt_id: panorama_condition}\n'
+            '    output: {key: panorama_snapshot_path, type: path}\n',
+        )
+        self.write(
+            'fanloop-workflow/custom-render/prompt.yaml',
+            'schema_version: 2\nprompts:\n  panorama_condition:\n'
+            '    prompt: Render Panorama.\n    skills:\n'
+            '      - {id: workflow-panorama, prompt: Render Panorama., optional: false}\n',
+        )
+        self.write('fanloop-workflow/custom-render/skills/workflow-panorama/SKILL.md',
+                   RENDER_ONLY_PANORAMA)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/validate-configuration.py'),
+             '--check-panorama-skills', '--config-source', str(self.root),
+             '--workflow', 'custom-render'],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual('panorama skills: 1 ok\n', result.stdout)
+        self.assertEqual([], configuration.panorama_skill_errors(RENDER_ONLY_PANORAMA + 'local_agent\n'))
+
+    def test_render_only_receipt_accepts_json_whitespace_and_field_order(self):
+        text = RENDER_ONLY_PANORAMA.split('```json')[0]
+        receipt = {
+            'snapshot_path': '<data.snapshot_path>', 'host': 'render_only',
+            'sent': False, 'rendered': True,
+        }
+        evidence = {'content': json.dumps(receipt, indent=2),
+                    'ref': 'panorama_delivery_receipt', 'source': 'system'}
+        text += '```json\n' + json.dumps(evidence, indent=2) + '\n```\n'
+        self.assertEqual([], configuration.panorama_skill_errors(text))
+
+    def test_delivery_panorama_still_requires_headless_blocking_markers(self):
+        text = RENDER_ONLY_PANORAMA.replace('render_only', 'botmux')
+        errors = configuration.panorama_skill_errors(text)
+        self.assertTrue(any('blocked-when-headless' in error for error in errors), errors)
+        self.assertTrue(any('required markers: headless' in error for error in errors), errors)
+
+    def test_incomplete_or_conflicting_render_only_receipts_do_not_bypass_delivery(self):
+        mutations = (
+            ('```json', '```text'),
+            ('panorama_delivery_receipt', 'other_receipt'),
+            ('"system"', '"agent"'),
+            ('\\"rendered\\":true', '\\"rendered\\":false'),
+            ('\\"rendered\\":true', '\\"rendered\\":1'),
+            ('\\"sent\\":false', '\\"sent\\":true'),
+            ('\\"sent\\":false', '\\"sent\\":0'),
+            ('\\"sent\\":false', '\\"sent\\":false,\\"delivered\\":true'),
+            ('\\"snapshot_path\\":\\"<data.snapshot_path>\\"', '\\"snapshot_path\\":\\"\\"'),
+            ('\\"snapshot_path\\":\\"<data.snapshot_path>\\"', '\\"snapshot_path\\":null'),
+            ('\\"rendered\\":true', '\\"rendered\\":broken'),
+        )
+        for old, new in mutations:
+            with self.subTest(old=old, new=new):
+                errors = configuration.panorama_skill_errors(RENDER_ONLY_PANORAMA.replace(old, new))
+                self.assertTrue(any('blocked-when-headless' in error for error in errors), errors)
+        mixed = RENDER_ONLY_PANORAMA + RENDER_ONLY_PANORAMA.replace('render_only', 'botmux')
+        self.assertTrue(any('blocked-when-headless' in error
+                            for error in configuration.panorama_skill_errors(mixed)))
+        prose_only = RENDER_ONLY_PANORAMA.split('```json')[0] + 'host=render_only sent=false rendered=true\n'
+        self.assertTrue(any('blocked-when-headless' in error
+                            for error in configuration.panorama_skill_errors(prose_only)))
+
+    def test_render_only_still_checks_rendering_and_file_save_claims(self):
+        errors = configuration.panorama_skill_errors(RENDER_ONLY_PANORAMA.replace('data.content', 'body'))
+        self.assertTrue(any('required markers:' in error and 'data.content' in error for error in errors), errors)
+        for claim in ('content saved artifacts/panorama-step.md',
+                      'write artifacts/panorama-step.md to satisfy panorama_presented'):
+            with self.subTest(claim=claim):
+                errors = configuration.panorama_skill_errors(RENDER_ONLY_PANORAMA + claim)
+                self.assertTrue(any('file-save is not delivery' in error or 'writing a file' in error
+                                    for error in errors), errors)
 
     def test_unbound_panorama_named_directory_is_not_linted(self):
         self.write(
