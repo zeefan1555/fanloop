@@ -233,7 +233,16 @@ func TestGitFailureClassifiesWithoutPrintingDiagnostics(t *testing.T) {
 		stderr string
 		kind   string
 	}{
-		{"fatal: unable to create '.git/shallow.lock': Permission denied", "lock conflict"},
+		{"fatal: unable to create '.git/shallow.lock': Permission denied", "other"},
+		{"fatal: unable to create '.git/shallow.lock': No space left on device", "other"},
+		{"fatal: cannot lock ref 'refs/heads/main': unable to create '.git/refs/heads/main.lock': Permission denied", "other"},
+		{"fatal: unable to create '.git/shallow.lock': File exists", "lock conflict"},
+		{"fatal: cannot lock ref 'refs/heads/main': is at abc but expected def", "lock conflict"},
+		{"fatal: Authentication failed for https://credential:secret@example.test/timeout", "authentication"},
+		{"fatal: unable to access 'https://authentication-failed.example.test/timeout': Could not resolve host", "network"},
+		{"fatal: unable to access 'https://example.test/another-git-process': connection refused", "network"},
+		{"fatal: open .git/config: Permission denied", "other"},
+		{"git@example.test: Permission denied (publickey).", "authentication"},
 		{"fatal: could not read Password: terminal prompts disabled", "authentication"},
 		{"fatal: connection timed out", "timeout"},
 		{"fatal: could not resolve host", "network"},
