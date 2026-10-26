@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Validate a complete local Workflow source and run its public CLI Route Matrix.
 
-Panorama Skills must block headless file-save delivery. --check-panorama-skills
-checks that text without a matrix. Skills that mention local_agent must also
-state the parent/child handoff. Route coverage, timing, and completed Panorama
-delivery are owned by each Workflow rather than inferred by this validator.
+Panorama Skills that require delivery must block headless file-save delivery.
+--check-panorama-skills also accepts explicit render_only Evidence receipts.
+Delivery Skills that mention local_agent must state the parent/child handoff.
+Route coverage, timing, and completed Panorama delivery are owned by each
+Workflow rather than inferred by this validator.
 --reject-file-save-evidence fails when pasted evidence treats artifacts/panorama-*
 as panorama_presented. --reject-missing-done-panorama fails a transcript that
 stops after the retrospect 75% panorama once the workflow has completed.
@@ -159,13 +160,38 @@ def file_save_delivery_errors(text):
 
 
 def panorama_skill_errors(text):
+    receipts = []
+    for block in re.findall(r'^```json[ \t]*\n(.*?)^```[ \t]*$', text, re.MULTILINE | re.DOTALL):
+        if 'panorama_delivery_receipt' not in block:
+            continue
+        try:
+            evidence = json.loads(block)
+            receipt = json.loads(evidence['content'])
+        except (json.JSONDecodeError, KeyError, TypeError):
+            receipts.append({})
+            continue
+        if (not isinstance(receipt, dict) or evidence.get('source') != 'system'
+                or evidence.get('ref') != 'panorama_delivery_receipt'):
+            receipts.append({})
+            continue
+        receipts.append(receipt)
+    render_only = bool(receipts) and all(
+        receipt.get('host') == 'render_only'
+        and receipt.get('rendered') is True
+        and receipt.get('sent') is False
+        and receipt.get('delivered') is not True
+        and isinstance(receipt.get('snapshot_path'), str)
+        and bool(receipt['snapshot_path'].strip())
+        for receipt in receipts
+    )
     errors = []
-    if REQUIRED_BLOCKED_SENTENCE not in text:
+    if not render_only and REQUIRED_BLOCKED_SENTENCE not in text:
         errors.append(
             'local_agent panorama delivery is missing the blocked-when-headless rule. '
             f'Add this sentence: "{REQUIRED_BLOCKED_SENTENCE}"'
         )
-    missing = [marker for marker in DELIVERY_MARKERS if marker not in text]
+    missing = [marker for marker in DELIVERY_MARKERS if marker not in text
+               and not (render_only and marker == 'headless')]
     if missing:
         errors.append(
             'panorama delivery is missing required markers: ' + ', '.join(missing) + '. '
@@ -186,7 +212,7 @@ def panorama_skill_errors(text):
                 'Skill instructs satisfying panorama by writing a file. '
                 f'Remove that instruction. {REQUIRED_BLOCKED_SENTENCE}'
             )
-    if 'local_agent' in text:
+    if not render_only and 'local_agent' in text:
         missing = [sentence for sentence in REQUIRED_HANDOFF_SENTENCES if sentence not in text]
         if missing:
             quoted = ' '.join(f'"{sentence}"' for sentence in missing)
