@@ -13,5 +13,5 @@ func main() {
 	// Pin this goroutine to the thread-group leader before any command runs
 	// so fanloop update keeps the same pid when it re-execs the new release.
 	runtime.LockOSThread()
-	os.Exit(cmd.Execute(context.Background(), os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	os.Exit(cmd.ExecuteProcess(context.Background(), os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }

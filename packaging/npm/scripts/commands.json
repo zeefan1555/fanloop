@@ -1,0 +1,226 @@
+{
+  "commands": {
+    "card render": {
+      "scope": "existing",
+      "flags": {
+        "--dry-run": true,
+        "--format": false,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "--view": false,
+        "-h": true
+      }
+    },
+    "config drift": {
+      "scope": "none",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "config rebind": {
+      "scope": "existing",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--reason": false,
+        "--root": false,
+        "--snapshot": false,
+        "-h": true
+      }
+    },
+    "dashboard": {
+      "scope": "none",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "doctor": {
+      "scope": "optional",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "flow init": {
+      "scope": "new",
+      "flags": {
+        "--dry-run": true,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "--source-url": false,
+        "--title": false,
+        "--workflow": false,
+        "-h": true
+      }
+    },
+    "flow report progress": {
+      "scope": "existing",
+      "flags": {
+        "--dry-run": true,
+        "--evidence": false,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "--status": false,
+        "--step-id": false,
+        "--summary": false,
+        "-h": true
+      }
+    },
+    "flow report result": {
+      "scope": "existing",
+      "flags": {
+        "--back-step-id": false,
+        "--condition-result": false,
+        "--dry-run": true,
+        "--evidence": false,
+        "--help": true,
+        "--input": false,
+        "--jump-step-id": false,
+        "--next-step-id": false,
+        "--root": false,
+        "--start-current-step": true,
+        "--step-id": false,
+        "--summary": false,
+        "--terminal": true,
+        "-h": true
+      }
+    },
+    "flow skills": {
+      "scope": "existing",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "flow status": {
+      "scope": "existing",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "trace bind": {
+      "scope": "existing",
+      "flags": {
+        "--cli-log-document-url": false,
+        "--document-url": false,
+        "--dry-run": true,
+        "--help": true,
+        "--input": false,
+        "--registry": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "trace render": {
+      "scope": "existing",
+      "flags": {
+        "--dry-run": true,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "trace status": {
+      "scope": "existing",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "trace sync": {
+      "scope": "existing",
+      "flags": {
+        "--dry-run": true,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "verify cleanup": {
+      "scope": "none",
+      "flags": {
+        "--dry-run": true,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "--run-id": false,
+        "-h": true
+      }
+    },
+    "verify doctor": {
+      "scope": "none",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "verify smoke": {
+      "scope": "none",
+      "flags": {
+        "--evidence-dir": false,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "verify snapshot": {
+      "scope": "existing",
+      "flags": {
+        "--evidence-dir": false,
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    },
+    "version": {
+      "scope": "none",
+      "flags": {
+        "--help": true,
+        "--input": false,
+        "--root": false,
+        "-h": true
+      }
+    }
+  },
+  "internal_error": {
+    "envelope": {
+      "ok": false,
+      "error": {
+        "type": "internal",
+        "code": "INTERNAL",
+        "message": "",
+        "hint": "Report this runtime error.",
+        "retryable": false
+      },
+      "meta": {
+        "command": ""
+      },
+      "_notice": {}
+    },
+    "exit_code": 5
+  }
+}

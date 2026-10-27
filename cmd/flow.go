@@ -47,7 +47,9 @@ Effect:
   On a fresh non-dry-run init, when current is a versioned GitHub Release symlink, refresh the CLI to the latest release. Skip the download when that version is already the latest or newer. The check times out after 15 seconds. FANLOOP_NO_AUTO_UPDATE=1 disables it. Any failure prints "warning: automatic update failed; checking for an installed fallback" and continues with the installed binary. A successful upgrade re-executes the new binary for the rest of this command. A development install whose current is a directory is not updated.
   A fresh init fetches second-brain-skills main and activates an immutable Git snapshot, including when fornax.json exists. The same commit reuses the installed snapshot. FANLOOP_NO_AUTO_CONFIG=1 skips the fetch and uses that snapshot. A Git or network failure prints "warning: automatic configuration pull failed; continuing with the installed snapshot" and does not replace it. When no snapshot is installed, that failure returns CONFIGURATION_FETCH_FAILED (type=external, exit=1, retryable=true) and creates no Requirement. Existing requirements stay pinned to .fanloop/configuration-snapshot. Status, report, action, skills, trace, card render, Card projection updates, and requirement doctor checks load that pinned snapshot instead of a later config/current.
   FANLOOP_USE_FORNAX=1 with fornax.json selects the installed Fornax snapshot instead of the Git fetch. fanloop update and fanloop update config use that same opt-in for Fornax; otherwise they sync second-brain-skills main. An explicit FANLOOP_CONFIG_SOURCE uses the local author repository and skips both remotes.
-  Dry-run does not update the CLI or activate a snapshot. It still validates the Git candidate unless FANLOOP_NO_AUTO_CONFIG=1 or FANLOOP_USE_FORNAX=1 is set.
+  A successful non-dry-run init protects the exact controller binary, both public entrypoint Skills, complete configuration, actual pin, first State/Output/Events and a committed controller journal. A snapshot is copied locally without changing publication identity or executable bits. An author source remains author/live at its original path, prints one stderr notice, and stays editable until explicit protection freezes it.
+  Dry-run does not update the CLI or activate a snapshot, and creates no controller, pin, journal or business files. It still validates the Git candidate unless FANLOOP_NO_AUTO_CONFIG=1 or FANLOOP_USE_FORNAX=1 is set.
+  A prepared initialize journal always blocks, including the same request, changed title/workflow/source-url and a complete first State. It never resumes initialization or supplements a committed marker.
   These warnings are not error codes and do not change a successful exit status. Init still fails with the codes listed below when the Requirement cannot be created.
 
 Request JSON:
@@ -378,8 +380,10 @@ Next step:
 	return command
 }
 
+var newFlowRuntime = flow.DefaultRuntime
+
 func flowRuntime() (flow.Runtime, *[]string) {
-	runtime := flow.DefaultRuntime()
+	runtime := newFlowRuntime()
 	warnings := []string{}
 	runtime.Warn = func(value string) {
 		warnings = append(warnings, value)

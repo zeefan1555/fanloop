@@ -16,6 +16,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/executionlog"
 	"github.com/zeefan1555/fanloop/internal/idl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
+	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 	"github.com/zeefan1555/fanloop/internal/output"
 	"github.com/zeefan1555/fanloop/internal/state"
@@ -27,7 +28,11 @@ type streams struct {
 	err io.Writer
 }
 
-func Execute(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) (exitCode int) {
+func Execute(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	return execute(ctx, args, stdin, stdout, stderr, nil)
+}
+
+func execute(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer, preflight func(io.Writer) error) (exitCode int) {
 	started := time.Now()
 	arguments := append([]string{}, args...)
 	var capturedStdin, capturedStdout, capturedStderr bytes.Buffer
@@ -71,6 +76,18 @@ func Execute(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		}
 		_ = executionlog.Append(requirementRoot, entry)
 	}()
+	if preflight != nil {
+		if err := preflight(stderr); err != nil {
+			_, remaining, _ := root.Find(args)
+			invocationCommand.InitDefaultHelpFlag()
+			_ = invocationCommand.ParseFlags(remaining)
+			requirementRoot, _ := invocationCommand.Flags().GetString("root")
+			failure := clierrs.NewCode(erroridl.ErrorCode_INTERNAL, err.Error(), nil)
+			_ = writeFailure(stderr, failure, output.Meta{Command: invocationCommandID, RequirementRoot: requirementRoot, DryRun: boolFlag(invocationCommand, "dry-run")})
+			errorCode = failure.Code.String()
+			return clierrs.ExitCode(failure)
+		}
+	}
 	if err := root.ExecuteContext(ctx); err != nil {
 		var exitErr *clierrs.ExitError
 		if errors.As(err, &exitErr) {
@@ -176,6 +193,7 @@ If flow status reports NOT_INITIALIZED, run flow init once and then read Status.
 		newUpdateCommand(stdout, stderr),
 		newInstallCommand(stdout, stderr),
 		newActivateCurrentCommand(stderr),
+		newProtectCommand(stdout, stderr),
 	)
 	return root
 }

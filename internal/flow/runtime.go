@@ -12,9 +12,11 @@ import (
 	"github.com/zeefan1555/fanloop/internal/buildinfo"
 	cardruntime "github.com/zeefan1555/fanloop/internal/card"
 	"github.com/zeefan1555/fanloop/internal/configuration"
+	"github.com/zeefan1555/fanloop/internal/controller"
 	"github.com/zeefan1555/fanloop/internal/fornaxmirror"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
+	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
 	"github.com/zeefan1555/fanloop/internal/idl/traceidl"
 	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/state"
@@ -25,13 +27,14 @@ import (
 )
 
 type Runtime struct {
-	Clock          func() time.Time
-	EventID        func() string
-	ReleaseVersion string
-	ProjectCard    func(string, state.State) error
-	ProvisionTrace func(context.Context, string, string) string
-	AutoSyncTrace  func(context.Context, string)
-	Warn           func(string)
+	Clock             func() time.Time
+	EventID           func() string
+	ReleaseVersion    string
+	ControllerRelease string
+	ProjectCard       func(string, state.State) error
+	ProvisionTrace    func(context.Context, string, string) string
+	AutoSyncTrace     func(context.Context, string)
+	Warn              func(string)
 }
 
 var _ flowidl.FlowService = Runtime{}
@@ -61,6 +64,16 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if failure != nil {
 		return nil, storeError(failure)
 	}
+	if err := release.RealPath(root, true); err != nil {
+		return nil, internalError(err)
+	}
+	binding, err := controller.Read(root)
+	if err != nil {
+		return nil, internalError(err)
+	}
+	if binding != nil && binding.Phase == storageidl.ControllerBindingPhase_prepared {
+		return nil, internalError(fmt.Errorf("prepared initialize is blocked and never resumed"))
+	}
 	if local.Exists() {
 		return nil, newFlowError(erroridl.ErrorCode_ALREADY_INITIALIZED, "requirement is already initialized", nil)
 	}
@@ -80,7 +93,11 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		}
 		return nil, newFlowError(erroridl.ErrorCode_WORKFLOW_INVALID, err.Error(), nil)
 	}
-	defer unlock()
+	defer func() {
+		if unlock != nil {
+			unlock()
+		}
+	}()
 	loaded, failure := loadWorkflow(configurationRoot, request.Workflow)
 	if failure != nil {
 		return nil, failure
@@ -115,7 +132,32 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 	if dryRun {
 		return response, nil
 	}
-	if err := local.PinConfiguration(filepath.Dir(configurationRoot)); err != nil {
+	sourceRelease := runtime.ControllerRelease
+	if sourceRelease == "" {
+		executable, err := os.Executable()
+		if err != nil {
+			return nil, internalError(err)
+		}
+		executable, err = filepath.EvalSymlinks(executable)
+		if err != nil {
+			return nil, internalError(err)
+		}
+		sourceRelease = release.RootForExecutable(executable)
+	}
+	for _, path := range []string{filepath.Join(root, controller.Pending), filepath.Join(root, controller.Home)} {
+		if _, err := os.Lstat(path); err == nil {
+			return nil, internalError(fmt.Errorf("unknown controller path exists: %s", path))
+		} else if !os.IsNotExist(err) {
+			return nil, internalError(err)
+		}
+	}
+	resources, err := controller.Plan(root, sourceRelease, filepath.Dir(configurationRoot), "", storageidl.ControllerBindingOperation_initialize, true)
+	if err != nil {
+		return nil, internalError(err)
+	}
+	unlock()
+	unlock = nil
+	if err := resources.Prepare(ctx, func(string) error { return nil }); err != nil {
 		return nil, internalError(err)
 	}
 	eventID := runtime.eventID()
@@ -125,16 +167,32 @@ func (runtime Runtime) Init(ctx context.Context, root string, request *flowidl.F
 		Kind: state.EventFlowInitialized, Command: "flow.init", Workflow: state.WorkflowRefFrom(loaded.Ref),
 		Payload: state.Payload(state.FlowInitializedPayload{StepID: first, StepStatus: initialStatus}),
 	}
-	if failure := validateAndCommit(local, loaded.Workflow, next, event); failure != nil {
-		return nil, failure
+	if err := next.Validate(); err != nil {
+		return nil, internalError(err)
+	}
+	if err := next.ValidateAgainst(loaded.Workflow); err != nil {
+		return nil, internalError(err)
+	}
+	finalUnlock, err := resources.LockPublication()
+	if err != nil {
+		return nil, internalError(err)
+	}
+	failure = local.InitializeController(resources, next, event, nil)
+	finalUnlock()
+	if failure != nil {
+		return nil, storeError(failure)
+	}
+	if resources.Binding.ConfigurationMode == storageidl.ControllerConfigurationMode_author_live {
+		runtime.note("author/live configuration remains editable; explicit protect freezes it")
 	}
 	traceWarning := runtime.provisionTrace(ctx, root, request.Requirement.Title)
 	runtime.warn(traceWarning)
-	current, _, loadFailure := local.LoadBound()
+	current, bound, loadFailure := local.LoadBound()
 	if loadFailure != nil {
 		runtime.warn(fmt.Sprintf("Card projection for Flow Event %s could not load current State: %v", event.ID, loadFailure))
 		return response, nil
 	}
+	response.State = workflowview.ProjectLoaded(bound, current)
 	runtime.warn(runtime.projectCard(root, current, event.ID))
 	return response, nil
 }

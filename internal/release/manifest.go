@@ -147,10 +147,39 @@ func FileDigest(path string) (string, error) {
 }
 
 func DirectoryDigest(root string) (string, error) {
+	return directoryDigest(root, false, nil)
+}
+
+func StrictDirectoryDigest(root string) (string, error) {
+	return directoryDigest(root, true, nil)
+}
+
+func StrictDirectoryIdentity(root string) (string, map[string]os.FileMode, error) {
+	modes := map[string]os.FileMode{}
+	digest, err := directoryDigest(root, true, modes)
+	return digest, modes, err
+}
+
+func directoryDigest(root string, strict bool, modes map[string]os.FileMode) (string, error) {
+	if strict {
+		if err := RealPath(root, true); err != nil {
+			return "", err
+		}
+	}
 	paths := []string{}
 	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
+		}
+		if strict && !entry.IsDir() && !entry.Type().IsRegular() {
+			return fmt.Errorf("release contains unsupported file %s", path)
+		}
+		if modes != nil && entry.IsDir() {
+			relative, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			modes[filepath.ToSlash(relative)] = os.ModeDir
 		}
 		if entry.Type().IsRegular() {
 			relative, err := filepath.Rel(root, path)
@@ -158,6 +187,13 @@ func DirectoryDigest(root string) (string, error) {
 				return err
 			}
 			paths = append(paths, filepath.ToSlash(relative))
+			if modes != nil {
+				info, err := entry.Info()
+				if err != nil {
+					return err
+				}
+				modes[filepath.ToSlash(relative)] = info.Mode().Perm()
+			}
 		}
 		return nil
 	}); err != nil {

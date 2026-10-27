@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/testfixture"
 )
 
 func conditionResult(id, outputType, valueJSON string) string {
@@ -24,13 +26,16 @@ type result struct {
 
 func buildCLI(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "fanloop")
-	command := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
-	command.Dir = repositoryRoot(t)
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("build fanloop: %v\n%s", err, output)
+	directory := t.TempDir()
+	release := filepath.Join(directory, "release")
+	if err := testfixture.BuildRelease(release, "test"); err != nil {
+		t.Fatal(err)
 	}
-	seedLiveWorkflows(t, filepath.Join(filepath.Dir(binary), ".fanloop-user"))
+	binary := filepath.Join(directory, "fanloop")
+	if err := os.Symlink(filepath.Join(release, "bin", "fanloop"), binary); err != nil {
+		t.Fatal(err)
+	}
+	seedLiveWorkflows(t, filepath.Join(directory, ".fanloop-user"))
 	return binary
 }
 
@@ -119,9 +124,15 @@ func collect(command *exec.Cmd) result {
 	return result{exitCode: exitCode, stdout: stdout.String(), stderr: stderr.String()}
 }
 
+const authorLiveNotice = "fanloop: author/live configuration remains editable; use explicit protect to freeze it\n"
+
 func assertSuccess(t *testing.T, got result, command string) {
 	t.Helper()
-	if got.exitCode != 0 || got.stderr != "" {
+	stderr := strings.TrimPrefix(got.stderr, authorLiveNotice)
+	if command == "flow.init" {
+		stderr = strings.TrimPrefix(stderr, "warning: author/live configuration remains editable; explicit protect freezes it\n")
+	}
+	if got.exitCode != 0 || stderr != "" {
 		t.Fatalf("exit = %d, stderr = %s, stdout = %s", got.exitCode, got.stderr, got.stdout)
 	}
 	var envelope struct {
@@ -147,7 +158,7 @@ func assertError(t *testing.T, got result, exitCode int, code string) {
 			Hint string `json:"hint"`
 		} `json:"error"`
 	}
-	if err := json.Unmarshal([]byte(got.stderr), &envelope); err != nil || envelope.OK || envelope.Error.Code != code || envelope.Error.Hint == "" {
+	if err := json.Unmarshal([]byte(strings.TrimPrefix(got.stderr, authorLiveNotice)), &envelope); err != nil || envelope.OK || envelope.Error.Code != code || envelope.Error.Hint == "" {
 		t.Fatalf("invalid error envelope: %v\n%s", err, got.stderr)
 	}
 }

@@ -153,7 +153,13 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatalf("reuse pinned controller after current changed: %v\n%s", err, output)
 	}
 	controllerBinary := filepath.Join(oldRoot, "bound-release-home", "current", "bin", "fanloop")
-	if err := os.Chmod(controllerBinary, 0o600); err != nil {
+	controllerInfo, err := os.Stat(controllerBinary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	controllerMode := controllerInfo.Mode().Perm()
+	t.Logf("controller binary mode: original=%04o rejected=%04o restored=%04o", controllerMode, controllerMode&^0o111, controllerMode)
+	if err := os.Chmod(controllerBinary, controllerMode&^0o111); err != nil {
 		t.Fatal(err)
 	}
 	invalidPinned := exec.Command(pinner, oldRoot)
@@ -162,7 +168,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	if invalidErr == nil || !strings.Contains(string(invalidOutput), "existing pinned controller is invalid") || strings.Contains(string(invalidOutput), "WORKFLOW_MISMATCH") {
 		t.Fatalf("invalid pinned controller did not fail closed: %v\n%s", invalidErr, invalidOutput)
 	}
-	if err := os.Chmod(controllerBinary, 0o755); err != nil {
+	if err := os.Chmod(controllerBinary, controllerMode); err != nil {
 		t.Fatal(err)
 	}
 	oldState, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
@@ -245,7 +251,7 @@ func TestReleaseUpgradeRejectsMissingConfigurationSource(t *testing.T) {
 	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.3"))
 }
 
-func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
+func TestLocalInstallerKeepsSnapshotSkillConfiguration(t *testing.T) {
 	repository := copyRepositorySource(t, repositoryRoot(t))
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	fixture.ConfigSource = makeSyntheticConfigSource(t, repository, "sample-custom")
@@ -298,11 +304,14 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
-	binding, _ := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	liveRoot := filepath.Join(binding, "fanloop-workflow")
-	assertFlowSkillPaths(t, initialized.stdout, liveRoot)
-	liveSkill := firstSkillPath(t, filepath.Join(liveRoot, "sample-custom", "skills"))
-	content, err := os.ReadFile(liveSkill)
+	pin, err := os.ReadFile(filepath.Join(requirementRoot, ".fanloop", "configuration-snapshot"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pinnedRoot := filepath.Join(strings.TrimSpace(string(pin)), "fanloop-workflow")
+	assertFlowSkillPaths(t, initialized.stdout, pinnedRoot)
+	pinnedSkill := firstSkillPath(t, filepath.Join(pinnedRoot, "sample-custom", "skills"))
+	content, err := os.ReadFile(pinnedSkill)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,8 +320,12 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	status := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", requirementRoot)
-	if status.err != nil || !strings.Contains(status.stdout, liveSkill) {
-		t.Fatalf("Flow did not reuse the live Skill path after an edit: %v\n%s", status.err, status.stdout)
+	if status.err != nil || !strings.Contains(status.stdout, pinnedSkill) {
+		t.Fatalf("Flow did not retain the snapshot Skill path after an author edit: %v\n%s", status.err, status.stdout)
+	}
+	assertFlowSkillPaths(t, status.stdout, pinnedRoot)
+	if after, err := os.ReadFile(pinnedSkill); err != nil || !bytes.Equal(after, content) {
+		t.Fatalf("author edit changed protected snapshot bytes: %v\n%s", err, after)
 	}
 	version := runCurrent(dataRoot, codexRoot, agentsRoot, "version")
 	if version.err != nil || !strings.Contains(version.stdout, `"release_version": "1.2.3"`) {

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zeefan1555/fanloop/errs"
+	"github.com/zeefan1555/fanloop/internal/controller"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
 	"github.com/zeefan1555/fanloop/internal/state"
 	"github.com/zeefan1555/fanloop/internal/workflow"
@@ -522,27 +523,12 @@ func (s *Store) LoadWorkflow(id string) (workflow.Loaded, error) {
 	return workflow.LoadFrom(root, id)
 }
 
+func (s *Store) ConfigurationPin() (string, bool, error) {
+	return s.readPin()
+}
+
 func (s *Store) readPin() (string, bool, error) {
-	path := filepath.Join(s.directory, "configuration-snapshot")
-	info, err := os.Lstat(path)
-	if os.IsNotExist(err) {
-		return "", false, nil
-	}
-	if err != nil {
-		return "", false, err
-	}
-	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-		return "", false, fmt.Errorf("configuration snapshot pin must be a regular file")
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return "", false, err
-	}
-	source := strings.TrimSuffix(string(content), "\n")
-	if strings.Contains(source, "\n") || source == "" || !filepath.IsAbs(source) || filepath.Clean(source) != source {
-		return "", false, fmt.Errorf("configuration snapshot pin must be one absolute path")
-	}
-	return source, true, nil
+	return controller.ReadPin(s.Root)
 }
 
 func commitError(err error) *erroridl.PublicError {

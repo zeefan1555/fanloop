@@ -1,6 +1,7 @@
 package runtime_test
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,16 @@ func TestReportAndRenderStayOnPinnedSnapshotAfterCurrentMoves(t *testing.T) {
 
 	root := t.TempDir()
 	assertSuccess(t, collect(commandWithConfig(binary, dataHome, snapshotA, "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Pinned outputs")), "flow.init")
+	actualPin := strings.TrimSpace(string(readFile(t, filepath.Join(root, ".fanloop", "configuration-snapshot"))))
+	if !strings.HasPrefix(actualPin, filepath.Join(root, "bound-release-home")+string(filepath.Separator)) {
+		t.Fatalf("init did not protect the actual snapshot under the Root: %s", actualPin)
+	}
+	if !bytes.Equal(readFile(t, filepath.Join(actualPin, "configuration.json")), readFile(t, filepath.Join(snapshotA, "configuration.json"))) {
+		t.Fatal("Root-local snapshot changed the publication identity")
+	}
+	if err := os.Rename(snapshotA, snapshotA+".retired"); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := configuration.Activate(dataHome, snapshotB); err != nil {
 		t.Fatal(err)
@@ -56,7 +67,7 @@ func TestReportAndRenderStayOnPinnedSnapshotAfterCurrentMoves(t *testing.T) {
 	}
 	skills := collect(commandWithConfig(binary, dataHome, "", "flow", "skills", "--root", root))
 	assertSuccess(t, skills, "flow.skills")
-	if !strings.Contains(skills.stdout, snapshotA) || strings.Contains(skills.stdout, snapshotB) {
+	if !strings.Contains(skills.stdout, actualPin) || strings.Contains(skills.stdout, snapshotB) {
 		t.Fatalf("flow skills used config/current:\n%s", skills.stdout)
 	}
 	traced := collect(commandWithConfig(binary, dataHome, "", "trace", "render", "--root", root, "--dry-run"))
@@ -64,8 +75,11 @@ func TestReportAndRenderStayOnPinnedSnapshotAfterCurrentMoves(t *testing.T) {
 
 	diagnosed := collect(commandWithConfig(binary, dataHome, "", "doctor", "--root", root))
 	assertSuccess(t, diagnosed, "doctor")
-	if workflows := doctorCheck(t, diagnosed.stdout, "workflows"); workflows.Status != "passed" || !strings.Contains(workflows.Summary, snapshotB) {
-		t.Fatalf("installation doctor did not follow config/current: %#v", workflows)
+	if workflows := doctorCheck(t, diagnosed.stdout, "workflows"); workflows.Status != "passed" || !strings.Contains(workflows.Summary, actualPin) || strings.Contains(workflows.Summary, snapshotB) {
+		t.Fatalf("bound doctor did not use the actual pin: %#v", workflows)
+	}
+	if after := strings.TrimSpace(string(readFile(t, filepath.Join(root, ".fanloop", "configuration-snapshot")))); after != actualPin {
+		t.Fatal("ordinary commands changed the actual pin")
 	}
 	for _, id := range []string{"workflow_binding", "state_invariants", "outputs", "events", "card_projection"} {
 		check := doctorCheck(t, diagnosed.stdout, id)

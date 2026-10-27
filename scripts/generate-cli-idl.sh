@@ -26,6 +26,7 @@ mkdir -p "$IDL_GO_ROOT"
   idl/cli.thrift
 
 go run ./tools/command-spec-gen -input idl/cli.thrift -output "$OUTPUT_ROOT/internal/idl/commands_gen.go"
+go run ./tools/launcher-spec-gen -output "$OUTPUT_ROOT/packaging/npm/scripts/commands.json"
 gofmt -w "$IDL_GO_ROOT"/commonidl "$IDL_GO_ROOT"/erroridl "$IDL_GO_ROOT"/flowidl \
 	  "$IDL_GO_ROOT"/traceidl "$IDL_GO_ROOT"/cardidl "$IDL_GO_ROOT"/opsidl "$IDL_GO_ROOT"/storageidl "$IDL_GO_ROOT"/yamlidl "$IDL_GO_ROOT"/cliidl \
 	  "$IDL_GO_ROOT"/releaseidl "$IDL_GO_ROOT"/dashboardidl \

@@ -12,7 +12,9 @@
   "files": [
     "scripts/run.js",
     "scripts/install.js",
-    "scripts/layout.js"
+    "scripts/layout.js",
+    "scripts/controller.js",
+    "scripts/commands.json"
   ],
   "engines": {
     "node": ">=18"

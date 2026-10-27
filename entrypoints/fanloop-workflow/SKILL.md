@@ -13,16 +13,27 @@ description: Fanloop 通用 Workflow/Loop 入口。适用于按显式场景启�
 
 ## 已初始化 Requirement 的固定控制器
 
-解析出绝对 Requirement Root 后、第一次执行 `flow status` 前，检查
-`<ABSOLUTE_REQUIREMENT_ROOT>/bound-release-home/current/bin/fanloop`。该路径存在时就是该 Requirement
-的固定控制器。它后续的 `flow`、`trace`、`card` 和 `doctor`
-命令都必须设置对应 `bound-release-home` 下的 `FANLOOP_DATA_HOME` 和
-`skill-roots/{codex,agent,trae,claude}` 四个 Skill Root，并用 `env -u FANLOOP_CONFIG_SOURCE`
-清除外部来源覆盖，由固定控制器按其自身绑定解析配置；不得硬编码新旧配置布局，也不得再调用全局 `fanloop`。先用该控制器执行
-`flow status`，失败即原样阻塞，不得回退到全局 current、扫描其他 Release、改写 State 或猜测版本。
+解析出绝对 Requirement Root 后，通过已安装的 `fanloop` 或 npm 启动器传入显式 `--root`。入口在读取
+State 之前自动校验并选择该 Root 的 `bound-release-home` 固定控制器；无需由 Agent 猜测控制器版本、
+硬编码配置布局或手动拼接环境。首次执行 `flow status`，失败即原样阻塞，不回退到全局 current、不扫描
+其他 Release、不改写 State。
 
-未找到固定控制器时才使用全局 `fanloop`。新 Requirement 的 `flow init` 始终使用全局 current；固定
-控制器只保持已经初始化的 Requirement 继续运行，不影响新 Requirement 选择当前 Release。
+实际 `.fanloop/configuration-snapshot` 是当前配置绑定真值，优先于历史 controller journal、全局
+`config/current` 和调用方 `FANLOOP_CONFIG_SOURCE`。固定控制器自动使用自己的 data home、四个
+`skill-roots/{codex,agent,trae,claude}` 和实际 pin，并关闭自动更新。显式 `config rebind` 是唯一例外：
+仍由固定控制器解释 State，但保留调用方 data home 以选择已经安装的目标快照；随后重新读取实际 pin。
+无 journal 的健康旧控制器仍可选择；没有 pin 时只保留该控制器原有默认来源行为，不代表配置已保护。
+
+损坏或缺失的已绑定资源、非法 pin 和 prepared journal 都会 fail closed。prepared initialize 不自动恢复；
+不要删除 journal、staging 或不认识的路径来绕过错误。仅显式 protect 可按同一记录意图重试保护事务。
+
+新 Requirement 的 `flow init` 使用全局 current，成功返回前绑定精确 CLI、两个入口 Skill 和配置。
+不可变快照在 Root 内保留原发布身份。显式作者源初始化保持 `author/live`，后续编辑继续生效并有 stderr
+提醒；只有显式 protect 才冻结当时的完整作者资源，不伪造 Git/Fornax 发布身份。保护既有 Root 使用
+源码仓库中的 `scripts/pin-controller-release.sh <ABSOLUTE_INITIALIZED_REQUIREMENT_ROOT>`；先定位该脚本，
+不在 Requirement 或安装 Release 内猜测相对路径。旧 current 不支持保护时，
+用 `FANLOOP_PROTECT_BINARY` 明确选择支持保护的物理候选 binary，并以 `FANLOOP_CONTROLLER_RELEASE`
+明确指定原控制器物理 Release，不扫描或替换全局安装。
 
 ## 启动
 

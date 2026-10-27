@@ -19,7 +19,6 @@ import (
 	"github.com/zeefan1555/fanloop/internal/idl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/erroridl"
-	"github.com/zeefan1555/fanloop/internal/idl/flowidl"
 	"github.com/zeefan1555/fanloop/internal/idl/opsidl"
 	"github.com/zeefan1555/fanloop/internal/output"
 	"github.com/zeefan1555/fanloop/internal/release"
@@ -120,18 +119,28 @@ func runOperation[T any](
 		}
 
 		needsConfiguration := id != "flow.init"
-		if _, ok := any(request).(*flowidl.FlowInitRequest); !ok && root != "" && spec.RequirementScope == commonidl.RequirementScope_existing {
+		var pinnedSource string
+		var pinned bool
+		if root != "" && spec.RequirementScope == commonidl.RequirementScope_existing {
 			local, failure := store.New(root)
 			if failure != nil {
 				return fail(failure)
 			}
-			_, failure = local.Load()
-			if failure != nil {
-				needsConfiguration = false
+			needsConfiguration = local.Exists()
+			if needsConfiguration {
+				pinnedSource, pinned, err = local.ConfigurationPin()
+				if err != nil {
+					return fail(normalizeConfigurationError(spec, err))
+				}
 			}
 		}
 		if needsConfiguration {
-			unlock, err := configuration.PrepareCurrent(ctx, dataRoot)
+			var unlock func()
+			if pinned {
+				unlock, err = configuration.PrepareSource(pinnedSource)
+			} else {
+				unlock, err = configuration.PrepareCurrent(ctx, dataRoot)
+			}
 			if err != nil {
 				return fail(normalizeConfigurationError(spec, err))
 			}

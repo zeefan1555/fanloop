@@ -15,6 +15,57 @@ const i32 CARD_BINDING_SCHEMA_VERSION      = 2
 const i32 TRACE_CONFIG_SCHEMA_VERSION      = 2
 const i32 CLI_EXECUTION_LOG_SCHEMA_VERSION = 2
 
+const i32 CONTROLLER_BINDING_SCHEMA_VERSION = 1
+
+enum ControllerBindingPhase {
+  unspecified = 0,
+  prepared = 1,
+  committed = 2,
+}
+
+enum ControllerConfigurationMode {
+  unspecified = 0,
+  snapshot = 1,
+  author_live = 2,
+  author_frozen = 3,
+}
+
+enum ControllerBindingOperation {
+  unspecified = 0,
+  initialize = 1,
+  protect = 2,
+}
+
+struct ControllerBinding {
+  1: required i32 schema_version (vt.const = "1"),
+  2: required string transaction_id (vt.pattern = "^[0-9a-f]{32}$"),
+  3: required ControllerBindingPhase phase (
+    vt.defined_only = "true",
+    vt.not_in = "ControllerBindingPhase.unspecified",
+  ),
+  4: required ControllerConfigurationMode configuration_mode (
+    vt.defined_only = "true",
+    vt.not_in = "ControllerConfigurationMode.unspecified",
+  ),
+  5: required string source_release_path (vt.min_size = "1"),
+  6: required string controller_release_path (vt.min_size = "1"),
+  7: required string release_manifest_sha256 (vt.pattern = "^sha256:[0-9a-f]{64}$"),
+  8: required string binary_sha256 (vt.pattern = "^sha256:[0-9a-f]{64}$"),
+  9: required string previous_configuration_pin,
+  10: required string configuration_pin (vt.min_size = "1"),
+  11: optional string configuration_manifest_sha256 (vt.pattern = "^sha256:[0-9a-f]{64}$"),
+  12: required string prepared_at (vt.min_size = "1"),
+  13: optional string committed_at (vt.min_size = "1"),
+  14: required ControllerBindingOperation operation (
+    vt.defined_only = "true",
+    vt.not_in = "ControllerBindingOperation.unspecified",
+  ),
+  15: required string configuration_source_path (vt.min_size = "1"),
+  16: optional string previous_binding_transaction_id (vt.pattern = "^[0-9a-f]{32}$"),
+  17: optional string protected_files_sha256 (vt.pattern = "^sha256:[0-9a-f]{64}$"),
+  18: required string release_resources_sha256 (vt.pattern = "^sha256:[0-9a-f]{64}$"),
+}
+
 struct CLIExecutionLogEntry {
   1:  required i32    schema_version   (vt.ge = "1"),
   2:  required string invocation_id   (vt.min_size = "1"),

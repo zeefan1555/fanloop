@@ -1,0 +1,30 @@
+{
+  "binding": {
+    "schema_version": 1,
+    "transaction_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "phase": "committed",
+    "configuration_mode": "snapshot",
+    "source_release_path": "/isolated/source-release",
+    "controller_release_path": "releases/test",
+    "release_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "binary_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "previous_configuration_pin": "",
+    "configuration_pin": "/isolated/config/snapshots/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "configuration_manifest_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "prepared_at": "2026-10-24T00:00:00Z",
+    "committed_at": "2026-10-24T00:00:01Z",
+    "operation": "protect",
+    "configuration_source_path": "/isolated/source-config",
+    "previous_binding_transaction_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "protected_files_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "release_resources_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "required_strings": ["transaction_id", "phase", "configuration_mode", "source_release_path", "controller_release_path", "release_manifest_sha256", "binary_sha256", "previous_configuration_pin", "configuration_pin", "prepared_at", "operation", "configuration_source_path", "release_resources_sha256"],
+  "optional_strings": ["configuration_manifest_sha256", "committed_at", "previous_binding_transaction_id", "protected_files_sha256"],
+  "wrong_string_values": [null, [], ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], {}, true, 1],
+  "wrong_schema_values": [null, [], [1], {}, true, "1"],
+  "unknown_fields": ["unexpected", "SCHEMA_VERSION"],
+  "invalid_resource_digests": ["", "sha256:bad", "not-a-digest"],
+  "valid_timestamps": ["2024-02-29T00:00:00Z", "2000-02-29T00:00:00Z", "2026-02-28T23:59:59+08:00", "2026-10-23T12:34:56.123456789-05:30", "0000-02-29T00:00:00Z"],
+  "invalid_timestamps": ["2026-02-29T00:00:00Z", "2026-02-31T00:00:00Z", "1900-02-29T00:00:00Z", "2026-04-31T00:00:00Z", "2026-13-01T00:00:00Z", "2026-01-00T00:00:00Z", "2026-10-23T24:00:00Z", "2026-10-23T12:60:00Z", "2026-10-23T12:00:60Z"]
+}

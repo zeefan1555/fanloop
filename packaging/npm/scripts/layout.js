@@ -119,25 +119,33 @@ function fileDigest(file) {
   return `sha256:${crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')}`;
 }
 
-function directoryDigest(root) {
+function directoryDigest(root, strict = false, modes = null) {
+  if (strict) realPath(root, true);
+  if (modes) modes.set('.', 'd');
   const paths = [];
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
       const full = path.join(dir, entry.name);
+      if (strict && !entry.isDirectory() && !entry.isFile()) {
+        throw new Error(`unsupported release file ${full}`);
+      }
       if (entry.isSymbolicLink()) {
         continue;
       }
       if (entry.isDirectory()) {
+        if (modes) modes.set(path.relative(root, full).split(path.sep).join('/'), 'd');
         walk(full);
         continue;
       }
       if (entry.isFile()) {
-        paths.push(path.relative(root, full).split(path.sep).join('/'));
+        const relative = path.relative(root, full).split(path.sep).join('/');
+        paths.push(relative);
+        if (modes) modes.set(relative, 'f:'+(fs.lstatSync(full).mode & 0o777).toString(8).padStart(3, '0'));
       }
     }
   };
   walk(root);
-  paths.sort();
+  paths.sort(strict ? (a,b) => Buffer.compare(Buffer.from(a),Buffer.from(b)) : undefined);
   const hash = crypto.createHash('sha256');
   for (const relative of paths) {
     const digest = fileDigest(path.join(root, ...relative.split('/'))).slice('sha256:'.length);
@@ -146,6 +154,16 @@ function directoryDigest(root) {
     hash.update(digest);
     hash.update('\n');
   }
+  return `sha256:${hash.digest('hex')}`;
+}
+
+function controllerResourcesDigest(root) {
+  const modes = new Map();
+  const digest = directoryDigest(root, true, modes);
+  const hash = crypto.createHash('sha256');
+  hash.update('fanloop-controller-release-resources-v1\n'+digest.slice('sha256:'.length)+'\n');
+  const paths = [...modes.keys()].sort((a,b) => Buffer.compare(Buffer.from(a),Buffer.from(b)));
+  for (const relative of paths) hash.update(relative+'\0'+modes.get(relative)+'\n');
   return `sha256:${hash.digest('hex')}`;
 }
 
@@ -160,7 +178,22 @@ function rejectUnknown(value, allowed, label) {
   }
 }
 
-function validateReleaseTree(root, version) {
+function realPath(value, directory) {
+  if (!path.isAbsolute(value) || path.normalize(value) !== value) throw new Error('path must be clean and absolute');
+  for (let current = value;; current = path.dirname(current)) {
+    const info = fs.lstatSync(current);
+    if ((current !== value || directory) ? !info.isDirectory() : !info.isFile()) throw new Error(`path is not a real resource: ${current}`);
+    if (current === path.dirname(current)) return;
+  }
+}
+
+function validateReleaseTree(root, version, strict = false) {
+  if (strict) {
+    directoryDigest(root, true);
+    realPath(path.join(root, 'bin'), true);
+    realPath(path.join(root, 'entrypoints'), true);
+    if ((fs.lstatSync(path.join(root, 'bin', 'fanloop')).mode & 0o111) === 0) throw new Error('controller binary is not executable');
+  }
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'release.json'), 'utf8'));
   rejectUnknown(manifest, ['schema_version', 'release_version', 'cli', 'state_schema', 'skills'], 'release.json');
   if (manifest.schema_version !== 4) {
@@ -202,7 +235,7 @@ function validateReleaseTree(root, version) {
     if (!DIGEST_PATTERN.test(skill.sha256 || '')) {
       throw new Error(`skill ${skill.name} sha256 is invalid`);
     }
-    const digest = directoryDigest(path.join(root, ...skill.path.split('/')));
+    const digest = directoryDigest(path.join(root, ...skill.path.split('/')), strict);
     if (digest !== skill.sha256) {
       throw new Error(`skill ${skill.name} checksum does not match release.json`);
     }
@@ -562,10 +595,12 @@ module.exports = {
   assertReleaseArchive,
   extractReleaseArchive,
   dataHome,
+  controllerResourcesDigest,
   directoryDigest,
   ensureSkillLinks,
   ensureLauncherPath,
   fileDigest,
+  realPath,
   npmPackageName,
   parseChecksums,
   pathInstruction,

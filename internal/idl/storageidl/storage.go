@@ -28,7 +28,201 @@ const (
 	TRACE_CONFIG_SCHEMA_VERSION = 2
 
 	CLI_EXECUTION_LOG_SCHEMA_VERSION = 2
+
+	CONTROLLER_BINDING_SCHEMA_VERSION = 1
 )
+
+type ControllerBindingPhase int64
+
+const (
+	ControllerBindingPhase_unspecified ControllerBindingPhase = 0
+	ControllerBindingPhase_prepared    ControllerBindingPhase = 1
+	ControllerBindingPhase_committed   ControllerBindingPhase = 2
+)
+
+func (p ControllerBindingPhase) String() string {
+	switch p {
+	case ControllerBindingPhase_unspecified:
+		return "unspecified"
+	case ControllerBindingPhase_prepared:
+		return "prepared"
+	case ControllerBindingPhase_committed:
+		return "committed"
+	}
+	return "<UNSET>"
+}
+
+func ControllerBindingPhaseFromString(s string) (ControllerBindingPhase, error) {
+	switch s {
+	case "unspecified":
+		return ControllerBindingPhase_unspecified, nil
+	case "prepared":
+		return ControllerBindingPhase_prepared, nil
+	case "committed":
+		return ControllerBindingPhase_committed, nil
+	}
+	return ControllerBindingPhase(0), fmt.Errorf("not a valid ControllerBindingPhase string")
+}
+
+func ControllerBindingPhasePtr(v ControllerBindingPhase) *ControllerBindingPhase { return &v }
+
+func (p ControllerBindingPhase) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+func (p *ControllerBindingPhase) UnmarshalText(text []byte) error {
+	q, err := ControllerBindingPhaseFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*p = q
+	return nil
+}
+
+func (p *ControllerBindingPhase) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = ControllerBindingPhase(result.Int64)
+	return
+}
+
+func (p *ControllerBindingPhase) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
+type ControllerConfigurationMode int64
+
+const (
+	ControllerConfigurationMode_unspecified   ControllerConfigurationMode = 0
+	ControllerConfigurationMode_snapshot      ControllerConfigurationMode = 1
+	ControllerConfigurationMode_author_live   ControllerConfigurationMode = 2
+	ControllerConfigurationMode_author_frozen ControllerConfigurationMode = 3
+)
+
+func (p ControllerConfigurationMode) String() string {
+	switch p {
+	case ControllerConfigurationMode_unspecified:
+		return "unspecified"
+	case ControllerConfigurationMode_snapshot:
+		return "snapshot"
+	case ControllerConfigurationMode_author_live:
+		return "author_live"
+	case ControllerConfigurationMode_author_frozen:
+		return "author_frozen"
+	}
+	return "<UNSET>"
+}
+
+func ControllerConfigurationModeFromString(s string) (ControllerConfigurationMode, error) {
+	switch s {
+	case "unspecified":
+		return ControllerConfigurationMode_unspecified, nil
+	case "snapshot":
+		return ControllerConfigurationMode_snapshot, nil
+	case "author_live":
+		return ControllerConfigurationMode_author_live, nil
+	case "author_frozen":
+		return ControllerConfigurationMode_author_frozen, nil
+	}
+	return ControllerConfigurationMode(0), fmt.Errorf("not a valid ControllerConfigurationMode string")
+}
+
+func ControllerConfigurationModePtr(v ControllerConfigurationMode) *ControllerConfigurationMode {
+	return &v
+}
+
+func (p ControllerConfigurationMode) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+func (p *ControllerConfigurationMode) UnmarshalText(text []byte) error {
+	q, err := ControllerConfigurationModeFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*p = q
+	return nil
+}
+
+func (p *ControllerConfigurationMode) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = ControllerConfigurationMode(result.Int64)
+	return
+}
+
+func (p *ControllerConfigurationMode) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
+type ControllerBindingOperation int64
+
+const (
+	ControllerBindingOperation_unspecified ControllerBindingOperation = 0
+	ControllerBindingOperation_initialize  ControllerBindingOperation = 1
+	ControllerBindingOperation_protect     ControllerBindingOperation = 2
+)
+
+func (p ControllerBindingOperation) String() string {
+	switch p {
+	case ControllerBindingOperation_unspecified:
+		return "unspecified"
+	case ControllerBindingOperation_initialize:
+		return "initialize"
+	case ControllerBindingOperation_protect:
+		return "protect"
+	}
+	return "<UNSET>"
+}
+
+func ControllerBindingOperationFromString(s string) (ControllerBindingOperation, error) {
+	switch s {
+	case "unspecified":
+		return ControllerBindingOperation_unspecified, nil
+	case "initialize":
+		return ControllerBindingOperation_initialize, nil
+	case "protect":
+		return ControllerBindingOperation_protect, nil
+	}
+	return ControllerBindingOperation(0), fmt.Errorf("not a valid ControllerBindingOperation string")
+}
+
+func ControllerBindingOperationPtr(v ControllerBindingOperation) *ControllerBindingOperation {
+	return &v
+}
+
+func (p ControllerBindingOperation) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+func (p *ControllerBindingOperation) UnmarshalText(text []byte) error {
+	q, err := ControllerBindingOperationFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*p = q
+	return nil
+}
+
+func (p *ControllerBindingOperation) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = ControllerBindingOperation(result.Int64)
+	return
+}
+
+func (p *ControllerBindingOperation) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
 
 type StepStatus int64
 
@@ -830,6 +1024,380 @@ func (p *TraceTargetErrorCode) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return int64(*p), nil
+}
+
+type ControllerBinding struct {
+	SchemaVersion                int32                       `thrift:"schema_version,1,required" json:"schema_version"`
+	TransactionId                string                      `thrift:"transaction_id,2,required" json:"transaction_id"`
+	Phase                        ControllerBindingPhase      `thrift:"phase,3,required,ControllerBindingPhase" json:"phase"`
+	ConfigurationMode            ControllerConfigurationMode `thrift:"configuration_mode,4,required,ControllerConfigurationMode" json:"configuration_mode"`
+	SourceReleasePath            string                      `thrift:"source_release_path,5,required" json:"source_release_path"`
+	ControllerReleasePath        string                      `thrift:"controller_release_path,6,required" json:"controller_release_path"`
+	ReleaseManifestSha256        string                      `thrift:"release_manifest_sha256,7,required" json:"release_manifest_sha256"`
+	BinarySha256                 string                      `thrift:"binary_sha256,8,required" json:"binary_sha256"`
+	PreviousConfigurationPin     string                      `thrift:"previous_configuration_pin,9,required" json:"previous_configuration_pin"`
+	ConfigurationPin             string                      `thrift:"configuration_pin,10,required" json:"configuration_pin"`
+	ConfigurationManifestSha256  *string                     `thrift:"configuration_manifest_sha256,11,optional" json:"configuration_manifest_sha256,omitempty"`
+	PreparedAt                   string                      `thrift:"prepared_at,12,required" json:"prepared_at"`
+	CommittedAt                  *string                     `thrift:"committed_at,13,optional" json:"committed_at,omitempty"`
+	Operation                    ControllerBindingOperation  `thrift:"operation,14,required,ControllerBindingOperation" json:"operation"`
+	ConfigurationSourcePath      string                      `thrift:"configuration_source_path,15,required" json:"configuration_source_path"`
+	PreviousBindingTransactionId *string                     `thrift:"previous_binding_transaction_id,16,optional" json:"previous_binding_transaction_id,omitempty"`
+	ProtectedFilesSha256         *string                     `thrift:"protected_files_sha256,17,optional" json:"protected_files_sha256,omitempty"`
+	ReleaseResourcesSha256       string                      `thrift:"release_resources_sha256,18,required" json:"release_resources_sha256"`
+}
+
+func NewControllerBinding() *ControllerBinding {
+	return &ControllerBinding{}
+}
+
+func (p *ControllerBinding) InitDefault() {
+}
+
+func (p *ControllerBinding) GetSchemaVersion() (v int32) {
+	return p.SchemaVersion
+}
+
+func (p *ControllerBinding) GetTransactionId() (v string) {
+	return p.TransactionId
+}
+
+func (p *ControllerBinding) GetPhase() (v ControllerBindingPhase) {
+	return p.Phase
+}
+
+func (p *ControllerBinding) GetConfigurationMode() (v ControllerConfigurationMode) {
+	return p.ConfigurationMode
+}
+
+func (p *ControllerBinding) GetSourceReleasePath() (v string) {
+	return p.SourceReleasePath
+}
+
+func (p *ControllerBinding) GetControllerReleasePath() (v string) {
+	return p.ControllerReleasePath
+}
+
+func (p *ControllerBinding) GetReleaseManifestSha256() (v string) {
+	return p.ReleaseManifestSha256
+}
+
+func (p *ControllerBinding) GetBinarySha256() (v string) {
+	return p.BinarySha256
+}
+
+func (p *ControllerBinding) GetPreviousConfigurationPin() (v string) {
+	return p.PreviousConfigurationPin
+}
+
+func (p *ControllerBinding) GetConfigurationPin() (v string) {
+	return p.ConfigurationPin
+}
+
+var ControllerBinding_ConfigurationManifestSha256_DEFAULT string
+
+func (p *ControllerBinding) GetConfigurationManifestSha256() (v string) {
+	if !p.IsSetConfigurationManifestSha256() {
+		return ControllerBinding_ConfigurationManifestSha256_DEFAULT
+	}
+	return *p.ConfigurationManifestSha256
+}
+
+func (p *ControllerBinding) GetPreparedAt() (v string) {
+	return p.PreparedAt
+}
+
+var ControllerBinding_CommittedAt_DEFAULT string
+
+func (p *ControllerBinding) GetCommittedAt() (v string) {
+	if !p.IsSetCommittedAt() {
+		return ControllerBinding_CommittedAt_DEFAULT
+	}
+	return *p.CommittedAt
+}
+
+func (p *ControllerBinding) GetOperation() (v ControllerBindingOperation) {
+	return p.Operation
+}
+
+func (p *ControllerBinding) GetConfigurationSourcePath() (v string) {
+	return p.ConfigurationSourcePath
+}
+
+var ControllerBinding_PreviousBindingTransactionId_DEFAULT string
+
+func (p *ControllerBinding) GetPreviousBindingTransactionId() (v string) {
+	if !p.IsSetPreviousBindingTransactionId() {
+		return ControllerBinding_PreviousBindingTransactionId_DEFAULT
+	}
+	return *p.PreviousBindingTransactionId
+}
+
+var ControllerBinding_ProtectedFilesSha256_DEFAULT string
+
+func (p *ControllerBinding) GetProtectedFilesSha256() (v string) {
+	if !p.IsSetProtectedFilesSha256() {
+		return ControllerBinding_ProtectedFilesSha256_DEFAULT
+	}
+	return *p.ProtectedFilesSha256
+}
+
+func (p *ControllerBinding) GetReleaseResourcesSha256() (v string) {
+	return p.ReleaseResourcesSha256
+}
+
+func (p *ControllerBinding) IsSetConfigurationManifestSha256() bool {
+	return p.ConfigurationManifestSha256 != nil
+}
+
+func (p *ControllerBinding) IsSetCommittedAt() bool {
+	return p.CommittedAt != nil
+}
+
+func (p *ControllerBinding) IsSetPreviousBindingTransactionId() bool {
+	return p.PreviousBindingTransactionId != nil
+}
+
+func (p *ControllerBinding) IsSetProtectedFilesSha256() bool {
+	return p.ProtectedFilesSha256 != nil
+}
+
+func (p *ControllerBinding) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ControllerBinding(%+v)", *p)
+}
+
+func (p *ControllerBinding) DeepEqual(ano *ControllerBinding) bool {
+	if p == ano {
+		return true
+	} else if p == nil || ano == nil {
+		return false
+	}
+	if !p.Field1DeepEqual(ano.SchemaVersion) {
+		return false
+	}
+	if !p.Field2DeepEqual(ano.TransactionId) {
+		return false
+	}
+	if !p.Field3DeepEqual(ano.Phase) {
+		return false
+	}
+	if !p.Field4DeepEqual(ano.ConfigurationMode) {
+		return false
+	}
+	if !p.Field5DeepEqual(ano.SourceReleasePath) {
+		return false
+	}
+	if !p.Field6DeepEqual(ano.ControllerReleasePath) {
+		return false
+	}
+	if !p.Field7DeepEqual(ano.ReleaseManifestSha256) {
+		return false
+	}
+	if !p.Field8DeepEqual(ano.BinarySha256) {
+		return false
+	}
+	if !p.Field9DeepEqual(ano.PreviousConfigurationPin) {
+		return false
+	}
+	if !p.Field10DeepEqual(ano.ConfigurationPin) {
+		return false
+	}
+	if !p.Field11DeepEqual(ano.ConfigurationManifestSha256) {
+		return false
+	}
+	if !p.Field12DeepEqual(ano.PreparedAt) {
+		return false
+	}
+	if !p.Field13DeepEqual(ano.CommittedAt) {
+		return false
+	}
+	if !p.Field14DeepEqual(ano.Operation) {
+		return false
+	}
+	if !p.Field15DeepEqual(ano.ConfigurationSourcePath) {
+		return false
+	}
+	if !p.Field16DeepEqual(ano.PreviousBindingTransactionId) {
+		return false
+	}
+	if !p.Field17DeepEqual(ano.ProtectedFilesSha256) {
+		return false
+	}
+	if !p.Field18DeepEqual(ano.ReleaseResourcesSha256) {
+		return false
+	}
+	return true
+}
+
+func (p *ControllerBinding) Field1DeepEqual(src int32) bool {
+
+	if p.SchemaVersion != src {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field2DeepEqual(src string) bool {
+
+	if strings.Compare(p.TransactionId, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field3DeepEqual(src ControllerBindingPhase) bool {
+
+	if p.Phase != src {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field4DeepEqual(src ControllerConfigurationMode) bool {
+
+	if p.ConfigurationMode != src {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field5DeepEqual(src string) bool {
+
+	if strings.Compare(p.SourceReleasePath, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field6DeepEqual(src string) bool {
+
+	if strings.Compare(p.ControllerReleasePath, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field7DeepEqual(src string) bool {
+
+	if strings.Compare(p.ReleaseManifestSha256, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field8DeepEqual(src string) bool {
+
+	if strings.Compare(p.BinarySha256, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field9DeepEqual(src string) bool {
+
+	if strings.Compare(p.PreviousConfigurationPin, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field10DeepEqual(src string) bool {
+
+	if strings.Compare(p.ConfigurationPin, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field11DeepEqual(src *string) bool {
+
+	if p.ConfigurationManifestSha256 == src {
+		return true
+	} else if p.ConfigurationManifestSha256 == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.ConfigurationManifestSha256, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field12DeepEqual(src string) bool {
+
+	if strings.Compare(p.PreparedAt, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field13DeepEqual(src *string) bool {
+
+	if p.CommittedAt == src {
+		return true
+	} else if p.CommittedAt == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.CommittedAt, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field14DeepEqual(src ControllerBindingOperation) bool {
+
+	if p.Operation != src {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field15DeepEqual(src string) bool {
+
+	if strings.Compare(p.ConfigurationSourcePath, src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field16DeepEqual(src *string) bool {
+
+	if p.PreviousBindingTransactionId == src {
+		return true
+	} else if p.PreviousBindingTransactionId == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.PreviousBindingTransactionId, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field17DeepEqual(src *string) bool {
+
+	if p.ProtectedFilesSha256 == src {
+		return true
+	} else if p.ProtectedFilesSha256 == nil || src == nil {
+		return false
+	}
+	if strings.Compare(*p.ProtectedFilesSha256, *src) != 0 {
+		return false
+	}
+	return true
+}
+func (p *ControllerBinding) Field18DeepEqual(src string) bool {
+
+	if strings.Compare(p.ReleaseResourcesSha256, src) != 0 {
+		return false
+	}
+	return true
+}
+
+var fieldIDToName_ControllerBinding = map[int16]string{
+	1:  "schema_version",
+	2:  "transaction_id",
+	3:  "phase",
+	4:  "configuration_mode",
+	5:  "source_release_path",
+	6:  "controller_release_path",
+	7:  "release_manifest_sha256",
+	8:  "binary_sha256",
+	9:  "previous_configuration_pin",
+	10: "configuration_pin",
+	11: "configuration_manifest_sha256",
+	12: "prepared_at",
+	13: "committed_at",
+	14: "operation",
+	15: "configuration_source_path",
+	16: "previous_binding_transaction_id",
+	17: "protected_files_sha256",
+	18: "release_resources_sha256",
 }
 
 type CLIExecutionLogEntry struct {

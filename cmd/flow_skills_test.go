@@ -112,10 +112,10 @@ func TestFlowSkillsDiscoversUnboundSkillsFromCurrentSourceWithoutBusinessWrites(
 		t.Fatalf("uninitialized exit=%d stderr=%s", code, stderr)
 	}
 	for _, invalid := range []string{"", "relative", filepath.Join(source, "missing")} {
-		t.Run("bad-source-"+invalid, func(t *testing.T) {
+		t.Run("ignored-source-"+invalid, func(t *testing.T) {
 			t.Setenv("FANLOOP_CONFIG_SOURCE", invalid)
-			if code, _, stderr := run("flow", "skills", "--root", root); code != 5 || !strings.Contains(stderr, "INTERNAL") {
-				t.Fatalf("bad source exit=%d stderr=%s", code, stderr)
+			if got := read(); got.PackageRoot != packageRoot {
+				t.Fatalf("unrelated override replaced actual pin: %#v", got)
 			}
 		})
 	}

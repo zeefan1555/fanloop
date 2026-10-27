@@ -23,12 +23,13 @@ func TestInitCreatesCardProjectionWhenTraceProvisioningWarns(t *testing.T) {
 	root := t.TempDir()
 	warnings := []string{}
 	runtime := Runtime{
-		Clock:          func() time.Time { return time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC) },
-		EventID:        func() string { return "event-init" },
-		ReleaseVersion: "test",
-		ProjectCard:    cardruntime.WriteProjection,
-		ProvisionTrace: func(context.Context, string, string) string { return "Trace provisioning warning" },
-		Warn:           func(message string) { warnings = append(warnings, message) },
+		Clock:             func() time.Time { return time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC) },
+		EventID:           func() string { return "event-init" },
+		ControllerRelease: testControllerRelease,
+		ReleaseVersion:    "test",
+		ProjectCard:       cardruntime.WriteProjection,
+		ProvisionTrace:    func(context.Context, string, string) string { return "Trace provisioning warning" },
+		Warn:              func(message string) { warnings = append(warnings, message) },
 	}
 	if _, err := runtime.Init(context.Background(), root, &flowidl.FlowInitRequest{
 		Workflow: "linear-runtime", Requirement: &flowidl.Requirement{Title: "warning still projects"},
@@ -38,7 +39,7 @@ func TestInitCreatesCardProjectionWhenTraceProvisioningWarns(t *testing.T) {
 	if _, err := os.Stat(cardruntime.ProjectionPath(root)); err != nil {
 		t.Fatalf("Trace warning prevented Card projection: %v", err)
 	}
-	if len(warnings) != 1 || !strings.Contains(warnings[0], "Trace provisioning warning") {
+	if len(warnings) != 2 || !strings.Contains(warnings[0], "author/live") || !strings.Contains(warnings[1], "Trace provisioning warning") {
 		t.Fatalf("warnings = %#v", warnings)
 	}
 }

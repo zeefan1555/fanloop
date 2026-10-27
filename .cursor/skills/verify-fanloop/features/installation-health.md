@@ -13,6 +13,7 @@
 - npm and public update migrate a directory containing only the four validated managed links into `current -> releases/<version>`. Atomic exchange preserves its original inode and links in `current.backup-*`. Unknown entries and escaping or indirect release targets are refused. Migration has no two-rename fallback. Directory update synchronizes configuration before activation; npm handles PATH profiles before activation. Failures preserve the original current.
 - Download, validation and pre-activation failures preserve the active Release and previous source binding. A later PATH profile failure reports nonzero and may leave the new CLI active; do not claim full rollback or success.
 - Installation-level and Requirement-level Doctor checks.
+- New Requirement controller binding preserves the exact physical Release and both entrypoints; installer/distribution current layouts remain unchanged.
 
 ## How to get to it (user POV)
 
@@ -28,7 +29,9 @@ Use loopback HTTP fixtures with the frozen postinstall entrypoint for interrupte
 Include downloaded malformed checksums, invalid distribution JSON, untrusted internal manifest fields and unsafe archive entries. Public postinstall must report only `release validation failed: checksums`, `manifest` or `archive`, never response text, JSON field names or archive paths; reject once and preserve the previous current/manifest.
 
 Use isolated data and Skill roots. On macOS invoke the documented installer and pinner with /bin/bash, including no output-directory argument and no configuration source. Install two clean commits, check each immutable
-Release, then check `current/release` and the absolute `config/current` snapshot binding and configuration.json identity.
+Release, then resolve `current` in its native managed-directory or distribution-symlink layout and check the absolute
+`config/current` snapshot binding and configuration.json identity. A managed directory has exactly four valid links;
+check its `current/release` selector and the other three exact child aliases.
 Prove no new `current/workflows` copy exists. The four Skill roots expose only
 `fanloop-workflow` and `create-fanloop-workflow`. Run from an unrelated cwd with the
 override unset to prove the persisted source is used.
@@ -40,6 +43,20 @@ Test an unset source separately from an explicitly empty or whitespace override;
 only omission preserves the existing snapshot or bootstraps without configuration.
 Explicit author-source edits must be visible without reinstalling. Capture the global installation
 before and after; it must remain unchanged.
+
+Retain the configuration-fetch regressions: a healthy Git fetch may exceed the short probe budget, cancellation must not
+retry, and a failed/timed-out attempt's locks and pipes must not poison a fresh retry. Two failed transports preserve the
+previous current and expose only classified diagnostics. Use isolated local Git fixtures, never real credentials.
+
+Retain actual npm/public-update managed-current migration, failed exchange, same-version repair/rollback and concurrent
+native-install tests. Controller validation reuses the managed layout rules and additionally checks its exact primary link,
+known four child aliases and complete bound resource identity. It must not weaken activation/rollback or remove retained
+backups. A focused run reporting no matched tests is not installation evidence.
+
+With an initialized bound Root, break only an unrelated global source/current and set a conflicting caller source. Enter
+through the candidate direct binary and npm launcher; healthy pinned reads and Requirement Doctor must still succeed.
+Corrupt the actual pin or bound resources in separate Roots and require fail-closed rejection without fallback or business
+writes. Rootless installation/Doctor behavior and explicit rebind's caller-data-home target selection remain separate.
 
 ## Gotchas
 

@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeefan1555/fanloop/internal/release"
 	"github.com/zeefan1555/fanloop/internal/workflow"
 )
 
@@ -95,6 +96,28 @@ func PrepareCurrent(_ context.Context, dataRoot string) (func(), error) {
 		return nil, err
 	}
 	return func() { unlock(); unlockBinding() }, nil
+}
+
+// PrepareSource validates an actual Requirement pin without consulting global current.
+func PrepareSource(source string) (func(), error) {
+	root, err := workflow.SourceRoot(source)
+	if err != nil {
+		return nil, err
+	}
+	unlock, err := workflow.LockSource(root, false)
+	if err != nil {
+		return nil, err
+	}
+	if IsSnapshotSource(source) {
+		_, err = Read(source)
+	} else {
+		_, err = inspect(source, "")
+	}
+	if err != nil {
+		unlock()
+		return nil, err
+	}
+	return unlock, nil
 }
 
 // Prepare keeps activation serialized until Init has consumed the selected tree.
@@ -288,6 +311,20 @@ func gitFailure(verb string, ctx context.Context, failure error) error {
 	return &gitError{verb: verb, kind: kind, cause: failure}
 }
 
+// InspectBinding verifies resource identity without decoding Workflow configuration.
+func InspectBinding(source string) (Manifest, error) {
+	if err := release.RealPath(source, true); err != nil {
+		return Manifest{}, err
+	}
+	if err := release.RealPath(filepath.Join(source, Category), true); err != nil {
+		return Manifest{}, err
+	}
+	if IsSnapshotSource(source) {
+		return read(source, inspectResources)
+	}
+	return inspectResources(source, "")
+}
+
 func inspect(source, commit string) (Manifest, error) {
 	source, err := filepath.EvalSymlinks(source)
 	if err != nil {
@@ -304,15 +341,27 @@ func inspect(source, commit string) (Manifest, error) {
 	if len(loaded) == 0 {
 		return Manifest{}, fmt.Errorf("configuration contains no Workflow packages")
 	}
-	manifest := Manifest{SchemaVersion: 1, Repository: Repository, Ref: Ref, CommitSHA: commit, WorkflowIDs: []string{}, Files: []File{}}
-	for _, item := range loaded {
-		manifest.WorkflowIDs = append(manifest.WorkflowIDs, item.Ref.ID)
+	return inspectResources(source, commit)
+}
+
+func inspectResources(source, commit string) (Manifest, error) {
+	source, err := filepath.EvalSymlinks(source)
+	if err != nil {
+		return Manifest{}, err
 	}
+	root, err := workflow.SourceRoot(source)
+	if err != nil {
+		return Manifest{}, err
+	}
+	manifest := Manifest{SchemaVersion: 1, Repository: Repository, Ref: Ref, CommitSHA: commit, WorkflowIDs: []string{}, Files: []File{}}
 	err = filepath.WalkDir(root, func(path string, entry fs.DirEntry, failure error) error {
 		if failure != nil {
 			return failure
 		}
 		if entry.IsDir() {
+			if filepath.Dir(path) == root {
+				manifest.WorkflowIDs = append(manifest.WorkflowIDs, entry.Name())
+			}
 			return nil
 		}
 		info, err := entry.Info()
@@ -345,6 +394,10 @@ func inspect(source, commit string) (Manifest, error) {
 
 // Read verifies the stored identity against the complete immutable package tree.
 func Read(source string) (Manifest, error) {
+	return read(source, inspect)
+}
+
+func read(source string, inspectSource func(string, string) (Manifest, error)) (Manifest, error) {
 	info, err := os.Lstat(filepath.Join(source, "configuration.json"))
 	if err != nil {
 		return Manifest{}, err
@@ -361,7 +414,7 @@ func Read(source string) (Manifest, error) {
 		return Manifest{}, err
 	}
 	if recorded.Origin == OriginFornax {
-		return readFornax(source, recorded)
+		return readFornax(source, recorded, inspectSource)
 	}
 	if decoded, err := hex.DecodeString(recorded.CommitSHA); err != nil || len(decoded) != 20 || recorded.CommitSHA != strings.ToLower(recorded.CommitSHA) {
 		return Manifest{}, fmt.Errorf("invalid configuration commit")
@@ -369,7 +422,7 @@ func Read(source string) (Manifest, error) {
 	if filepath.Base(filepath.Clean(source)) != recorded.CommitSHA {
 		return Manifest{}, fmt.Errorf("configuration commit does not match snapshot directory")
 	}
-	actual, err := inspect(source, recorded.CommitSHA)
+	actual, err := inspectSource(source, recorded.CommitSHA)
 	if err != nil {
 		return Manifest{}, err
 	}
@@ -405,15 +458,15 @@ func ReleaseSetDigest(releases []ReleaseRef) string {
 
 // PublishRelease stores an immutable snapshot of a materialized Fornax set.
 func PublishRelease(dataRoot, source string, releases []ReleaseRef) (string, error) {
-	manifest, err := inspectRelease(source, releases)
+	manifest, err := inspectRelease(source, releases, inspect)
 	if err != nil {
 		return "", err
 	}
 	return publish(dataRoot, source, manifest)
 }
 
-func inspectRelease(source string, releases []ReleaseRef) (Manifest, error) {
-	manifest, err := inspect(source, "")
+func inspectRelease(source string, releases []ReleaseRef, inspectSource func(string, string) (Manifest, error)) (Manifest, error) {
+	manifest, err := inspectSource(source, "")
 	if err != nil {
 		return Manifest{}, err
 	}
@@ -440,14 +493,14 @@ func inspectRelease(source string, releases []ReleaseRef) (Manifest, error) {
 	return manifest, nil
 }
 
-func readFornax(source string, recorded Manifest) (Manifest, error) {
+func readFornax(source string, recorded Manifest, inspectSource func(string, string) (Manifest, error)) (Manifest, error) {
 	if recorded.SchemaVersion != 1 || recorded.Repository != "" || recorded.Ref != "" || recorded.CommitSHA != "" {
 		return Manifest{}, fmt.Errorf("invalid Fornax configuration snapshot")
 	}
 	if filepath.Base(filepath.Clean(source)) != recorded.ReleaseSetDigest || recorded.ReleaseSetDigest != ReleaseSetDigest(recorded.Releases) {
 		return Manifest{}, fmt.Errorf("configuration release set does not match snapshot directory")
 	}
-	actual, err := inspectRelease(source, recorded.Releases)
+	actual, err := inspectRelease(source, recorded.Releases, inspectSource)
 	if err != nil {
 		return Manifest{}, err
 	}
