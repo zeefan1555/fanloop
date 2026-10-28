@@ -362,14 +362,32 @@ func atomicWrite(path string, content []byte) error {
 }
 
 func atomicWriteMode(path string, content []byte, mode os.FileMode) error {
-	temporary, err := os.CreateTemp(filepath.Dir(path), ".fanloop-*")
+	return atomicWriteWithTemp(path, content, mode, func() (atomicTempFile, error) {
+		return os.CreateTemp(filepath.Dir(path), ".fanloop-*")
+	})
+}
+
+type atomicTempFile interface {
+	Name() string
+	Chmod(os.FileMode) error
+	Write([]byte) (int, error)
+	Close() error
+}
+
+func atomicWriteWithTemp(path string, content []byte, mode os.FileMode, create func() (atomicTempFile, error)) error {
+	temporary, err := create()
 	if err != nil {
 		return err
 	}
 	temporaryPath := temporary.Name()
 	defer os.Remove(temporaryPath)
-	if err := temporary.Chmod(mode); err == nil {
-		_, err = temporary.Write(content)
+	err = temporary.Chmod(mode)
+	if err == nil {
+		var written int
+		written, err = temporary.Write(content)
+		if err == nil && written != len(content) {
+			err = io.ErrShortWrite
+		}
 	}
 	if closeErr := temporary.Close(); err == nil {
 		err = closeErr

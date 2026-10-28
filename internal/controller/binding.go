@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,7 +21,17 @@ const Journal = ".fanloop/controller-binding.json"
 const Home = "bound-release-home"
 const Pending = "bound-release-home.pending"
 
+var journalTimestampPattern = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$`)
+
 type Binding = storageidl.ControllerBinding
+
+func journalTimestamp(value string) bool {
+	if !journalTimestampPattern.MatchString(value) {
+		return false
+	}
+	_, err := time.Parse(time.RFC3339Nano, value)
+	return err == nil
+}
 
 func Decode(content []byte) (*Binding, error) {
 	decoder := json.NewDecoder(bytes.NewReader(content))
@@ -82,14 +93,14 @@ func Validate(value *Binding) error {
 	if len(parts) != 2 || parts[0] != "releases" || !release.ValidVersion(parts[1]) {
 		return fmt.Errorf("controller release must be releases/<version>")
 	}
-	if _, err := time.Parse(time.RFC3339Nano, value.PreparedAt); err != nil {
+	if !journalTimestamp(value.PreparedAt) {
 		return fmt.Errorf("invalid prepared_at")
 	}
 	if value.Phase == storageidl.ControllerBindingPhase_committed {
 		if value.CommittedAt == nil {
 			return fmt.Errorf("committed binding requires committed_at")
 		}
-		if _, err := time.Parse(time.RFC3339Nano, *value.CommittedAt); err != nil {
+		if !journalTimestamp(*value.CommittedAt) {
 			return fmt.Errorf("invalid committed_at")
 		}
 	} else if value.CommittedAt != nil {

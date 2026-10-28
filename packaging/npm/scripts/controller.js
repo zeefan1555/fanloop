@@ -20,17 +20,34 @@ function exists(value) {
 }
 function timestamp(value) {
   if (typeof value !== 'string') return false;
-  const fields = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.exec(value);
-  if (!fields || !Number.isFinite(Date.parse(value))) return false;
-  const [year, month, day, hour, minute, second] = fields.slice(1).map(Number);
+  const fields = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.\d+)?(?:Z|[+-](\d\d):(\d\d))$/.exec(value);
+  if (!fields || fields[0] !== value) return false;
+  const [year, month, day, hour, minute, second] = fields.slice(1, 7).map(Number);
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour < 24 && minute < 60 && second < 60;
+  return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour < 24 && minute < 60 && second < 60 && (fields[7] === undefined || Number(fields[7]) < 24 && Number(fields[8]) < 60);
+}
+function validateSchemaTokens(content) {
+  let depth = 0;
+  let previous;
+  let key;
+  for (const [token] of content.matchAll(/"(?:[^"\\]|\\.)*"|[{}\[\]:,]|[^\s"{}\[\]:,]+/g)) {
+    if (depth === 1) {
+      if (previous === ':' && key === 'schema_version' && token !== 'null') {
+        if (!/^-?\d+$/.test(token) || Number(token) < -2147483648 || Number(token) > 2147483647) throw new Error('controller journal schema_version must be an i32 integer or null');
+      }
+      if ((previous === '{' || previous === ',') && token[0] === '"') key = JSON.parse(token);
+    }
+    if (token === '{' || token === '[') depth++;
+    else if (token === '}' || token === ']') depth--;
+    previous = token;
+  }
 }
 function decode(content) {
   const value = JSON.parse(content);
   const fields = ['schema_version','transaction_id','phase','configuration_mode','source_release_path','controller_release_path','release_manifest_sha256','binary_sha256','previous_configuration_pin','configuration_pin','configuration_manifest_sha256','prepared_at','committed_at','operation','configuration_source_path','previous_binding_transaction_id','protected_files_sha256','release_resources_sha256'];
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !fields.includes(key))) throw new Error('invalid controller journal fields');
+  validateSchemaTokens(content);
   const optional = ['configuration_manifest_sha256','committed_at','previous_binding_transaction_id','protected_files_sha256'];
   for (const key of fields.filter(key => key !== 'schema_version')) {
     if (!(key in value) && optional.includes(key)) continue;

@@ -87,6 +87,39 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	}
 }
 
+func TestInstalledWorkflowComparisonDetectsSourceDrift(t *testing.T) {
+	fixture := makeReleaseFixture(t, repositoryRoot(t), "1.2.3", "1.2.3")
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+	result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot)
+	if result.err != nil {
+		t.Fatalf("install comparison fixture: %v\n%s", result.err, result.stderr)
+	}
+	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture)
+	snapshot, err := filepath.EvalSymlinks(filepath.Join(dataRoot, "config", "current"))
+	if err != nil || snapshot == fixture.ConfigSource {
+		t.Fatalf("comparison needs distinct snapshot/source roots: %q %q %v", snapshot, fixture.ConfigSource, err)
+	}
+	installedRoot := filepath.Join(snapshot, "fanloop-workflow")
+	sourceRoot := filepath.Join(fixture.ConfigSource, "fanloop-workflow")
+	before := fixtureDirectoryDigest(t, installedRoot)
+	file := filepath.Join(sourceRoot, "sample-custom", "workflow.yaml")
+	content, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, append(content, []byte("\n# comparison negative control\n")...), 0600); err != nil {
+		t.Fatal(err)
+	}
+	afterSource := fixtureDirectoryDigest(t, sourceRoot)
+	if afterSource == before || fixtureDirectoryDigest(t, installedRoot) != before {
+		t.Fatal("negative control did not change only the independent source")
+	}
+	t.Logf("installed=%s digest=%s source=%s digest=%s", installedRoot, before, sourceRoot, afterSource)
+	if installedWorkflowMatchesFixture(t, dataRoot, fixture) {
+		t.Fatal("installed Workflow comparison accepted different source bytes")
+	}
+}
+
 func TestLocalInstallerBootstrapsWithoutConfiguration(t *testing.T) {
 	fixture := makeReleaseFixture(t, repositoryRoot(t), "1.2.3", "1.2.3")
 	fixture.ConfigSource = ""
@@ -767,20 +800,10 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
 		assertSkillLink(t, dataRoot, root)
 	}
-	binding, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	identity, sourceErr := configuration.Read(binding)
-	if err != nil || sourceErr != nil || identity.CommitSHA == "" {
-		t.Fatalf("snapshot binding %q: %v %v", binding, err, sourceErr)
-	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "current", "workflows")); !os.IsNotExist(err) {
 		t.Fatalf("install created a configuration copy: %v", err)
 	}
-	liveRoot := filepath.Join(fixture.ConfigSource, "fanloop-workflow")
-	info, err := os.Lstat(liveRoot)
-	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		t.Fatalf("live Workflow root is not a real directory: %#v, %v", info, err)
-	}
-	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "fanloop-workflow")) {
+	if !installedWorkflowMatchesFixture(t, dataRoot, fixture) {
 		t.Fatal("first install did not seed the source Workflow tree byte-for-byte")
 	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "releases", version, "skills")); !os.IsNotExist(err) {
@@ -800,6 +823,40 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 			}
 		}
 	}
+}
+
+func installedWorkflowMatchesFixture(t *testing.T, dataRoot string, fixture releaseFixture) bool {
+	t.Helper()
+	current := filepath.Join(dataRoot, "config", "current")
+	if info, err := os.Lstat(current); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("configuration current is not a link: %v %v", info, err)
+	}
+	binding, err := filepath.EvalSymlinks(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshots, err := filepath.EvalSymlinks(filepath.Join(dataRoot, "config", "snapshots"))
+	if err != nil || filepath.Dir(binding) != snapshots {
+		t.Fatalf("configuration current escapes installed snapshots: %q %v", binding, err)
+	}
+	identity, sourceErr := configuration.Read(binding)
+	if sourceErr != nil || identity.CommitSHA == "" {
+		t.Fatalf("snapshot binding %q: %v", binding, sourceErr)
+	}
+	installedRoot := filepath.Join(binding, configuration.Category)
+	sourcePath := filepath.Join(fixture.ConfigSource, configuration.Category)
+	if info, err := os.Lstat(sourcePath); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("source Workflow root is not a real directory: %#v, %v", info, err)
+	}
+	sourceRoot, err := filepath.EvalSymlinks(sourcePath)
+	if err != nil || installedRoot == sourceRoot {
+		t.Fatalf("installed/source Workflow roots are not distinct: %q %q %v", installedRoot, sourceRoot, err)
+	}
+	info, err := os.Lstat(installedRoot)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("installed Workflow root is not a real directory: %#v, %v", info, err)
+	}
+	return fixtureDirectoryDigest(t, installedRoot) == fixtureDirectoryDigest(t, sourceRoot)
 }
 
 func assertCurrent(t *testing.T, dataRoot, want string) {

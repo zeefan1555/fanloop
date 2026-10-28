@@ -55,3 +55,15 @@ test('controller journal rejects the shared wrong JSON types', () => {
     }
   }
 });
+
+test('controller journal preserves shared raw schema tokens', async t => {
+  const fixture = JSON.parse(fs.readFileSync(path.join(__dirname,'../../internal/controller/testdata/journal-types.json'),'utf8'));
+  const base = JSON.stringify(fixture.binding);
+  for (const example of fixture.raw_schema_members) {
+    await t.test(example.name, () => {
+      const content = base.replace('"schema_version":1', example.raw);
+      if (example.valid) assert.doesNotThrow(() => controller.decode(content));
+      else assert.throws(() => controller.decode(content));
+    });
+  }
+});
