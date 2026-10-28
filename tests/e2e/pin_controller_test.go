@@ -5,66 +5,69 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/controller"
+	"github.com/zeefan1555/fanloop/internal/testfixture"
 )
 
-func TestPinControllerCleansOnlyFailedNewHome(t *testing.T) {
-	repository := repositoryRoot(t)
-	script := filepath.Join(repository, "scripts", "pin-controller-release.sh")
-	production, err := os.ReadFile(script)
-	if err != nil {
+func TestPinControllerFailurePreservesFactsAndUnknownHome(t *testing.T) {
+	source := t.TempDir()
+	if err := testfixture.BuildRelease(source, "test"); err != nil {
 		t.Fatal(err)
 	}
-	fixture, err := os.ReadFile(filepath.Join(repository, "tests", "e2e", "testdata", "pin-controller-release.sh"))
-	if err != nil || !bytes.Equal(production, fixture) {
-		t.Fatalf("controller test asset differs: %v", err)
-	}
-	home := t.TempDir()
-	root, source, data := filepath.Join(home, "requirement"), filepath.Join(home, "source"), filepath.Join(home, "data")
-	for _, dir := range []string{filepath.Join(root, ".fanloop", "flow"), filepath.Join(source, "skills"), filepath.Join(data, "current", "release", "bin")} {
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := os.WriteFile(filepath.Join(root, ".fanloop", "flow", "state.json"), []byte("{}"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	stub := "#!/bin/sh\nif [ \"$1\" = __install ]; then echo deliberate-install-failure >&2; exit 1; fi\nexit 0\n"
-	if err := os.WriteFile(filepath.Join(data, "current", "release", "bin", "fanloop"), []byte(stub), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Join(data, "config"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(source, filepath.Join(data, "config", "current")); err != nil {
-		t.Fatal(err)
-	}
-	command := exec.Command("/bin/bash", script, root)
-	command.Env = append(withoutBotmuxBinding(os.Environ()), "HOME="+home, "FANLOOP_DATA_HOME="+data)
-	var output bytes.Buffer
-	command.Stdout, command.Stderr = &output, &output
-	controller := filepath.Join(root, "bound-release-home")
-	err = command.Run()
-	if err == nil || !strings.Contains(output.String(), "deliberate-install-failure") {
-		t.Fatalf("unexpected pin failure: %v %s", err, output.String())
-	}
-	if _, err := os.Lstat(controller); !os.IsNotExist(err) {
-		t.Fatalf("failed new home retained: %v", err)
-	}
-	if err := os.Mkdir(controller, 0700); err != nil {
-		t.Fatal(err)
-	}
-	marker := filepath.Join(controller, "user-owned")
-	if err := os.WriteFile(marker, []byte("keep"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	retry := exec.Command("/bin/bash", script, root)
-	retry.Env = command.Env
-	if output, err := retry.CombinedOutput(); err == nil || !strings.Contains(string(output), "existing pinned controller is invalid") {
-		t.Fatalf("existing invalid controller accepted: %v\n%s", err, output)
-	}
-	if content, err := os.ReadFile(marker); err != nil || string(content) != "keep" {
-		t.Fatalf("existing controller was changed: %q, %v", content, err)
+	config := makeSyntheticConfigSource(t, repositoryRoot(t), "sample-custom")
+	for _, unknownHome := range []bool{false, true} {
+		t.Run(map[bool]string{false: "missing-release", true: "unknown-home"}[unknownHome], func(t *testing.T) {
+			root := t.TempDir()
+			before := map[string][]byte{
+				".fanloop/flow/state.json":        []byte("{}\n"),
+				".fanloop/output/state.json":      []byte("{}\n"),
+				".fanloop/trace/events.jsonl":     []byte("{}\n"),
+				".fanloop/configuration-snapshot": []byte(config + "\n"),
+			}
+			if unknownHome {
+				before[filepath.Join(controller.Home, "user-owned")] = []byte("preserve me\n")
+			}
+			for relative, content := range before {
+				path := filepath.Join(root, relative)
+				if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, content, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			controllerRelease := source
+			if !unknownHome {
+				controllerRelease = filepath.Join(source, "missing-release")
+			}
+			command := exec.Command("/bin/bash", filepath.Join(repositoryRoot(t), "scripts", "pin-controller-release.sh"), root)
+			command.Env = append(withoutBotmuxBinding(os.Environ()),
+				"FANLOOP_PROTECT_BINARY="+filepath.Join(source, "bin", "fanloop"),
+				"FANLOOP_CONTROLLER_RELEASE="+controllerRelease,
+				"FANLOOP_DATA_HOME="+t.TempDir(), "FANLOOP_NO_AUTO_UPDATE=1", "FANLOOP_NO_AUTO_CONFIG=1")
+			var stdout, stderr bytes.Buffer
+			command.Stdout, command.Stderr = &stdout, &stderr
+			failure, ok := command.Run().(*exec.ExitError)
+			if !ok || failure.ExitCode() != 5 || stdout.Len() != 0 || stderr.Len() == 0 {
+				t.Fatalf("protect failure: %v\n%s\n%s", failure, stdout.String(), stderr.String())
+			}
+			for relative, expected := range before {
+				if content, err := os.ReadFile(filepath.Join(root, relative)); err != nil || !bytes.Equal(content, expected) {
+					t.Fatalf("failed protect changed %s: %v\n%s", relative, err, content)
+				}
+			}
+			for _, relative := range []string{controller.Journal, controller.Pending} {
+				if _, err := os.Lstat(filepath.Join(root, relative)); !os.IsNotExist(err) {
+					t.Fatalf("failed protect created %s: %v", relative, err)
+				}
+			}
+			if !unknownHome {
+				if _, err := os.Lstat(filepath.Join(root, controller.Home)); !os.IsNotExist(err) {
+					t.Fatalf("failed protect created controller: %v", err)
+				}
+			}
+		})
 	}
 }

@@ -23,9 +23,10 @@ func TestRuntimeStartAndJumpControls(t *testing.T) {
 	root := t.TempDir()
 	nextID := 0
 	runtime := Runtime{
-		Clock:          func() time.Time { return time.Date(2026, 9, 17, 0, 0, nextID, 0, time.UTC) },
-		EventID:        func() string { nextID++; return "event-" + string(rune('0'+nextID)) },
-		ReleaseVersion: "test",
+		Clock:             func() time.Time { return time.Date(2026, 9, 17, 0, 0, nextID, 0, time.UTC) },
+		EventID:           func() string { nextID++; return "event-" + string(rune('0'+nextID)) },
+		ControllerRelease: testControllerRelease,
+		ReleaseVersion:    "test",
 	}
 	initialized, err := runtime.Init(context.Background(), root, &flowidl.FlowInitRequest{Workflow: "runtime-controls", Requirement: &flowidl.Requirement{Title: "controls"}}, false)
 	if err != nil {

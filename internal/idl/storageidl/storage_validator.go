@@ -21,6 +21,93 @@ var (
 	_ = time.Nanosecond
 )
 
+func (p *ControllerBinding) IsValid() error {
+	if p.SchemaVersion != int32(1) {
+		return fmt.Errorf("field SchemaVersion not match const value, current value: %v", p.SchemaVersion)
+	}
+	_src := "^[0-9a-f]{32}$"
+	if ok, _ := regexp.MatchString(_src, p.TransactionId); !ok {
+		return fmt.Errorf("field TransactionId pattern rule failed, current value: %v", p.TransactionId)
+	}
+	if p.Phase.String() == "<UNSET>" {
+		return fmt.Errorf("field Phase defined_only rule failed")
+	}
+	_src1 := []ControllerBindingPhase{ControllerBindingPhase_unspecified}
+	for _, src := range _src1 {
+		if p.Phase == src {
+			return fmt.Errorf("field Phase not_in rule failed, current value: %v", p.Phase)
+		}
+	}
+	if p.ConfigurationMode.String() == "<UNSET>" {
+		return fmt.Errorf("field ConfigurationMode defined_only rule failed")
+	}
+	_src2 := []ControllerConfigurationMode{ControllerConfigurationMode_unspecified}
+	for _, src := range _src2 {
+		if p.ConfigurationMode == src {
+			return fmt.Errorf("field ConfigurationMode not_in rule failed, current value: %v", p.ConfigurationMode)
+		}
+	}
+	if len(p.SourceReleasePath) < int(1) {
+		return fmt.Errorf("field SourceReleasePath min_len rule failed, current value: %d", len(p.SourceReleasePath))
+	}
+	if len(p.ControllerReleasePath) < int(1) {
+		return fmt.Errorf("field ControllerReleasePath min_len rule failed, current value: %d", len(p.ControllerReleasePath))
+	}
+	_src3 := "^sha256:[0-9a-f]{64}$"
+	if ok, _ := regexp.MatchString(_src3, p.ReleaseManifestSha256); !ok {
+		return fmt.Errorf("field ReleaseManifestSha256 pattern rule failed, current value: %v", p.ReleaseManifestSha256)
+	}
+	_src4 := "^sha256:[0-9a-f]{64}$"
+	if ok, _ := regexp.MatchString(_src4, p.BinarySha256); !ok {
+		return fmt.Errorf("field BinarySha256 pattern rule failed, current value: %v", p.BinarySha256)
+	}
+	if len(p.ConfigurationPin) < int(1) {
+		return fmt.Errorf("field ConfigurationPin min_len rule failed, current value: %d", len(p.ConfigurationPin))
+	}
+	if p.ConfigurationManifestSha256 != nil {
+		_src5 := "^sha256:[0-9a-f]{64}$"
+		if ok, _ := regexp.MatchString(_src5, *p.ConfigurationManifestSha256); !ok {
+			return fmt.Errorf("field ConfigurationManifestSha256 pattern rule failed, current value: %v", *p.ConfigurationManifestSha256)
+		}
+	}
+	if len(p.PreparedAt) < int(1) {
+		return fmt.Errorf("field PreparedAt min_len rule failed, current value: %d", len(p.PreparedAt))
+	}
+	if p.CommittedAt != nil {
+		if len(*p.CommittedAt) < int(1) {
+			return fmt.Errorf("field CommittedAt min_len rule failed, current value: %d", len(*p.CommittedAt))
+		}
+	}
+	if p.Operation.String() == "<UNSET>" {
+		return fmt.Errorf("field Operation defined_only rule failed")
+	}
+	_src6 := []ControllerBindingOperation{ControllerBindingOperation_unspecified}
+	for _, src := range _src6 {
+		if p.Operation == src {
+			return fmt.Errorf("field Operation not_in rule failed, current value: %v", p.Operation)
+		}
+	}
+	if len(p.ConfigurationSourcePath) < int(1) {
+		return fmt.Errorf("field ConfigurationSourcePath min_len rule failed, current value: %d", len(p.ConfigurationSourcePath))
+	}
+	if p.PreviousBindingTransactionId != nil {
+		_src7 := "^[0-9a-f]{32}$"
+		if ok, _ := regexp.MatchString(_src7, *p.PreviousBindingTransactionId); !ok {
+			return fmt.Errorf("field PreviousBindingTransactionId pattern rule failed, current value: %v", *p.PreviousBindingTransactionId)
+		}
+	}
+	if p.ProtectedFilesSha256 != nil {
+		_src8 := "^sha256:[0-9a-f]{64}$"
+		if ok, _ := regexp.MatchString(_src8, *p.ProtectedFilesSha256); !ok {
+			return fmt.Errorf("field ProtectedFilesSha256 pattern rule failed, current value: %v", *p.ProtectedFilesSha256)
+		}
+	}
+	_src9 := "^sha256:[0-9a-f]{64}$"
+	if ok, _ := regexp.MatchString(_src9, p.ReleaseResourcesSha256); !ok {
+		return fmt.Errorf("field ReleaseResourcesSha256 pattern rule failed, current value: %v", p.ReleaseResourcesSha256)
+	}
+	return nil
+}
 func (p *CLIExecutionLogEntry) IsValid() error {
 	if p.SchemaVersion < int32(1) {
 		return fmt.Errorf("field SchemaVersion ge rule failed, current value: %v", p.SchemaVersion)

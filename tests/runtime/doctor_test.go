@@ -26,7 +26,7 @@ func TestDoctorValidatesConditionRoutingRequirementFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	unhealthy := run(binary, "doctor", "--root", root)
-	if unhealthy.exitCode != 1 || unhealthy.stderr != "" || !strings.Contains(unhealthy.stdout, `"status": "unhealthy"`) || !strings.Contains(unhealthy.stdout, `Output \"forged\"`) {
+	if unhealthy.exitCode != 1 || strings.TrimPrefix(unhealthy.stderr, authorLiveNotice) != "" || !strings.Contains(unhealthy.stdout, `"status": "unhealthy"`) || !strings.Contains(unhealthy.stdout, `Output \"forged\"`) {
 		t.Fatalf("doctor did not detect Output drift: %s", unhealthy.stdout)
 	}
 }
@@ -39,7 +39,7 @@ func TestDoctorChecksCardIndependentlyWhenTraceIsCorrupt(t *testing.T) {
 	}
 
 	unhealthy := run(binary, "doctor", "--root", root)
-	if unhealthy.exitCode != 1 || unhealthy.stderr != "" || !strings.Contains(unhealthy.stdout, `"status": "unhealthy"`) {
+	if unhealthy.exitCode != 1 || strings.TrimPrefix(unhealthy.stderr, authorLiveNotice) != "" || !strings.Contains(unhealthy.stdout, `"status": "unhealthy"`) {
 		t.Fatalf("doctor did not report corrupt Trace: %s", unhealthy.stdout)
 	}
 	for _, want := range []string{

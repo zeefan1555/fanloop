@@ -21,7 +21,10 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/zeefan1555/fanloop/internal/controller"
 	"github.com/zeefan1555/fanloop/internal/idl"
+	"github.com/zeefan1555/fanloop/internal/release"
+	"github.com/zeefan1555/fanloop/internal/testfixture"
 )
 
 var updateContracts = flag.Bool("update-contracts", false, "replace reviewed contract goldens")
@@ -82,11 +85,9 @@ func TestPublicContracts(t *testing.T) {
 	t.Cleanup(func() { syscall.Umask(previousUmask) })
 
 	repo := repositoryRoot(t)
-	binary := filepath.Join(t.TempDir(), "fanloop")
-	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
-	build.Dir = repo
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build fanloop: %v\n%s", err, output)
+	releaseRoot := t.TempDir()
+	if err := testfixture.BuildRelease(releaseRoot, "dev"); err != nil {
+		t.Fatal(err)
 	}
 	paths, err := filepath.Glob(filepath.Join(repo, "tests", "contracts", "testdata", "*", "*", "case.json"))
 	if err != nil {
@@ -105,7 +106,7 @@ func TestPublicContracts(t *testing.T) {
 			}
 		}
 		t.Run(value.ID, func(t *testing.T) {
-			got := runCase(t, binary, path, value)
+			got := runCase(t, releaseRoot, path, value)
 			for index, command := range value.Commands {
 				if id := contractCommandID(command.Args); id != "" {
 					assertCatalogedError(t, id, got.Commands[index])
@@ -133,6 +134,8 @@ func TestPublicContracts(t *testing.T) {
 func assertCatalogedError(t *testing.T, commandID string, result commandResult) {
 	t.Helper()
 	for _, content := range []string{result.Stdout, result.Stderr} {
+		content = strings.TrimPrefix(content, "fanloop: author/live configuration remains editable; use explicit protect to freeze it\n")
+		content = strings.TrimPrefix(content, "warning: author/live configuration remains editable; explicit protect freezes it\n")
 		var value struct {
 			Error *struct {
 				Code string `json:"code"`
@@ -196,6 +199,14 @@ func TestNormalizeTextNormalizesExecutionLogFields(t *testing.T) {
 	}
 }
 
+func TestNormalizeTextNormalizesControllerTransactionOnly(t *testing.T) {
+	got := normalizeText(fmt.Sprintf(`{"transaction_id":%q,"binary_sha256":"sha256:unchanged","configuration_manifest_sha256":"sha256:unchanged"}`, strings.Repeat("a", 32)), "/unused")
+	want := `{"transaction_id":"<TRANSACTION_ID>","binary_sha256":"sha256:unchanged","configuration_manifest_sha256":"sha256:unchanged"}`
+	if got != want {
+		t.Fatalf("normalized text = %q, want %q", got, want)
+	}
+}
+
 func TestNormalizeTextNormalizesSourceSkillPaths(t *testing.T) {
 	want := "<SKILL_ROOT>/skills/techdesign/SKILL.md"
 	if got := normalizeText(filepath.Join(repositoryRoot(t), "skills", "techdesign", "SKILL.md"), "/unused"); got != want {
@@ -250,9 +261,24 @@ func TestMergeEnvironmentScrubsBotmuxBindingByDefault(t *testing.T) {
 	}
 }
 
-func runCase(t *testing.T, binary, casePath string, value contractCase) contractResult {
+func runCase(t *testing.T, releaseRoot, casePath string, value contractCase) contractResult {
 	t.Helper()
 	root := t.TempDir()
+	dataRoot := filepath.Join(root, ".fanloop-user")
+	controllerRelease := filepath.Join(dataRoot, "release")
+	copyTree(t, releaseRoot, controllerRelease)
+	roots := controller.SkillRoots(dataRoot)
+	installArgs := []string{"__install", "--source", controllerRelease, "--data-root", dataRoot}
+	for index, name := range []string{"codex", "agent", "trae", "claude"} {
+		installArgs = append(installArgs, "--"+name+"-skills-root", roots.Values()[index])
+	}
+	install := exec.Command(filepath.Join(controllerRelease, "bin", "fanloop"), installArgs...)
+	install.Env = mergeEnvironment(root)
+	if output, err := install.CombinedOutput(); err != nil {
+		t.Fatalf("install isolated test Release: %v\n%s", err, output)
+	}
+	controllerRelease = filepath.Join(dataRoot, "releases", "dev")
+	binary := filepath.Join(controllerRelease, "bin", "fanloop")
 	workflowRoot := filepath.Join(root, ".fanloop-user", "source", "fanloop-workflow")
 	for _, id := range []string{"linear-runtime", "runtime-controls"} {
 		copyTree(t, filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", id), filepath.Join(workflowRoot, id))
@@ -288,7 +314,7 @@ func runCase(t *testing.T, binary, casePath string, value contractCase) contract
 			Stderr:   normalizeText(stderr.String(), root),
 		}
 		results = append(results, result)
-		files = snapshot(t, root)
+		files = snapshot(t, root, controllerRelease)
 		if err := detectPrivateLeak(privateFiles, result, files); err != nil {
 			t.Fatalf("command %d: %v", index, err)
 		}
@@ -421,8 +447,40 @@ func loadPrivateFiles(t *testing.T, root string, paths []string) map[string]stri
 	return result
 }
 
-func snapshot(t *testing.T, root string) map[string]fileResult {
+func snapshot(t *testing.T, root, controllerRelease string) map[string]fileResult {
 	t.Helper()
+	binary, err := os.ReadFile(filepath.Join(controllerRelease, "bin", "fanloop"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := os.ReadFile(filepath.Join(controllerRelease, "release.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifestIdentity, err := release.LoadBound(controllerRelease)
+	if err != nil {
+		t.Fatal(err)
+	}
+	directory, modes, err := release.StrictDirectoryIdentity(controllerRelease)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resourcesDigest := release.ControllerResourcesDigest(directory, modes)
+	bound := filepath.Join(root, controller.Home, "releases", manifestIdentity.ReleaseVersion)
+	if _, err := os.Lstat(bound); err == nil {
+		boundDirectory, boundModes, err := release.StrictDirectoryIdentity(bound)
+		if err != nil || release.ControllerResourcesDigest(boundDirectory, boundModes) != resourcesDigest {
+			t.Fatalf("controller resources differ from the exact test Release: %v", err)
+		}
+	} else if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	binaryDigest, manifestDigest := sha256.Sum256(binary), sha256.Sum256(manifest)
+	digests := strings.NewReplacer(
+		"sha256:"+hex.EncodeToString(binaryDigest[:]), "<BINARY_SHA256>",
+		"sha256:"+hex.EncodeToString(manifestDigest[:]), "<RELEASE_MANIFEST_SHA256>",
+		resourcesDigest, "<RELEASE_RESOURCES_SHA256>",
+	)
 	result := map[string]fileResult{}
 	if err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -442,9 +500,18 @@ func snapshot(t *testing.T, root string) map[string]fileResult {
 		if err != nil {
 			return err
 		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
+		var content []byte
+		if info.Mode()&fs.ModeSymlink != 0 {
+			target, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			content = []byte("symlink: " + target + "\n")
+		} else {
+			content, err = os.ReadFile(path)
+			if err != nil {
+				return err
+			}
 		}
 		// trace sync writes the two targets concurrently (internal/trace/sync.go),
 		// so the shared fake lark-cli log interleaves non-deterministically. Assert
@@ -454,16 +521,135 @@ func snapshot(t *testing.T, root string) map[string]fileResult {
 			sort.Strings(lines)
 			content = []byte(strings.Join(lines, "\n") + "\n")
 		}
-		normalized := normalizeText(string(content), root)
+		if filepath.ToSlash(relative) == "bound-release-home/releases/dev/bin/fanloop" {
+			if !bytes.Equal(content, binary) {
+				t.Fatalf("controller binary differs from the exact test Release")
+			}
+			content = []byte("<CONTROLLER_BINARY>\n")
+		}
+		normalized := digests.Replace(normalizeText(string(content), root))
 		digest := sha256.Sum256([]byte(normalized))
 		result[normalizePath(filepath.ToSlash(relative))] = fileResult{
-			Mode: fmt.Sprintf("%04o", info.Mode().Perm()), SHA256: hex.EncodeToString(digest[:]), Content: normalized,
+			Mode: snapshotFileMode(info.Mode()), SHA256: hex.EncodeToString(digest[:]), Content: normalized,
 		}
 		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
 	return result
+}
+
+func snapshotFileMode(mode fs.FileMode) string {
+	if mode&fs.ModeSymlink != 0 {
+		return "symlink"
+	}
+	return fmt.Sprintf("%04o", mode.Perm())
+}
+
+func TestSnapshotPreservesSymlinkTypeTargetsAndFileModes(t *testing.T) {
+	for _, test := range []struct {
+		mode fs.FileMode
+		want string
+	}{
+		{fs.ModeSymlink | 0o755, "symlink"},
+		{fs.ModeSymlink | 0o777, "symlink"},
+		{0o640, "0640"},
+		{0o755, "0755"},
+	} {
+		if got := snapshotFileMode(test.mode); got != test.want {
+			t.Errorf("snapshotFileMode(%v) = %q, want %q", test.mode, got, test.want)
+		}
+	}
+
+	releaseRoot := t.TempDir()
+	if err := testfixture.BuildRelease(releaseRoot, "dev"); err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	target := filepath.Join(root, "target")
+	if err := os.WriteFile(target, []byte("fixture\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(target, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	for name, target := range map[string]string{"link": "target", "other-link": "./target"} {
+		if err := os.Symlink(target, filepath.Join(root, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	before := snapshot(t, root, releaseRoot)
+	for name, target := range map[string]string{"link": "target", "other-link": "./target"} {
+		wantContent := "symlink: " + target + "\n"
+		wantDigest := sha256.Sum256([]byte(wantContent))
+		if got := before[name]; got.Mode != "symlink" || got.Content != wantContent || got.SHA256 != hex.EncodeToString(wantDigest[:]) {
+			t.Fatalf("symlink type or literal target lost: %s: %+v", name, got)
+		}
+	}
+	if before["target"].Mode != "0640" {
+		t.Fatalf("ordinary file mode changed: %+v", before["target"])
+	}
+	if err := os.Chmod(target, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	after := snapshot(t, root, releaseRoot)
+	if after["target"].Mode != "0600" || before["target"].Content != after["target"].Content || before["target"].SHA256 != after["target"].SHA256 {
+		t.Fatalf("ordinary file permission difference lost: before=%+v after=%+v", before["target"], after["target"])
+	}
+	for _, name := range []string{"link", "other-link"} {
+		if before[name] != after[name] {
+			t.Fatalf("symlink snapshot followed target permissions: %s", name)
+		}
+	}
+}
+
+func TestSnapshotNormalizesOnlyExactControllerDigests(t *testing.T) {
+	releaseRoot := t.TempDir()
+	if err := testfixture.BuildRelease(releaseRoot, "dev"); err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	source := filepath.Join(root, ".fanloop-user", "source", "fanloop-workflow", "linear-runtime")
+	if err := os.CopyFS(source, os.DirFS(filepath.Join(repositoryRoot(t), "internal", "workflow", "testdata", "linear-runtime"))); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(filepath.Join(releaseRoot, "bin", "fanloop"), "flow", "init", "--root", root, "--workflow", "linear-runtime", "--title", "Exact resource normalization")
+	command.Env = mergeEnvironment(root, map[string]string{"FANLOOP_NO_AUTO_CONFIG": "1", "FANLOOP_NO_AUTO_UPDATE": "1"})
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("real controller initialization: %v\n%s", err, output)
+	}
+	before := snapshot(t, root, releaseRoot)
+	journal := before[controller.Journal]
+	for _, placeholder := range []string{"<BINARY_SHA256>", "<RELEASE_MANIFEST_SHA256>", "<RELEASE_RESOURCES_SHA256>"} {
+		if !strings.Contains(journal.Content, placeholder) {
+			t.Fatalf("exact test Release digest is not normalized: %s", journal.Content)
+		}
+	}
+	if before["bound-release-home/releases/dev/bin/fanloop"].Content != "<CONTROLLER_BINARY>\n" {
+		t.Fatal("exact binary bytes were not normalized")
+	}
+	binding, err := controller.Read(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknown := sha256.Sum256([]byte("unknown controller resources"))
+	binding.ReleaseResourcesSha256 = "sha256:" + hex.EncodeToString(unknown[:])
+	content, err := controller.Encode(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, controller.Journal), content, 0600); err != nil {
+		t.Fatal(err)
+	}
+	after := snapshot(t, root, releaseRoot)
+	if !strings.Contains(after[controller.Journal].Content, binding.ReleaseResourcesSha256) || before[controller.Journal] == after[controller.Journal] {
+		t.Fatal("unknown resource digest was hidden by normalization")
+	}
+	for file, original := range before {
+		if file != controller.Journal && after[file] != original {
+			t.Fatalf("digest normalization changed unrelated file %s", file)
+		}
+	}
 }
 
 func mergeEnvironment(root string, groups ...map[string]string) []string {
@@ -476,6 +662,9 @@ func mergeEnvironment(root string, groups ...map[string]string) []string {
 	delete(values, "BOTMUX_SESSION_ID")
 	values["FANLOOP_DATA_HOME"] = filepath.Join(root, ".fanloop-user")
 	values["FANLOOP_CONFIG_SOURCE"] = filepath.Join(root, ".fanloop-user", "source")
+	for index, key := range []string{"FANLOOP_CODEX_SKILLS_ROOT", "FANLOOP_AGENT_SKILLS_ROOT", "FANLOOP_TRAE_SKILLS_ROOT", "FANLOOP_CLAUDE_SKILLS_ROOT"} {
+		values[key] = controller.SkillRoots(values["FANLOOP_DATA_HOME"]).Values()[index]
+	}
 	values["FANLOOP_PYTHON"] = filepath.Join(root, "missing-python")
 	for _, group := range groups {
 		for key, value := range group {
@@ -516,11 +705,12 @@ var (
 	eventIDTextPattern = regexp.MustCompile(
 		`(\b(?:event_id|last_event_id|caused_by_event_id)=)(?:(?:legacy-)?[0-9a-f]{24}|evt_[0-9a-f]{24}|[0-9a-f]{32})\b`,
 	)
-	invocationIDFieldPattern = regexp.MustCompile(`("invocation_id"\s*:\s*")[^"]+(")`)
-	durationMSFieldPattern   = regexp.MustCompile(`("duration_ms"\s*:\s*)[0-9]+`)
-	nativeEventIDPattern     = regexp.MustCompile("(`)(?:evt_[0-9a-f]{24}|[0-9a-f]{32})(`)")
-	nativeCardPattern        = regexp.MustCompile(`\b(?:evt_[0-9a-f]{24}|[0-9a-f]{32})\.json\b`)
-	cardPattern              = regexp.MustCompile(`\b[0-9]{8}T[0-9]{6}\.[0-9]{6}[+-][0-9]{4}(?:-[0-9]+)?\.json\b`)
+	invocationIDFieldPattern  = regexp.MustCompile(`("invocation_id"\s*:\s*")[^"]+(")`)
+	transactionIDFieldPattern = regexp.MustCompile(`("transaction_id"\s*:\s*")[0-9a-f]{32}(")`)
+	durationMSFieldPattern    = regexp.MustCompile(`("duration_ms"\s*:\s*)[0-9]+`)
+	nativeEventIDPattern      = regexp.MustCompile("(`)(?:evt_[0-9a-f]{24}|[0-9a-f]{32})(`)")
+	nativeCardPattern         = regexp.MustCompile(`\b(?:evt_[0-9a-f]{24}|[0-9a-f]{32})\.json\b`)
+	cardPattern               = regexp.MustCompile(`\b[0-9]{8}T[0-9]{6}\.[0-9]{6}[+-][0-9]{4}(?:-[0-9]+)?\.json\b`)
 )
 
 func normalizeText(value, root string) string {
@@ -543,6 +733,7 @@ func normalizeText(value, root string) string {
 	value = escapedEventIDFieldPattern.ReplaceAllString(value, `${1}<EVENT_ID>${2}`)
 	value = eventIDTextPattern.ReplaceAllString(value, `${1}<EVENT_ID>`)
 	value = invocationIDFieldPattern.ReplaceAllString(value, `${1}<INVOCATION_ID>${2}`)
+	value = transactionIDFieldPattern.ReplaceAllString(value, `${1}<TRANSACTION_ID>${2}`)
 	value = durationMSFieldPattern.ReplaceAllString(value, `${1}0`)
 	value = nativeEventIDPattern.ReplaceAllString(value, `${1}<EVENT_ID>${2}`)
 	value = nativeCardPattern.ReplaceAllString(value, `<EVENT_ID>.json`)

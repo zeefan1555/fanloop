@@ -36,7 +36,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(fake, "lark-cli"), []byte("#!/bin/sh\nexit 1\n"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	environment := append(withoutEnvironment(os.Environ(), "FANLOOP_CONFIG_SOURCE", "FANLOOP_DATA_HOME", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_KEY_1", "GIT_CONFIG_VALUE_1", "PATH"), "FANLOOP_DATA_HOME="+data, "GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=url."+source+".insteadOf", "GIT_CONFIG_VALUE_0="+configuration.Repository, "GIT_CONFIG_KEY_1=url."+source+".insteadOf", "GIT_CONFIG_VALUE_1="+configuration.RepositorySSH, "PATH="+fake+string(os.PathListSeparator)+os.Getenv("PATH"))
+	environment := append(withoutEnvironment(os.Environ(), "FANLOOP_CONFIG_SOURCE", "FANLOOP_DATA_HOME", "FANLOOP_NO_AUTO_CONFIG", "BOTMUX_CHAT_ID", "BOTMUX_SESSION_ID", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_KEY_1", "GIT_CONFIG_VALUE_1", "PATH"), "FANLOOP_DATA_HOME="+data, "GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=url."+source+".insteadOf", "GIT_CONFIG_VALUE_0="+configuration.Repository, "GIT_CONFIG_KEY_1=url."+source+".insteadOf", "GIT_CONFIG_VALUE_1="+configuration.RepositorySSH, "PATH="+fake+string(os.PathListSeparator)+os.Getenv("PATH"))
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	command := func(args ...string) *exec.Cmd {
@@ -48,10 +48,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if out, err := command("flow", "init", "--root", first, "--workflow", "linear-runtime", "--title", "A").CombinedOutput(); err != nil {
 		t.Fatalf("init A: %v %s", err, out)
 	}
-	before, err := os.Readlink(filepath.Join(data, "config", "current"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	actualPin := strings.TrimSpace(string(readFile(t, filepath.Join(first, ".fanloop", "configuration-snapshot"))))
 	stateLock, err := os.OpenFile(filepath.Join(first, ".fanloop", "flow", "state.lock"), os.O_RDWR, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +66,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	}
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		lock, err := os.OpenFile(filepath.Join(data, ".workflows.lock"), os.O_RDWR, 0)
+		lock, err := os.Open(filepath.Join(actualPin, "fanloop-workflow"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -109,24 +106,14 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if err = refresh.Start(); err != nil {
 		t.Fatal(err)
 	}
-	deadline = time.Now().Add(15 * time.Second)
-	for {
-		prepared := false
-		paths, _ := filepath.Glob(filepath.Join(data, ".configuration-*", "checkout", ".git", "HEAD"))
-		for _, path := range paths {
-			content, _ := os.ReadFile(path)
-			prepared = prepared || strings.TrimSpace(string(content)) == newCommit
-		}
-		if prepared {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("refresh could not fetch while existing report held the binding")
-		}
-		time.Sleep(10 * time.Millisecond)
+	if err = refresh.Wait(); err != nil {
+		t.Fatalf("refresh B while A is locked: %v %s", err, refreshOutput.String())
 	}
-	if current, _ := os.Readlink(filepath.Join(data, "config", "current")); current != before {
-		t.Fatal("refresh replaced a binding still used by report")
+	if current, _ := os.Readlink(filepath.Join(data, "config", "current")); filepath.Base(current) != newCommit {
+		t.Fatal("unrelated current could not activate B while report waited on A")
+	}
+	if pin := strings.TrimSpace(string(readFile(t, filepath.Join(first, ".fanloop", "configuration-snapshot")))); pin != actualPin {
+		t.Fatal("refresh replaced the actual pin used by report")
 	}
 	if err = unix.Flock(int(stateLock.Fd()), unix.LOCK_UN); err != nil {
 		t.Fatal(err)
@@ -134,10 +121,7 @@ func TestReportKeepsSnapshotWhileAnotherInitRefreshes(t *testing.T) {
 	if err = report.Wait(); err != nil {
 		t.Fatalf("pending report mixed snapshots: %v %s", err, reportOutput.String())
 	}
-	if err = refresh.Wait(); err != nil {
-		t.Fatalf("refresh B: %v %s", err, refreshOutput.String())
-	}
 	if current, _ := os.Readlink(filepath.Join(data, "config", "current")); filepath.Base(current) != newCommit {
-		t.Fatal("refresh did not activate B after report completed")
+		t.Fatal("report changed the unrelated current after completing on A")
 	}
 }

@@ -151,6 +151,9 @@ func installedSnapshot(dataRoot string, requested *string) (string, error) {
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return "", fmt.Errorf("configuration snapshot must be a real directory")
 	}
+	if err := release.RealPath(target, true); err != nil {
+		return "", fmt.Errorf("unsafe installed configuration snapshot: %w", err)
+	}
 	return target, nil
 }
 

@@ -40,7 +40,7 @@ func TestInitSkipsAutoUpdateWhenReleaseIsCurrent(t *testing.T) {
 	if _, err := runtime.Init(context.Background(), t.TempDir(), initRequest(), false); err != nil {
 		t.Fatal(err)
 	}
-	if len(warnings) != 0 || assets != 0 {
+	if len(warnings) != 1 || !strings.Contains(warnings[0], "author/live") || assets != 0 {
 		t.Fatalf("warnings=%v assets=%d", warnings, assets)
 	}
 }
@@ -65,7 +65,7 @@ func TestInitFallsBackWhenAutoUpdateFails(t *testing.T) {
 	if _, err := runtime.Init(context.Background(), t.TempDir(), initRequest(), false); err != nil {
 		t.Fatal(err)
 	}
-	if len(warnings) != 1 || warnings[0] != "automatic update failed; checking for an installed fallback" {
+	if len(warnings) != 2 || warnings[0] != "automatic update failed; checking for an installed fallback" || !strings.Contains(warnings[1], "author/live") {
 		t.Fatalf("warnings = %#v", warnings)
 	}
 	target, err := os.Readlink(filepath.Join(dataRoot, "current"))
@@ -139,6 +139,7 @@ func restoreRefresh(t *testing.T, server *httptest.Server) {
 
 func quietRuntime() Runtime {
 	runtime := DefaultRuntime()
+	runtime.ControllerRelease = testControllerRelease
 	runtime.ProvisionTrace = func(context.Context, string, string) string { return "" }
 	runtime.ProjectCard = nil
 	runtime.AutoSyncTrace = func(context.Context, string) {}

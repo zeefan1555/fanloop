@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/zeefan1555/fanloop/internal/testfixture"
 )
 
 type cliResult struct {
@@ -19,12 +21,11 @@ type cliResult struct {
 
 func TestPublicFlowTraceCardDomainsRunWithoutPython(t *testing.T) {
 	repository := repositoryRoot(t)
-	binary := filepath.Join(t.TempDir(), "fanloop")
-	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
-	build.Dir = repository
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build fanloop: %v\n%s", err, output)
+	release := t.TempDir()
+	if err := testfixture.BuildRelease(release, "test"); err != nil {
+		t.Fatal(err)
 	}
+	binary := filepath.Join(release, "bin", "fanloop")
 
 	configSource := makeSyntheticConfigSource(t, repository, "sample-custom")
 	dataRoot := t.TempDir()

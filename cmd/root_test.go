@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/zeefan1555/fanloop/internal/flow"
 	"github.com/zeefan1555/fanloop/internal/idl"
 	"github.com/zeefan1555/fanloop/internal/idl/commonidl"
 	"github.com/zeefan1555/fanloop/internal/idl/storageidl"
+	"github.com/zeefan1555/fanloop/internal/testfixture"
 )
 
 type requestValidator interface {
@@ -26,6 +28,9 @@ type requestValidator interface {
 const syntheticWorkflowID = "linear-runtime"
 
 func TestMain(main *testing.M) {
+	if err := testfixture.CanonicalTemp(); err != nil {
+		panic(err)
+	}
 	_ = os.Unsetenv("BOTMUX_CHAT_ID")
 	_ = os.Unsetenv("BOTMUX_SESSION_ID")
 	dataRoot, err := os.MkdirTemp("", "loop-cmd-test-")
@@ -43,6 +48,15 @@ func TestMain(main *testing.M) {
 	}
 	if err := os.Setenv("FANLOOP_CONFIG_SOURCE", dataRoot); err != nil {
 		panic(err)
+	}
+	controllerRelease := filepath.Join(dataRoot, "test-release")
+	if err := testfixture.BuildRelease(controllerRelease, "test"); err != nil {
+		panic(err)
+	}
+	newFlowRuntime = func() flow.Runtime {
+		runtime := flow.DefaultRuntime()
+		runtime.ControllerRelease = controllerRelease
+		return runtime
 	}
 	code := main.Run()
 	_ = os.RemoveAll(dataRoot)

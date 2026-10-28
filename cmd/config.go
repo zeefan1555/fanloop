@@ -32,6 +32,7 @@ Effect:
   Local write. Validates the current State and complete Event history against the target snapshot, then atomically updates
   .fanloop/configuration-snapshot and appends .fanloop/audit/configuration-rebindings.jsonl under the requirement lock.
   The audit record contains the previous and new snapshot identities, UTC time, and required reason.
+  For a bound Requirement, the pinned controller interprets State and keeps its four Skill roots. This command alone retains the validated caller FANLOOP_DATA_HOME for target selection and injects the actual old pin. The next ordinary invocation reads the new actual pin, not historical controller config/current or controller journal intent.
 
 Request JSON:
   {"reason":"why this requirement must use the new snapshot","snapshot":"optional-installed-snapshot-name"}

@@ -5,7 +5,7 @@
 - Read-only discovery of every legal child Skill, including those not bound to the current Step.
 - Absolute package_root, skill_root and SKILL.md paths; stable directory IDs and sorted entries.
 - Optional description from YAML frontmatter; absent or unusable metadata produces an empty string without new package restrictions.
-- Current Requirement and offline snapshot or explicit author source resolution, with existing failures and no fallback.
+- Current Requirement's actual pin selects its offline snapshot or author/live source before caller overrides, with existing failures and no fallback.
 
 ## How to get to it (user POV)
 
@@ -23,11 +23,13 @@ while boolean/map descriptions remain empty. Edit descriptions and call again wi
 The current Prompt's required list must remain unchanged. Compare State, Output,
 Event, Trace and Card hashes around reads; diagnostic cli.jsonl may append.
 
-Reject unknown Request fields, missing Requirement and --dry-run. Break the bound
-source or explicitly select an invalid source; preserve existing error/exit codes
-and prove no fallback or business writes. CLI source preflight returns existing
-INTERNAL/exit 5 for an invalid source; Runtime bound-load failures may return
-WORKFLOW_MISMATCH. Use source copies for mutations.
+Reject unknown Request fields, missing Requirement and --dry-run. With a valid actual
+pin, set a conflicting or invalid new caller FANLOOP_CONFIG_SOURCE and prove the
+catalog still reads the same bound paths and descriptions. Separately break the actual
+pin or its selected source; preserve existing error/exit codes and prove no fallback
+or business writes. Without an actual pin, invalid-source CLI preflight retains
+INTERNAL/exit 5; Runtime bound-load failures may return WORKFLOW_MISMATCH. Use source
+copies and separate Roots for mutations.
 
 ## Gotchas
 

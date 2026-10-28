@@ -1,0 +1,21 @@
+[
+  {"name":"directory-current","valid":true},
+  {"name":"directory-current-absolute","valid":true},
+  {"name":"symlink-current","valid":true},
+  {"name":"symlink-current-absolute","valid":true},
+  {"name":"legacy-controller","valid":true},
+  {"name":"binary-drift","valid":false},
+  {"name":"entrypoint-drift","valid":false},
+  {"name":"extra-resource-link","valid":false},
+  {"name":"resource-fifo","valid":false},
+  {"name":"linked-release-ancestor","valid":false},
+  {"name":"escaped-current","valid":false},
+  {"name":"recursive-current","valid":false},
+  {"name":"ordinary-current","valid":false},
+  {"name":"unmanaged-current-file","valid":false},
+  {"name":"unmanaged-current-directory","valid":false},
+  {"name":"normalized-current-alias","valid":false},
+  {"name":"normalized-directory-current","valid":false},
+  {"name":"normalized-symlink-current","valid":false},
+  {"name":"ordinary-skill","valid":false}
+]

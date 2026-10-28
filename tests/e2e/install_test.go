@@ -87,6 +87,39 @@ func TestLocalInstallerActivatesOneVerifiedReleaseAndIsIdempotent(t *testing.T) 
 	}
 }
 
+func TestInstalledWorkflowComparisonDetectsSourceDrift(t *testing.T) {
+	fixture := makeReleaseFixture(t, repositoryRoot(t), "1.2.3", "1.2.3")
+	dataRoot, codexRoot, agentsRoot := t.TempDir(), t.TempDir(), t.TempDir()
+	result := runInstaller(t, fixture, dataRoot, codexRoot, agentsRoot)
+	if result.err != nil {
+		t.Fatalf("install comparison fixture: %v\n%s", result.err, result.stderr)
+	}
+	assertInstalledRelease(t, dataRoot, codexRoot, agentsRoot, fixture)
+	snapshot, err := filepath.EvalSymlinks(filepath.Join(dataRoot, "config", "current"))
+	if err != nil || snapshot == fixture.ConfigSource {
+		t.Fatalf("comparison needs distinct snapshot/source roots: %q %q %v", snapshot, fixture.ConfigSource, err)
+	}
+	installedRoot := filepath.Join(snapshot, "fanloop-workflow")
+	sourceRoot := filepath.Join(fixture.ConfigSource, "fanloop-workflow")
+	before := fixtureDirectoryDigest(t, installedRoot)
+	file := filepath.Join(sourceRoot, "sample-custom", "workflow.yaml")
+	content, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, append(content, []byte("\n# comparison negative control\n")...), 0600); err != nil {
+		t.Fatal(err)
+	}
+	afterSource := fixtureDirectoryDigest(t, sourceRoot)
+	if afterSource == before || fixtureDirectoryDigest(t, installedRoot) != before {
+		t.Fatal("negative control did not change only the independent source")
+	}
+	t.Logf("installed=%s digest=%s source=%s digest=%s", installedRoot, before, sourceRoot, afterSource)
+	if installedWorkflowMatchesFixture(t, dataRoot, fixture) {
+		t.Fatal("installed Workflow comparison accepted different source bytes")
+	}
+}
+
 func TestLocalInstallerBootstrapsWithoutConfiguration(t *testing.T) {
 	fixture := makeReleaseFixture(t, repositoryRoot(t), "1.2.3", "1.2.3")
 	fixture.ConfigSource = ""
@@ -153,7 +186,13 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 		t.Fatalf("reuse pinned controller after current changed: %v\n%s", err, output)
 	}
 	controllerBinary := filepath.Join(oldRoot, "bound-release-home", "current", "bin", "fanloop")
-	if err := os.Chmod(controllerBinary, 0o600); err != nil {
+	controllerInfo, err := os.Stat(controllerBinary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	controllerMode := controllerInfo.Mode().Perm()
+	t.Logf("controller binary mode: original=%04o rejected=%04o restored=%04o", controllerMode, controllerMode&^0o111, controllerMode)
+	if err := os.Chmod(controllerBinary, controllerMode&^0o111); err != nil {
 		t.Fatal(err)
 	}
 	invalidPinned := exec.Command(pinner, oldRoot)
@@ -162,7 +201,7 @@ func TestReleaseUpgradePreservesLiveWorkflowWhilePinnedControllerRemainsUsable(t
 	if invalidErr == nil || !strings.Contains(string(invalidOutput), "existing pinned controller is invalid") || strings.Contains(string(invalidOutput), "WORKFLOW_MISMATCH") {
 		t.Fatalf("invalid pinned controller did not fail closed: %v\n%s", invalidErr, invalidOutput)
 	}
-	if err := os.Chmod(controllerBinary, 0o755); err != nil {
+	if err := os.Chmod(controllerBinary, controllerMode); err != nil {
 		t.Fatal(err)
 	}
 	oldState, err := os.ReadFile(filepath.Join(oldRoot, ".fanloop", "flow", "state.json"))
@@ -245,7 +284,7 @@ func TestReleaseUpgradeRejectsMissingConfigurationSource(t *testing.T) {
 	assertCurrent(t, dataRoot, filepath.Join("..", "releases", "1.2.3"))
 }
 
-func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
+func TestLocalInstallerKeepsSnapshotSkillConfiguration(t *testing.T) {
 	repository := copyRepositorySource(t, repositoryRoot(t))
 	fixture := makeReleaseFixture(t, repository, "1.2.3", "1.2.3")
 	fixture.ConfigSource = makeSyntheticConfigSource(t, repository, "sample-custom")
@@ -298,11 +337,14 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 	if initialized.err != nil {
 		t.Fatalf("initialize installed release: %v\nstdout: %s\nstderr: %s", initialized.err, initialized.stdout, initialized.stderr)
 	}
-	binding, _ := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	liveRoot := filepath.Join(binding, "fanloop-workflow")
-	assertFlowSkillPaths(t, initialized.stdout, liveRoot)
-	liveSkill := firstSkillPath(t, filepath.Join(liveRoot, "sample-custom", "skills"))
-	content, err := os.ReadFile(liveSkill)
+	pin, err := os.ReadFile(filepath.Join(requirementRoot, ".fanloop", "configuration-snapshot"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pinnedRoot := filepath.Join(strings.TrimSpace(string(pin)), "fanloop-workflow")
+	assertFlowSkillPaths(t, initialized.stdout, pinnedRoot)
+	pinnedSkill := firstSkillPath(t, filepath.Join(pinnedRoot, "sample-custom", "skills"))
+	content, err := os.ReadFile(pinnedSkill)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,8 +353,12 @@ func TestLocalInstallerUsesLiveSkillConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	status := runCurrent(dataRoot, codexRoot, agentsRoot, "flow", "status", "--root", requirementRoot)
-	if status.err != nil || !strings.Contains(status.stdout, liveSkill) {
-		t.Fatalf("Flow did not reuse the live Skill path after an edit: %v\n%s", status.err, status.stdout)
+	if status.err != nil || !strings.Contains(status.stdout, pinnedSkill) {
+		t.Fatalf("Flow did not retain the snapshot Skill path after an author edit: %v\n%s", status.err, status.stdout)
+	}
+	assertFlowSkillPaths(t, status.stdout, pinnedRoot)
+	if after, err := os.ReadFile(pinnedSkill); err != nil || !bytes.Equal(after, content) {
+		t.Fatalf("author edit changed protected snapshot bytes: %v\n%s", err, after)
 	}
 	version := runCurrent(dataRoot, codexRoot, agentsRoot, "version")
 	if version.err != nil || !strings.Contains(version.stdout, `"release_version": "1.2.3"`) {
@@ -754,20 +800,10 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 	for _, root := range []string{codexRoot, agentsRoot, traeRoot, claudeRoot} {
 		assertSkillLink(t, dataRoot, root)
 	}
-	binding, err := os.Readlink(filepath.Join(dataRoot, "config", "current"))
-	identity, sourceErr := configuration.Read(binding)
-	if err != nil || sourceErr != nil || identity.CommitSHA == "" {
-		t.Fatalf("snapshot binding %q: %v %v", binding, err, sourceErr)
-	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "current", "workflows")); !os.IsNotExist(err) {
 		t.Fatalf("install created a configuration copy: %v", err)
 	}
-	liveRoot := filepath.Join(fixture.ConfigSource, "fanloop-workflow")
-	info, err := os.Lstat(liveRoot)
-	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		t.Fatalf("live Workflow root is not a real directory: %#v, %v", info, err)
-	}
-	if fixtureDirectoryDigest(t, liveRoot) != fixtureDirectoryDigest(t, filepath.Join(fixture.ConfigSource, "fanloop-workflow")) {
+	if !installedWorkflowMatchesFixture(t, dataRoot, fixture) {
 		t.Fatal("first install did not seed the source Workflow tree byte-for-byte")
 	}
 	if _, err := os.Lstat(filepath.Join(dataRoot, "releases", version, "skills")); !os.IsNotExist(err) {
@@ -787,6 +823,40 @@ func assertInstalledRelease(t *testing.T, dataRoot, codexRoot, agentsRoot string
 			}
 		}
 	}
+}
+
+func installedWorkflowMatchesFixture(t *testing.T, dataRoot string, fixture releaseFixture) bool {
+	t.Helper()
+	current := filepath.Join(dataRoot, "config", "current")
+	if info, err := os.Lstat(current); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("configuration current is not a link: %v %v", info, err)
+	}
+	binding, err := filepath.EvalSymlinks(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshots, err := filepath.EvalSymlinks(filepath.Join(dataRoot, "config", "snapshots"))
+	if err != nil || filepath.Dir(binding) != snapshots {
+		t.Fatalf("configuration current escapes installed snapshots: %q %v", binding, err)
+	}
+	identity, sourceErr := configuration.Read(binding)
+	if sourceErr != nil || identity.CommitSHA == "" {
+		t.Fatalf("snapshot binding %q: %v", binding, sourceErr)
+	}
+	installedRoot := filepath.Join(binding, configuration.Category)
+	sourcePath := filepath.Join(fixture.ConfigSource, configuration.Category)
+	if info, err := os.Lstat(sourcePath); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("source Workflow root is not a real directory: %#v, %v", info, err)
+	}
+	sourceRoot, err := filepath.EvalSymlinks(sourcePath)
+	if err != nil || installedRoot == sourceRoot {
+		t.Fatalf("installed/source Workflow roots are not distinct: %q %q %v", installedRoot, sourceRoot, err)
+	}
+	info, err := os.Lstat(installedRoot)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("installed Workflow root is not a real directory: %#v, %v", info, err)
+	}
+	return fixtureDirectoryDigest(t, installedRoot) == fixtureDirectoryDigest(t, sourceRoot)
 }
 
 func assertCurrent(t *testing.T, dataRoot, want string) {

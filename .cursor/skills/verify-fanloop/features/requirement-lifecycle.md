@@ -21,7 +21,10 @@ available Routes, Prompt and absolute Skill paths. Progress through a small appr
 
 ## Gotchas
 
-Status is a fresh control-plane read, not a cache. An older CLI may create a real cross-release fixture, but every tested
-drive and assertion must use the current candidate. Historical Requirement roots or a different CLI release cannot prove the
-candidate. Human Steps in other Workflows require a real human decision. In the `code-change` Workflow, the execution Sub-agent
+Status is a fresh control-plane read, not a cache. An older CLI may create a real cross-release fixture. Every tested drive
+must enter through the current candidate; for a bound Root, verify its automatic dispatch to the exact known older
+controller before State decoding. Executing only that older binary directly does not prove the candidate entrypoint.
+Record both candidate and selected controller identities, actual configuration pin and before/after business facts. M1 keeps
+State/Event 16; version relabeling or same-Schema continuation does not prove later incompatible-Schema continuity.
+Human Steps in other Workflows require a real human decision. In the `code-change` Workflow, the execution Sub-agent
 owns the control loop and requests the Main Agent's requirement decision and final candidate decision.

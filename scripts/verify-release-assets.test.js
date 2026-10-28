@@ -60,7 +60,7 @@ function platformArchive(file, version, osName, arch, incomplete) {
   fs.rmSync(stage, {recursive: true, force: true});
 }
 
-function fixture(mutate, incomplete = false) {
+function fixture(mutate, incomplete = false, missingNpmEntry) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-verify-'));
   const version = '1.2.3';
   const files = {};
@@ -69,12 +69,16 @@ function fixture(mutate, incomplete = false) {
     platformArchive(path.join(root, name), version, osName, arch, incomplete);
     files[name] = fs.readFileSync(path.join(root, name));
   }
-  writeArchive(path.join(root, `fanloop-${version}.tgz`), {
+  const npmEntries = {
     'package/package.json': `${JSON.stringify({name: 'fanloop', version})}\n`,
     'package/scripts/run.js': '#!/usr/bin/env node\n',
     'package/scripts/install.js': '#!/usr/bin/env node\n',
     'package/scripts/layout.js': '\'use strict\';\n',
-  });
+    'package/scripts/controller.js': '\'use strict\';\n',
+    'package/scripts/commands.json': '{}\n',
+  };
+  delete npmEntries[missingNpmEntry];
+  writeArchive(path.join(root, `fanloop-${version}.tgz`), npmEntries);
   files[`fanloop-${version}.tgz`] = fs.readFileSync(path.join(root, `fanloop-${version}.tgz`));
   const assets = Object.keys(files).sort().map((name) => {
     const asset = {name, sha256: sha(files[name])};
@@ -105,6 +109,12 @@ test('accepts a complete consistent release directory', () => {
   assert.equal(manifest.tag, 'v1.2.3');
   assert.equal(manifest.assets.length, 5);
 });
+
+for (const entry of ['package/scripts/controller.js', 'package/scripts/commands.json']) {
+  test(`rejects an npm wrapper missing ${entry}`, () => {
+    assert.throws(() => verifyDirectory(fixture(undefined, false, entry)), (err) => err.message.includes(`is missing ${entry}`));
+  });
+}
 
 test('rejects a checksum that does not match the archive', () => {
   const root = fixture((directory) => {

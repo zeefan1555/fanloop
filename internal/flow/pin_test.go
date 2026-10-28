@@ -35,10 +35,7 @@ func TestInitPinsSnapshotAfterCurrentMoves(t *testing.T) {
 	t.Setenv("FANLOOP_DATA_HOME", dataRoot)
 	t.Setenv("FANLOOP_CONFIG_SOURCE", source)
 	root := t.TempDir()
-	runtime := DefaultRuntime()
-	runtime.ProvisionTrace = func(context.Context, string, string) string { return "" }
-	runtime.ProjectCard = nil
-	runtime.AutoSyncTrace = func(context.Context, string) {}
+	runtime := quietRuntime()
 	_, err = runtime.Init(context.Background(), root, &flowidl.FlowInitRequest{
 		Workflow:    "linear-runtime",
 		Requirement: &flowidl.Requirement{Title: "Pinned requirement"},

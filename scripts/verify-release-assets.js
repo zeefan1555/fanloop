@@ -13,6 +13,8 @@ const NPM_REQUIRED = [
   'package/scripts/run.js',
   'package/scripts/install.js',
   'package/scripts/layout.js',
+  'package/scripts/controller.js',
+  'package/scripts/commands.json',
 ];
 
 function fail(message) {
