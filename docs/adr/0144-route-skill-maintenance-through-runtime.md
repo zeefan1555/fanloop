@@ -3,9 +3,18 @@ status: accepted
 date: 2026-10-20
 supersedes_in_part: ADR-0125-make-ordinary-skill-maintenance-lightweight, ADR-0122-use-explicit-registry-update-and-local-source-distribution
 preserves: ADR-0124-automate-workflow-yaml-validation, ADR-0135-retire-maintainer-workflows
+amended_by: https://github.com/zeefan1555/second-brain-agent/blob/main/docs/adr/0021-retire-unused-skills-and-consolidate-age-dispatch.md
 ---
 
 # Route Skill maintenance through the corresponding Runtime
+
+## Amendment: ordinary Skill maintenance (2026-11-15)
+
+The user's decision recorded in [second-brain-agent ADR-0021](https://github.com/zeefan1555/second-brain-agent/blob/main/docs/adr/0021-retire-unused-skills-and-consolidate-age-dispatch.md) replaces only the clauses below that require ordinary Skill work to use `write-skill` and prohibit direct maintenance. Ordinary Skills now use second-brain-skills `writing-for-agents` and that repository's validation, PR and discovery-link rules, without a maintenance Run. If an ordinary Skill request is already misrouted into code-change or manage, record the routing error or blocked status and hand it back to the coordinator; direct work does not complete that Run.
+
+The historical decision below remains for context. Bound Root/controller handling, immutable existing snapshots, proportional verification, real Human Gates, CI, and configuration-source/distribution rules remain unchanged. Explicit manage and code-change workflows retain their own contracts; this amendment does not restore retired standalone Skill names or mutate existing Run snapshots.
+
+## Historical decision
 
 AGE-115's approved A/A2 scope and Round 3 decision replace the standalone
 maintenance entry of ADR-0125. Dispatch confirmed this scope under the user's

@@ -14,9 +14,9 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 
 second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括：
 
-- `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow，由 second-brain-skills 的 `select-workflow` Skill 选择；代码变更走 `code-change`（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
+- `code-change`、`daily-journal`：通过 second-brain-skills 的当前 `select-workflow` Skill 选择；代码变更走 `code-change`（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
 - `ai-daily-brief`：公开 X 来源的中文 AI 日报流程。
-- 新普通 Skill 变更使用 `write-skill`，Workflow 包变更使用 Runtime `manage-fanloop-workflow`；`second-brain-skills-maintainer` 仅继续旧 Run。验证和发布由对应当前步骤负责。
+- 普通 Skill 变更直接使用 second-brain-skills 的 `writing-for-agents`，按该仓库验证与 PR 规则交付。用户明确启用的 Workflow 包维护使用 Runtime `manage-fanloop-workflow`，验证和发布由当前步骤负责。已退役包不作为新入口，既有不可变 Run 快照保持原样。
 - `pstack-native`：六步剧本交付，保留完整脚本与资源。
 - `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
 

@@ -11,12 +11,14 @@ description: 将复杂 Skill、SOP 或原始材料拆成可审核、随本地仓
 
 先区分公共入口与已绑定 Runtime 步骤，不能仅凭输入是新 Workflow 就启动另一个 Run：
 
+普通 Skill 的创建、修改、移动或退役直接使用 second-brain-skills 的 `agent-governance/writing-for-agents/SKILL.md`，按该仓库验证与 PR 规则交付，不使用本 Workflow 转换方法。若已经误入 code-change 或 manage Run，记录错路由或 blocked 并交回协调者，不新建维护 Run，也不伪报原 Run 完成。
+
 本方法的 CLI 操作沿用公共 `fanloop-workflow` 入口的「已初始化 Requirement 的固定控制器」协议。已绑定调用或已有目标 Run 复用调用方确定的物理控制器、`FANLOOP_DATA_HOME` 与四个 Skill Root；Root 有 `bound-release-home/current/bin/fanloop` 时由该控制器按自身绑定解析配置并清除 `FANLOOP_CONFIG_SOURCE`，不得调用全局 current 或另选 Release。固定控制器读 Status 失败时交回调用方，不回退。只有未初始化的新公共 Run 才按公共入口使用全局 current。
 
 - 已绑定 Runtime 步骤调用本方法时，使用调用方的当前 Root，复用调用方已绑定的控制器与环境执行 `flow status --root <当前 Root>`，核对当前 Workflow、Step 与调用本方法的指令。沿用该步骤的 workspace、已批准材料与隔离候选目录；不得新建 Root 来另起维护 Run、再次初始化当前 Run 或离开当前步骤。Status 失败或调用上下文不符时交回调用方补齐，不改用新 Run。候选校验用的隔离 Root 不替代调用方当前 Root，也不启动第二个管理 Run。
-- 只有未在已绑定 Runtime 步骤中执行、且明确要求启动维护 Run 的公共调用，才选择 Runtime。已有目标 Run 时直接使用其绝对 Root 并回读 Status；新 Workflow Run 先创建独立绝对目录（`mkdir -p <新 Root>`），再执行 `fanloop flow status --root <新 Root>`。只有返回 `NOT_INITIALIZED` 时，才执行 `fanloop flow init --root <新 Root> --workflow manage-fanloop-workflow --title <标题>` 并回读 Status；其他错误先解决，不重复初始化。公共调用中的普通 Skill 创建、修改、移动或退役使用 `write-skill`。
+- 只有未在已绑定 Runtime 步骤中执行、且明确要求启动维护 Run 的公共调用，才选择 Runtime。已有目标 Run 时直接使用其绝对 Root 并回读 Status；新 Workflow Run 先创建独立绝对目录（`mkdir -p <新 Root>`），再执行 `fanloop flow status --root <新 Root>`。只有返回 `NOT_INITIALIZED` 时，才执行 `fanloop flow init --root <新 Root> --workflow manage-fanloop-workflow --title <标题>` 并回读 Status；其他错误先解决，不重复初始化。
 
-本文件只提供材料转换方法；分析、构建、验证、审核和发布由对应 Runtime 当前步骤负责。已绑定旧维护的 Run 按其固定快照继续。
+本文件只提供材料转换方法；分析、构建、验证、审核和发布由对应 Runtime 当前步骤负责。已有不可变快照保持原样，不恢复已退役包作为新入口。
 
 读取配置仓库 `AGENTS.md`、当前绑定步骤的配置契约，以及最接近目标的完整 Workflow；有 Fanloop 源 checkout 时再查相关 IDL 与 ADR。存在相近业务
 Workflow 时优先复用；否则按当前 Runtime 已批准的材料映射和五份 YAML 契约生成最小完整草案，再用已安装 CLI 严格加载。作者方法不依赖未打包的 `examples/` 或 Fanloop 源 checkout。若一个原子 Skill 已足够完成任务，停止

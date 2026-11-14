@@ -4,8 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"testing"
 )
 
@@ -65,22 +63,9 @@ func TestMirrorWritesSnapshotBytesIntoCheckout(t *testing.T) {
 	}
 }
 
-func TestUpdateSkillNamesReadWriteSourceOnly(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join("..", "..", ".agents", "skills", "update-fanloop-workflow", "SKILL.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := string(content)
-	for _, want := range []string{
-		"已退役",
-		"second-brain-skills",
-		"fanloop update config",
-	} {
-		if !strings.Contains(text, want) {
-			t.Fatalf("skill missing %q", want)
-		}
-	}
-	if regexp.MustCompile(`[0-9]{10,}`).MatchString(text) {
-		t.Fatal("skill contains a long numeric id")
+func TestRetiredUpdateSkillIsAbsent(t *testing.T) {
+	skill := filepath.Join("..", "..", ".agents", "skills", "update-fanloop-workflow", "SKILL.md")
+	if _, err := os.Lstat(skill); !os.IsNotExist(err) {
+		t.Fatalf("retired skill must be absent, got %v", err)
 	}
 }

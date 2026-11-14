@@ -3,7 +3,7 @@
 ## Sub-features
 
 - `remnote-flashcards` HOME classification, native RemNote flashcards, Wiki links and final readback.
-- Production `code-change`, `write-skill`, `daily-journal` and `general` Workflows, chosen via the
+- Production `code-change` and `daily-journal` Workflows, chosen via the
   second-brain-skills `select-workflow` Skill; code changes use `code-change` (it replaced the retired
   `fanloop-maintainer` and `remnote-direct-maintainer`, ADR-0135).
 - Installed `create-fanloop-workflow` supplies a method within the production management Runtime; it does not depend on a source checkout or unpackaged examples.
@@ -20,12 +20,14 @@ Create a fresh absolute Root directory per Workflow and inspect `flow status`. I
 and the nearest governance boundary. For the `code-change` Workflow, prove the exact candidate and that each node's receipt is recorded. Do not fabricate the Main Agent decisions needed to pass Define
 or Certify. Production Bundle contract tests verify Route/Condition semantics.
 
-For an ordinary Skill request, select production `write-skill` and actually edit
-a Skill in a disposable source. Follow its current bound Steps, self-check the
-result, then install the verified complete immutable archive through isolated
-discovery links before delivery. Read back hashes, permissions and the independent
-workspace Git context where needed. Rejection restores the previous links. For a
-Workflow request, select production `manage-fanloop-workflow`, construct an isolated
+For an ordinary Skill request, use second-brain-skills `writing-for-agents` directly
+and actually edit a Skill in a disposable source. Follow that repository's validation,
+independent trial, PR and discovery-link rules; read back hashes, permissions and
+the independent workspace Git context where applicable. Prove this route creates no
+maintenance Run. If code-change or manage was already selected by mistake, record
+the routing error or blocked status and hand it back to the coordinator; do not
+certify the original Run as complete using the direct maintenance result. For an
+explicitly requested Workflow maintenance Run, select production `manage-fanloop-workflow`, construct an isolated
 complete candidate and hand it to that Runtime's independent review Step; the
 auxiliary create Skill adds no pre-build approval. Prove missing parent merge/tree
 or ancestry receipts leave publication incomplete, and concurrent newer pointers
@@ -72,7 +74,7 @@ Workflow Steps, Conditions and Routes evolve independently. Read the current fiv
 historical counts. Deliver must not modify a candidate when main advances; it returns to Build for a new candidate and full
 recertification. Workflow-specific behavior stays in YAML and Skills, not generic verify Runtime code.
 
-Complete packages under second-brain-skills main's `fanloop-workflow/` determine the production inventory, including code-change, write-skill, daily-journal, general, pstack-native and remnote-flashcards. New init activates a validated immutable commit snapshot; existing calls remain offline. Explicit author-source edits are immediately visible without rebuilding the CLI.
+Complete packages under second-brain-skills main's `fanloop-workflow/` determine the production inventory; discover current IDs instead of restoring retired packages. New init activates a validated immutable commit snapshot; existing calls remain offline and their pinned snapshots are not edited. Explicit author-source edits are immediately visible without rebuilding the CLI.
 An invalid explicit source or missing bound source fails without searching other repositories or loading old copies.
 Never infer the active configuration from CLI version alone; read back the selected source and exact Status Skill paths.
 The example Bundle validates as an authoring candidate but is never selected, installed or loaded as production inventory.

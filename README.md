@@ -13,9 +13,9 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 配置仓库 `zeefan1555/second-brain-skills` 的 `main` 托管生产 Workflow，不设置默认 Workflow：
 
 - `pstack-native`：六步剧本交付，完整包来自配置中心。
-- `code-change`、`write-skill`、`daily-journal`、`general`：独立的 8 节点 Workflow（由 second-brain-skills 的 `select-workflow` Skill 选择）；Fanloop、RemNote Direct 等仓库的代码变更走 `code-change`（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
+- `code-change`、`daily-journal`：通过 second-brain-skills 的当前 `select-workflow` Skill 选择；Fanloop、RemNote Direct 等仓库的代码变更走 `code-change`（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
 - `ai-daily-brief`：采集公开 X 原创帖并生成中文 AI 日报。
-- 新普通 Skill 变更使用 `write-skill`，Workflow 包变更使用 Runtime `manage-fanloop-workflow`；`second-brain-skills-maintainer` 仅继续旧 Run。验证和发布由对应当前步骤负责。
+- 普通 Skill 变更直接使用 second-brain-skills 的 `writing-for-agents`，按该仓库验证与 PR 规则交付。用户明确启用的 Workflow 包维护使用 Runtime `manage-fanloop-workflow`，验证和发布由当前步骤负责。已退役包不作为新入口，既有不可变 Run 快照保持原样。
 - `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
 
 每套 Workflow 是仓库 `fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
