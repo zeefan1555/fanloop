@@ -18,14 +18,14 @@
 
 ## 代码与配置分离
 
-先按实际改动区分配置与代码：外部纯配置按目标选择 Runtime：普通 Skill 使用 second-brain-skills 的 `write-skill`，Workflow 包使用 `manage-fanloop-workflow`；代码和混合实现走 second-brain-skills `fanloop-workflow/code-change` Workflow（`fanloop-maintainer` 已退役，见 ADR-0135）。配置改变业务流程，不等于修改执行引擎。
+先按实际改动区分配置与代码：普通 Skill 直接使用 second-brain-skills 的 `agent-governance/writing-for-agents/SKILL.md`，按该仓库的验证与 PR 规则交付，不启动维护 Run。用户明确启用的 Workflow 包维护使用 `manage-fanloop-workflow`；代码和混合实现走 second-brain-skills `fanloop-workflow/code-change` Workflow（`fanloop-maintainer` 已退役，见 ADR-0135）。配置改变业务流程，不等于修改执行引擎。
 
 1. 纯配置变更包括 `fanloop-workflow/<workflow-id>/` 的五份 Workflow YAML、包内非可执行 Skill 指令与参考材料、`<category>/<skill-id>/` 下的仓库级 Skill，以及相关说明文档。按现有 Schema 调整 Step、Condition、Route、Prompt 或 Skill 绑定，仍属于配置变更。
 2. 配置按语义验证：错字/排版检查 diff 和引用并有据免测；普通模板、说明和 Prompt 由当前 Agent 实际自检，加载受影响完整包并检查代表性结果；Step、Condition、Route、绑定变化才跑受影响 Workflow 矩阵。路由、绑定、权限、安全、审批或外部写入规则变化仍需全新独立 Agent 实际试用并回读原始产物。解析器错误回归留在代码测试，不为文案重跑全产品或手造错误集。证据标明 self_check、independent 或 not_applicable，不要求新 binary 或代码 manifest。
-3. 纯配置变更新开对应 Runtime Run：普通 Skill 使用 `write-skill`，Workflow 包使用 `manage-fanloop-workflow`；按最新 Status 的步骤完成修改、验证、独立审核、分支 PR 与实际配置源回读。旧维护仅继续旧 Run。普通 Skill 先安装已验证 head 的只读完整快照并确认，再交付 Skills PR；Workflow publish 完成父 PR、gitlink 与必需配置同步后才前进。用户指定停止位置时服从该边界。不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
+3. 普通 Skill 的修改、自检、独立试用、分支 PR 与发现入口回读按 second-brain-skills 仓库规则直接执行。误入 code-change 或 manage Run 后才识别为普通 Skill 请求时，记录错路由或 blocked 并交回协调者；不以直接维护结果伪报原 Run 完成。用户明确启用的 Workflow 包维护才按 `manage-fanloop-workflow` 最新 Status 完成修改、验证、独立审核、分支 PR 与实际配置源回读；publish 完成父 PR、gitlink 与必需配置同步后才前进。已有不可变快照保持原样，不恢复已退役包作为新入口。用户指定停止位置时服从该边界。不要求 Go 全量测试、代码 Contract Golden 更新、构建、隔离 Release、独立代码黑盒验收、CLI 安装或代码验证 manifest。仅为配合固定生产配置的测试而修改代码或快照，会扩大原需求；应单独处理测试与配置的耦合。
 4. Go/Node/Python 实现、可执行 Skill 脚本、IDL、Schema、加载器、通用 Runtime、构建或测试基础设施的修改属于代码变更，执行下方代码验证门禁。混合改动分别列出两类影响，代码部分仍完成代码验证。
 5. 配置交付固定仓库绝对路径、Workflow ID、Git 基线/提交与完整资源摘要；验证并回读实际使用的本地源，不为配置更新重建 CLI。YAML 变更不设置独立人工审批；已有业务 Human Step 按用户保留的具体人工门禁执行；IDL 按下方主 Agent 契约审核执行。
-6. 配置执行与文档要求以对应 Runtime 的最新绑定为准，保留原始工具结果及候选身份。普通 Skill 的自检、冻结安装和交付按 write-skill，Workflow 的分析、构建、审核和发布按 manage；不在辅助 Skill 中另建或绕过这些步骤。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
+6. 保留原始工具结果及候选身份。普通 Skill 的自检与交付按 second-brain-skills 仓库规则；明确启用的 Workflow 分析、构建、审核和发布按 manage 当前绑定，不在辅助 Skill 中另建或绕过这些步骤。风险配置的独立试用仍按第 2 条执行，业务 Workflow 自身的 Panorama 和审批不变。只修改已确认范围，目标、权限、副作用或类别扩大时重新对齐。
 7. CI 用完整 Git diff 的轻量 changes 任务分流，纯配置可跳过引擎任务；仅 `skills/`、`.agents/skills/<skill>/` 下普通非可执行 Skill Markdown、包根五 YAML、普通 docs Markdown、根 AGENTS.md/README.md 可豁免。脚本、验证资产、可执行位、符号链接、未知或混合改动走完整代码 CI；重命名检查前后路径和 mode，基线缺失不能判配置，分流失败阻止交付。本地材料禁入库检查始终保留。授权 PR 合并须核对同 HEAD 分流结果和适用 required checks，不能绕过保护；代码通道门禁不变。
 
 完成标准：变更清单标明代码或配置；纯配置 diff 不包含为此次配置配套改写的引擎代码、代码测试或 Golden，并附配置校验/行为试用、本地配置提交及公开 CLI 回读。
@@ -65,7 +65,7 @@
 5. 配置在 second-brain-skills 仓库交付，使用现有兼容 CLI 和本仓库 `scripts/validate-configuration.py` 校验。Agent 每次读取 Status 的精确 Skill 路径。配置不进入 State 或 CLI Release；Thrift 保留主 Agent 契约审核。
 6. `fanloop update` 在切换 CLI 之后，与 `fanloop update config` 一样默认同步 `second-brain-skills` 的 `main`。它执行 `git ls-remote`，commit 未变则跳过 checkout，否则校验后发布 `config/snapshots/<sha>` 并在配置锁内激活。成功打印完整 40 位 commit 和 workflow id。Git 失败退出 1，`config/current` 不变。缺少 `fornax.json` 不是错误。`FANLOOP_CONFIG_SOURCE` 是作者源，拒绝同步。只有 `FANLOOP_USE_FORNAX` 为 `1`、`true` 或 `yes` 且 `fornax.json` 是普通文件时，才通过用户已登录的 `fornax-cli` 拉取 Online/prod 发布并打印 `id@version`。程序不内置 AK/SK。Fornax 快照目录名仍是排序后 `key@version` 行的 sha256。失败保留原来的 `current`。镜像 ZIP 根只含包装 `SKILL.md` 与唯一 `<workflow-id>/`；内部含五 YAML、可选 `trace.yaml` 和完整 `skills/**`。`loop-workflow-<id>` 与 `fanloop-workflow-<id>` 都可以装入。
 7. `${FANLOOP_DATA_HOME:-$HOME/.fanloop}/fornax.json` 只存 source 列表。每一项是 `workspace_id`、`key_prefix` 和 `access`（`read_write` 或 `read_only`）。同一个 workflow id 同时出现在 `read_write` 和 `read_only` 源时，`read_write` 源胜出。同一源内重复，或两个源打成平局，整组拒绝。该文件不存 AK/SK、JWT、下载 token、Skill ID 或版本。Runtime 和安装器不创建或修改它。
-8. 日常编辑是向 `second-brain-skills` 的 `main` 提 PR，合并后运行 `fanloop update config`。`.agents/skills/update-fanloop-workflow` 已退役，不再作为 Fornax 发布入口。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时，`update config` 仍可同步 Fornax。把已发布快照写回 Git checkout 用 `scripts/mirror-fornax-to-git <snapshot-dir> <checkout-dir>`。从 Git 发布到 Fornax 的 `tools/workflow-package build` 只作为恢复手段。Fornax `skill install` 不保留 Unix 文件模式；以 `#!` 开头的脚本安装为 `0555`。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
+8. 日常编辑是向 `second-brain-skills` 的 `main` 提 PR，合并后运行 `fanloop update config`。退役的 `update-fanloop-workflow` Skill 已移除。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时，`update config` 仍可同步 Fornax。把已发布快照写回 Git checkout 用 `scripts/mirror-fornax-to-git <snapshot-dir> <checkout-dir>`。从 Git 发布到 Fornax 的 `tools/workflow-package build` 只作为恢复手段。Fornax `skill install` 不保留 Unix 文件模式；以 `#!` 开头的脚本安装为 `0555`。写结果不明先回读，不盲重试。未获具体发布授权时只准备候选，不执行 Fornax 写入。
 
 ## YAML 架构真值与自动校验
 
