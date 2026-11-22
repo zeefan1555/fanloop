@@ -921,9 +921,6 @@ func writeReleaseFixture(t *testing.T, repository, staging, binary, releaseVersi
 	skillItems := []map[string]any{}
 	for _, exposed := range release.ExposedSkills() {
 		skillSource := filepath.Join(repository, filepath.FromSlash(exposed.Path))
-		if exposed.Name == release.AuthoringSkillName {
-			skillSource = filepath.Join(repository, ".agents", "skills", exposed.Name)
-		}
 		skill := filepath.Join(staging, filepath.FromSlash(exposed.Path))
 		copyFixtureDirectory(t, skillSource, skill)
 		skillItems = append(skillItems, map[string]any{

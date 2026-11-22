@@ -29,10 +29,8 @@ function platformArchive(file, version, osName, arch, incomplete) {
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'fanloop-verify-platform-'));
   fs.mkdirSync(path.join(stage, 'bin'), {recursive: true});
   fs.mkdirSync(path.join(stage, 'entrypoints', 'fanloop-workflow'), {recursive: true});
-  fs.mkdirSync(path.join(stage, 'entrypoints', 'create-fanloop-workflow'), {recursive: true});
   fs.writeFileSync(path.join(stage, 'bin', 'fanloop'), `binary-${osName}-${arch}`, {mode: 0o755});
   fs.writeFileSync(path.join(stage, 'entrypoints', 'fanloop-workflow', 'SKILL.md'), '# workflow\n');
-  fs.writeFileSync(path.join(stage, 'entrypoints', 'create-fanloop-workflow', 'SKILL.md'), '# author\n');
   const manifest = incomplete
     ? {schema_version: 4, release_version: version}
     : {
@@ -46,12 +44,6 @@ function platformArchive(file, version, osName, arch, incomplete) {
           version,
           path: 'entrypoints/fanloop-workflow',
           sha256: layout.directoryDigest(path.join(stage, 'entrypoints', 'fanloop-workflow')),
-        },
-        {
-          name: 'create-fanloop-workflow',
-          version,
-          path: 'entrypoints/create-fanloop-workflow',
-          sha256: layout.directoryDigest(path.join(stage, 'entrypoints', 'create-fanloop-workflow')),
         },
       ],
     };

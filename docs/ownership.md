@@ -5,7 +5,7 @@ orchestration directory.
 
 | Boundary | Paths | Owns |
 | --- | --- | --- |
-| Live Workflow configuration | `fanloop-workflow/<workflow-id>/` complete packages in second-brain-skills | Five-file Workflow definitions, bound Agent instructions, complete resources and local source validation |
+| Product workflows | `second-brain-agent/plugins/<plugin>/` | Codex plugin manifests and Skills; no production Fanloop Workflow packages |
 | Workflow runtime | `internal/workflow/` | Strict loading, validation and same-root Skill resolution |
 | Runtime | `cmd/`, `internal/{flow,loop,trace,card,state,store,larkexec,dashboard}/`, `errs/` | Command behavior, state changes, Lark execution and the loopback read-only viewer and explicit source editor |
 | Quality | `tests/`, `.github/workflows/ci.yml` | Capability inventory, reviewed contracts, `./tests/run-unit`, and CI `requirement-e2e` |
@@ -28,9 +28,7 @@ go test ./tests/contracts -update-contracts
 
 ## Live product inventory
 
-Existing production work, including `remnote-flashcards`, uses the current selector and its matching verification suite.
-
-Production Workflow IDs live only in second-brain-skills main under `fanloop-workflow/<id>/`; discover them through its current `select-workflow` Skill. Ordinary Skill changes directly use that repository's `writing-for-agents`, validation and PR rules, without a maintenance Run. If an ordinary Skill request was misrouted into code-change or manage, record the routing error or blocked status and hand it back to the coordinator; direct maintenance cannot certify that Run as complete. Explicitly requested Workflow package maintenance uses Runtime `manage-fanloop-workflow`; its validation, independent review, branch PR delivery and parent gitlink readback still belong to the selected Runtime steps. Retired packages are not new entry points; existing immutable Run snapshots remain untouched. ADR-0135's retirement of fanloop-maintainer and remnote-direct-maintainer remains; code changes use `code-change`. `examples/workflows/manage-fanloop-workflow` is a loader fixture and is not the production entry.
+There are no current production Workflow IDs. Product flows live in `second-brain-agent/plugins/` and execute directly in Codex. Fanloop keeps its generic Runtime, loader and synthetic fixtures so historical Requirements pinned to immutable snapshots remain readable. Do not restore `fanloop-workflow`, `create-fanloop-workflow`, `edit-fanloop-skills` or `plugins/fanloop-remnote`; do not turn a plugin into a Workflow wrapper. `examples/workflows/manage-fanloop-workflow` is a loader fixture and is not a product entry.
 
 ## Verify entry
 

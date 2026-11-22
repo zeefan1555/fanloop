@@ -2,20 +2,17 @@
 
 ## Sub-features
 
-- Explicit Workflow selection for a new Requirement.
-- Scenario routing through `entrypoints/fanloop-workflow/routes.yaml`.
+- The production scenario map is empty; daily product flows live in `second-brain-agent/plugins/`.
 - Rejection of missing or unknown Workflow IDs.
 - The distributed fanloop-workflow entrypoint groups new default Roots under ~/fanloop/workspace/<workflow-id>/<requirement-root>; the CLI still receives an explicit absolute Root. Existing Roots continue at their original path.
 
 ## How to get to it (user POV)
 
-Create an empty absolute Requirement directory, choose a documented scenario through the `fanloop-workflow` Skill, then
-run `fanloop flow init --root ROOT --workflow ID --title TITLE`. Fanloop has no default Workflow and loads the selection
-from the bound local repository's `fanloop-workflow/` directory.
+New product work does not create a Requirement. Continue an existing Root with its pinned controller. Synthetic fixtures still exercise explicit Workflow validation in isolation.
 
 ## Driving it with fanloop
 
-Read the frozen installed entrypoint and record its digest. Resolve its grouped default to an absolute isolated Root and run status, init dry-run, real init and status with a synthetic Workflow. Continue a separate previously initialized Root and prove neither directory moved. Do not infer an implicit CLI Root argument from the Skill convention.
+Read the frozen installed entrypoint and record its digest. Prove the source `routes.yaml` has zero scenarios and release validation accepts that empty map. Use a synthetic explicit author source for the existing init/status regression; never present it as a production scenario. Continue a separate previously initialized Root and prove its directory and pinned source did not move.
 
 Read `flow init --help`. Prove missing Workflow selection fails with `INVALID_ARGUMENT` at exit 2 and an unknown ID fails with
 `WORKFLOW_NOT_FOUND` at exit 1 without exposing filesystem errors. Run init dry-run

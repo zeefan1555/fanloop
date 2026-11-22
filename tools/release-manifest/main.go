@@ -90,7 +90,7 @@ func validateSelectorRoutes(path string) error {
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		return fmt.Errorf("Workflow selector must contain exactly one YAML document")
 	}
-	if routes.SchemaVersion != 2 || len(routes.Scenarios) == 0 {
+	if routes.SchemaVersion != 2 {
 		return fmt.Errorf("invalid Workflow selector schema or scenarios")
 	}
 	for scenario, rule := range routes.Scenarios {
@@ -106,9 +106,6 @@ func discoverEntrypoints(source, version string) ([]*release.Skill, error) {
 	result := make([]*release.Skill, 0, len(release.ExposedSkills()))
 	for _, exposed := range release.ExposedSkills() {
 		sourcePath := exposed.Path
-		if exposed.Name == release.AuthoringSkillName {
-			sourcePath = ".agents/skills/" + exposed.Name
-		}
 		root := filepath.Join(source, filepath.FromSlash(sourcePath))
 		entrypoint := filepath.Join(root, "SKILL.md")
 		info, err := os.Stat(entrypoint)

@@ -9,7 +9,7 @@
 
 ## How to get to it (user POV)
 
-After initializing a Requirement, read `fanloop flow skills --help` and run
+After initializing a synthetic or historical Requirement, read `fanloop flow skills --help` and run
 `fanloop flow skills --root <ABSOLUTE_REQUIREMENT_ROOT>`. Use descriptions and
 paths to select further reading when a Skill references another Skill.
 
@@ -31,7 +31,4 @@ WORKFLOW_MISMATCH. Use source copies for mutations.
 
 ## Gotchas
 
-Catalog membership does not mean required reading. Use current Status for Step
-obligations; read selected catalog paths dynamically. No per-Skill read receipts
-or invocation approvals exist. Root SKILL.md is the package entry, not a child
-catalog entry. Resources are relative to the chosen Skill's directory.
+Catalog membership does not mean required reading. This command remains for historical and synthetic pinned packages; it does not expose a current production catalog. No per-Skill read receipts or invocation approvals exist. Root SKILL.md is the package entry, not a child catalog entry.

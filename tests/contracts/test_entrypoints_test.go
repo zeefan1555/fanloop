@@ -131,7 +131,7 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 			t.Errorf("AGENTS.md does not require %s", command)
 		}
 	}
-	for _, contract := range []string{"执行子 Agent 创建并持有 Requirement Root", "直接修改受管代码", "只向主 Agent回报", "不得自行批准", "自动 squash 合并唯一 PR", "只更新本 Requirement 的源码 worktree", "本地安装"} {
+	for _, contract := range []string{"产品工作流已迁到 `second-brain-agent/plugins/`", "routes.yaml", "./tests/run-unit", "verify-fanloop", "同任务 PR", "不自动合并"} {
 		if !strings.Contains(string(agents), contract) {
 			t.Errorf("AGENTS.md does not define maintainer contract %q", contract)
 		}
@@ -157,7 +157,7 @@ func TestRepositoryHasOnePublicTestEntrypoint(t *testing.T) {
 	}
 }
 
-func TestSelfIterationUsesOneFrozenCandidate(t *testing.T) {
+func TestDirectChangesUseOneVerifiedCandidate(t *testing.T) {
 	repo := repositoryRoot(t)
 	read := func(relative string) string {
 		t.Helper()
@@ -170,26 +170,16 @@ func TestSelfIterationUsesOneFrozenCandidate(t *testing.T) {
 
 	catalog := read("AGENTS.md") + "\n" + read("docs/outer-loop.md") + "\n" + read(".cursor/skills/verify-fanloop/SKILL.md")
 	for _, contract := range []string{
-		"low|medium|high",
-		"Pre-Certify",
-		"小批",
-		"并行认证",
-		"一次性交付",
-		"返工来源",
-		"candidate identity",
-		"configuration_manifest_sha256",
+		"直接执行",
+		"聚焦检查",
+		"./tests/run-unit",
+		"隔离 Release",
+		"同任务 PR",
+		"gitlink",
 	} {
 		if !strings.Contains(catalog, contract) {
-			t.Errorf("self-iteration guidance is missing %q", contract)
+			t.Errorf("direct-change guidance is missing %q", contract)
 		}
-	}
-	technicalDesign := read("docs/technical-design.md")
-	if strings.Contains(technicalDesign, "Certify 先执行独立 Review，确认身份未变后再执行黑盒验收") {
-		t.Error("technical design retains the retired serial certification rule")
-	}
-	agents := read("AGENTS.md")
-	if strings.Contains(agents, "审查通过后冻结 `candidate_head`，再由一个无实现上下文的全新 Sub-agent") {
-		t.Error("AGENTS.md retains the retired serial certification rule")
 	}
 }
 
@@ -306,40 +296,18 @@ func TestGitHubReleaseDistribution(t *testing.T) {
 	}
 }
 
-func TestWorkflowAuthoringAssetsAreAvailable(t *testing.T) {
+func TestWorkflowAuthoringAssetsAreRetired(t *testing.T) {
 	repo := repositoryRoot(t)
+	if info, err := os.Stat(filepath.Join(repo, "entrypoints/fanloop-workflow/SKILL.md")); err != nil || !info.Mode().IsRegular() {
+		t.Fatalf("compatibility entrypoint: %v", err)
+	}
 	for _, relative := range []string{
-		".agents/skills/create-fanloop-workflow/SKILL.md",
-		".agents/skills/edit-fanloop-skills/SKILL.md",
-		"entrypoints/fanloop-workflow/SKILL.md",
+		".agents/skills/create-fanloop-workflow",
+		".agents/skills/edit-fanloop-skills",
+		"plugins/fanloop-remnote",
 	} {
-		if info, err := os.Stat(filepath.Join(repo, relative)); err != nil || !info.Mode().IsRegular() {
-			t.Fatalf("authoring asset %s: %v", relative, err)
-		}
-	}
-	skill, err := os.ReadFile(filepath.Join(repo, ".agents/skills/create-fanloop-workflow/SKILL.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, required := range []string{"<repo>/fanloop-workflow/<workflow-id>/", "SKILL.md", "FANLOOP_CONFIG_SOURCE"} {
-		if !strings.Contains(string(skill), required) {
-			t.Errorf("Workflow authoring Skill is missing %q", required)
-		}
-	}
-	for _, forbidden := range []string{"Fornax", "fanloop update", "examples/workflows/example/"} {
-		if strings.Contains(string(skill), forbidden) {
-			t.Errorf("Workflow authoring Skill retains an independent authoring or delivery instruction %q", forbidden)
-		}
-	}
-	for _, name := range []string{"create-fanloop-workflow", "edit-fanloop-skills"} {
-		method, err := os.ReadFile(filepath.Join(repo, ".agents", "skills", name, "SKILL.md"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, required := range []string{"已绑定 Runtime 步骤", "当前 Root", "不得新建 Root", "NOT_INITIALIZED", "调用方已绑定的控制器与环境", "bound-release-home/current/bin/fanloop"} {
-			if !strings.Contains(string(method), required) {
-				t.Errorf("%s is missing the bound-Step/public-entry distinction %q", name, required)
-			}
+		if _, err := os.Stat(filepath.Join(repo, relative)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("retired Workflow/plugin path remains: %s", relative)
 		}
 	}
 }
@@ -493,13 +461,8 @@ func TestAgentNavigationPointsAtThePavedVerifyPath(t *testing.T) {
 	if !strings.Contains(glossary, ".cursor/skills/verify-fanloop/features/") {
 		t.Error("CONTEXT.md does not point at the Feature Map")
 	}
-	for _, suite := range []string{
-		"code-change",
-		"remnote-flashcards",
-	} {
-		if !strings.Contains(ownership, suite) {
-			t.Errorf("docs/ownership.md missing production suite %s", suite)
-		}
+	if !strings.Contains(ownership, "second-brain-agent/plugins/") {
+		t.Error("docs/ownership.md does not point product workflows at Codex plugins")
 	}
 	for _, anchor := range []string{
 		"./scripts/install-local.sh",

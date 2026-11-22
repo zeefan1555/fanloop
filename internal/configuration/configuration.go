@@ -504,12 +504,19 @@ func publish(dataRoot, source string, manifest Manifest) (string, error) {
 		if err = os.WriteFile(path, content, mode); err != nil {
 			return "", err
 		}
+		if err = os.Chmod(path, mode); err != nil {
+			return "", err
+		}
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return "", err
 	}
-	if err = os.WriteFile(filepath.Join(staging, "configuration.json"), append(data, '\n'), 0444); err != nil {
+	manifestPath := filepath.Join(staging, "configuration.json")
+	if err = os.WriteFile(manifestPath, append(data, '\n'), 0444); err != nil {
+		return "", err
+	}
+	if err = os.Chmod(manifestPath, 0444); err != nil {
 		return "", err
 	}
 	if _, err = Read(staging); err != nil {

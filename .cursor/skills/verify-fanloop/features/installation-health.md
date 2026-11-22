@@ -8,7 +8,7 @@
 - Each npm release download has a 30-second deadline through headers, manual redirects (at most five) and body, with at most four attempts and 100/200/400ms delays. Only known transport timeouts and interrupted 2xx bodies retry. Each URL must be HTTPS or loopback HTTP and contain no userinfo. HTTP/security/unknown/size/checksum/archive failures do not retry; terminal errors never expose raw URLs or query credentials.
 - `fanloop update` keeps a newer installed release instead of downgrading to `latest`. `fanloop doctor` warns with `export PATH=...` when that distribution install is not on PATH.
 - `fanloop update` installs the CLI. After it switches to a different release, that new release performs the configuration sync from second-brain-skills main. A same-version repair synchronizes in the running process. `fanloop update config` does that Git sync without re-executing, skips an unchanged commit, and prints the full sha plus workflow ids. npm postinstall runs `update config` after switching `current` unless `FANLOOP_NO_AUTO_CONFIG` or `FANLOOP_CONFIG_SOURCE` is set; a sync failure does not fail the install. `FANLOOP_USE_FORNAX=1` with `fornax.json` keeps the Fornax sync and its `id@version` output.
-- Release version, commit, binary checksum and both public Skill entrypoints.
+- Release version, commit, binary checksum and the single `fanloop-workflow` compatibility entrypoint. Workflow authoring is retired.
 - Stable `current/` and nested Release selector, separate from `config/current` source binding.
 - npm and public update migrate a directory containing only the four validated managed links into `current -> releases/<version>`. Atomic exchange preserves its original inode and links in `current.backup-*`. Unknown entries and escaping or indirect release targets are refused. Migration has no two-rename fallback. Directory update synchronizes configuration before activation; npm handles PATH profiles before activation. Failures preserve the original current.
 - Download, validation and pre-activation failures preserve the active Release and previous source binding. A later PATH profile failure reports nonzero and may leave the new CLI active; do not claim full rollback or success.
@@ -30,7 +30,7 @@ Include downloaded malformed checksums, invalid distribution JSON, untrusted int
 Use isolated data and Skill roots. On macOS invoke the documented installer and pinner with /bin/bash, including no output-directory argument and no configuration source. Install two clean commits, check each immutable
 Release, then check `current/release` and the absolute `config/current` snapshot binding and configuration.json identity.
 Prove no new `current/workflows` copy exists. The four Skill roots expose only
-`fanloop-workflow` and `create-fanloop-workflow`. Run from an unrelated cwd with the
+`fanloop-workflow`. Run from an unrelated cwd with the
 override unset to prove the persisted source is used.
 
 An invalid or missing explicitly supplied source must reject installation without

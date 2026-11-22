@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-- Continue a current-schema Requirement after valid live Workflow or Skill edits.
+- Continue a historical current-schema Requirement from its own pinned immutable snapshot.
 - Preserve the creating CLI Release version and Workflow ID in every durable fact.
 - Reject missing current Steps, incompatible Outputs, corrupt Events and new Results that violate current Routes.
 - Reject old Storage schemas without migration or fallback.
@@ -11,8 +11,7 @@
 
 ## How to get to it (user POV)
 
-Create and advance a Requirement, then edit the bound local Workflow package before the next CLI invocation. The
-Requirement keeps its Workflow ID while Status, Prompt, Skill paths and new Route validation use the latest live files.
+Create and advance a synthetic Requirement, pin an immutable snapshot, then prove later `config/current` changes do not replace that binding. Historical Requirements remain readable; current production configuration has no Workflow scenarios.
 
 ## Driving it with fanloop
 

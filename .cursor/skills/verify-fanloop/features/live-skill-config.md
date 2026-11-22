@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-- second-brain-skills main is the single source, with complete fanloop-workflow packages.
+- No current production package set exists; synthetic test repositories provide complete bundles for loader and route tests.
 - New flow init fetches, validates and activates an immutable commit snapshot.
 - Existing status/report/skills are offline; explicit repository source bypasses refresh.
 - Complete path/content/executable-bit identity, shared locking, no partial activation.
@@ -16,9 +16,9 @@ Install into isolated data and Skill roots without configuration. Run flow init 
 
 ## Driving it with fanloop
 
-Use a local Git fixture through Git's url.insteadOf for repeatable remote-main tests, plus one authorized real GitHub main smoke. Initialize two independent Roots at the same SHA; confirm snapshot reuse. Advance main and delete a resource/package; the new snapshot must exactly match the new collection. Existing paths remain readable. Block Git and prove existing status/report/skills succeed while a fresh init returns CONFIGURATION_FETCH_FAILED, external, exit 1, retryable, with no State or current change. Invalid and symlink packages fail before activation. Dry-run validates without State or current change. Exercise concurrent inits and failed activation. Hold an existing Root State lock while a valid report waits; a refresh may prepare its candidate but must not switch the binding until that report completes. The report must succeed against one snapshot.
+Use isolated local Git fixtures for snapshot reuse and configuration failure behavior. Current `second-brain-skills/main` contains no `fanloop-workflow/` packages, so a live production refresh is expected to expose an empty collection rather than restoring packages. Existing pinned Roots remain readable. Invalid, extra or symlink entries fail before activation. Dry-run validates without State or current change. Exercise concurrent inits and failed activation. Hold an existing Root State lock while a valid report waits; a refresh may prepare its candidate but must not switch the binding until that report completes.
 
-Use an explicit author source to prove immediate edit visibility and invalid-source rejection. scripts/validate-configuration.py validates the fixed full collection, records its complete manifest, supports affected --workflow selection and checks unchanged source. Unknown IDs fail before matrices.
+Use an explicit synthetic author source to prove immediate edit visibility and invalid-source rejection. Production configuration is intentionally empty; do not require a Workflow matrix for the retired collection.
 
 For the Git default, point `url.insteadOf` at a local main, run `fanloop update config`, then `fanloop config drift`. Equal commit and manifest sha256 return `in_sync` and exit 0. A newer remote commit returns `local_behind`. A byte difference returns `local_modified` with detail `package content differs`. `ls-remote` failure returns `unavailable`. A Fornax-origin snapshot returns `local_behind` with detail `snapshot came from Fornax; run fanloop update config`.
 

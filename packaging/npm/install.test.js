@@ -90,10 +90,6 @@ test('install verifies checksums before switching current', async () => {
   assert.equal(fs.readFileSync(path.join(root, 'current', 'bin', 'fanloop'), 'utf8').includes(version), true);
   for (const skillRoot of roots) {
     assert.equal(fs.readlinkSync(path.join(skillRoot, 'fanloop-workflow')), path.join(root, 'current', 'entrypoints', 'fanloop-workflow'));
-    assert.equal(
-      fs.readlinkSync(path.join(skillRoot, 'create-fanloop-workflow')),
-      path.join(root, 'current', 'entrypoints', 'create-fanloop-workflow'),
-    );
   }
 });
 

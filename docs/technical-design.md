@@ -12,23 +12,9 @@ Fanloop 的产品定位是通用 Loop 引擎：执行图来自配置，Go 代码
 - `cmd/`、`internal/` 与 `scripts/` 的生产代码不得出现生产 Workflow、Step、Condition、Output 或
   原子 Skill ID；测试会从当前 Bundle 动态提取并扫描这些事实。
 
-second-brain-skills main 的 fanloop-workflow/ 托管生产配置，主要包括：
+当前生产产品流程不再使用 Workflow。`second-brain-agent/plugins/` 中的 Codex 插件直接执行账户早报、TradingView 回测、日记和 RemNote 等产品能力；原 `second-brain-skills/fanloop-workflow/` 目录及全部生产包已退役，见 [ADR-0148](./adr/0148-retire-production-workflows-for-codex-plugins.md)。
 
-- `code-change`、`daily-journal`：通过 second-brain-skills 的当前 `select-workflow` Skill 选择；代码变更走 `code-change`（取代已退役的 `fanloop-maintainer` 与 `remnote-direct-maintainer`，见 ADR-0135）。
-- `ai-daily-brief`：公开 X 来源的中文 AI 日报流程。
-- 普通 Skill 变更直接使用 second-brain-skills 的 `writing-for-agents`，按该仓库验证与 PR 规则交付。用户明确启用的 Workflow 包维护使用 Runtime `manage-fanloop-workflow`，验证和发布由当前步骤负责。已退役包不作为新入口，既有不可变 Run 快照保持原样。
-- `pstack-native`：六步剧本交付，保留完整脚本与资源。
-- `remnote-flashcards`：四步 HOME 分类、RemNote 闪卡写入、Wiki 更新与引用、最终回读闭环；查重后允许零新增卡片。
-
-完整包目录为 `fanloop-workflow/<workflow-id>/{SKILL.md,五份 YAML,skills/<skill-id>/**}`。本地 Release 暴露
-`fanloop-workflow` 与 `create-fanloop-workflow` 两个公共 Skill；安装检查和 Doctor 的安装检查从当前 live Workflow 根加载，并拒绝缺失或
-额外文件、符号链接、空 Skill、未知 Skill 与跨 Workflow SkillBinding。已有 Requirement 的 status、report、skills、trace、card render、Card projection 和 Doctor 需求检查读取 `.fanloop/configuration-snapshot`。
-
-入口的 `routes.yaml` 使用 `schema_version: 2`，把用户显式选择的场景映射到 Workflow：
-`fanloop-maintenance` 对应
-`code-change`，`remnote-flashcards` 对应 `remnote-flashcards`。没有默认值；用户未选择或场景未知时不得执行 `flow init`。当前生产来源与
-清单见 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)；`technical-solution-design` 的历史退役决策见
-[ADR-0120](./adr/0120-host-production-workflows-in-registry.md)。
+本地 Release 只暴露 `fanloop-workflow` 兼容入口；`routes.yaml` 使用 `schema_version: 2`，`scenarios` 为空。禁止新 `flow init`、恢复已退役包或把插件包装成 Workflow。已有 Requirement 的 status、report、skills、trace、card render、Card projection 和 Doctor 需求检查读取各自 `.fanloop/configuration-snapshot`，因此 pinned 历史 Run 仍可只读或继续。
 
 Trace Registry 是独立的部署配置：`internal/traceconfig/registry.yaml` 按 profile 提供默认策略和
 可选 Workflow 覆盖。Runtime 只通过 `Resolve(profile, workflowID)` 取得 provider、endpoint、远端字段名、
@@ -60,25 +46,11 @@ State、Output Registry 与 Event；dry-run 只计算响应，不落盘。
 进入 `skipped_step_ids`，目标及下游 Outputs 失效；Card 与 Trace 将 skipped 显示为“已跳过”。完整
 决策见 [ADR-0102](./adr/0102-add-common-step-controls.md)。
 
-Human Step 的审核与可选 Panorama 都由五份 YAML 驱动。代码通道（`code-change` playbook）由主 Agent批准需求与最终候选，配置通道经独立行为试用后提交本地完整包并回读。选择 Panorama 的 Workflow 通过普通 Condition 和绑定 Skill 按宿主原样展示 renderer 输出并返回本次快照；CLI只校验类型与Route，不代替审批或证明业务事实，也不注入固定 Panorama 节点。
+历史 pinned Workflow 中，Human Step 的审核与可选 Panorama 仍由该快照的五份 YAML 驱动。选择 Panorama 的 Workflow 通过普通 Condition 和绑定 Skill 按宿主原样展示 renderer 输出并返回本次快照；CLI 只校验类型与 Route，不代替审批或证明业务事实，也不注入固定 Panorama 节点。当前生产配置没有 Workflow。
 
 ## 当前配置实例
 
-已退役的 `fanloop-maintainer`（ADR-0135）曾使用 4 Stage / 4 Job / 4 Step：Define 冻结目标与验收契约，Build 持续实现和自主验证，
-Certify 在 Pre-Certify 后并行执行独立 Review 与黑盒验收，等待两者结束再记录主 Agent决定及回执；Deliver 合并唯一 PR、校验 tree 并更新本地
-CLI。Runtime 仍是单活动 Step，不增加并行状态、IDL 或通用执行层。
-
-用户先与主 Agent 对齐目录和目标；主 Agent派生并持续监督只向其回报的执行子 Agent，执行子 Agent创建、
-持有并驱动 Requirement，且直接修改受管代码。Build 运行聚焦测试、`./tests/run-unit` 和真实公开 CLI
-自验证；提交并确认 clean 后，Pre-Certify 一次性复核契约、完整 diff、验证资产、外部依赖与 candidate identity；
-涉及生产配置时身份同时包含 `configuration_manifest_sha256`。
-Certify 冻结 `certification_base` / `certification_head` 后，并行启动独立整体 Review 和恰好一个无实现上下文的全新
-Sub-agent 黑盒验证；二者读取同一候选、使用隔离写状态且全部结束后再聚合。黑盒使用 1 至 3 个公开 CLI 场景，
-全程不改全局 current。执行子 Agent向主 Agent申请候选
-验收决定；main 前进时 Deliver 记录 `delivery_main_head` 回 Build，由 Build 集成该提交并产生新候选。`merge_and_update_local` 由执行子 Agent发布唯一 PR、从 active main Ruleset 动态读取并校验精确 final head 的
-required checks、同步 Review、自动 squash merge，把本 Requirement 的源码 worktree 更新到精确 merge commit，并从该提交更新本地 CLI。已合并重入先固定原 merge commit，合码后的本地失败只恢复该提交。
-黑盒公开 CLI 证据只承担可直接观测的 candidate/Doctor、四步 Panorama、Step ID/名称和旧 Step 缺失；
-非当前 Step 的 executor 与 Route/Condition 语义由五份生产 YAML 和聚焦 contract test 证明，验收不伪造批准跨过治理边界。
+生产实例为零。通用 Runtime 的测试仍使用 `examples/workflows/` 和 `internal/workflow/testdata/` 中的合成 Bundle；它们不是可恢复的产品入口。既有 Requirement 的 pinned Bundle 是历史事实，不由本仓库升级、重写或迁移。
 
 ## 当前持久化版本
 
@@ -91,13 +63,13 @@ Requirement 文件集中在 `.fanloop/{flow,output,trace,card,log}`；公开命�
 
 ## 本地构建与验证
 
-`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、两个公共 Skill 和
+`./scripts/build-local.sh [OUTPUT_DIR]` 只编译本机二进制，生成携带 `bin/fanloop`、一个 `fanloop-workflow` 兼容 Skill 和
 Manifest 的本地 Release；标准输出是构建目录的绝对路径。`skills/` 与 `exemplars/` 不进入 Release，
 也不参与 CLI 的 dirty 版本摘要。显式输出目录必须尚不存在，默认在 `dist/` 下新建唯一
 `local-*` 目录。
 
 Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、Storage Schema 支持与
-两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
+`fanloop-workflow` 兼容 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
 复用目录安装，离线切换 CLI Release；显式配置源导入干净提交快照，否则保留已有配置。
 
 `flow init` 默认在稳定锁内用 HTTPS 拉取 `https://github.com/zeefan1555/second-brain-skills.git` 的 `main`，即使存在 `fornax.json`。HTTPS 尝试为 15 秒且不提示输入凭据；失败时同一次操作回退一次 SSH 地址。`configuration.json` 记录实际成功的地址。已有快照按 commit 复用。见 [ADR-0141](./adr/0141-https-config-remote-with-ssh-fallback.md)。Git 或网络失败不替换 `config/current`；已有快照时继续使用它，没有快照时初始化失败。`FANLOOP_USE_FORNAX=1` 才让 init 使用 Fornax 快照，目录名是排序后 `key@version` 行的 sha256。显式 `FANLOOP_CONFIG_SOURCE` 指向作者仓库根并跳过刷新。完整包目录是 `fanloop-workflow/<id>`。配置校验失败不创建 Requirement，也不替换 current。新 Requirement 把快照目录写到 `.fanloop/configuration-snapshot`。
@@ -111,7 +83,7 @@ Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时
 用户安装的 CLI 来自 GitHub Release。形如 `vX.Y.Z` 的 tag 触发 Actions，只在 ubuntu 上交叉编译 darwin/linux amd64/arm64，上传平台 tar.gz、`checksums.txt`、分发清单 `release.json` 和薄 npm 包装。安装命令带 `--foreground-scripts --allow-scripts=fanloop`。安装先完成校验和公共 Skill 链接，再切换 `current`。`fanloop update` 下载最新 Release 并原子切换 CLI 的 `~/.fanloop/current`，但不会把较新的本机版本降级到 `latest`。版本发生变化时，新二进制执行配置同步；同一版本修复仍由当前进程同步 `second-brain-skills` `main`。`fanloop update config` 只做这次 Git 同步；commit 未变时跳过 checkout。`FANLOOP_USE_FORNAX=1` 且存在 `fornax.json` 时才同步 Fornax，已发布集合和已安装树都没变时跳过下载。平台包内部的 `release.json` 仍是 schema 4，不含平台归档字段。开发构建继续使用 `./scripts/build-local.sh` 与 `./scripts/install-local.sh`。已有 Requirement 的 `flow status/report/skills`、`trace`、`card render`、Card projection 更新和 Doctor 需求检查读取该 Requirement 固定的快照，不跟随之后的 `config/current`。投影文件能通过 pinned Workflow 校验但落后于已提交 State/Event 时，非 dry-run `card render` 从事件日志重建投影后再渲染；缺失、损坏或绑定错误的投影仍直接失败。见 [ADR-0142](./adr/0142-rebuild-stale-card-projection-from-pinned-snapshot.md)。完整决定见
 [ADR-0140](./adr/0140-update-reexecs-new-release-for-config-sync.md)、[ADR-0137](./adr/0137-take-workflow-configuration-from-fornax.md)、[ADR-0136](./adr/0136-distribute-cli-from-github-releases.md) 与 [ADR-0132](./adr/0132-git-workflow-configuration-center.md)。
 
-新增生产 Workflow 由 Runtime manage-fanloop-workflow 的当前步骤在 second-brain-skills 增加 fanloop-workflow/<workflow-id>/ 完整包，验证和独立审核后通过分支 PR 交付。统一入口的场景映射仍在代码routes.yaml中；新增入口场景需要代码发布，本次不提供动态场景发现。通用代码测试用独立fixture验证额外Workflow无需运行时注册。
+新增日常产品流程时，在 `second-brain-agent/plugins/` 维护 Codex 插件，不新增生产 Workflow、公共场景或作者入口。Fanloop Runtime 只继续支持通用执行器测试和已有 pinned Requirement。
 
 仓库级本地门禁只有一个：
 
@@ -125,4 +97,4 @@ Route Matrix 由 CI 的 `requirement-e2e` 执行；固定生产发布的矩阵�
 `run-unit` 先完成格式与生成物检查，再并发执行互不共享可写状态的 vet、Go test 和本地 Route Matrix；
 它等待所有已启动检查并聚合失败。脚本显式使用 Go 自动工具链选择，避免宿主 `GOTOOLCHAIN=local` 让仓库门禁在运行前失败。
 
-`flow skills` exposes the complete current Workflow Skill catalog for dynamic reading; membership does not make a Skill mandatory. The catalog decision is recorded in [ADR-0128](./adr/0128-discover-workflow-skills-and-retire-pstack-native.md); current inventory is read from second-brain-skills main rather than a code-owned list.
+`flow skills` remains available for a historical Requirement's pinned package catalog. The current production inventory is empty; product Skill discovery uses the installed Codex plugin marketplace instead.

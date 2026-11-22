@@ -200,10 +200,9 @@ func localBuildGuardRepository(t *testing.T) (string, []string) {
 		"scripts/install-local.sh": installScript,
 		"VERSION":                  []byte("1.2.3\n"),
 		".gitignore":               []byte("/dist/\n"), "tracked.go": []byte("initial\n"),
-		"entrypoints/example/SKILL.md":                    []byte("entry\n"),
-		".agents/skills/create-fanloop-workflow/SKILL.md": []byte("authoring\n"),
-		"skills/example/workflow.yaml":                    []byte("example\n"),
-		"skills/example/skills/example/SKILL.md":          []byte("example\n"),
+		"entrypoints/example/SKILL.md":           []byte("entry\n"),
+		"skills/example/workflow.yaml":           []byte("example\n"),
+		"skills/example/skills/example/SKILL.md": []byte("example\n"),
 	} {
 		path := filepath.Join(repository, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

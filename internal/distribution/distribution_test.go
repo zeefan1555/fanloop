@@ -240,9 +240,8 @@ func validArchive(t *testing.T, version, binary, workflow, author string) []byte
 	t.Helper()
 	root := t.TempDir()
 	files := map[string]string{
-		"bin/fanloop":                                  binary,
-		"entrypoints/fanloop-workflow/SKILL.md":        workflow,
-		"entrypoints/create-fanloop-workflow/SKILL.md": author,
+		"bin/fanloop":                           binary,
+		"entrypoints/fanloop-workflow/SKILL.md": workflow,
 	}
 	for name, body := range files {
 		target := filepath.Join(root, filepath.FromSlash(name))
@@ -267,11 +266,7 @@ func validArchive(t *testing.T, version, binary, workflow, author string) []byte
 		if err != nil {
 			t.Fatal(err)
 		}
-		body := workflow
-		if exposed.Name == release.AuthoringSkillName {
-			body = author
-		}
-		files[exposed.Path+"/SKILL.md"] = body
+		files[exposed.Path+"/SKILL.md"] = workflow
 		skills = append(skills, map[string]any{
 			"name": exposed.Name, "version": version, "path": exposed.Path, "sha256": digest,
 		})
@@ -338,10 +333,9 @@ func serveRelease(t *testing.T, version string, archive []byte, hits *int) *http
 func TestUpdateRejectsIncompleteManifestBeforeSwitch(t *testing.T) {
 	version := "1.2.3"
 	archive := testArchive(t, map[string]string{
-		"bin/fanloop":                                  "#!/bin/sh\n",
-		"release.json":                                 "{\"schema_version\":4,\"release_version\":\"1.2.3\"}\n",
-		"entrypoints/fanloop-workflow/SKILL.md":        "# workflow\n",
-		"entrypoints/create-fanloop-workflow/SKILL.md": "# author\n",
+		"bin/fanloop":                           "#!/bin/sh\n",
+		"release.json":                          "{\"schema_version\":4,\"release_version\":\"1.2.3\"}\n",
+		"entrypoints/fanloop-workflow/SKILL.md": "# workflow\n",
 	})
 	root := t.TempDir()
 	server := serveRelease(t, version, archive, nil)
@@ -451,12 +445,10 @@ func TestUpdateSkipsPaxHeadersAndAppleDouble(t *testing.T) {
 	version := "1.2.3"
 	binary := "#!/bin/sh\necho 1.2.3\n"
 	workflow := "# workflow\n"
-	author := "# author\n"
 	root := t.TempDir()
 	files := map[string]string{
-		"bin/fanloop":                                  binary,
-		"entrypoints/fanloop-workflow/SKILL.md":        workflow,
-		"entrypoints/create-fanloop-workflow/SKILL.md": author,
+		"bin/fanloop":                           binary,
+		"entrypoints/fanloop-workflow/SKILL.md": workflow,
 	}
 	for name, body := range files {
 		target := filepath.Join(root, filepath.FromSlash(name))
