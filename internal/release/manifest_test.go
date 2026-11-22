@@ -41,7 +41,7 @@ func TestDecodeUsesGeneratedChildValidation(t *testing.T) {
 	}
 }
 
-func TestValidateAllowsBothPublicEntrypoints(t *testing.T) {
+func TestValidateAllowsPublicEntrypoint(t *testing.T) {
 	manifest := validTestManifest()
 	if err := manifest.Validate(); err != nil {
 		t.Fatalf("entrypoint-only release rejected: %v", err)
@@ -131,7 +131,6 @@ func validTestManifest() Manifest {
 		StateSchema:    &opsidl.StateSchemaSupport{ReadVersions: []int32{11}, WriteVersion: 11},
 		Skills: []*Skill{
 			{Name: WorkflowSkillName, Version: "1.2.3", Path: WorkflowSkillPath, Sha256: digest},
-			{Name: AuthoringSkillName, Version: "1.2.3", Path: AuthoringSkillPath, Sha256: digest},
 		},
 	}
 }

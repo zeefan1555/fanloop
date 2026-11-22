@@ -11,7 +11,7 @@ import (
 	"github.com/zeefan1555/fanloop/internal/release"
 )
 
-func TestPreflightSkillLinksExposesBothPublicSkills(t *testing.T) {
+func TestPreflightSkillLinksExposesWorkflowCompatibilitySkill(t *testing.T) {
 	root := t.TempDir()
 	request := Request{
 		DataRoot: root,
@@ -25,14 +25,13 @@ func TestPreflightSkillLinksExposesBothPublicSkills(t *testing.T) {
 	manifest := release.Manifest{Skills: []*release.Skill{
 		{Name: "test-guide", Path: "skills/linear-runtime/test-guide"},
 		{Name: release.WorkflowSkillName, Path: release.WorkflowSkillPath},
-		{Name: release.AuthoringSkillName, Path: release.AuthoringSkillPath},
 		{Name: "fanloop-dev-tdd", Path: "skills/fanloop-maintainer/fanloop-dev-tdd"},
 	}}
 	plans, err := preflightSkillLinks(request, manifest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plans) != 8 {
+	if len(plans) != 4 {
 		t.Fatalf("plans = %#v", plans)
 	}
 	for index, plan := range plans {

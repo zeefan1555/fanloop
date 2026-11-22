@@ -10,17 +10,9 @@ Workflow、Step、Condition、Output 或原子 Skill ID，只负责严格加载�
 - 环境变量：`FANLOOP_*`
 - Go module：`github.com/zeefan1555/fanloop`
 
-配置仓库 `zeefan1555/second-brain-skills` 的 `main` 托管生产 Workflow，不设置默认 Workflow：
+当前生产产品工作流已迁移到 `second-brain-agent/plugins/` 下的 Codex 插件。Fanloop 保留源码、CLI 和通用 Runtime，用于继续既有 pinned Requirement，但本仓库的 `routes.yaml` 没有新场景。
 
-- `pstack-native`：六步剧本交付，完整包来自配置中心。
-- `code-change`、`daily-journal`：通过 second-brain-skills 的当前 `select-workflow` Skill 选择；Fanloop、RemNote Direct 等仓库的代码变更走 `code-change`（`fanloop-maintainer`、`remnote-direct-maintainer` 已在 ADR-0135 退役）。
-- `ai-daily-brief`：采集公开 X 原创帖并生成中文 AI 日报。
-- 普通 Skill 变更直接使用 second-brain-skills 的 `writing-for-agents`，按该仓库验证与 PR 规则交付。用户明确启用的 Workflow 包维护使用 Runtime `manage-fanloop-workflow`，验证和发布由当前步骤负责。已退役包不作为新入口，既有不可变 Run 快照保持原样。
-- `remnote-flashcards`：从已理解的概念开始，依次定位 HOME Tag、写入 RemNote 闪卡、更新 Wiki 与引用、最终回读校验。复盘若有一条可复用发现，用官方 Notion CLI `ntn login` 写入已有数据库「remnote workflow 经验表」；没有钥匙串时 `NOTION_KEYRING=0`。字段与默认 ID 见 `fanloop-workflow/remnote-flashcards/skills/remnote-flashcards/references/notion-experience.md`。
-
-每套 Workflow 是仓库 `fanloop-workflow/<workflow-id>/` 下的完整 Skill 包：根 `SKILL.md`、五份 YAML 与子 `skills/<skill-id>/**` 同目录保存。Workflow 入口独立放在 `entrypoints/fanloop-workflow/`，场景映射由其中的 `routes.yaml` 配置；作者入口由 `.agents/skills/create-fanloop-workflow/` 提供。两个公共 Skill 都随本地 Release 安装；Workflow YAML、绑定 Skill 及资源直接来自源仓库，未增加动态场景发现。
-
-新增或修改流程先初始化 Runtime `manage-fanloop-workflow`，按 Status 需要读取 `.agents/skills/create-fanloop-workflow/` 的材料转换方法。
+`entrypoints/fanloop-workflow/` 只作为已初始化 Requirement 的兼容入口。不要新增 `fanloop-workflow/<workflow-id>/` 生产包，不要恢复 `create-fanloop-workflow`，也不要为插件建立 Workflow 包装。
 `examples/workflows/example/` 与 `examples/workflows/manage-fanloop-workflow` 仅作为通用测试夹具，不是生产维护或发布入口。
 公共场景别名属于独立入口 Skill 的安装范围，不为新增配置隐式重建 CLI 或更新已安装场景表。不注册 Go 代码。Trace Registry
 的部署与 Workflow 差异位于 `internal/traceconfig/registry.yaml`，同样不进入业务 Runtime。该文件里的 Lark 坐标是占位符；provider 为 lark 时用 `FANLOOP_TRACE_REGISTRY_URL`、`FANLOOP_TRACE_REGISTRY_BASE_TOKEN`、`FANLOOP_TRACE_REGISTRY_TABLE_ID`、`FANLOOP_TRACE_REGISTRY_VIEW_ID` 提供真实值。
@@ -59,7 +51,7 @@ fanloop update: lstat …/fornax.json: no such file or directory
 
 ## 本地构建与安装
 
-从源码使用，需要 Go 1.23 或更高版本（`go.mod` 要求 `go 1.23.0`）、Git 和 Bash。构建只针对本机，生成只包含 CLI、两个公共 Skill 和
+从源码使用，需要 Go 1.23 或更高版本（`go.mod` 要求 `go 1.23.0`）、Git 和 Bash。构建只针对本机，生成只包含 CLI、一个 `fanloop-workflow` 兼容 Skill 和
 校验清单的不可变 Release；Workflow YAML 与其绑定 Skills 不进入 Release。
 根级 `VERSION` 是 CLI 基础版本真值；本地源码构建使用 `VERSION-dev.<提交或内容摘要>`，同一提交
 可幂等复用，不同提交不会覆盖同名不可变 Release。Workflow/Skill 与范文改动不改变未提交 CLI
@@ -106,25 +98,7 @@ fanloop config drift
 
 ## 使用
 
-新 Requirement 必须先显式选择场景：
-
-- `fanloop-maintenance` → `code-change`
-- `remnote-flashcards` → `remnote-flashcards`
-
-`entrypoints/fanloop-workflow/routes.yaml` 没有默认值；未选择或场景未知时停止初始化。
-RemNote Direct 的仓库维护同样走 `code-change` Workflow。
-选择维护场景后执行：
-
-```bash
-mkdir -p /absolute/path/to/requirement
-fanloop flow init \
-  --root /absolute/path/to/requirement \
-  --workflow code-change \
-  --title "Maintain Fanloop"
-fanloop flow status --root /absolute/path/to/requirement
-```
-
-Agent 使用 `fanloop-workflow` 推进 Requirement，使用 `create-fanloop-workflow` 设计新的 Workflow 候选。运行闭环为：
+产品任务直接使用 `second-brain-agent/plugins/` 中的 Codex 插件。Fanloop 的 `entrypoints/fanloop-workflow/routes.yaml` 当前为空；不要执行新 `flow init`。继续旧 Requirement 时只使用该 Root 的 fixed controller 和 pinned 快照。运行闭环为：
 
 ```text
 flow status -> 执行当前 Prompt/Skills -> flow report progress/result -> flow status
@@ -148,34 +122,9 @@ FANLOOP_CONFIG_SOURCE=/absolute/path/to/repository fanloop dashboard
 
 显式编辑模式只保存已列出的完整文件，包括根 `SKILL.md`，校验观察摘要、符号链接与完整 Bundle 后原子写回同一仓库。可以显式编辑当前绑定源；CLI 和 Dashboard 共享同源目录锁。
 
-## 新增 Workflow
+## 无新 Workflow 入口
 
-先初始化 Runtime `manage-fanloop-workflow` 并按最新 Status 构建、验证和交付下面的完整包。
-新增公共场景属于 Fanloop 源改动，单独走分支 PR；仅新增配置不改场景表。
-
-```text
-fanloop-workflow/<workflow-id>/SKILL.md
-fanloop-workflow/<workflow-id>/{workflow,condition,flow,loop,prompt}.yaml
-fanloop-workflow/<workflow-id>/skills/<skill-id>/**
-entrypoints/fanloop-workflow/routes.yaml
-```
-
-五份 YAML 定义完整执行图，`condition.yaml` 的 `output.description` 可作为 Card 展示名。安装和
-Doctor 会拒绝缺失或多余文件、跨 Workflow SkillBinding、符号链接、缺失 Route
-或图不变量错误。
-
-Human Step 的审批 Skill 展示审核材料，Panorama Skill 按当前宿主原样展示 renderer 生成的紧凑
-全景，并把本次 `snapshot_path` 与审核结论一起上报。代码变更的需求批准与最终认证则由驱动 Flow 的执行子 Agent向主 Agent
-提交需求契约或独立认证证据并等待决定。Flow Runtime 只校验并推进，不自动调用发送工具；Trace provision/sync 与显式 `card render` 保持独立。
-
-选择 `fanloop-maintenance` 场景后，维护 Fanloop 自身时执行：
-
-```bash
-fanloop flow init \
-  --root /absolute/path/to/maintenance-requirement \
-  --workflow code-change \
-  --title "Maintain Fanloop"
-```
+当前 Release 不提供生产 Workflow 场景，也不安装 Workflow 作者入口。需要开发产品流程时，直接维护 `second-brain-agent/plugins/` 的 Codex 插件。完整包加载器、Route Matrix 和 pinned Requirement 支持仍保留，以读取历史快照和测试通用 Runtime。
 
 ## 验证
 
@@ -200,7 +149,7 @@ go test -count=1 -buildvcs=false ./tests/contracts \
 
 ## 源码边界
 
-源码位于 GitHub 仓库 `zeefan1555/fanloop`。用户安装的 CLI 来自 GitHub Release；仓库不向 npm registry 发布。开发机仍可从精确 merge commit 执行 `./scripts/install-local.sh`。生产 Workflow 完整包在 `zeefan1555/second-brain-skills` 独立维护，配置更新不要求重建 CLI。
+源码位于 GitHub 仓库 `zeefan1555/fanloop`。用户安装的 CLI 来自 GitHub Release；仓库不向 npm registry 发布。开发机仍可从精确 merge commit 执行 `./scripts/install-local.sh`。日常产品流程在 `zeefan1555/second-brain-agent` 的插件市场维护，不要求重建 CLI。
 
 发布与安装边界见 [ADR-0136](./docs/adr/0136-distribute-cli-from-github-releases.md)。本地开发构建见 [ADR-0095](./docs/adr/0095-local-source-builds.md)，Workflow Git 真值、源绑定与 Dashboard 边界见
 [ADR-0132](./docs/adr/0132-git-workflow-configuration-center.md)，个人空间镜像见 [ADR-0136](./docs/adr/0136-mirror-git-workflows-to-fornax.md)。代码授权仍为 `UNLICENSED`。

@@ -17,10 +17,8 @@ import (
 )
 
 const (
-	WorkflowSkillName  = "fanloop-workflow"
-	WorkflowSkillPath  = "entrypoints/fanloop-workflow"
-	AuthoringSkillName = "create-fanloop-workflow"
-	AuthoringSkillPath = "entrypoints/create-fanloop-workflow"
+	WorkflowSkillName = "fanloop-workflow"
+	WorkflowSkillPath = "entrypoints/fanloop-workflow"
 )
 
 type ExposedSkill struct {
@@ -30,7 +28,6 @@ type ExposedSkill struct {
 
 var exposedSkills = []ExposedSkill{
 	{Name: WorkflowSkillName, Path: WorkflowSkillPath},
-	{Name: AuthoringSkillName, Path: AuthoringSkillPath},
 }
 
 var versionPattern = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z._+-]*$`)

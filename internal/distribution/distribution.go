@@ -50,7 +50,6 @@ var requiredArchivePaths = []string{
 	"bin/fanloop",
 	"release.json",
 	"entrypoints/fanloop-workflow/SKILL.md",
-	"entrypoints/create-fanloop-workflow/SKILL.md",
 }
 
 // Platform is a published operating system and CPU architecture.

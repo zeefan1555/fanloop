@@ -122,9 +122,6 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	}
 	for _, exposed := range release.ExposedSkills() {
 		source := filepath.Join(repository, filepath.FromSlash(exposed.Path))
-		if exposed.Name == release.AuthoringSkillName {
-			source = filepath.Join(repository, ".agents", "skills", exposed.Name)
-		}
 		destination := filepath.Join(root, filepath.FromSlash(exposed.Path))
 		if fixtureDirectoryDigest(t, source) != fixtureDirectoryDigest(t, destination) {
 			t.Fatalf("local build changed or omitted public Skill %s", exposed.Name)
@@ -160,7 +157,7 @@ func assertLocalBuildContents(t *testing.T, repository, root string) {
 	for index, skill := range manifest.Skills {
 		gotSkills[index] = skill.Name
 	}
-	if want := []string{release.WorkflowSkillName, release.AuthoringSkillName}; !reflect.DeepEqual(gotSkills, want) {
+	if want := []string{release.WorkflowSkillName}; !reflect.DeepEqual(gotSkills, want) {
 		t.Fatalf("local manifest Skills = %v, want %v", gotSkills, want)
 	}
 }

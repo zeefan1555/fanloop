@@ -9,7 +9,7 @@ This is the single code-owned verification procedure. `features/README.md` index
 
 ## Launch
 
-From a clean candidate, use isolated data and four Skill roots. The production source is second-brain-skills main. Generic runtime verification uses a fresh Git repository containing only tracked synthetic fixtures in fanloop-workflow. Commit the fixture before offline installation.
+From a clean candidate, use isolated data and four Skill roots. Current production product flows live in `second-brain-agent/plugins/`; Fanloop has no production Workflow inventory. Generic runtime verification uses a fresh Git repository containing only tracked synthetic fixtures in `fanloop-workflow/`. Commit the fixture before offline installation.
 
 ```bash
 export FANLOOP_DATA_HOME="$(mktemp -d)"
@@ -28,7 +28,7 @@ unset BOTMUX_CHAT_ID BOTMUX_SESSION_ID
 export PATH="$FANLOOP_DATA_HOME/current/bin:$PATH"
 ```
 
-Keep the explicit fixture source for credential-free smoke. To prove remote production initialization, use a separate data home, unset FANLOOP_CONFIG_SOURCE, install without a source, then run flow init and record the exact remote main SHA, configuration manifest and snapshot Skill paths. First-install Doctor warns until configuration exists; malformed explicit sources and broken bindings fail. Existing status/report/skills stay offline. Record authorized remote Git reads; do not execute business Skills.
+Keep the explicit fixture source for credential-free smoke. Do not use a real remote production initialization while the inventory is empty. Existing pinned Requirements may be checked read-only with their own fixed controller and configuration snapshot. First-install Doctor warns until configuration exists; malformed explicit sources and broken bindings fail. Record authorized remote Git reads; do not execute business Skills.
 
 Ready when `fanloop version` reports `commit_sha` equal to `git rev-parse HEAD` and the previous global `~/.fanloop/current` target is unchanged.
 

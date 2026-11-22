@@ -78,14 +78,12 @@ function verifyChecksum(text, filename, bytes) {
 
 const EXPOSED_SKILLS = [
   {name: 'fanloop-workflow', path: 'entrypoints/fanloop-workflow'},
-  {name: 'create-fanloop-workflow', path: 'entrypoints/create-fanloop-workflow'},
 ];
 
 const ARCHIVE_REQUIRED = [
   'bin/fanloop',
   'release.json',
   'entrypoints/fanloop-workflow/SKILL.md',
-  'entrypoints/create-fanloop-workflow/SKILL.md',
 ];
 
 const RELEASE_VERSION_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._+-]*$/;

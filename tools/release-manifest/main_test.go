@@ -22,7 +22,7 @@ func TestBuildCreatesMatchedLoopManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantSkills := []string{"fanloop-workflow", "create-fanloop-workflow"}
+	wantSkills := []string{"fanloop-workflow"}
 	gotSkills := make([]string, len(manifest.Skills))
 	for index, skill := range manifest.Skills {
 		gotSkills[index] = skill.Name
@@ -53,9 +53,6 @@ func TestDiscoverEntrypoints(t *testing.T) {
 	root := t.TempDir()
 	for _, exposed := range release.ExposedSkills() {
 		sourcePath := exposed.Path
-		if exposed.Name == release.AuthoringSkillName {
-			sourcePath = ".agents/skills/" + exposed.Name
-		}
 		path := filepath.Join(root, filepath.FromSlash(sourcePath), "SKILL.md")
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -68,7 +65,7 @@ func TestDiscoverEntrypoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(skills) != 2 {
+	if len(skills) != 1 {
 		t.Fatalf("discoverEntrypoints() = %#v", skills)
 	}
 	for index, exposed := range release.ExposedSkills() {
@@ -108,13 +105,6 @@ func TestConfigOnlyWorkflowNeedsNoRuntimeRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(entrypoint, []byte("---\nname: fanloop-workflow\n---\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	authoring := filepath.Join(root, ".agents", "skills", release.AuthoringSkillName, "SKILL.md")
-	if err := os.MkdirAll(filepath.Dir(authoring), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(authoring, []byte("---\nname: create-fanloop-workflow\n---\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	loaded, err := workflow.LoadDirectory(bundleRoot)
@@ -170,6 +160,16 @@ func TestValidateSelectorDoesNotRequireWorkflowInCLIRelease(t *testing.T) {
 	}
 	if err := validateSelectorRoutes(path); err != nil {
 		t.Fatalf("source-independent selector rejected: %v", err)
+	}
+}
+
+func TestValidateSelectorAllowsEmptyProductionInventory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "routes.yaml")
+	if err := os.WriteFile(path, []byte("schema_version: 2\nscenarios: {}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateSelectorRoutes(path); err != nil {
+		t.Fatalf("empty production selector rejected: %v", err)
 	}
 }
 
@@ -254,10 +254,5 @@ func writeTestReleaseDirectory(t *testing.T, source, destination string) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-	}
-	authoringSource := filepath.Join(source, ".agents", "skills", release.AuthoringSkillName)
-	authoringTarget := filepath.Join(destination, filepath.FromSlash(release.AuthoringSkillPath))
-	if err := os.CopyFS(authoringTarget, os.DirFS(authoringSource)); err != nil {
-		t.Fatal(err)
 	}
 }

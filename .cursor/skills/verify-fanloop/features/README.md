@@ -1,6 +1,6 @@
 # Fanloop Feature Map
 
-Fanloop 用户可见行为的验证索引。契约真值仍是叶子 `--help`、五份生产 Workflow YAML 与真实可观察结果；
+Fanloop 用户可见行为的验证索引。契约真值是叶子 `--help`、Runtime 持久化与真实可观察结果；历史或合成 Workflow 的五份 YAML 只约束对应 pinned 场景。
 本地图只把这些行为压缩成 Agent 可搜索、可驱动的共享记忆。
 
 ## Baseline
@@ -24,7 +24,6 @@ Fanloop 用户可见行为的验证索引。契约真值仍是叶子 `--help`、
 - [Live Workflow configuration](live-skill-config.md)
 - [Workflow Skill catalog](workflow-skill-catalog.md)
 - [Local dashboard](local-dashboard.md)
-- [Workflow products](workflow-products.md)
 - [Multi-surface journeys](multi-surface-journeys.md)
 
 ## Proof and skip rules

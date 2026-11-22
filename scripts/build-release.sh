@@ -117,7 +117,6 @@ for pair in "${platforms[@]}"; do
     -ldflags "-s -w -X github.com/zeefan1555/fanloop/internal/buildinfo.ReleaseVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.CLIVersion=$version -X github.com/zeefan1555/fanloop/internal/buildinfo.Commit=$commit" \
     -o "$stage/bin/fanloop" . >&2
   cp -R "$repo_root/entrypoints" "$stage/"
-  cp -R "$repo_root/.agents/skills/create-fanloop-workflow" "$stage/entrypoints/"
   go run ./tools/release-manifest --version "$version" --source "$repo_root" \
     --dist "$stage" --output "$stage/release.json" >&2
   archive="fanloop-$version-$goos-$goarch.tar.gz"
