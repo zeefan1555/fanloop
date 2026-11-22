@@ -143,8 +143,8 @@ func NewRoot(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command
 		Short: "Legacy Requirement runtime and Workflow engine",
 		Long: `Fanloop legacy Requirement runtime and general Workflow engine.
 
-Current product workflows live in second-brain-agent/plugins and execute directly in Codex. This CLI continues
-existing pinned Requirements and runs synthetic Runtime fixtures.
+Agent workflow:
+Current product workflows live in second-brain-agent/plugins and execute directly in Codex. This CLI continues existing pinned Requirements and runs synthetic Runtime fixtures.
 
 For an existing Requirement:
 1. Use its bound-release-home/current/bin/fanloop controller.
