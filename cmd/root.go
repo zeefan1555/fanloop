@@ -140,17 +140,19 @@ func NewRoot(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command
 	var requirementRoot string
 	root := &cobra.Command{
 		Use:   "fanloop",
-		Short: "Backend requirement delivery CLI",
-		Long: `Backend requirement delivery CLI.
+		Short: "Legacy Requirement runtime and Workflow engine",
+		Long: `Fanloop legacy Requirement runtime and general Workflow engine.
 
-Agent workflow:
-1. Read the fanloop-workflow Skill before advancing a requirement.
-2. Run fanloop flow status --root <ABSOLUTE_REQUIREMENT_ROOT> immediately before acting.
+Current product workflows live in second-brain-agent/plugins and execute directly in Codex. This CLI continues
+existing pinned Requirements and runs synthetic Runtime fixtures.
+
+For an existing Requirement:
+1. Use its bound-release-home/current/bin/fanloop controller.
+2. Run flow status --root <ABSOLUTE_REQUIREMENT_ROOT> immediately before acting.
 3. Execute current.prompt and its required Skills from that latest Status.
-4. Read the target leaf command --help for its exact Request and controls.
-5. Report progress or a Condition result, then read flow status again.
+4. Report progress or a Condition result, then read flow status again.
 
-If flow status reports NOT_INITIALIZED, run flow init once and then read Status.`,
+Production routes are empty. Do not run flow init for a new product task.`,
 		Version:           buildinfo.CLIVersion,
 		SilenceErrors:     true,
 		SilenceUsage:      true,

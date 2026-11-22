@@ -5,8 +5,8 @@
 **Requirement**
 一次需要持续推进和审计的任务。事实保存在 Requirement 自己的 `.fanloop/`。
 
-**Live Workflow**
-second-brain-skills main 的 `fanloop-workflow/<workflow-id>/` 完整包。默认读取 config/current 指向的提交快照，flow init 刷新；已有流程离线读取。显式 FANLOOP_CONFIG_SOURCE 为作者仓库根并跳过刷新。五 YAML、子 Skills 与资源独立于 CLI Release。
+**Historical Workflow Snapshot**
+既有 Requirement 固定到自身 `.fanloop/configuration-snapshot` 的不可变 Bundle。当前生产产品流程已经迁到 `second-brain-agent/plugins/` 的 Codex 插件；历史快照只用于继续旧 Run 和合成 Runtime 测试，不再从远端补充新场景。
 
 **Configuration Snapshot**
 config/snapshots/<commit-sha>/ 下的不可变配置集合。configuration.json 固定仓库、ref、commit、Workflow IDs 与文件路径、内容、可执行位摘要。完整校验后才原子切换 current。
@@ -85,10 +85,7 @@ Dashboard 从当前 live 文件解析出的 allowlisted 相对路径与 1-based 
 ## 维护者验收
 
 **Maintainer Lifecycle**
-`fanloop-maintainer` 已退役（ADR-0135），Fanloop 代码维护改走 `code-change` Workflow；下文记录原四阶段闭环的验收原则，仍适用于代码变更。配置由当前 Agent 连续执行，普通配置自检，风险配置独立试用；代码或混合变更采用以下监督方式。用户先与主 Agent 对齐目录、目标、
-范围和验收标准；执行子 Agent持有 Requirement Root、最新 Status、Route 与受管实现。Define 冻结 Acceptance
-Set 与 Feature Impact Set；Build 持续实现、运行、诊断和修复；Certify 冻结 HEAD/tree/binary 并完成独立
-Review、黑盒验证和主 Agent最终决定。
+当前代码维护不再通过 Fanloop Workflow，而是在任务 worktree 中直接执行并运行 `./tests/run-unit`；用户可见行为按 `.cursor/skills/verify-fanloop/SKILL.md` 使用隔离候选验证。下文的独立验收和唯一 PR 原则保留，但不再要求创建 Requirement、执行 `flow init` 或绑定旧 `code-change` 包。
 
 **Agent Acceptance / Delivery**
 冻结候选安装到一次性 `FANLOOP_DATA_HOME`，不切换全局 current。全新 Sub-agent 只使用隔离 CLI、叶子 Help、
