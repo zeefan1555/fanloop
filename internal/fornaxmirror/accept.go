@@ -263,13 +263,20 @@ func copyWorkflowTree(source, destination string, wrapper []byte) error {
 		if relative == "SKILL.md" {
 			sawSkill = true
 		}
-		return os.WriteFile(target, content, mode)
+		if err := os.WriteFile(target, content, mode); err != nil {
+			return err
+		}
+		return os.Chmod(target, mode)
 	})
 	if err != nil {
 		return err
 	}
 	if !sawSkill {
-		if err = os.WriteFile(filepath.Join(destination, "SKILL.md"), wrapper, 0444); err != nil {
+		skillPath := filepath.Join(destination, "SKILL.md")
+		if err = os.WriteFile(skillPath, wrapper, 0444); err != nil {
+			return err
+		}
+		if err = os.Chmod(skillPath, 0444); err != nil {
 			return err
 		}
 	}

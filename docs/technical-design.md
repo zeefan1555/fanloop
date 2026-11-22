@@ -69,7 +69,7 @@ Manifest 的本地 Release；标准输出是构建目录的绝对路径。`skill
 `local-*` 目录。
 
 Release Manifest schema 4 以 `cli.binary_sha256` 校验本机二进制，同时固定版本、Storage Schema 支持与
-两个 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
+`fanloop-workflow` 兼容 Skill 的 SHA-256；没有 Workflow artifact 或平台归档。`./scripts/install-local.sh [OUTPUT_DIR]` 构建后
 复用目录安装，离线切换 CLI Release；显式配置源导入干净提交快照，否则保留已有配置。
 
 `flow init` 默认在稳定锁内用 HTTPS 拉取 `https://github.com/zeefan1555/second-brain-skills.git` 的 `main`，即使存在 `fornax.json`。HTTPS 尝试为 15 秒且不提示输入凭据；失败时同一次操作回退一次 SSH 地址。`configuration.json` 记录实际成功的地址。已有快照按 commit 复用。见 [ADR-0141](./adr/0141-https-config-remote-with-ssh-fallback.md)。Git 或网络失败不替换 `config/current`；已有快照时继续使用它，没有快照时初始化失败。`FANLOOP_USE_FORNAX=1` 才让 init 使用 Fornax 快照，目录名是排序后 `key@version` 行的 sha256。显式 `FANLOOP_CONFIG_SOURCE` 指向作者仓库根并跳过刷新。完整包目录是 `fanloop-workflow/<id>`。配置校验失败不创建 Requirement，也不替换 current。新 Requirement 把快照目录写到 `.fanloop/configuration-snapshot`。
